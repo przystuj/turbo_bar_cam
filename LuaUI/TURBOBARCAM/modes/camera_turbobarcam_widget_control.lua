@@ -46,7 +46,6 @@ function WidgetControl.enable()
         rx = math.pi, -- Slightly tilted for better perspective
     }
     Spring.SetCameraState(camStatePatch, 0.5)
-    STATE.turboOverview.height = viewHeight
 
     STATE.enabled = true
     Util.debugEcho("TURBOBARCAM enabled - camera centered on map")

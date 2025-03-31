@@ -17,7 +17,6 @@ local CONFIG_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua"
 local MODES_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_modes.lua"
 local UTILS_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua"
 
-
 -- Load modules
 ---@type {CONFIG: CONFIG, STATE: STATE}
 local TurboConfig = VFS.Include(CONFIG_PATH)
@@ -254,121 +253,150 @@ function widget:Initialize()
     STATE.enabled = false
 
     widgetHandler.actionHandler:AddAction(self, "toggle_camera_suite", function()
-        return WidgetControl.toggle()
+        WidgetControl.toggle()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "set_smooth_camera_anchor", function(_, index)
-        return CameraAnchor.set(index)
+        CameraAnchor.set(index)
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "focus_smooth_camera_anchor", function(_, index)
-        return CameraAnchor.focus(index)
+        CameraAnchor.focus(index)
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "decrease_smooth_camera_duration", function()
         CameraAnchor.adjustDuration(-1)
+        return true
     end, nil, 'p')
 
     widgetHandler.actionHandler:AddAction(self, "increase_smooth_camera_duration", function()
         CameraAnchor.adjustDuration(1)
+        return true
     end, nil, 'p')
 
     widgetHandler.actionHandler:AddAction(self, "toggle_fps_camera", function()
-        return FPSCamera.toggle()
-    end, nil, 'tp')
+        FPSCamera.toggle()
+        return true
+    end, nil, 'p+t')
 
     widgetHandler.actionHandler:AddAction(self, "fps_height_offset_up", function()
         FPSCamera.adjustOffset("height", 10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_height_offset_down", function()
         FPSCamera.adjustOffset("height", -10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_forward_offset_up", function()
         FPSCamera.adjustOffset("forward", 10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_forward_offset_down", function()
         FPSCamera.adjustOffset("forward", -10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_side_offset_right", function()
         FPSCamera.adjustOffset("side", 10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_side_offset_left", function()
         FPSCamera.adjustOffset("side", -10)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_rotation_right", function()
         FPSCamera.adjustRotationOffset(0.1)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_rotation_left", function()
         FPSCamera.adjustRotationOffset(-0.1)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "fps_toggle_free_cam", function()
         FPSCamera.toggleFreeCam()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "fps_reset_defaults", function()
         FPSCamera.resetOffsets()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "clear_fixed_look_point", function()
         FPSCamera.clearFixedLookPoint()
+        return true
     end, nil, 'tp')
 
     -- Register Tracking Camera command
     widgetHandler.actionHandler:AddAction(self, "toggle_tracking_camera", function()
-        return TrackingCamera.toggle()
+        TrackingCamera.toggle()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "focus_anchor_and_track", function(_, index)
-        return CameraAnchor.focusAndTrack(index)
+        CameraAnchor.focusAndTrack(index)
+        return true
     end, nil, 'tp')
 
     -- Register Orbiting Camera commands
     widgetHandler.actionHandler:AddAction(self, "toggle_orbiting_camera", function()
         OrbitingCamera.toggle()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "orbit_speed_up", function()
         OrbitingCamera.adjustSpeed(0.0001)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "orbit_speed_down", function()
         OrbitingCamera.adjustSpeed(-0.0001)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "orbit_reset_defaults", function()
         OrbitingCamera.resetSettings()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "spec_unit_group", function(_, params)
-        return SpecGroups.handleCommand(params)
+        SpecGroups.handleCommand(params)
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "toggle_turbo_overview", function()
         TurboOverviewCamera.toggle()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_toggle_zoom", function()
         TurboOverviewCamera.toggleZoom()
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_set_zoom", function(_, level)
         TurboOverviewCamera.setZoomLevel(level)
+        return true
     end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_up", function()
         TurboOverviewCamera.adjustSmoothing(0.01)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_down", function()
         TurboOverviewCamera.adjustSmoothing(-0.01)
+        return true
     end, nil, 'pR')
 
     widgetHandler.actionHandler:AddAction(self, "turbobarcam_toggle_debug", function()
