@@ -36,8 +36,8 @@ function FPSCamera.toggle(unitID)
         return
     end
 
-    -- If we're already tracking this exact unit in FPS mode, turn it off
-    if STATE.tracking.mode == 'fps' and STATE.tracking.unitID == unitID then
+    -- If we're already tracking this exact unit in FPS mode or fixed point mode, turn it off
+    if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID == unitID then
         -- Save current offsets before disabling
         STATE.tracking.unitOffsets[unitID] = {
             height = CONFIG.FPS.HEIGHT_OFFSET,
@@ -46,6 +46,10 @@ function FPSCamera.toggle(unitID)
             rotation = CONFIG.FPS.ROTATION_OFFSET
         }
 
+        -- Make sure fixed point tracking is cleared when turning off FPS camera
+        STATE.tracking.fixedPoint = nil
+        STATE.tracking.targetUnitID = nil
+
         Util.disableTracking()
         Spring.Echo("FPS camera detached")
         return
@@ -53,6 +57,10 @@ function FPSCamera.toggle(unitID)
 
     -- Otherwise we're either starting fresh or switching units
     Spring.Echo("FPS camera attached to unit " .. unitID)
+
+    -- Clear any existing fixed point tracking when starting a new FPS camera
+    STATE.tracking.fixedPoint = nil
+    STATE.tracking.targetUnitID = nil
 
     -- Check if we have stored offsets for this unit
     if STATE.tracking.unitOffsets[unitID] then
@@ -83,9 +91,6 @@ function FPSCamera.toggle(unitID)
         Spring.Echo("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
     end
 
-    -- Disable fixed point tracking if active
-    STATE.tracking.fixedPoint = nil
-
     -- Begin mode transition from previous mode to FPS mode
     Util.beginModeTransition('fps')
     STATE.tracking.unitID = unitID
@@ -109,13 +114,19 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
+    if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
         Spring.Echo("Fixed point tracking only works when in FPS mode")
         return false
     end
 
+    if not STATE.tracking.unitID then
+        Spring.Echo("No unit being tracked for fixed point camera")
+        return false
+    end
+
     local x, y, z
-    STATE.tracking.targetUnitID = nil -- Reset target unit ID
+    -- Reset target unit ID before processing new input
+    STATE.tracking.targetUnitID = nil
 
     -- Process different types of input
     if cmdParams then
@@ -145,14 +156,14 @@ function FPSCamera.setFixedLookPoint(cmdParams)
         return false
     end
 
-    -- Set the fixed point
+    -- Set the fixed point (always overrides previous point)
     STATE.tracking.fixedPoint = {
         x = x,
         y = y,
         z = z
     }
 
-    -- Switch to fixed point mode
+    -- Switch to fixed point mode (even if already in fixed point mode)
     STATE.tracking.mode = 'fixed_point'
 
     if not STATE.tracking.targetUnitID then
