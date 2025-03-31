@@ -271,7 +271,7 @@ function Util.disableTracking()
 end
 
 function Util.debugEcho(message)
-    if CONFIG.DEBUG then
+    if STATE.DEBUG then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end

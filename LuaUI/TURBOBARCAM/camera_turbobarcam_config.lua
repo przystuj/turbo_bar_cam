@@ -11,12 +11,13 @@ local TurboModule = {}
 -- Only initialize CONFIG if it doesn't exist in WG already
 if not WG.TURBOBARCAM.CONFIG then
     ---@class CONFIG
-    ---@field COMMANDS table Commands settings
-    ---@field TRANSITION table Transition settings
-    ---@field FPS table FPS camera settings
-    ---@field SMOOTHING table Smoothing settings
-    ---@field ORBIT table Orbit camera settings
-    ---@field SPEC_GROUPS table Spectator groups settings
+    ---@field TURBO_OVERVIEW {DEFAULT_HEIGHT_FACTOR: number, DEFAULT_SMOOTHING: number, DEFAULT_ZOOM_LEVEL: number, ZOOM_LEVELS: number[]} Turbo overview settings
+    ---@field COMMANDS {SET_FIXED_LOOK_POINT: number} Commands settings
+    ---@field TRANSITION {DURATION: number, MIN_DURATION: number, STEPS_PER_SECOND: number} Transition settings
+    ---@field FPS {DEFAULT_HEIGHT_OFFSET: number, DEFAULT_FORWARD_OFFSET: number, DEFAULT_SIDE_OFFSET: number, DEFAULT_ROTATION_OFFSET: number, ROTATION_OFFSET: number, HEIGHT_OFFSET: number, FORWARD_OFFSET: number, SIDE_OFFSET: number} FPS camera settings
+    ---@field SMOOTHING {POSITION_FACTOR: number, ROTATION_FACTOR: number, FPS_FACTOR: number, TRACKING_FACTOR: number, MODE_TRANSITION_FACTOR: number, FREE_CAMERA_FACTOR: number} Smoothing settings
+    ---@field ORBIT {DEFAULT_HEIGHT_FACTOR: number, DEFAULT_DISTANCE: number, DEFAULT_SPEED: number, HEIGHT: number|nil, DISTANCE: number, SPEED: number, AUTO_ORBIT_DELAY: number, AUTO_ORBIT_ENABLED: boolean, AUTO_ORBIT_SMOOTHING_FACTOR: number} Orbit camera settings
+    ---@field SPEC_GROUPS {ENABLED: boolean, MAX_GROUPS: number} Spectator groups settings
     WG.TURBOBARCAM.CONFIG = {
 
         TURBO_OVERVIEW = {
@@ -82,13 +83,15 @@ if not WG.TURBOBARCAM.STATE then
     ---@class STATE
     ---@field enabled boolean Whether the widget is enabled
     ---@field originalCameraState table|nil Original camera state before enabling
+    ---@field DEBUG boolean Whether debug mode is enabled
     ---@field anchors table<number, table> Camera anchor states
     ---@field lastUsedAnchor number|nil Last used camera anchor index
-    ---@field transition table Camera transition state
-    ---@field tracking table Unit tracking state
-    ---@field delayed table Delayed action state
-    ---@field orbit table Orbit camera state
-    ---@field specGroups table Spectator groups state
+    ---@field transition {active: boolean, startTime: any, steps: table[], currentStepIndex: number, currentAnchorIndex: number|nil} Camera transition state
+    ---@field tracking {mode: string|nil, unitID: number|nil, targetUnitID: number|nil, inFreeCameraMode: boolean, inTargetSelectionMode: boolean, prevFreeCamState: boolean, prevMode: string|nil, prevFixedPoint: table|nil, graceTimer: any, lastUnitID: number|nil, unitOffsets: table, fixedPoint: table|nil, lastUnitPos: {x: number, y: number, z: number}, lastCamPos: {x: number, y: number, z: number}, lastCamDir: {x: number, y: number, z: number}, lastRotation: {rx: number, ry: number, rz: number}, prevMode: string|nil, modeTransition: boolean, transitionStartState: table|nil, transitionStartTime: any, freeCam: {lastMouseX: number|nil, lastMouseY: number|nil, targetRx: number|nil, targetRy: number|nil, mouseMoveSensitivity: number, lastUnitHeading: number|nil}} Unit tracking state
+    ---@field delayed {frame: number|nil, callback: function|nil} Delayed action state
+    ---@field orbit {angle: number, lastPosition: table|nil, stationaryTimer: any, autoOrbitActive: boolean, unitOffsets: table, originalTransitionFactor: number|nil} Orbit camera state
+    ---@field specGroups {groups: table, isSpectator: boolean} Spectator groups state
+    ---@field turboOverview {height: number|nil, zoomLevel: number, zoomLevels: number[], movementSmoothing: number, lastCursorWorldPos: {x: number, y: number, z: number}, fixedCamPos: {x: number, y: number, z: number}, targetPos: {x: number, y: number, z: number}, movingToTarget: boolean, targetRx: number, targetRy: number, lastMouseX: number|nil, lastMouseY: number|nil, mouseMoveSensitivity: number} Turbo overview camera state
     WG.TURBOBARCAM.STATE = {
         -- Widget state
         enabled = false,
@@ -171,8 +174,21 @@ if not WG.TURBOBARCAM.STATE then
             height = nil, -- Will be set dynamically based on map size
             zoomLevel = 1, -- Current zoom level index
             zoomLevels = {1, 2, 4}, -- Available zoom levels (multipliers)
-            smoothing = 0.01, -- Smoothing factor for cursor following
+            movementSmoothing = 0.05, -- Smoothing factor for movement to target
+            initialMovementSmoothing = 0.01, -- Initial (slower) smoothing factor for movement
+            zoomTransitionFactor = 0.04, -- How fast zoom transitions occur
+            targetHeight = nil, -- Target height for smooth zoom transitions
+            inZoomTransition = false, -- Whether currently in a zoom transition
             lastCursorWorldPos = {x = 0, y = 0, z = 0}, -- Last cursor world position
+            fixedCamPos = {x = 0, y = 0, z = 0}, -- Fixed camera position
+            targetPos = {x = 0, y = 0, z = 0}, -- Target position to move to
+            movingToTarget = false, -- Whether currently moving to target
+            moveStartTime = nil, -- When movement to target started (for acceleration)
+            targetRx = 0, -- Target pitch rotation
+            targetRy = 0, -- Target yaw rotation
+            lastMouseX = nil, -- Last mouse X position for rotation calculation
+            lastMouseY = nil, -- Last mouse Y position for rotation calculation
+            mouseMoveSensitivity = 0.003, -- How sensitive rotation is to mouse movement
         },
     }
 end

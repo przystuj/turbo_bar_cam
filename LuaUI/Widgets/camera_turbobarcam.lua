@@ -405,6 +405,13 @@ function widget:Initialize()
         return true
     end, nil)
 
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_movement", function()
+        if STATE.tracking.mode == 'turbo_overview' then
+            TurboOverviewCamera.moveToPoint()
+        end
+        return true
+    end, nil, 'pt')
+
     Spring.I18N.load({
         en = {
             ["ui.orderMenu.set_fixed_look_point"] = "Look point",
