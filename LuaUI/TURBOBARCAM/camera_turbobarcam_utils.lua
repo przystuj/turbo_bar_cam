@@ -1,6 +1,6 @@
 -- Import configuration
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_config.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
 

@@ -3,19 +3,19 @@
 
 -- Import all mode modules
 ---@type {WidgetControl: WidgetControl}
-local WidgetControlModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/widget_control.lua")
+local WidgetControlModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_widget_control.lua")
 ---@type {CameraTransition: CameraTransition}
-local CameraTransitionModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/camera_transition.lua")
+local CameraTransitionModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_transition.lua")
 ---@type {FPSCamera: FPSCamera}
-local FPSCameraModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/fps_camera.lua")
+local FPSCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_fps.lua")
 ---@type {TrackingCamera: TrackingCamera}
-local TrackingCameraModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/tracking_camera.lua")
+local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_tracking.lua")
 ---@type {OrbitingCamera: OrbitingCamera}
-local OrbitingCameraModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/orbiting_camera.lua")
+local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_orbiting.lua")
 ---@type {CameraAnchor: CameraAnchor}
-local CameraAnchorModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/camera_anchor.lua")
+local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_anchor.lua")
 ---@type {SpecGroups: SpecGroups}
-local SpecGroupsModule = VFS.Include("LuaUI/Widgets/TURBOBARCAM/modes/spec_groups.lua")
+local SpecGroupsModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_spec_groups.lua")
 
 -- Export all camera mode modules
 return {

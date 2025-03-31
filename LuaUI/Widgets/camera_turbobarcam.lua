@@ -7,15 +7,15 @@ function widget:GetInfo()
         license = "GNU GPL, v2 or later",
         layer = 0,
         enabled = true,
-        version = 0.5,
+        version = 1,
         handler = true,
     }
 end
 
 -- Include supporting files
-local CONFIG_PATH = "LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_config.lua"
-local MODES_PATH = "LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_modes.lua"
-local UTILS_PATH = "LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_utils.lua"
+local CONFIG_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua"
+local MODES_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_modes.lua"
+local UTILS_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua"
 
 -- Load modules
 ---@type {CONFIG: CONFIG, STATE: STATE}
