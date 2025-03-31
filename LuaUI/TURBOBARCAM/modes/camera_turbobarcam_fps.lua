@@ -28,7 +28,7 @@ FPSCamera.COMMAND_DEFINITION = {
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
 function FPSCamera.toggle(unitID)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
@@ -38,14 +38,14 @@ function FPSCamera.toggle(unitID)
         if #selectedUnits > 0 then
             unitID = selectedUnits[1]
         else
-            Spring.Echo("No unit selected for FPS view")
+            Util.debugEcho("No unit selected for FPS view")
             return
         end
     end
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Spring.Echo("Invalid unit ID for FPS view")
+        Util.debugEcho("Invalid unit ID for FPS view")
         return
     end
 
@@ -64,12 +64,12 @@ function FPSCamera.toggle(unitID)
         STATE.tracking.targetUnitID = nil
 
         Util.disableTracking()
-        Spring.Echo("FPS camera detached")
+        Util.debugEcho("FPS camera detached")
         return
     end
 
     -- Otherwise we're either starting fresh or switching units
-    Spring.Echo("FPS camera attached to unit " .. unitID)
+    Util.debugEcho("FPS camera attached to unit " .. unitID)
 
     -- Clear any existing fixed point tracking when starting a new FPS camera
     STATE.tracking.fixedPoint = nil
@@ -83,7 +83,7 @@ function FPSCamera.toggle(unitID)
         CONFIG.FPS.SIDE_OFFSET = STATE.tracking.unitOffsets[unitID].side
         CONFIG.FPS.ROTATION_OFFSET = STATE.tracking.unitOffsets[unitID].rotation or 0 -- Add rotation
 
-        Spring.Echo("Using previous camera offsets for unit " .. unitID)
+        Util.debugEcho("Using previous camera offsets for unit " .. unitID)
     else
         -- Get unit height for the default offset
         local unitHeight = Util.getUnitHeight(unitID)
@@ -101,7 +101,7 @@ function FPSCamera.toggle(unitID)
             rotation = CONFIG.FPS.ROTATION_OFFSET -- Add rotation
         }
 
-        Spring.Echo("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
+        Util.debugEcho("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
     end
 
     -- Begin mode transition from previous mode to FPS mode
@@ -122,18 +122,18 @@ end
 ---@return boolean success Whether fixed point was set successfully
 function FPSCamera.setFixedLookPoint(cmdParams)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return false
     end
 
     -- Only works if we're tracking a unit in FPS mode
     if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
-        Spring.Echo("Fixed point tracking only works when in FPS mode")
+        Util.debugEcho("Fixed point tracking only works when in FPS mode")
         return false
     end
 
     if not STATE.tracking.unitID then
-        Spring.Echo("No unit being tracked for fixed point camera")
+        Util.debugEcho("No unit being tracked for fixed point camera")
         return false
     end
 
@@ -150,7 +150,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
                 -- Store the target unit ID for continuous tracking
                 STATE.tracking.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
-                Spring.Echo("Camera will follow current unit but look at unit " .. unitID)
+                Util.debugEcho("Camera will follow current unit but look at unit " .. unitID)
             end
         elseif #cmdParams == 3 then
             -- Clicked on ground/feature
@@ -165,7 +165,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     if not x or not y or not z then
-        Spring.Echo("Could not find a valid position")
+        Util.debugEcho("Could not find a valid position")
         return false
     end
 
@@ -194,7 +194,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     if not STATE.tracking.targetUnitID then
-        Spring.Echo("Camera will follow unit but look at fixed point")
+        Util.debugEcho("Camera will follow unit but look at fixed point")
     end
 
     return true
@@ -245,7 +245,7 @@ function FPSCamera.checkFixedPointCommandActivation()
                 STATE.tracking.modeTransition = true
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-                Spring.Echo("Target selection mode activated - select a target to look at")
+                Util.debugEcho("Target selection mode activated - select a target to look at")
             end
             -- Case 2: Command deactivated - exiting target selection mode without setting a point
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.inTargetSelectionMode then
@@ -256,7 +256,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             if STATE.tracking.prevMode == 'fixed_point' and STATE.tracking.prevFixedPoint then
                 STATE.tracking.mode = 'fixed_point'
                 STATE.tracking.fixedPoint = STATE.tracking.prevFixedPoint
-                Spring.Echo("Target selection canceled, returning to fixed point view")
+                Util.debugEcho("Target selection canceled, returning to fixed point view")
             end
 
             -- Restore previous free camera state
@@ -267,7 +267,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             STATE.tracking.transitionStartTime = Spring.GetTimer()
 
             if STATE.tracking.prevMode == 'fps' then
-                Spring.Echo("Target selection canceled, returning to unit view")
+                Util.debugEcho("Target selection canceled, returning to unit view")
             end
         end
     end
@@ -279,7 +279,7 @@ end
 --- Clears fixed point tracking
 function FPSCamera.clearFixedLookPoint()
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
@@ -296,9 +296,9 @@ function FPSCamera.clearFixedLookPoint()
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
         if STATE.tracking.inFreeCameraMode then
-            Spring.Echo("Fixed point tracking disabled, maintaining free camera mode")
+            Util.debugEcho("Fixed point tracking disabled, maintaining free camera mode")
         else
-            Spring.Echo("Fixed point tracking disabled, returning to FPS mode")
+            Util.debugEcho("Fixed point tracking disabled, returning to FPS mode")
         end
     end
 end
@@ -311,7 +311,7 @@ function FPSCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Spring.Echo("Unit no longer exists, detaching FPS camera")
+        Util.debugEcho("Unit no longer exists, detaching FPS camera")
         Util.disableTracking()
         return
     end
@@ -550,13 +550,13 @@ end
 ---@param amount number Rotation adjustment in radians
 function FPSCamera.adjustRotationOffset(amount)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
-        Spring.Echo("No unit being tracked")
+        Util.debugEcho("No unit being tracked")
         return
     end
 
@@ -577,19 +577,19 @@ function FPSCamera.adjustRotationOffset(amount)
 
     -- Print the updated offsets with rotation in degrees for easier understanding
     local rotationDegrees = math.floor(CONFIG.FPS.ROTATION_OFFSET * 180 / math.pi)
-    Spring.Echo("Camera rotation offset for unit " .. STATE.tracking.unitID .. ": " .. rotationDegrees .. "°")
+    Util.debugEcho("Camera rotation offset for unit " .. STATE.tracking.unitID .. ": " .. rotationDegrees .. "°")
 end
 
 --- Toggles free camera mode
 function FPSCamera.toggleFreeCam()
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
     -- Only works if we're tracking a unit in FPS mode
     if (STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point') or not STATE.tracking.unitID then
-        Spring.Echo("Free camera only works when tracking a unit in FPS mode")
+        Util.debugEcho("Free camera only works when tracking a unit in FPS mode")
         return
     end
 
@@ -613,7 +613,7 @@ function FPSCamera.toggleFreeCam()
             STATE.tracking.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.tracking.unitID, true)
         end
 
-        Spring.Echo("Free camera mode enabled - use mouse to rotate view")
+        Util.debugEcho("Free camera mode enabled - use mouse to rotate view")
     else
         -- Clear tracking data when disabling
         STATE.tracking.freeCam.lastMouseX = nil
@@ -627,7 +627,7 @@ function FPSCamera.toggleFreeCam()
             FPSCamera.clearFixedLookPoint()
         end
 
-        Spring.Echo("Free camera mode disabled - view follows unit orientation")
+        Util.debugEcho("Free camera mode disabled - view follows unit orientation")
     end
 end
 
@@ -636,13 +636,13 @@ end
 ---@param amount number Amount to adjust the offset by
 function FPSCamera.adjustOffset(offsetType, amount)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
-        Spring.Echo("No unit being tracked")
+        Util.debugEcho("No unit being tracked")
         return
     end
 
@@ -669,16 +669,16 @@ function FPSCamera.adjustOffset(offsetType, amount)
     end
 
     -- Print the updated offsets
-    Spring.Echo("Camera offsets for unit " .. STATE.tracking.unitID .. ":")
-    Spring.Echo("  Height: " .. CONFIG.FPS.HEIGHT_OFFSET)
-    Spring.Echo("  Forward: " .. CONFIG.FPS.FORWARD_OFFSET)
-    Spring.Echo("  Side: " .. CONFIG.FPS.SIDE_OFFSET)
+    Util.debugEcho("Camera offsets for unit " .. STATE.tracking.unitID .. ":")
+    Util.debugEcho("  Height: " .. CONFIG.FPS.HEIGHT_OFFSET)
+    Util.debugEcho("  Forward: " .. CONFIG.FPS.FORWARD_OFFSET)
+    Util.debugEcho("  Side: " .. CONFIG.FPS.SIDE_OFFSET)
 end
 
 --- Resets camera offsets to default values
 function FPSCamera.resetOffsets()
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
@@ -699,13 +699,13 @@ function FPSCamera.resetOffsets()
             rotation = CONFIG.FPS.ROTATION_OFFSET -- Include rotation
         }
 
-        Spring.Echo("Reset camera offsets for unit " .. STATE.tracking.unitID .. " to defaults")
+        Util.debugEcho("Reset camera offsets for unit " .. STATE.tracking.unitID .. " to defaults")
     else
         CONFIG.FPS.HEIGHT_OFFSET = CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
         CONFIG.FPS.FORWARD_OFFSET = CONFIG.FPS.DEFAULT_FORWARD_OFFSET
         CONFIG.FPS.SIDE_OFFSET = CONFIG.FPS.DEFAULT_SIDE_OFFSET
         CONFIG.FPS.ROTATION_OFFSET = CONFIG.FPS.DEFAULT_ROTATION_OFFSET -- Reset rotation
-        Spring.Echo("FPS camera offsets reset to defaults")
+        Util.debugEcho("FPS camera offsets reset to defaults")
     end
 end
 

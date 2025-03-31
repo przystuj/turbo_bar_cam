@@ -15,7 +15,7 @@ local TrackingCamera = {}
 ---@return boolean success Always returns true for widget handler
 function TrackingCamera.toggle()
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return true
     end
 
@@ -25,9 +25,9 @@ function TrackingCamera.toggle()
         -- If no unit is selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'tracking_camera' then
             Util.disableTracking()
-            Spring.Echo("Tracking Camera disabled")
+            Util.debugEcho("Tracking Camera disabled")
         else
-            Spring.Echo("No unit selected for Tracking Camera")
+            Util.debugEcho("No unit selected for Tracking Camera")
         end
         return true
     end
@@ -37,12 +37,12 @@ function TrackingCamera.toggle()
     -- If we're already tracking this exact unit in tracking camera mode, turn it off
     if STATE.tracking.mode == 'tracking_camera' and STATE.tracking.unitID == selectedUnitID then
         Util.disableTracking()
-        Spring.Echo("Tracking Camera disabled")
+        Util.debugEcho("Tracking Camera disabled")
         return true
     end
 
     -- Otherwise we're either starting fresh or switching units
-    Spring.Echo("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
+    Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
 
     -- Get current camera state and ensure it's FPS mode
     local camState = Spring.GetCameraState()
@@ -67,7 +67,7 @@ function TrackingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Spring.Echo("Tracked unit no longer exists, disabling Tracking Camera")
+        Util.debugEcho("Tracked unit no longer exists, disabling Tracking Camera")
         Util.disableTracking()
         return
     end

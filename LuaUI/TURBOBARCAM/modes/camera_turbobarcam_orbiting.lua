@@ -15,7 +15,7 @@ local OrbitingCamera = {}
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
 function OrbitingCamera.toggle(unitID)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
@@ -25,14 +25,14 @@ function OrbitingCamera.toggle(unitID)
         if #selectedUnits > 0 then
             unitID = selectedUnits[1]
         else
-            Spring.Echo("No unit selected for Orbiting view")
+            Util.debugEcho("No unit selected for Orbiting view")
             return
         end
     end
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Spring.Echo("Invalid unit ID for Orbiting view")
+        Util.debugEcho("Invalid unit ID for Orbiting view")
         return
     end
 
@@ -44,7 +44,7 @@ function OrbitingCamera.toggle(unitID)
         }
 
         Util.disableTracking()
-        Spring.Echo("Orbiting camera detached")
+        Util.debugEcho("Orbiting camera detached")
         return
     end
 
@@ -55,7 +55,7 @@ function OrbitingCamera.toggle(unitID)
     if STATE.orbit.unitOffsets[unitID] then
         -- Use stored settings
         CONFIG.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
-        Spring.Echo("Using previous orbit speed for unit " .. unitID)
+        Util.debugEcho("Using previous orbit speed for unit " .. unitID)
     else
         -- Use default settings
         CONFIG.ORBIT.SPEED = CONFIG.ORBIT.DEFAULT_SPEED
@@ -93,7 +93,7 @@ function OrbitingCamera.toggle(unitID)
     }
     Spring.SetCameraState(camStatePatch, 0)
 
-    Spring.Echo("Orbiting camera attached to unit " .. unitID)
+    Util.debugEcho("Orbiting camera attached to unit " .. unitID)
 end
 
 --- Updates the orbit camera's position and rotation
@@ -104,7 +104,7 @@ function OrbitingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Spring.Echo("Unit no longer exists, detaching Orbiting camera")
+        Util.debugEcho("Unit no longer exists, detaching Orbiting camera")
         Util.disableTracking()
         return
     end
@@ -188,13 +188,13 @@ end
 ---@param amount number Amount to adjust orbit speed by
 function OrbitingCamera.adjustSpeed(amount)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
     -- Make sure we have a unit to orbit around
     if STATE.tracking.mode ~= 'orbit' or not STATE.tracking.unitID then
-        Spring.Echo("No unit being orbited")
+        Util.debugEcho("No unit being orbited")
         return
     end
 
@@ -210,13 +210,13 @@ function OrbitingCamera.adjustSpeed(amount)
     end
 
     -- Print the updated settings
-    Spring.Echo("Orbit speed for unit " .. STATE.tracking.unitID .. ": " .. CONFIG.ORBIT.SPEED)
+    Util.debugEcho("Orbit speed for unit " .. STATE.tracking.unitID .. ": " .. CONFIG.ORBIT.SPEED)
 end
 
 --- Resets orbit settings to defaults
 function OrbitingCamera.resetSettings()
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
@@ -230,9 +230,9 @@ function OrbitingCamera.resetSettings()
         end
         STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.ORBIT.SPEED
 
-        Spring.Echo("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
+        Util.debugEcho("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
     else
-        Spring.Echo("No unit being orbited")
+        Util.debugEcho("No unit being orbited")
     end
 end
 

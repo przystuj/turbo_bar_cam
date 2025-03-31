@@ -101,7 +101,7 @@ function widget:SelectionChanged(selectedUnits)
                 CONFIG.FPS.FORWARD_OFFSET = STATE.tracking.unitOffsets[unitID].forward
                 CONFIG.FPS.SIDE_OFFSET = STATE.tracking.unitOffsets[unitID].side
                 CONFIG.FPS.ROTATION_OFFSET = STATE.tracking.unitOffsets[unitID].rotation or CONFIG.FPS.DEFAULT_ROTATION_OFFSET
-                Spring.Echo("Camera switched to unit " .. unitID .. " with saved offsets")
+                Util.debugEcho("Camera switched to unit " .. unitID .. " with saved offsets")
             else
                 -- Get new default height for this unit
                 local unitHeight = Util.getUnitHeight(unitID)
@@ -119,10 +119,10 @@ function widget:SelectionChanged(selectedUnits)
                     rotation = CONFIG.FPS.ROTATION_OFFSET
                 }
 
-                Spring.Echo("Camera switched to unit " .. unitID .. " with new offsets")
+                Util.debugEcho("Camera switched to unit " .. unitID .. " with new offsets")
             end
         else
-            Spring.Echo("Tracking switched to unit " .. unitID)
+            Util.debugEcho("Tracking switched to unit " .. unitID)
         end
     end
 end
@@ -140,7 +140,7 @@ function widget:Update()
         -- If grace period expired (1 second), disable tracking
         if elapsed > 1.0 then
             Util.disableTracking()
-            Spring.Echo("Camera tracking disabled - no units selected (after grace period)")
+            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
         end
     end
 
@@ -368,7 +368,7 @@ function widget:Initialize()
         }
     })
 
-    Spring.Echo("TURBOBARCAM loaded but disabled. Use /toggle_camera_suite to enable.")
+    Util.debugEcho("TURBOBARCAM loaded but disabled. Use /toggle_camera_suite to enable.")
 end
 
 function widget:Shutdown()

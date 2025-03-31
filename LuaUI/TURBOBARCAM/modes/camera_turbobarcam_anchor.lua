@@ -21,7 +21,7 @@ local CameraAnchor = {}
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.set(index)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return true
     end
 
@@ -32,7 +32,7 @@ function CameraAnchor.set(index)
         currentState.mode = 0
         currentState.name = "fps"
         STATE.anchors[index] = currentState
-        Spring.Echo("Saved camera anchor: " .. index)
+        Util.echo("Saved camera anchor: " .. index)
     end
     return true
 end
@@ -42,7 +42,7 @@ end
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focus(index)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return true
     end
 
@@ -64,14 +64,14 @@ function CameraAnchor.focus(index)
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
         STATE.transition.active = false
         STATE.transition.currentAnchorIndex = nil
-        Spring.Echo("Transition canceled")
+        Util.debugEcho("Transition canceled")
         return true
     end
 
     -- Cancel any in-progress transition when starting a new one
     if STATE.transition.active then
         STATE.transition.active = false
-        Spring.Echo("Canceled previous transition")
+        Util.debugEcho("Canceled previous transition")
     end
 
     -- Check if we should do an instant transition (duration = 0)
@@ -82,14 +82,14 @@ function CameraAnchor.focus(index)
         targetState.mode = 0
         targetState.name = "fps"
         Spring.SetCameraState(targetState, 0)
-        Spring.Echo("Instantly jumped to camera anchor: " .. index)
+        Util.debugEcho("Instantly jumped to camera anchor: " .. index)
         return true
     end
 
     -- Start transition
     CameraTransition.start(STATE.anchors[index], CONFIG.TRANSITION.DURATION)
     STATE.transition.currentAnchorIndex = index
-    Spring.Echo("Loading camera anchor: " .. index)
+    Util.debugEcho("Loading camera anchor: " .. index)
     return true
 end
 
@@ -97,16 +97,16 @@ end
 ---@param amount number Amount to adjust transition duration by
 function CameraAnchor.adjustDuration(amount)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return
     end
 
     CONFIG.TRANSITION.DURATION = math.max(CONFIG.TRANSITION.MIN_DURATION, CONFIG.TRANSITION.DURATION + amount)
 
     if CONFIG.TRANSITION.DURATION == 0 then
-        Spring.Echo("Transition duration: INSTANT")
+        Util.debugEcho("Transition duration: INSTANT")
     else
-        Spring.Echo("Transition duration: " .. CONFIG.TRANSITION.DURATION .. "s")
+        Util.debugEcho("Transition duration: " .. CONFIG.TRANSITION.DURATION .. "s")
     end
 end
 
@@ -115,13 +115,13 @@ end
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focusAndTrack(index)
     if not STATE.enabled then
-        Spring.Echo("TURBOBARCAM must be enabled first")
+        Util.debugEcho("TURBOBARCAM must be enabled first")
         return true
     end
 
     index = tonumber(index)
     if not (index and index >= 0 and index <= 9 and STATE.anchors[index]) then
-        Spring.Echo("Invalid or unset camera anchor: " .. (index or "nil"))
+        Util.debugEcho("Invalid or unset camera anchor: " .. (index or "nil"))
         return true
     end
 
@@ -131,14 +131,14 @@ function CameraAnchor.focusAndTrack(index)
     -- Get the selected unit to track
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
-        Spring.Echo("No unit selected for tracking during anchor transition")
+        Util.debugEcho("No unit selected for tracking during anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
 
     local unitID = selectedUnits[1]
     if not Spring.ValidUnitID(unitID) then
-        Spring.Echo("Invalid unit for tracking during anchor transition")
+        Util.debugEcho("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
@@ -146,7 +146,7 @@ function CameraAnchor.focusAndTrack(index)
     -- Cancel any in-progress transitions
     if STATE.transition.active then
         STATE.transition.active = false
-        Spring.Echo("Canceled previous transition")
+        Util.debugEcho("Canceled previous transition")
     end
 
     -- Disable any existing tracking modes to avoid conflicts
@@ -199,7 +199,7 @@ function CameraAnchor.focusAndTrack(index)
     STATE.tracking.lastCamDir = { x = 0, y = 0, z = 0 }
     STATE.tracking.lastRotation = { rx = 0, ry = 0, rz = 0 }
 
-    Spring.Echo("Moving to anchor " .. index .. " while tracking unit " .. unitID)
+    Util.debugEcho("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true
 end
 

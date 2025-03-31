@@ -85,6 +85,7 @@ if not WG.TURBOBARCAM.STATE then
         -- Widget state
         enabled = false,
         originalCameraState = nil,
+        DEBUG = false,
 
         -- Anchors
         anchors = {},

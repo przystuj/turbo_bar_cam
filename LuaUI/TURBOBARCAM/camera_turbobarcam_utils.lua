@@ -31,7 +31,7 @@ end
 --- Logs a value to console
 ---@param o any Value to log
 function Util.log(o)
-    Spring.Echo(Util.dump(o))
+    Util.debugEcho(Util.dump(o))
 end
 
 --- Creates a deep copy of a table
@@ -268,6 +268,24 @@ function Util.disableTracking()
     STATE.tracking.freeCam.targetRx = nil
     STATE.tracking.freeCam.targetRy = nil
     STATE.tracking.freeCam.lastUnitHeading = nil
+end
+
+function Util.debugEcho(message)
+    if CONFIG.DEBUG then
+        if type(message) ~= "string" then
+            message = Util.dump(message)
+        end
+        Spring.Echo("[TURBOBARCAM] " .. message)
+    end
+end
+
+--- Regular echo function that always prints regardless of debug mode
+---@param message string|any Message to print to console
+function Util.echo(message)
+    if type(message) ~= "string" then
+        message = Util.dump(message)
+    end
+    Spring.Echo("[TURBOBARCAM] " .. message)
 end
 
 -- Export to global scope

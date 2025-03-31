@@ -1,9 +1,12 @@
 -- Spectator Groups module for TURBOBARCAM
 ---@type {CONFIG: CONFIG, STATE: STATE}
 local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
+---@type {Util: Util}
+local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
+local Util = TurboUtils.Util
 
 ---@class SpecGroups
 local SpecGroups = {}
@@ -26,27 +29,27 @@ function SpecGroups.set(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Spring.Echo("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Util.debugEcho("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Check if we're in spectator mode
     if not SpecGroups.checkSpectatorStatus() then
-        Spring.Echo("Spectator unit groups only available when spectating")
+        Util.debugEcho("Spectator unit groups only available when spectating")
         return false
     end
 
     -- Get currently selected units
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
-        Spring.Echo("No units selected to add to group " .. groupNum)
+        Util.debugEcho("No units selected to add to group " .. groupNum)
         return false
     end
 
     -- Store the selected units in the group
     STATE.specGroups.groups[groupNum] = selectedUnits
 
-    Spring.Echo("Added " .. #selectedUnits .. " units to spectator group " .. groupNum)
+    Util.debugEcho("Added " .. #selectedUnits .. " units to spectator group " .. groupNum)
     return true
 end
 
@@ -59,19 +62,19 @@ function SpecGroups.select(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Spring.Echo("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Util.debugEcho("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Check if we're in spectator mode
     if not SpecGroups.checkSpectatorStatus() then
-        Spring.Echo("Spectator unit groups only available when spectating")
+        Util.debugEcho("Spectator unit groups only available when spectating")
         return false
     end
 
     -- Check if the group exists
     if not STATE.specGroups.groups[groupNum] or #STATE.specGroups.groups[groupNum] == 0 then
-        Spring.Echo("Spectator group " .. groupNum .. " is empty")
+        Util.debugEcho("Spectator group " .. groupNum .. " is empty")
         return false
     end
 
@@ -88,14 +91,14 @@ function SpecGroups.select(groupNum)
 
     -- If no valid units remain, report it
     if #validUnits == 0 then
-        Spring.Echo("No valid units remain in spectator group " .. groupNum)
+        Util.debugEcho("No valid units remain in spectator group " .. groupNum)
         return false
     end
 
     -- Select the units
     Spring.SelectUnitArray(validUnits)
 
-    Spring.Echo("Selected " .. #validUnits .. " units from spectator group " .. groupNum)
+    Util.debugEcho("Selected " .. #validUnits .. " units from spectator group " .. groupNum)
     return true
 end
 
@@ -108,14 +111,14 @@ function SpecGroups.clear(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Spring.Echo("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Util.debugEcho("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Clear the group
     STATE.specGroups.groups[groupNum] = {}
 
-    Spring.Echo("Cleared spectator group " .. groupNum)
+    Util.debugEcho("Cleared spectator group " .. groupNum)
     return true
 end
 
@@ -125,14 +128,14 @@ end
 function SpecGroups.handleCommand(params)
     local action, groupNum = params:match("(%a+)%s+(%d+)")
     if not action or not groupNum then
-        Spring.Echo("Usage: /spec_unit_group [set|select|clear] [1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS .. "]")
+        Util.debugEcho("Usage: /spec_unit_group [set|select|clear] [1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS .. "]")
         return true
     end
 
     groupNum = tonumber(groupNum)
 
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Spring.Echo("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Util.debugEcho("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return true
     end
 
@@ -143,7 +146,7 @@ function SpecGroups.handleCommand(params)
     elseif action == "clear" then
         SpecGroups.clear(groupNum)
     else
-        Spring.Echo("Unknown action. Use 'set', 'select', or 'clear'")
+        Util.debugEcho("Unknown action. Use 'set', 'select', or 'clear'")
     end
 
     return true
