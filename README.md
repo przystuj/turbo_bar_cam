@@ -1,11 +1,10 @@
-# Tactical Ultra-Responsive Rotation & Brilliant Optics for BAR Camera   
-### (TURBOBARCAM)
+# Tactical Ultra-Responsive Rotation & Brilliant Optics for BAR Camera (TURBO_BAR_CAM)
 
 An advanced camera control suite for Beyond All Reason, featuring smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and fixed point tracking.
 
 ## Overview
 
-TURBOBARCAM provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
+TURBO_BAR_CAM provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
 
 ## Features
 
@@ -18,9 +17,22 @@ TURBOBARCAM provides a comprehensive camera control system with multiple special
 - **Spectator Tools**: Group and select units when spectating
 - **Auto-orbit**: Automatically transition to orbit view when units are stationary
 
+## How to install
+- Download turbo_bar_cam_vX.zip
+- Extract it in data folder 
+- It should look like this after extracting:
+```
+BAR install folder/
+└── data/
+    └── LuaUI/
+        ├── Widgets/
+        └── TURBOBARCAM/
+```
+-- enable "Tactical Ultra-Responsive Rotation & Brilliant Optics for BAR Camera" in-game
+
 ## Getting Started
 
-By default, TURBOBARCAM is loaded but disabled. To enable it:
+By default, TURBO_BAR_CAM is loaded but disabled. To enable it:
 
 ```
 /toggle_camera_suite
@@ -32,9 +44,9 @@ Once enabled, the camera will center on the map and switch to FPS mode. Now you 
 
 ### Widget Control
 
-| Command | Description |
-|---------|-------------|
-| `/toggle_camera_suite` | Enable or disable the TURBOBARCAM widget |
+| Command | Description                                |
+|---------|--------------------------------------------|
+| `/toggle_camera_suite` | Enable or disable the TURBO_BAR_CAM widget |
 
 ### Camera Anchors
 
@@ -149,7 +161,7 @@ When enabled, auto-orbit automatically transitions from FPS mode to orbiting whe
 
 ## Spectator Features
 
-TURBOBARCAM includes special features for spectators, including the ability to create and manage unit groups. While spectators cannot directly control units, this feature allows for quickly switching between tracked units without having to find them on the map again.
+TURBO_BAR_CAM includes special features for spectators, including the ability to create and manage unit groups. While spectators cannot directly control units, this feature allows for quickly switching between tracked units without having to find them on the map again.
 
 **Usage Example**:
 1. When spectating, select units you want to track frequently
@@ -173,7 +185,7 @@ The widget comes with sensible defaults, but you can modify many settings in the
 
 ## Acknowledgments
 
-TURBOBARCAM was created by [SuperKitowiec](https://www.youtube.com/@superkitowiec2) for the Beyond All Reason community.
+TURBO_BAR_CAM was created by [SuperKitowiec](https://www.youtube.com/@superkitowiec2) for the Beyond All Reason community.
 
 
 ---
