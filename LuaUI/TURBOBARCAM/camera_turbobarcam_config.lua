@@ -18,6 +18,14 @@ if not WG.TURBOBARCAM.CONFIG then
     ---@field ORBIT table Orbit camera settings
     ---@field SPEC_GROUPS table Spectator groups settings
     WG.TURBOBARCAM.CONFIG = {
+
+        TURBO_OVERVIEW = {
+            DEFAULT_HEIGHT_FACTOR = 0.1, -- Default height as a factor of map diagonal
+            DEFAULT_SMOOTHING = 0.05, -- Default smoothing factor
+            DEFAULT_ZOOM_LEVEL = 1, -- Default zoom level index
+            ZOOM_LEVELS = {1, 2, 4}, -- Available zoom levels (multipliers)
+        },
+
         COMMANDS = {
             SET_FIXED_LOOK_POINT = 455625,
         },
@@ -157,6 +165,14 @@ if not WG.TURBOBARCAM.STATE then
         specGroups = {
             groups = {}, -- Will store unit IDs for each group (1-9)
             isSpectator = false -- Tracks if we're currently spectating
+        },
+
+        turboOverview = {
+            height = nil, -- Will be set dynamically based on map size
+            zoomLevel = 1, -- Current zoom level index
+            zoomLevels = {1, 2, 4}, -- Available zoom levels (multipliers)
+            smoothing = 0.01, -- Smoothing factor for cursor following
+            lastCursorWorldPos = {x = 0, y = 0, z = 0}, -- Last cursor world position
         },
     }
 end

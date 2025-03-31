@@ -17,10 +17,11 @@ local CONFIG_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua"
 local MODES_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_modes.lua"
 local UTILS_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua"
 
+
 -- Load modules
 ---@type {CONFIG: CONFIG, STATE: STATE}
 local TurboConfig = VFS.Include(CONFIG_PATH)
----@type {WidgetControl: WidgetControl, CameraTransition: CameraTransition, FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor, SpecGroups: SpecGroups}
+---@type {WidgetControl: WidgetControl, CameraTransition: CameraTransition, FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor, SpecGroups: SpecGroups, TurboOverviewCamera: TurboOverviewCamera}
 local TurboModes = VFS.Include(MODES_PATH)
 ---@type {Util: Util}
 local TurboUtils = VFS.Include(UTILS_PATH)
@@ -36,17 +37,7 @@ local TrackingCamera = TurboModes.TrackingCamera
 local OrbitingCamera = TurboModes.OrbitingCamera
 local CameraAnchor = TurboModes.CameraAnchor
 local SpecGroups = TurboModes.SpecGroups
-
--- Command definition for setting fixed look point
-local CMD_SET_FIXED_LOOK_POINT = 455625
-local CMD_SET_FIXED_LOOK_POINT_DEFINITION = {
-    id = CMD_SET_FIXED_LOOK_POINT,
-    type = CMDTYPE.ICON_UNIT_OR_MAP,
-    name = 'Set Fixed Look Point',
-    tooltip = 'Click on a location to focus camera on while following unit',
-    cursor = 'settarget',
-    action = 'set_fixed_look_point',
-}
+local TurboOverviewCamera = TurboModes.TurboOverviewCamera
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -243,6 +234,8 @@ function widget:Update()
             TrackingCamera.update()
         elseif STATE.tracking.mode == 'orbit' then
             OrbitingCamera.update()
+        elseif STATE.tracking.mode == 'turbo_overview' then
+            TurboOverviewCamera.update()
         end
     end
 
@@ -260,19 +253,17 @@ function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
 
-    -- Register widget control command
     widgetHandler.actionHandler:AddAction(self, "toggle_camera_suite", function()
         return WidgetControl.toggle()
-    end, nil, 'p')
+    end, nil, 'tp')
 
-    -- Register camera anchor commands
     widgetHandler.actionHandler:AddAction(self, "set_smooth_camera_anchor", function(_, index)
         return CameraAnchor.set(index)
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "focus_smooth_camera_anchor", function(_, index)
         return CameraAnchor.focus(index)
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "decrease_smooth_camera_duration", function()
         CameraAnchor.adjustDuration(-1)
@@ -282,10 +273,9 @@ function widget:Initialize()
         CameraAnchor.adjustDuration(1)
     end, nil, 'p')
 
-    -- Register FPS camera commands
     widgetHandler.actionHandler:AddAction(self, "toggle_fps_camera", function()
         return FPSCamera.toggle()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "fps_height_offset_up", function()
         FPSCamera.adjustOffset("height", 10)
@@ -321,29 +311,29 @@ function widget:Initialize()
 
     widgetHandler.actionHandler:AddAction(self, "fps_toggle_free_cam", function()
         FPSCamera.toggleFreeCam()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "fps_reset_defaults", function()
         FPSCamera.resetOffsets()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "clear_fixed_look_point", function()
         FPSCamera.clearFixedLookPoint()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     -- Register Tracking Camera command
     widgetHandler.actionHandler:AddAction(self, "toggle_tracking_camera", function()
         return TrackingCamera.toggle()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "focus_anchor_and_track", function(_, index)
         return CameraAnchor.focusAndTrack(index)
-    end, nil, 'p')
+    end, nil, 'tp')
 
     -- Register Orbiting Camera commands
     widgetHandler.actionHandler:AddAction(self, "toggle_orbiting_camera", function()
         OrbitingCamera.toggle()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "orbit_speed_up", function()
         OrbitingCamera.adjustSpeed(0.0001)
@@ -355,11 +345,37 @@ function widget:Initialize()
 
     widgetHandler.actionHandler:AddAction(self, "orbit_reset_defaults", function()
         OrbitingCamera.resetSettings()
-    end, nil, 'p')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "spec_unit_group", function(_, params)
         return SpecGroups.handleCommand(params)
-    end, nil, 'p')
+    end, nil, 'tp')
+
+    widgetHandler.actionHandler:AddAction(self, "toggle_turbo_overview", function()
+        TurboOverviewCamera.toggle()
+    end, nil, 'tp')
+
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_toggle_zoom", function()
+        TurboOverviewCamera.toggleZoom()
+    end, nil, 'tp')
+
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_set_zoom", function(_, level)
+        TurboOverviewCamera.setZoomLevel(level)
+    end, nil, 'tp')
+
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_up", function()
+        TurboOverviewCamera.adjustSmoothing(0.01)
+    end, nil, 'pR')
+
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_down", function()
+        TurboOverviewCamera.adjustSmoothing(-0.01)
+    end, nil, 'pR')
+
+    widgetHandler.actionHandler:AddAction(self, "turbobarcam_toggle_debug", function()
+        CONFIG.DEBUG = not CONFIG.DEBUG
+        Util.echo("DEBUG: " .. (CONFIG.DEBUG and "true" or "false"))
+        return true
+    end, nil)
 
     Spring.I18N.load({
         en = {

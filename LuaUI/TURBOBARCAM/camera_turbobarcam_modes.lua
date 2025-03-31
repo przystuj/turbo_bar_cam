@@ -16,6 +16,8 @@ local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turboba
 local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_anchor.lua")
 ---@type {SpecGroups: SpecGroups}
 local SpecGroupsModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_spec_groups.lua")
+---@type {TurboOverviewCamera: TurboOverviewCamera}
+local TurboOverviewCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_overview.lua")
 
 -- Export all camera mode modules
 return {
@@ -25,5 +27,6 @@ return {
     TrackingCamera = TrackingCameraModule.TrackingCamera,
     OrbitingCamera = OrbitingCameraModule.OrbitingCamera,
     CameraAnchor = CameraAnchorModule.CameraAnchor,
-    SpecGroups = SpecGroupsModule.SpecGroups
+    SpecGroups = SpecGroupsModule.SpecGroups,
+    TurboOverviewCamera = TurboOverviewCameraModule.TurboOverviewCamera,
 }
