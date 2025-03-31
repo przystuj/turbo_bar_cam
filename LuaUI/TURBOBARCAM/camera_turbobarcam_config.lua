@@ -11,12 +11,17 @@ local TurboModule = {}
 -- Only initialize CONFIG if it doesn't exist in WG already
 if not WG.TURBOBARCAM.CONFIG then
     ---@class CONFIG
+    ---@field COMMANDS table Commands settings
     ---@field TRANSITION table Transition settings
     ---@field FPS table FPS camera settings
     ---@field SMOOTHING table Smoothing settings
     ---@field ORBIT table Orbit camera settings
     ---@field SPEC_GROUPS table Spectator groups settings
     WG.TURBOBARCAM.CONFIG = {
+        COMMANDS = {
+            SET_FIXED_LOOK_POINT = 455625,
+        },
+
         -- Transition settings
         TRANSITION = {
             DURATION = 2.0,
@@ -100,6 +105,10 @@ if not WG.TURBOBARCAM.STATE then
             unitID = nil,
             targetUnitID = nil, -- Store the ID of the unit we're looking at
             inFreeCameraMode = false,
+            inTargetSelectionMode = false, -- Tracks if we're currently selecting a target
+            prevFreeCamState = false, -- Stores the free camera state before target selection
+            prevMode = nil, -- Stores the previous mode (fps/fixed_point) during selection
+            prevFixedPoint = nil, -- Stores the previous fixed point during selection
             graceTimer = nil, -- Timer for grace period
             lastUnitID = nil, -- Store the last tracked unit
             unitOffsets = {}, -- Store individual unit camera offsets

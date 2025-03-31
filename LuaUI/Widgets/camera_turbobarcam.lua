@@ -156,6 +156,9 @@ function widget:Update()
         end
     end
 
+    -- Check for fixed point command activation - this must be called every frame
+    FPSCamera.checkFixedPointCommandActivation()
+
     -- During special transition + tracking, handle both components
     if STATE.transition.active then
         -- Update transition position
@@ -381,7 +384,7 @@ end
 ---@param _ table Command options (unused)
 ---@return boolean handled Whether the command was handled
 function widget:CommandNotify(cmdID, cmdParams, _)
-    if cmdID == CMD_SET_FIXED_LOOK_POINT then
+    if cmdID == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
         return FPSCamera.setFixedLookPoint(cmdParams)
     end
     return false
@@ -395,7 +398,7 @@ function widget:CommandsChanged()
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then
         local customCommands = widgetHandler.customCommands
-        customCommands[#customCommands + 1] = CMD_SET_FIXED_LOOK_POINT_DEFINITION
+        customCommands[#customCommands + 1] = FPSCamera.COMMAND_DEFINITION
     end
 end
 

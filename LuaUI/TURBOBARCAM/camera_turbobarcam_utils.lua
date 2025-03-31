@@ -251,6 +251,12 @@ function Util.disableTracking()
     STATE.tracking.fixedPoint = nil
     STATE.tracking.mode = nil
 
+    -- Clear target selection state
+    STATE.tracking.inTargetSelectionMode = false
+    STATE.tracking.prevFreeCamState = false
+    STATE.tracking.prevMode = nil
+    STATE.tracking.prevFixedPoint = nil
+
     -- Reset orbit-specific states
     STATE.orbit.autoOrbitActive = false
     STATE.orbit.stationaryTimer = nil

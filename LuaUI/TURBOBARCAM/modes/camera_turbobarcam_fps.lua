@@ -8,8 +8,21 @@ local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
 local Util = TurboUtils.Util
 
+local prevActiveCmd = nil
+
 ---@class FPSCamera
 local FPSCamera = {}
+
+--- Command definition for Set Fixed Look Point
+---@type table
+FPSCamera.COMMAND_DEFINITION = {
+    id = CONFIG.COMMANDS.SET_FIXED_LOOK_POINT,
+    type = CMDTYPE.ICON_UNIT_OR_MAP,
+    name = 'Set Fixed Look Point',
+    tooltip = 'Click on a location to focus camera on while following unit',
+    cursor = 'settarget',
+    action = 'set_fixed_look_point',
+}
 
 --- Toggles FPS camera attached to a unit
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
@@ -163,14 +176,104 @@ function FPSCamera.setFixedLookPoint(cmdParams)
         z = z
     }
 
-    -- Switch to fixed point mode (even if already in fixed point mode)
+    -- We're no longer in target selection mode
+    STATE.tracking.inTargetSelectionMode = false
+    STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
+
+    -- Switch to fixed point mode
     STATE.tracking.mode = 'fixed_point'
+
+    -- Use the previous free camera state for normal operation
+    STATE.tracking.inFreeCameraMode = STATE.tracking.prevFreeCamState
+
+    -- If not in free camera mode, enable a transition to the fixed point
+    if not STATE.tracking.inFreeCameraMode then
+        -- Trigger a transition to smoothly move to the new view
+        STATE.tracking.modeTransition = true
+        STATE.tracking.transitionStartTime = Spring.GetTimer()
+    end
 
     if not STATE.tracking.targetUnitID then
         Spring.Echo("Camera will follow unit but look at fixed point")
     end
 
     return true
+end
+
+--- Checks if the fixed point command has been activated
+function FPSCamera.checkFixedPointCommandActivation()
+    if not STATE.enabled then
+        return
+    end
+
+    -- Get the current active command
+    local _, activeCmd = Spring.GetActiveCommand()
+
+    -- Check if command state has changed
+    if activeCmd ~= prevActiveCmd then
+        -- Case 1: Command activated - entering target selection mode
+        if activeCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
+            -- Only proceed if we're in FPS or fixed_point mode and have a unit to track
+            if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID then
+                -- Store current state before switching to target selection mode
+                STATE.tracking.inTargetSelectionMode = true
+                STATE.tracking.prevFreeCamState = STATE.tracking.inFreeCameraMode
+
+                -- Save the previous mode and fixed point for later restoration if canceled
+                STATE.tracking.prevMode = STATE.tracking.mode
+                STATE.tracking.prevFixedPoint = STATE.tracking.fixedPoint
+
+                -- Temporarily switch to FPS mode during selection
+                if STATE.tracking.mode == 'fixed_point' then
+                    STATE.tracking.mode = 'fps'
+                    STATE.tracking.fixedPoint = nil
+                end
+
+                -- Initialize free camera for target selection
+                local camState = Spring.GetCameraState()
+                STATE.tracking.freeCam.targetRx = camState.rx
+                STATE.tracking.freeCam.targetRy = camState.ry
+                STATE.tracking.freeCam.lastMouseX, STATE.tracking.freeCam.lastMouseY = Spring.GetMouseState()
+
+                -- Initialize unit heading tracking
+                if Spring.ValidUnitID(STATE.tracking.unitID) then
+                    STATE.tracking.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.tracking.unitID, true)
+                end
+
+                -- Always enable free camera mode during target selection
+                STATE.tracking.inFreeCameraMode = true
+                STATE.tracking.modeTransition = true
+                STATE.tracking.transitionStartTime = Spring.GetTimer()
+
+                Spring.Echo("Target selection mode activated - select a target to look at")
+            end
+            -- Case 2: Command deactivated - exiting target selection mode without setting a point
+        elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.inTargetSelectionMode then
+            -- User canceled target selection, restore previous state
+            STATE.tracking.inTargetSelectionMode = false
+
+            -- Restore the previous mode and fixed point
+            if STATE.tracking.prevMode == 'fixed_point' and STATE.tracking.prevFixedPoint then
+                STATE.tracking.mode = 'fixed_point'
+                STATE.tracking.fixedPoint = STATE.tracking.prevFixedPoint
+                Spring.Echo("Target selection canceled, returning to fixed point view")
+            end
+
+            -- Restore previous free camera state
+            STATE.tracking.inFreeCameraMode = STATE.tracking.prevFreeCamState
+
+            -- Start a transition to smoothly return to the previous state
+            STATE.tracking.modeTransition = true
+            STATE.tracking.transitionStartTime = Spring.GetTimer()
+
+            if STATE.tracking.prevMode == 'fps' then
+                Spring.Echo("Target selection canceled, returning to unit view")
+            end
+        end
+    end
+
+    -- Store the current command for the next frame
+    prevActiveCmd = activeCmd
 end
 
 --- Clears fixed point tracking
@@ -185,7 +288,18 @@ function FPSCamera.clearFixedLookPoint()
         STATE.tracking.mode = 'fps'
         STATE.tracking.fixedPoint = nil
         STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
-        Spring.Echo("Fixed point tracking disabled, returning to FPS mode")
+        STATE.tracking.inTargetSelectionMode = false
+        STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
+
+        -- Start a transition when changing modes
+        STATE.tracking.modeTransition = true
+        STATE.tracking.transitionStartTime = Spring.GetTimer()
+
+        if STATE.tracking.inFreeCameraMode then
+            Spring.Echo("Fixed point tracking disabled, maintaining free camera mode")
+        else
+            Spring.Echo("Fixed point tracking disabled, returning to FPS mode")
+        end
     end
 end
 
@@ -486,6 +600,7 @@ function FPSCamera.toggleFreeCam()
     -- Toggle free camera mode
     STATE.tracking.inFreeCameraMode = not STATE.tracking.inFreeCameraMode
 
+    -- If entering free cam mode and we have a fixed point, keep using the fixed point
     if STATE.tracking.inFreeCameraMode then
         -- Initialize with current camera state
         local camState = Spring.GetCameraState()
@@ -506,6 +621,12 @@ function FPSCamera.toggleFreeCam()
         STATE.tracking.freeCam.targetRx = nil
         STATE.tracking.freeCam.targetRy = nil
         STATE.tracking.freeCam.lastUnitHeading = nil
+
+        -- If we have a fixed point active, we need to explicitly clear it when disabling free cam
+        if STATE.tracking.mode == 'fixed_point' then
+            FPSCamera.clearFixedLookPoint()
+        end
+
         Spring.Echo("Free camera mode disabled - view follows unit orientation")
     end
 end
