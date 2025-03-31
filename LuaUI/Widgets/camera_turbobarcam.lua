@@ -18,11 +18,11 @@ local MODES_PATH = "LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_modes.lua"
 local UTILS_PATH = "LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_utils.lua"
 
 -- Load modules
----@module 'TURBOBARCAM.camera_turbobarcam_config'
+---@type {CONFIG: CONFIG, STATE: STATE}
 local TurboConfig = VFS.Include(CONFIG_PATH)
----@module 'TURBOBARCAM.camera_turbobarcam_modes'
+---@type {WidgetControl: WidgetControl, CameraTransition: CameraTransition, FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor, SpecGroups: SpecGroups}
 local TurboModes = VFS.Include(MODES_PATH)
----@module 'TURBOBARCAM.camera_turbobarcam_utils'
+---@type {Util: Util}
 local TurboUtils = VFS.Include(UTILS_PATH)
 
 -- Initialize shorthand references
@@ -52,6 +52,7 @@ local CMD_SET_FIXED_LOOK_POINT_DEFINITION = {
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
 
+---@param selectedUnits number[] Array of selected unit IDs
 function widget:SelectionChanged(selectedUnits)
     if not STATE.enabled then
         return
@@ -375,6 +376,10 @@ function widget:Shutdown()
     end
 end
 
+---@param cmdID number Command ID
+---@param cmdParams table Command parameters
+---@param _ table Command options (unused)
+---@return boolean handled Whether the command was handled
 function widget:CommandNotify(cmdID, cmdParams, _)
     if cmdID == CMD_SET_FIXED_LOOK_POINT then
         return FPSCamera.setFixedLookPoint(cmdParams)
@@ -398,6 +403,7 @@ function widget:GameStart()
     SpecGroups.checkSpectatorStatus()
 end
 
+---@param playerID number Player ID
 function widget:PlayerChanged(playerID)
     if playerID == Spring.GetMyPlayerID() then
         SpecGroups.checkSpectatorStatus()

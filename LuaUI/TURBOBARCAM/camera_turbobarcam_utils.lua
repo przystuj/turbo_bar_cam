@@ -1,4 +1,5 @@
 -- Import configuration
+---@type {CONFIG: CONFIG, STATE: STATE}
 local TurboConfig = VFS.Include("LuaUI/Widgets/TURBOBARCAM/camera_turbobarcam_config.lua")
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
@@ -6,9 +7,12 @@ local STATE = TurboConfig.STATE
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
 --------------------------------------------------------------------------------
+---@class Util
 local Util = {}
 
--- Debug functions
+--- Converts a value to a string representation for debugging
+---@param o any Value to dump
+---@return string representation
 function Util.dump(o)
     if type(o) == 'table' then
         local s = '{ '
@@ -24,11 +28,15 @@ function Util.dump(o)
     end
 end
 
+--- Logs a value to console
+---@param o any Value to log
 function Util.log(o)
     Spring.Echo(Util.dump(o))
 end
 
--- Deep copy function for tables
+--- Creates a deep copy of a table
+---@param orig table Table to copy
+---@return table copy Deep copy of the table
 function Util.deepCopy(orig)
     local orig_type = type(orig)
     local copy
@@ -43,7 +51,9 @@ function Util.deepCopy(orig)
     return copy
 end
 
--- Interpolation functions
+--- Cubic easing function for smooth transitions
+---@param t number Transition progress (0.0-1.0)
+---@return number eased value
 function Util.easeInOutCubic(t)
     if t < 0.5 then
         return 4 * t * t * t
@@ -53,11 +63,18 @@ function Util.easeInOutCubic(t)
     end
 end
 
+--- Linear interpolation between two values
+---@param a number Start value
+---@param b number End value
+---@param t number Interpolation factor (0.0-1.0)
+---@return number interpolated value
 function Util.lerp(a, b, t)
     return a + (b - a) * t
 end
 
--- Normalize angle to be within -pi to pi range
+--- Normalizes an angle to be within -pi to pi range
+---@param angle number|nil Angle to normalize (in radians)
+---@return number normalized angle
 function Util.normalizeAngle(angle)
     if angle == nil then
         return 0 -- Default to 0 if angle is nil
@@ -71,7 +88,11 @@ function Util.normalizeAngle(angle)
     return angle
 end
 
--- Interpolate between two angles, always taking the shortest path
+--- Interpolates between two angles along the shortest path
+---@param a number Start angle (in radians)
+---@param b number End angle (in radians)
+---@param t number Interpolation factor (0.0-1.0)
+---@return number interpolated angle
 function Util.lerpAngle(a, b, t)
     -- Normalize both angles to -pi to pi range
     a = Util.normalizeAngle(a)
@@ -90,7 +111,9 @@ function Util.lerpAngle(a, b, t)
     return a + diff * t
 end
 
--- Get unit height
+--- Gets the height of a unit
+---@param unitID number Unit ID
+---@return number unit height
 function Util.getUnitHeight(unitID)
     if not Spring.ValidUnitID(unitID) then
         return CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
@@ -111,6 +134,11 @@ function Util.getUnitHeight(unitID)
     return unitDef.height + 20 or CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
 end
 
+--- Smoothly interpolates between current and target values
+---@param current number|nil Current value
+---@param target number|nil Target value
+---@param factor number Smoothing factor (0.0-1.0)
+---@return number smoothed value
 function Util.smoothStep(current, target, factor)
     if current == nil or target == nil or factor == nil then
         return current or target or 0
@@ -118,7 +146,11 @@ function Util.smoothStep(current, target, factor)
     return current + (target - current) * factor
 end
 
--- Smooth interpolation between two angles
+--- Smoothly interpolates between angles
+---@param current number|nil Current angle (in radians)
+---@param target number|nil Target angle (in radians)
+---@param factor number Smoothing factor (0.0-1.0)
+---@return number smoothed angle
 function Util.smoothStepAngle(current, target, factor)
     -- Add safety check for nil values
     if current == nil or target == nil or factor == nil then
@@ -142,7 +174,10 @@ function Util.smoothStepAngle(current, target, factor)
     return current + diff * factor
 end
 
--- Calculate camera direction and rotation to look at a point
+--- Calculates camera direction and rotation to look at a point
+---@param camPos table Camera position {x, y, z}
+---@param targetPos table Target position {x, y, z}
+---@return table direction and rotation values
 function Util.calculateLookAtPoint(camPos, targetPos)
     -- Calculate direction vector from camera to target
     local dirX = targetPos.x - camPos.x
@@ -174,6 +209,8 @@ function Util.calculateLookAtPoint(camPos, targetPos)
     }
 end
 
+--- Begins a transition between camera modes
+---@param newMode string|nil New camera mode to transition to
 function Util.beginModeTransition(newMode)
     -- Save the previous mode
     STATE.tracking.prevMode = STATE.tracking.mode
@@ -193,7 +230,7 @@ function Util.beginModeTransition(newMode)
     end
 end
 
--- Disable tracking
+--- Disables tracking and resets tracking state
 function Util.disableTracking()
     -- Start mode transition if we're disabling from a tracking mode
     if STATE.tracking.mode then

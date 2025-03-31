@@ -2,6 +2,12 @@
 -- CONFIGURATION
 --------------------------------------------------------------------------------
 
+---@class CONFIG
+---@field TRANSITION table Transition settings
+---@field FPS table FPS camera settings
+---@field SMOOTHING table Smoothing settings
+---@field ORBIT table Orbit camera settings
+---@field SPEC_GROUPS table Spectator groups settings
 local CONFIG = {
     -- Transition settings
     TRANSITION = {
@@ -53,6 +59,16 @@ local CONFIG = {
 -- STATE MANAGEMENT
 --------------------------------------------------------------------------------
 
+---@class STATE
+---@field enabled boolean Whether the widget is enabled
+---@field originalCameraState table|nil Original camera state before enabling
+---@field anchors table<number, table> Camera anchor states
+---@field lastUsedAnchor number|nil Last used camera anchor index
+---@field transition table Camera transition state
+---@field tracking table Unit tracking state
+---@field delayed table Delayed action state
+---@field orbit table Orbit camera state
+---@field specGroups table Spectator groups state
 local STATE = {
     -- Widget state
     enabled = false,
