@@ -416,20 +416,22 @@ function widget:Initialize()
         return true
     end, nil, 'tp')
 
-    widgetHandler.actionHandler:AddAction(self, "toggle_turbo_overview", function()
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_toggle", function()
         TurboOverviewCamera.toggle()
         return true
     end, nil, 'tp')
 
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_toggle_zoom", function()
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_change_zoom", function()
         TurboOverviewCamera.toggleZoom()
         return true
     end, nil, 'tp')
 
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_set_zoom", function(_, level)
-        TurboOverviewCamera.setZoomLevel(level)
+    widgetHandler.actionHandler:AddAction(self, "turbo_overview_move_camera", function()
+        if STATE.tracking.mode == 'turbo_overview' then
+            TurboOverviewCamera.moveToPoint()
+        end
         return true
-    end, nil, 'tp')
+    end, nil, 'pt')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_up", function()
         TurboOverviewCamera.adjustSmoothing(0.01)
@@ -441,18 +443,16 @@ function widget:Initialize()
         return true
     end, nil, 'pR')
 
+    --widgetHandler.actionHandler:AddAction(self, "turbo_overview_set_zoom", function(_, level)
+    --    TurboOverviewCamera.setZoomLevel(level)
+    --    return true
+    --end, nil, 'tp')
+
     widgetHandler.actionHandler:AddAction(self, "turbobarcam_toggle_debug", function()
         CONFIG.DEBUG = not CONFIG.DEBUG
         Util.echo("DEBUG: " .. (CONFIG.DEBUG and "true" or "false"))
         return true
     end, nil)
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_movement", function()
-        if STATE.tracking.mode == 'turbo_overview' then
-            TurboOverviewCamera.moveToPoint()
-        end
-        return true
-    end, nil, 'pt')
 
     Spring.I18N.load({
         en = {
