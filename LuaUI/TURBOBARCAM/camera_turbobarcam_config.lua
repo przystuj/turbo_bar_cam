@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- CONFIGURATION & STATE MANAGEMENT (REFACTORED)
+-- CONFIGURATION & STATE MANAGEMENT
 --------------------------------------------------------------------------------
 
 -- Initialize the global widget table for TURBOBARCAM if it doesn't exist
@@ -49,6 +49,16 @@ if not WG.TURBOBARCAM.CONFIG then
                 DEFAULT_SMOOTHING = 0.05, -- Default smoothing factor
                 DEFAULT_ZOOM_LEVEL = 1, -- Default zoom level index
                 ZOOM_LEVELS = {1, 2, 4}, -- Available zoom levels (multipliers)
+                ORBIT = {
+                    MIN_DISTANCE = 150, -- Minimum orbit distance
+                    ANGULAR_ACCELERATION = 0.001, -- How fast angular velocity increases
+                    MAX_ANGULAR_VELOCITY = 0.02, -- Maximum angular velocity
+                    ANGULAR_DAMPING = 0.95, -- How fast angular velocity decreases
+                    FORWARD_ACCELERATION = 0.2, -- How fast forward velocity increases
+                    MAX_FORWARD_VELOCITY = 5, -- Maximum forward velocity
+                    FORWARD_DAMPING = 0.98, -- How fast forward velocity decreases
+                    INITIAL_SMOOTHING = 0.005 -- Initial (slower) smoothing factor
+                }
             },
         },
 
@@ -183,6 +193,21 @@ if not WG.TURBOBARCAM.STATE then
             lastMouseX = nil, -- Last mouse X position for rotation calculation
             lastMouseY = nil, -- Last mouse Y position for rotation calculation
             mouseMoveSensitivity = 0.003, -- How sensitive rotation is to mouse movement
+
+            -- New orbit mode variables
+            isOrbiting = false, -- Whether orbit mode is active
+            orbitCenter = nil, -- Center point of orbit {x, y, z}
+            orbitDistance = 300, -- Distance from center
+            orbitAngle = 0, -- Current orbit angle in radians
+            orbitAngularVelocity = 0, -- Current angular velocity
+            orbitMaxAngularVelocity = 0.02, -- Maximum angular velocity
+            orbitAngularAcceleration = 0.001, -- How fast angular velocity increases
+            orbitAngularDamping = 0.95, -- How fast angular velocity decreases
+            orbitForwardVelocity = 0, -- Current forward velocity (toward center)
+            orbitMaxForwardVelocity = 5, -- Maximum forward velocity
+            orbitForwardAcceleration = 0.2, -- How fast forward velocity increases
+            orbitForwardDamping = 0.98, -- How fast forward velocity decreases
+            orbitMinDistance = 150, -- Minimum orbit distance
         },
 
         -- Delayed actions

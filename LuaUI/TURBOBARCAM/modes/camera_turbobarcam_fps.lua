@@ -307,6 +307,9 @@ function FPSCamera.toggle()
         name = "fps",
         mode = 0  -- FPS camera mode
     }
+
+    -- Select unit again to reload its commands
+    Spring.SelectUnitArray({STATE.tracking.targetUnitID})
     Spring.SetCameraState(camStatePatch, 0)
 end
 

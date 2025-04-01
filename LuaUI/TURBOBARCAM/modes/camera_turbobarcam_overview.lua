@@ -31,6 +31,27 @@ local function getCursorWorldPosition()
     end
 end
 
+---@param centerPoint table Center point of orbit {x, y, z}
+---@param angle number Angle in radians
+---@param distance number Distance from center
+---@param height number Height above ground
+---@return table position Position on orbit {x, y, z}
+local function calculateOrbitPosition(centerPoint, angle, distance, height)
+    return {
+        x = centerPoint.x + distance * math.sin(angle),
+        y = centerPoint.y + height,
+        z = centerPoint.z + distance * math.cos(angle)
+    }
+end
+
+-- Helper function to calculate orbit angle between two positions
+---@param centerPoint table Center point {x, y, z}
+---@param position table Position {x, y, z}
+---@return number angle Angle in radians
+local function calculateOrbitAngle(centerPoint, position)
+    return math.atan2(position.x - centerPoint.x, position.z - centerPoint.z)
+end
+
 --- Toggles turbo overview camera mode
 function TurboOverviewCamera.toggle()
     if not STATE.enabled then
@@ -80,6 +101,21 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.mouseMoveSensitivity = 0.003
     STATE.turboOverview.targetRx = 0
     STATE.turboOverview.targetRy = 0
+
+    -- Initialize orbit mode variables
+    STATE.turboOverview.isOrbiting = false
+    STATE.turboOverview.orbitCenter = nil
+    STATE.turboOverview.orbitDistance = 300
+    STATE.turboOverview.orbitAngle = 0
+    STATE.turboOverview.orbitAngularVelocity = 0
+    STATE.turboOverview.orbitMaxAngularVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.MAX_ANGULAR_VELOCITY
+    STATE.turboOverview.orbitAngularAcceleration = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.ANGULAR_ACCELERATION
+    STATE.turboOverview.orbitAngularDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.ANGULAR_DAMPING
+    STATE.turboOverview.orbitForwardVelocity = 0
+    STATE.turboOverview.orbitMaxForwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.MAX_FORWARD_VELOCITY
+    STATE.turboOverview.orbitForwardAcceleration = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.FORWARD_ACCELERATION
+    STATE.turboOverview.orbitForwardDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.FORWARD_DAMPING
+    STATE.turboOverview.orbitMinDistance = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ORBIT.MIN_DISTANCE
 
     -- Set a good default height based on map size
     STATE.turboOverview.height = math.max(mapDiagonal / 3, 500)
@@ -144,6 +180,87 @@ function TurboOverviewCamera.toggle()
             STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel] .. ")")
 end
 
+-- Updates orbit movement based on mouse position and button state
+---@param deltaTime number Time since last update
+local function updateOrbitMovement(deltaTime)
+    if not STATE.turboOverview.isOrbiting then
+        return
+    end
+
+    local mouseX, mouseY = Spring.GetMouseState()
+
+    -- Initialize last mouse position if needed
+    if not STATE.turboOverview.lastMouseX or not STATE.turboOverview.lastMouseY then
+        STATE.turboOverview.lastMouseX = mouseX
+        STATE.turboOverview.lastMouseY = mouseY
+        return
+    end
+
+    -- Calculate mouse movement
+    local deltaX = mouseX - STATE.turboOverview.lastMouseX
+    STATE.turboOverview.lastMouseX = mouseX
+    STATE.turboOverview.lastMouseY = mouseY
+
+    -- Apply angular acceleration based on mouse movement
+    if STATE.turboOverview.movingToTarget then
+        -- Add angular velocity based on mouse movement (left/right)
+        STATE.turboOverview.orbitAngularVelocity = STATE.turboOverview.orbitAngularVelocity +
+                deltaX * STATE.turboOverview.orbitAngularAcceleration
+
+        -- Limit maximum angular velocity
+        STATE.turboOverview.orbitAngularVelocity = math.max(
+                -STATE.turboOverview.orbitMaxAngularVelocity,
+                math.min(STATE.turboOverview.orbitMaxAngularVelocity, STATE.turboOverview.orbitAngularVelocity)
+        )
+
+        -- Add forward velocity (gradually approach target)
+        STATE.turboOverview.orbitForwardVelocity = math.min(
+                STATE.turboOverview.orbitMaxForwardVelocity,
+                STATE.turboOverview.orbitForwardVelocity + STATE.turboOverview.orbitForwardAcceleration
+        )
+    else
+        -- Apply damping when not actively moving
+        STATE.turboOverview.orbitAngularVelocity = STATE.turboOverview.orbitAngularVelocity * STATE.turboOverview.orbitAngularDamping
+        STATE.turboOverview.orbitForwardVelocity = STATE.turboOverview.orbitForwardVelocity * STATE.turboOverview.orbitForwardDamping
+
+        -- Stop completely if velocity is very small
+        if math.abs(STATE.turboOverview.orbitAngularVelocity) < 0.0001 then
+            STATE.turboOverview.orbitAngularVelocity = 0
+        end
+
+        if math.abs(STATE.turboOverview.orbitForwardVelocity) < 0.1 then
+            STATE.turboOverview.orbitForwardVelocity = 0
+
+            -- If we've completely stopped, exit orbit mode
+            if STATE.turboOverview.orbitAngularVelocity == 0 then
+                STATE.turboOverview.isOrbiting = false
+                Util.debugEcho("Exiting orbit mode")
+                return
+            end
+        end
+    end
+
+    -- Update orbit angle based on angular velocity
+    STATE.turboOverview.orbitAngle = STATE.turboOverview.orbitAngle + STATE.turboOverview.orbitAngularVelocity
+
+    -- Update orbit distance based on forward velocity
+    STATE.turboOverview.orbitDistance = math.max(
+            STATE.turboOverview.orbitMinDistance,
+            STATE.turboOverview.orbitDistance - STATE.turboOverview.orbitForwardVelocity
+    )
+
+    -- Calculate new position on orbit
+    local newPos = calculateOrbitPosition(
+            STATE.turboOverview.orbitCenter,
+            STATE.turboOverview.orbitAngle,
+            STATE.turboOverview.orbitDistance,
+            calculateCurrentHeight()
+    )
+
+    -- Update fixed camera position
+    STATE.turboOverview.fixedCamPos = newPos
+end
+
 --- Updates the turbo overview camera's position and orientation
 function TurboOverviewCamera.update()
     if STATE.tracking.mode ~= 'turbo_overview' then
@@ -195,6 +312,55 @@ function TurboOverviewCamera.update()
     else
         STATE.turboOverview.inZoomTransition = false
         currentHeight = targetHeight
+    end
+
+    -- Update orbit movement if in orbit mode
+    if STATE.turboOverview.isOrbiting then
+        -- Calculate elapsed time (approximate using fixed time step)
+        local deltaTime = 1/30 -- Assuming 30 FPS
+        updateOrbitMovement(deltaTime)
+
+        -- Get camera position with current height
+        local camPos = {
+            x = STATE.turboOverview.fixedCamPos.x,
+            y = currentHeight,
+            z = STATE.turboOverview.fixedCamPos.z
+        }
+
+        -- Calculate look direction to the orbit center
+        local lookDir = Util.calculateLookAtPoint(camPos, STATE.turboOverview.orbitCenter)
+
+        -- Prepare camera state patch
+        local camStatePatch = {
+            mode = 0,
+            name = "fps",
+            -- Updated camera position
+            px = camPos.x,
+            py = camPos.y,
+            pz = camPos.z,
+            -- Direction vector to look at target
+            dx = lookDir.dx,
+            dy = lookDir.dy,
+            dz = lookDir.dz,
+            -- Rotation from look direction
+            rx = lookDir.rx,
+            ry = lookDir.ry,
+            rz = 0
+        }
+
+        -- Update last position for next frame
+        STATE.tracking.lastCamPos.x = camStatePatch.px
+        STATE.tracking.lastCamPos.y = camStatePatch.py
+        STATE.tracking.lastCamPos.z = camStatePatch.pz
+
+        -- Update last rotation for next frame
+        STATE.tracking.lastRotation.rx = camStatePatch.rx
+        STATE.tracking.lastRotation.ry = camStatePatch.ry
+        STATE.tracking.lastRotation.rz = camStatePatch.rz
+
+        -- Apply camera state
+        Spring.SetCameraState(camStatePatch, 0)
+        return
     end
 
     -- Update camera rotation based on mouse movement (FPS free camera style)
@@ -374,24 +540,51 @@ function TurboOverviewCamera.adjustSmoothing(amount)
     -- Adjust smoothing factor (keep between 0.001 and 0.5)
     STATE.turboOverview.movementSmoothing = math.max(0.001, math.min(0.5, STATE.turboOverview.movementSmoothing + amount))
     Util.debugEcho("Turbo Overview smoothing: " .. STATE.turboOverview.movementSmoothing)
-
 end
 
---- Move camera to cursor position
+--- Toggle orbit mode for camera movement
+---@return boolean success Whether orbit mode was toggled successfully
 function TurboOverviewCamera.moveToPoint()
     if STATE.tracking.mode ~= 'turbo_overview' then
         Util.debugEcho("Turbo Overview camera must be enabled first")
-        return
+        return false
     end
 
-    -- Get cursor position and set it as target
-    STATE.turboOverview.targetPos = getCursorWorldPosition()
-    STATE.turboOverview.movingToTarget = true
+    -- Toggle orbit mode on/off
+    if STATE.turboOverview.isOrbiting and STATE.turboOverview.movingToTarget then
+        -- Turn off orbit mode (button released)
+        STATE.turboOverview.movingToTarget = false
+        Util.debugEcho("Orbit movement stopped")
+    else
+        -- Turn on orbit mode (button pressed)
+        -- Get cursor position and set it as orbit center
+        STATE.turboOverview.orbitCenter = getCursorWorldPosition()
+        STATE.turboOverview.isOrbiting = true
+        STATE.turboOverview.movingToTarget = true
 
-    -- Record the start time for gradual acceleration
-    STATE.turboOverview.moveStartTime = Spring.GetTimer()
+        -- Initialize orbit parameters
+        local camPos = STATE.turboOverview.fixedCamPos
+        STATE.turboOverview.orbitAngle = calculateOrbitAngle(STATE.turboOverview.orbitCenter, camPos)
 
-    Util.debugEcho("Moving to cursor position")
+        -- Calculate initial distance
+        local dx = camPos.x - STATE.turboOverview.orbitCenter.x
+        local dz = camPos.z - STATE.turboOverview.orbitCenter.z
+        STATE.turboOverview.orbitDistance = math.sqrt(dx*dx + dz*dz)
+
+        -- Reset velocities
+        STATE.turboOverview.orbitAngularVelocity = 0
+        STATE.turboOverview.orbitForwardVelocity = 0
+
+        -- Record the start time for gradual acceleration
+        STATE.turboOverview.moveStartTime = Spring.GetTimer()
+
+        -- Get current mouse position for orbit movement calculation
+        STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
+
+        Util.debugEcho("Orbit movement started")
+    end
+
+    return true
 end
 
 return {
