@@ -428,10 +428,10 @@ function widget:Initialize()
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_move_camera", function()
         if STATE.tracking.mode == 'turbo_overview' then
-            TurboOverviewCamera.moveToPoint()
+            TurboOverviewCamera.moveToTarget()
         end
         return true
-    end, nil, 'pt')
+    end, nil, 'tp')
 
     widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_up", function()
         TurboOverviewCamera.adjustSmoothing(0.01)

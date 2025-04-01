@@ -45,19 +45,24 @@ if not WG.TURBOBARCAM.CONFIG then
 
             -- Turbo overview camera settings
             TURBO_OVERVIEW = {
-                HEIGHT_FACTOR = 0.1, -- Default height as a factor of map diagonal
+                HEIGHT_FACTOR = 0.33, -- Default height as a factor of map diagonal
                 DEFAULT_SMOOTHING = 0.05, -- Default smoothing factor
+                INITIAL_SMOOTHING = 0.01, -- Initial (slower) smoothing factor for acceleration
                 DEFAULT_ZOOM_LEVEL = 1, -- Default zoom level index
                 ZOOM_LEVELS = {1, 2, 4}, -- Available zoom levels (multipliers)
-                ORBIT = {
-                    MIN_DISTANCE = 150, -- Minimum orbit distance
-                    ANGULAR_ACCELERATION = 0.001, -- How fast angular velocity increases
-                    MAX_ANGULAR_VELOCITY = 0.02, -- Maximum angular velocity
-                    ANGULAR_DAMPING = 0.95, -- How fast angular velocity decreases
-                    FORWARD_ACCELERATION = 0.2, -- How fast forward velocity increases
-                    MAX_FORWARD_VELOCITY = 5, -- Maximum forward velocity
-                    FORWARD_DAMPING = 0.98, -- How fast forward velocity decreases
-                    INITIAL_SMOOTHING = 0.005 -- Initial (slower) smoothing factor
+                ZOOM_TRANSITION_FACTOR = 0.04, -- How fast zoom transitions occur
+                MOUSE_MOVE_SENSITIVITY = 0.01, -- Mouse sensitivity for free camera mode
+                MODE_TRANSITION_TIME = 0.5, -- Duration of mode transition in seconds
+                BUFFER_ZONE = 0.10, -- Area in the middle of the screen when mouse does not cause camera rotation
+
+                -- Target movement settings
+                TARGET_MOVEMENT = {
+                    MIN_DISTANCE = 150, -- Minimum distance to target (stop moving when reached)
+                    FORWARD_VELOCITY = 5, -- Constant forward movement speed
+                    MAX_ANGULAR_VELOCITY = 0.008, -- Maximum steering angular velocity
+                    ANGULAR_DAMPING = 0.70, -- How fast steering angular velocity decreases
+                    DEADZONE = 0, -- Deadzone for mouse steering (0-1)
+                    TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions
                 }
             },
         },
@@ -174,7 +179,8 @@ if not WG.TURBOBARCAM.STATE then
             isSpectator = false -- Tracks if we're currently spectating
         },
 
-        -- Turbo overview camera state
+        -- Turbo overview camera state initialized with defaults
+        -- These will be properly initialized in TurboOverviewCamera.toggle()
         turboOverview = {
             height = nil, -- Will be set dynamically based on map size
             zoomLevel = 1, -- Current zoom level index
@@ -194,20 +200,19 @@ if not WG.TURBOBARCAM.STATE then
             lastMouseY = nil, -- Last mouse Y position for rotation calculation
             mouseMoveSensitivity = 0.003, -- How sensitive rotation is to mouse movement
 
-            -- New orbit mode variables
-            isOrbiting = false, -- Whether orbit mode is active
-            orbitCenter = nil, -- Center point of orbit {x, y, z}
-            orbitDistance = 300, -- Distance from center
-            orbitAngle = 0, -- Current orbit angle in radians
-            orbitAngularVelocity = 0, -- Current angular velocity
-            orbitMaxAngularVelocity = 0.02, -- Maximum angular velocity
-            orbitAngularAcceleration = 0.001, -- How fast angular velocity increases
-            orbitAngularDamping = 0.95, -- How fast angular velocity decreases
-            orbitForwardVelocity = 0, -- Current forward velocity (toward center)
-            orbitMaxForwardVelocity = 5, -- Maximum forward velocity
-            orbitForwardAcceleration = 0.2, -- How fast forward velocity increases
-            orbitForwardDamping = 0.98, -- How fast forward velocity decreases
-            orbitMinDistance = 150, -- Minimum orbit distance
+            -- Target movement variables
+            isMovingToTarget = false, -- Whether movement mode is active
+            targetPoint = nil, -- Target point to move toward {x, y, z}
+            distanceToTarget = 500, -- Distance from target point
+            movementAngle = 0, -- Current movement angle in radians (for steering)
+            angularVelocity = 0, -- Current angular velocity (for steering)
+            maxAngularVelocity = 0.05, -- Maximum angular velocity
+            angularDamping = 0.70, -- How fast angular velocity decreases
+            forwardVelocity = 5, -- Constant forward velocity toward target
+            minDistanceToTarget = 150, -- Minimum target distance (stop moving when reached)
+            movementTransitionFactor = 0.05, -- Smooth transition factor for movement
+            inMovementTransition = false, -- Whether in transition to movement mode
+            targetMovementAngle = 0, -- Target angle for smooth transitions
         },
 
         -- Delayed actions
