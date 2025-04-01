@@ -116,22 +116,22 @@ end
 ---@return number unit height
 function Util.getUnitHeight(unitID)
     if not Spring.ValidUnitID(unitID) then
-        return CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
+        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
     end
 
     -- Get unit definition ID and access height from UnitDefs
     local unitDefID = Spring.GetUnitDefID(unitID)
     if not unitDefID then
-        return CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
+        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
     end
 
     local unitDef = UnitDefs[unitDefID]
     if not unitDef then
-        return CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
+        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
     end
 
     -- Return unit height or default if not available
-    return unitDef.height + 20 or CONFIG.FPS.DEFAULT_HEIGHT_OFFSET
+    return unitDef.height + 20 or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
 end
 
 --- Smoothly interpolates between current and target values

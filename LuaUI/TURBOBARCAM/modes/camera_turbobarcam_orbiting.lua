@@ -40,7 +40,7 @@ function OrbitingCamera.toggle(unitID)
     if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID then
         -- Save current orbiting settings before disabling
         STATE.orbit.unitOffsets[unitID] = {
-            speed = CONFIG.ORBIT.SPEED
+            speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
         }
 
         Util.disableTracking()
@@ -54,21 +54,20 @@ function OrbitingCamera.toggle(unitID)
     -- Check if we have stored settings for this unit
     if STATE.orbit.unitOffsets[unitID] then
         -- Use stored settings
-        CONFIG.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
         Util.debugEcho("Using previous orbit speed for unit " .. unitID)
     else
         -- Use default settings
-        CONFIG.ORBIT.SPEED = CONFIG.ORBIT.DEFAULT_SPEED
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
         -- Initialize storage for this unit
         STATE.orbit.unitOffsets[unitID] = {
-            speed = CONFIG.ORBIT.SPEED
+            speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
         }
     end
 
     -- Set height based on unit height
-    CONFIG.ORBIT.HEIGHT = unitHeight * CONFIG.ORBIT.DEFAULT_HEIGHT_FACTOR
-    CONFIG.ORBIT.DISTANCE = CONFIG.ORBIT.DEFAULT_DISTANCE
+    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
 
     -- Begin mode transition from previous mode to orbit mode
     Util.beginModeTransition('orbit')
@@ -113,12 +112,12 @@ function OrbitingCamera.update()
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
 
     -- Update orbit angle
-    STATE.orbit.angle = STATE.orbit.angle + CONFIG.ORBIT.SPEED
+    STATE.orbit.angle = STATE.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED
 
     -- Calculate camera position on the orbit circle
-    local camX = unitX + CONFIG.ORBIT.DISTANCE * math.sin(STATE.orbit.angle)
-    local camY = unitY + CONFIG.ORBIT.HEIGHT
-    local camZ = unitZ + CONFIG.ORBIT.DISTANCE * math.cos(STATE.orbit.angle)
+    local camX = unitX + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.sin(STATE.orbit.angle)
+    local camY = unitY + CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+    local camZ = unitZ + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.cos(STATE.orbit.angle)
 
     -- Create camera state looking at the unit
     local camPos = { x = camX, y = camY, z = camZ }
@@ -198,7 +197,7 @@ function OrbitingCamera.adjustSpeed(amount)
         return
     end
 
-    CONFIG.ORBIT.SPEED = math.max(0.0001, math.min(0.05, CONFIG.ORBIT.SPEED + amount))
+    CONFIG.CAMERA_MODES.ORBIT.SPEED = math.max(0.0001, math.min(0.005, CONFIG.CAMERA_MODES.ORBIT.SPEED + amount))
 
     -- Update stored settings for the current unit
     if STATE.tracking.unitID then
@@ -206,11 +205,11 @@ function OrbitingCamera.adjustSpeed(amount)
             STATE.orbit.unitOffsets[STATE.tracking.unitID] = {}
         end
 
-        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.ORBIT.SPEED
+        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
     end
 
     -- Print the updated settings
-    Util.debugEcho("Orbit speed for unit " .. STATE.tracking.unitID .. ": " .. CONFIG.ORBIT.SPEED)
+    Util.debugEcho("Orbit speed for unit " .. STATE.tracking.unitID .. ": " .. CONFIG.CAMERA_MODES.ORBIT.SPEED)
 end
 
 --- Resets orbit settings to defaults
@@ -222,13 +221,13 @@ function OrbitingCamera.resetSettings()
 
     -- If we have a tracked unit, reset its orbit speed
     if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        CONFIG.ORBIT.SPEED = CONFIG.ORBIT.DEFAULT_SPEED
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
         -- Update stored settings for this unit
         if not STATE.orbit.unitOffsets[STATE.tracking.unitID] then
             STATE.orbit.unitOffsets[STATE.tracking.unitID] = {}
         end
-        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.ORBIT.SPEED
+        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
 
         Util.debugEcho("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
     else
@@ -239,7 +238,7 @@ end
 --- Checks for unit movement and handles auto-orbit functionality
 function OrbitingCamera.checkUnitMovement()
     -- Only check if we're in FPS mode with a valid unit and auto-orbit is enabled
-    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID or not CONFIG.ORBIT.AUTO_ORBIT_ENABLED then
+    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID or not CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.ENABLED then
         return
     end
 
@@ -294,15 +293,14 @@ function OrbitingCamera.checkUnitMovement()
             local now = Spring.GetTimer()
             local elapsed = Spring.DiffTimers(now, STATE.orbit.stationaryTimer)
 
-            if elapsed > CONFIG.ORBIT.AUTO_ORBIT_DELAY and not STATE.orbit.autoOrbitActive then
+            if elapsed > CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.DELAY and not STATE.orbit.autoOrbitActive then
                 -- Transition to auto-orbit
                 STATE.orbit.autoOrbitActive = true
 
                 -- Initialize orbit settings with default values
                 local unitHeight = Util.getUnitHeight(STATE.tracking.unitID)
-                CONFIG.ORBIT.HEIGHT = unitHeight * CONFIG.ORBIT.DEFAULT_HEIGHT_FACTOR
-                CONFIG.ORBIT.DISTANCE = CONFIG.ORBIT.DEFAULT_DISTANCE
-                CONFIG.ORBIT.SPEED = CONFIG.ORBIT.DEFAULT_SPEED
+                CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
+                CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
                 -- Initialize orbit angle based on current camera position
                 local camState = Spring.GetCameraState()
@@ -320,7 +318,7 @@ function OrbitingCamera.checkUnitMovement()
 
                 -- Store original transition factor and use a more delayed transition
                 STATE.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.ORBIT.AUTO_ORBIT_SMOOTHING_FACTOR
+                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
             end
         end
     end
@@ -339,12 +337,12 @@ function OrbitingCamera.updateAutoOrbit()
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
 
     -- Update orbit angle
-    STATE.orbit.angle = STATE.orbit.angle + CONFIG.ORBIT.SPEED
+    STATE.orbit.angle = STATE.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED
 
     -- Calculate camera position on the orbit circle
-    local camX = unitX + CONFIG.ORBIT.DISTANCE * math.sin(STATE.orbit.angle)
-    local camY = unitY + CONFIG.ORBIT.HEIGHT
-    local camZ = unitZ + CONFIG.ORBIT.DISTANCE * math.cos(STATE.orbit.angle)
+    local camX = unitX + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.sin(STATE.orbit.angle)
+    local camY = unitY + CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+    local camZ = unitZ + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.cos(STATE.orbit.angle)
 
     -- Create camera state looking at the unit
     local camPos = { x = camX, y = camY, z = camZ }
@@ -352,8 +350,8 @@ function OrbitingCamera.updateAutoOrbit()
     local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
     -- Determine smoothing factor - use a very smooth transition for auto-orbit
-    local smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.ORBIT.AUTO_ORBIT_SMOOTHING_FACTOR
-    local rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.ORBIT.AUTO_ORBIT_SMOOTHING_FACTOR
+    local smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
+    local rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
 
     -- Prepare camera state patch with smoothed values
     local camStatePatch = {

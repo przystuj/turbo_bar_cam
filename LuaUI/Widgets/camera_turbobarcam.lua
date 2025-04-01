@@ -30,7 +30,6 @@ local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
 local Util = TurboUtils.Util
 local WidgetControl = TurboModes.WidgetControl
-local CameraTransition = TurboModes.CameraTransition
 local FPSCamera = TurboModes.FPSCamera
 local TrackingCamera = TurboModes.TrackingCamera
 local OrbitingCamera = TurboModes.OrbitingCamera
@@ -39,9 +38,162 @@ local SpecGroups = TurboModes.SpecGroups
 local TurboOverviewCamera = TurboModes.TurboOverviewCamera
 
 --------------------------------------------------------------------------------
+-- HELPER FUNCTIONS
+--------------------------------------------------------------------------------
+
+--- Updates tracking camera during a transition
+--- @param posState table Position state from transition
+local function updateTrackingDuringTransition(posState)
+    -- Get unit position for look direction
+    local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
+    local targetPos = { x = unitX, y = unitY, z = unitZ }
+
+    -- Get current (transitioning) camera position
+    local camPos = { x = posState.px, y = posState.py, z = posState.pz }
+
+    -- Calculate look direction to the unit
+    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
+
+    -- Create complete camera state with position and look direction
+    local combinedState = {
+        mode = 0,
+        name = "fps",
+        px = camPos.x,
+        py = camPos.y,
+        pz = camPos.z,
+        dx = lookDir.dx,
+        dy = lookDir.dy,
+        dz = lookDir.dz,
+        rx = lookDir.rx,
+        ry = lookDir.ry,
+        rz = 0
+    }
+
+    -- Apply combined state
+    Spring.SetCameraState(combinedState, 0)
+
+    -- Update last values for smooth tracking
+    STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
+    STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
+
+end
+
+--- Handles delayed position storage callback
+local function handleDelayedCallbacks()
+    if STATE.delayed.frame and Spring.GetGameFrame() >= STATE.delayed.frame then
+        if STATE.delayed.callback then
+            STATE.delayed.callback()
+
+        end
+
+        STATE.delayed.frame = nil
+        STATE.delayed.callback = nil
+    end
+
+end
+
+--- Handles active camera transitions
+local function updateCameraTransition()
+    local now = Spring.GetTimer()
+
+    -- Calculate current progress
+    local elapsed = Spring.DiffTimers(now, STATE.transition.startTime)
+    local targetProgress = math.min(elapsed / CONFIG.TRANSITION.DURATION, 1.0)
+
+    -- Determine which position step to use
+    local totalSteps = #STATE.transition.steps
+    local targetStep = math.max(1, math.min(totalSteps, math.ceil(targetProgress * totalSteps)))
+
+    -- Only update position if we need to move to a new step
+    if targetStep > STATE.transition.currentStepIndex then
+        STATE.transition.currentStepIndex = targetStep
+
+        -- Get the position state for this step
+        local posState = STATE.transition.steps[STATE.transition.currentStepIndex]
+
+        -- Check if we've reached the end
+        if STATE.transition.currentStepIndex >= totalSteps then
+            STATE.transition.active = false
+            STATE.transition.currentAnchorIndex = nil
+        end
+
+        -- Special handling for tracking camera mode
+        if STATE.tracking.mode == 'tracking_camera' and STATE.tracking.unitID then
+            updateTrackingDuringTransition(posState)
+        else
+            -- If not tracking, just apply position
+            Spring.SetCameraState(posState, 0)
+
+        end
+
+    end
+
+end
+
+--- Handles grace period for tracking when no units are selected
+local function handleTrackingGracePeriod()
+    if STATE.tracking.graceTimer and STATE.tracking.mode then
+        local now = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
+
+        -- If grace period expired (1 second), disable tracking
+        if elapsed > 1.0 then
+            Util.disableTracking()
+            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
+        end
+    end
+end
+
+--- Handles transitions between camera modes
+local function handleModeTransitions()
+    -- If we're in a mode transition but not tracking any unit,
+    -- then we're transitioning back to normal camera from a tracking mode
+    if STATE.tracking.modeTransition and not STATE.tracking.mode then
+        -- We're transitioning to free camera
+        -- Just let the transition time out
+        local now = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+        if elapsed > 1.0 then
+            STATE.tracking.modeTransition = false
+        end
+    end
+end
+
+--- Updates the camera based on current mode
+local function updateCameraMode()
+    -- First handle active transitions, which override normal camera updates
+    if STATE.transition.active then
+        updateCameraTransition()
+    else
+        -- Normal camera updates based on current mode
+        if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
+            -- Check for auto-orbit
+            OrbitingCamera.checkUnitMovement()
+
+            if STATE.orbit.autoOrbitActive then
+                -- Handle auto-orbit camera update
+                OrbitingCamera.updateAutoOrbit()
+            else
+                -- Normal FPS update
+                FPSCamera.update()
+            end
+        elseif STATE.tracking.mode == 'tracking_camera' then
+            TrackingCamera.update()
+        elseif STATE.tracking.mode == 'orbit' then
+            OrbitingCamera.update()
+        elseif STATE.tracking.mode == 'turbo_overview' then
+            TurboOverviewCamera.update()
+        end
+
+    end
+end
+
+
+--------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
 
+---@param selectedUnits number[] Array of selected unit IDs
 ---@param selectedUnits number[] Array of selected unit IDs
 function widget:SelectionChanged(selectedUnits)
     if not STATE.enabled then
@@ -73,10 +225,10 @@ function widget:SelectionChanged(selectedUnits)
         -- Save current offsets for the previous unit if in FPS mode
         if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID then
             STATE.tracking.unitOffsets[STATE.tracking.unitID] = {
-                height = CONFIG.FPS.HEIGHT_OFFSET,
-                forward = CONFIG.FPS.FORWARD_OFFSET,
-                side = CONFIG.FPS.SIDE_OFFSET,
-                rotation = CONFIG.FPS.ROTATION_OFFSET
+                height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+                forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+                side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+                rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
             }
         end
 
@@ -87,26 +239,26 @@ function widget:SelectionChanged(selectedUnits)
         if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
             if STATE.tracking.unitOffsets[unitID] then
                 -- Use saved offsets
-                CONFIG.FPS.HEIGHT_OFFSET = STATE.tracking.unitOffsets[unitID].height
-                CONFIG.FPS.FORWARD_OFFSET = STATE.tracking.unitOffsets[unitID].forward
-                CONFIG.FPS.SIDE_OFFSET = STATE.tracking.unitOffsets[unitID].side
-                CONFIG.FPS.ROTATION_OFFSET = STATE.tracking.unitOffsets[unitID].rotation or CONFIG.FPS.DEFAULT_ROTATION_OFFSET
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.unitOffsets[unitID].height
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.unitOffsets[unitID].forward
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.unitOffsets[unitID].side
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.unitOffsets[unitID].rotation or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
                 Util.debugEcho("Camera switched to unit " .. unitID .. " with saved offsets")
             else
                 -- Get new default height for this unit
                 local unitHeight = Util.getUnitHeight(unitID)
-                CONFIG.FPS.DEFAULT_HEIGHT_OFFSET = unitHeight
-                CONFIG.FPS.HEIGHT_OFFSET = unitHeight
-                CONFIG.FPS.FORWARD_OFFSET = CONFIG.FPS.DEFAULT_FORWARD_OFFSET
-                CONFIG.FPS.SIDE_OFFSET = CONFIG.FPS.DEFAULT_SIDE_OFFSET
-                CONFIG.FPS.ROTATION_OFFSET = CONFIG.FPS.DEFAULT_ROTATION_OFFSET
+                CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
+                CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
 
                 -- Initialize storage for this unit
                 STATE.tracking.unitOffsets[unitID] = {
-                    height = CONFIG.FPS.HEIGHT_OFFSET,
-                    forward = CONFIG.FPS.FORWARD_OFFSET,
-                    side = CONFIG.FPS.SIDE_OFFSET,
-                    rotation = CONFIG.FPS.ROTATION_OFFSET
+                    height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+                    forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+                    side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+                    rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
                 }
 
                 Util.debugEcho("Camera switched to unit " .. unitID .. " with new offsets")
@@ -122,130 +274,20 @@ function widget:Update()
         return
     end
 
-    -- Check grace period timer if it exists
-    if STATE.tracking.graceTimer and STATE.tracking.mode then
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
+    -- Handle tracking grace period
+    handleTrackingGracePeriod()
 
-        -- If grace period expired (1 second), disable tracking
-        if elapsed > 1.0 then
-            Util.disableTracking()
-            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
-        end
-    end
+    -- Handle mode transitions
+    handleModeTransitions()
 
-    -- If we're in a mode transition but not tracking any unit,
-    -- then we're transitioning back to normal camera from a tracking mode
-    if STATE.tracking.modeTransition and not STATE.tracking.mode then
-        -- We're transitioning to free camera
-        -- Just let the transition time out
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed > 1.0 then
-            STATE.tracking.modeTransition = false
-        end
-    end
-
-    -- Check for fixed point command activation - this must be called every frame
+    -- Check for fixed point command activation
     FPSCamera.checkFixedPointCommandActivation()
 
-    -- During special transition + tracking, handle both components
-    if STATE.transition.active then
-        -- Update transition position
-        local now = Spring.GetTimer()
+    -- Handle camera updates
+    updateCameraMode()
 
-        -- Calculate current progress
-        local elapsed = Spring.DiffTimers(now, STATE.transition.startTime)
-        local targetProgress = math.min(elapsed / CONFIG.TRANSITION.DURATION, 1.0)
-
-        -- Determine which position step to use
-        local totalSteps = #STATE.transition.steps
-        local targetStep = math.max(1, math.min(totalSteps, math.ceil(targetProgress * totalSteps)))
-
-        -- Only update position if we need to move to a new step
-        if targetStep > STATE.transition.currentStepIndex then
-            STATE.transition.currentStepIndex = targetStep
-
-            -- Get the position state for this step
-            local posState = STATE.transition.steps[STATE.transition.currentStepIndex]
-
-            -- Check if we've reached the end
-            if STATE.transition.currentStepIndex >= totalSteps then
-                STATE.transition.active = false
-                STATE.transition.currentAnchorIndex = nil
-            end
-
-            -- Only update position, not direction (tracking will handle that)
-            if STATE.tracking.mode == 'tracking_camera' and STATE.tracking.unitID then
-                -- Get unit position for look direction
-                local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
-                local targetPos = { x = unitX, y = unitY, z = unitZ }
-
-                -- Get current (transitioning) camera position
-                local camPos = { x = posState.px, y = posState.py, z = posState.pz }
-
-                -- Calculate look direction to the unit
-                local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
-
-                -- Create complete camera state with position and look direction
-                local combinedState = {
-                    mode = 0,
-                    name = "fps",
-                    px = camPos.x,
-                    py = camPos.y,
-                    pz = camPos.z,
-                    dx = lookDir.dx,
-                    dy = lookDir.dy,
-                    dz = lookDir.dz,
-                    rx = lookDir.rx,
-                    ry = lookDir.ry,
-                    rz = 0
-                }
-
-                -- Apply combined state
-                Spring.SetCameraState(combinedState, 0)
-
-                -- Update last values for smooth tracking
-                STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
-                STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
-            else
-                -- If not tracking, just apply position
-                Spring.SetCameraState(posState, 0)
-            end
-        end
-    else
-        -- Normal transition behavior when not in special mode
-        CameraTransition.update()
-
-        -- Normal tracking behavior when not in special transition
-        if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
-            -- Check for auto-orbit
-            OrbitingCamera.checkUnitMovement()
-
-            if STATE.orbit.autoOrbitActive then
-                -- Handle auto-orbit camera update
-                OrbitingCamera.updateAutoOrbit()
-            else
-                -- Normal FPS update
-                FPSCamera.update()
-            end
-        elseif STATE.tracking.mode == 'tracking_camera' then
-            TrackingCamera.update()
-        elseif STATE.tracking.mode == 'orbit' then
-            OrbitingCamera.update()
-        elseif STATE.tracking.mode == 'turbo_overview' then
-            TurboOverviewCamera.update()
-        end
-    end
-
-    -- Check for delayed position storage callback
-    if STATE.delayed.frame and Spring.GetGameFrame() >= STATE.delayed.frame then
-        if STATE.delayed.callback then
-            STATE.delayed.callback()
-        end
-        STATE.delayed.frame = nil
-        STATE.delayed.callback = nil
-    end
+    -- Handle delayed callbacks
+    handleDelayedCallbacks()
 end
 
 function widget:Initialize()

@@ -57,7 +57,7 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview = STATE.turboOverview or {}
     STATE.turboOverview.zoomLevel = STATE.turboOverview.zoomLevel or 1
     STATE.turboOverview.zoomLevels = STATE.turboOverview.zoomLevels or { 1, 2, 4 }
-    STATE.turboOverview.movementSmoothing = STATE.turboOverview.movementSmoothing or 0.05
+    STATE.turboOverview.movementSmoothing = STATE.turboOverview.movementSmoothing or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_SMOOTHING
     STATE.turboOverview.initialMovementSmoothing = STATE.turboOverview.initialMovementSmoothing or 0.01 -- Slower initial movement
     STATE.turboOverview.zoomTransitionFactor = STATE.turboOverview.zoomTransitionFactor or 0.04 -- Smooth zoom transitions
 
