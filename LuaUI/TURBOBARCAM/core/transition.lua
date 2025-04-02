@@ -1,10 +1,13 @@
 -- Camera Transition module for TURBOBARCAM
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type Util
+local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = UtilsModule.Util
 
 ---@class CameraTransition
 local CameraTransition = {}

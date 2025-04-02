@@ -1,13 +1,19 @@
 -- Turbo Overview Camera module for TURBOBARCAM
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CoreModules
 local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
-local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/utils.lua")
+---@type CommonModules
+local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboCore.Util
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = TurboCommons.Util
 local CameraCommons = TurboCore.CameraCommons
+
+---@type {OverviewCameraUtils: OverviewCameraUtils}
+local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/utils.lua")
 local OverviewCameraUtils = OverviewUtils.OverviewCameraUtils
 
 ---@class TurboOverviewCamera

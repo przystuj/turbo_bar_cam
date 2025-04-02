@@ -1,13 +1,14 @@
 -- Camera Commons module for TURBOBARCAM
 -- This module provides shared functionality used by all camera types
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CommonModules
+local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = TurboCommons.Util
 
 ---@class CameraCommons
 local CameraCommons = {}

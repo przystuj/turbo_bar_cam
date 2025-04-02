@@ -13,30 +13,32 @@ function widget:GetInfo()
 end
 
 -- Load modules
----@type Types
-local _ = VFS.Include("LuaUI/TURBOBARCAM/types.lua")
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
----@type {Commons: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
----@type {FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor}
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type FeatureModules
 local TurboFeatures = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
+---@type CoreModules
+local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+---@type CommonModules
+local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+
+---@type AllModules
+local AllModules = {
+    Context = WidgetContext,
+    Features = TurboFeatures,
+    Core = TurboCore,
+    Common = TurboCommons,
+}
 
 -- Initialize shorthand references
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboCore.Util
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = TurboCommons.Util
 local WidgetControl = TurboCore.WidgetControl
 local FPSCamera = TurboFeatures.FPSCamera
 local Actions = TurboCore.Actions
 local UpdateManager = TurboCore.UpdateManager
 local SelectionManager = TurboCore.SelectionManager
-
--- Create a modules container for passing to managers
-local Modules = {
-    Core = TurboCore,
-    Features = TurboFeatures
-}
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -48,19 +50,21 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:Update()
-    UpdateManager.processCycle(Modules)
+    UpdateManager.processCycle(AllModules)
 end
 
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
 
+    WG.TURBOBARCAM.Util = AllModules.Common.Util
+
     -- Initialize the managers with modules reference
-    UpdateManager.setModules(Modules)
-    SelectionManager.setModules(Modules)
+    UpdateManager.setModules(AllModules)
+    SelectionManager.setModules(AllModules)
 
     -- Register all action handlers
-    Actions.registerAllActions(Modules)
+    Actions.registerAllActions(AllModules)
 
     Util.debugEcho("TURBOBARCAM loaded but disabled. Use /toggle_camera_suite to enable.")
 end

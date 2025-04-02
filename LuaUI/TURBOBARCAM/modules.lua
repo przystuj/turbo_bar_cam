@@ -3,11 +3,9 @@
 
 ---@class CoreModules
 ---@field Commons CameraCommons
----@field Util Util
 ---@field Movement CameraMovement
 ---@field Transition CameraTransition
 ---@field FreeCam FreeCam
----@field Tracking TrackingManager
 ---@field WidgetControl WidgetControl
 ---@field SelectionManager SelectionManager
 ---@field Actions Actions
@@ -21,12 +19,16 @@
 ---@field SpecGroups SpecGroups
 ---@field TurboOverviewCamera TurboOverviewCamera
 
----@class ConfigModule
----@field Config {CONFIG: CONFIG, STATE: STATE}
+---@class WidgetContext
+---@field WidgetState WidgetStateModule
+---@field WidgetConfig WidgetConfigModule
+
+---@class CommonModules
+---@field Util Util
+---@field Tracking TrackingManager
 
 ---@class AllModules
 ---@field Core CoreModules
+---@field Common CommonModules
 ---@field Features FeatureModules
----@field ConfigModule
-
-return {}
+---@field Context WidgetContext

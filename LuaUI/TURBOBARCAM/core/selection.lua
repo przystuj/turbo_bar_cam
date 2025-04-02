@@ -1,9 +1,11 @@
 -- Selection handling module for TURBOBARCAM
 -- Handles unit selection changes
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
 
 ---@class SelectionManager
 local SelectionManager = {}
@@ -25,9 +27,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
     end
     
     -- Access utility functions
-    local Util = SelectionManager.modules and SelectionManager.modules.Core and 
-                 SelectionManager.modules.Core.Util
-    
+    local Util = WG.TURBOBARCAM.Util
     if not Util then return end
 
     -- If no units are selected and tracking is active, start grace period

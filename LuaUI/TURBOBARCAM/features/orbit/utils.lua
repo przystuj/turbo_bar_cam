@@ -1,12 +1,13 @@
 -- Orbiting Camera utils for TURBOBARCAM
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
----@type {Base: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CommonModules
+local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboCore.Util
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = TurboCommons.Util
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}

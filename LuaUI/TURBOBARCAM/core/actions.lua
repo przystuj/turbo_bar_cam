@@ -14,12 +14,11 @@ local function registerAction(actionName, flags, handler)
 end
 
 -- Register all camera action handlers
----@param modules table All camera modules (TurboFeatures, TurboCore)
+---@param modules AllModules
 function Actions.registerAllActions(modules)
-    ---@type {FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor}
     local Features = modules.Features
-    ---@type {Commons: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
     local Core = modules.Core
+    local Context = modules.Context
 
     -- Core widget actions
     registerAction("toggle_camera_suite", 'tp',
@@ -31,9 +30,9 @@ function Actions.registerAllActions(modules)
     -- Debug toggle
     registerAction("turbobarcam_toggle_debug", 'tp',
             function()
-                local STATE = TurboConfig.STATE
-                STATE.DEBUG = not STATE.DEBUG
-                Core.Util.echo("DEBUG: " .. (STATE.DEBUG and "true" or "false"))
+                Context.WidgetState.DEBUG = not Context.WidgetState.DEBUG
+                local DEBUG = Context.WidgetState.DEBUG
+                Core.Util.echo("DEBUG: " .. (DEBUG and "true" or "false"))
                 return true
             end)
 

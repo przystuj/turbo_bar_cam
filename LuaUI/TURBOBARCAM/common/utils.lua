@@ -1,8 +1,10 @@
 -- Import configuration
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
 
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS

@@ -1,17 +1,22 @@
 -- FPS Camera module for TURBOBARCAM
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
----@type {Base: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CoreModules
 local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+---@type CommonModules
+local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+---@type Util
+local Util = TurboCommons.Util
+
 ---@type {FPSCameraUtils: FPSCameraUtils}
 local FPSUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/utils.lua")
-
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboCore.Util
 local CameraCommons = TurboCore.CameraCommons
 local FreeCam = TurboCore.FreeCam
-local TrackingManager = TurboCore.Tracking
+local TrackingManager = TurboCommons.Tracking
 local FPSCameraUtils = FPSUtils.FPSCameraUtils
 
 local prevActiveCmd

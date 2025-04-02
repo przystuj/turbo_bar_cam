@@ -1,8 +1,8 @@
 -- Update module for TURBOBARCAM
 -- Handles camera system updates and callbacks
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
-local STATE = TurboConfig.STATE
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+local STATE = WidgetContext.WidgetState.STATE
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -16,10 +16,7 @@ function UpdateManager.handleTrackingGracePeriod()
 
         -- If grace period expired (1 second), disable tracking
         if elapsed > 1.0 then
-            -- Get the utility from the passed modules because of circular dependency issues
-            local Util = UpdateManager.modules and UpdateManager.modules.Core and
-                    UpdateManager.modules.Core.Util
-
+            local Util = WG.TURBOBARCAM.Util
             if Util then
                 Util.disableTracking()
                 Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
@@ -62,7 +59,7 @@ function UpdateManager.handleDelayedCallbacks()
 end
 
 --- Updates the camera based on current mode
----@param modules table All camera modules (TurboFeatures, TurboCore)
+---@param modules AllModules
 function UpdateManager.updateCameraMode(modules)
     if not modules then
         return
@@ -98,13 +95,13 @@ function UpdateManager.updateCameraMode(modules)
 end
 
 --- Initializes modules reference for internal use
----@param modules table Modules object containing Features and Core
+---@param modules AllModules
 function UpdateManager.setModules(modules)
     UpdateManager.modules = modules
 end
 
 --- Processes the main update cycle
----@param modules table All camera modules (TurboFeatures, TurboCore)
+---@param modules AllModules
 function UpdateManager.processCycle(modules)
     if not STATE.enabled then
         return

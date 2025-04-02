@@ -1,12 +1,16 @@
 -- Tracking module for TURBOBARCAM
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
-local TurboTransition = VFS.Include("LuaUI/TURBOBARCAM/core/transition.lua")
+-- Load modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraTransition
+local TransitionModule = VFS.Include("LuaUI/TURBOBARCAM/core/transition.lua")
+---@type Util
+local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 
-local CONFIG = TurboConfig.CONFIG
-local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
-local CameraTransition = TurboTransition.CameraTransition
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.WidgetState.STATE
+local Util = UtilsModule.Util
+local CameraTransition = TransitionModule.CameraTransition
 
 ---@class TrackingManager
 local TrackingManager = {}

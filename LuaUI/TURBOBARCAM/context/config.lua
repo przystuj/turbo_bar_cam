@@ -6,11 +6,13 @@
 WG.TURBOBARCAM = WG.TURBOBARCAM or {}
 
 -- Create a module to export
-local TurboModule = {}
+---@class WidgetConfigModule
+---@field CONFIG WidgetConfig
+local WidgetConfig = {}
 
 -- Only initialize CONFIG if it doesn't exist in WG already
 if not WG.TURBOBARCAM.CONFIG then
-    ---@class CONFIG
+    ---@class WidgetConfig
     WG.TURBOBARCAM.CONFIG = {
         -- Camera mode settings
         CAMERA_MODES = {
@@ -98,11 +100,7 @@ if not WG.TURBOBARCAM.CONFIG then
 end
 
 -- Link CONFIG to the module
-TurboModule.CONFIG = WG.TURBOBARCAM.CONFIG
-
--- Import STATE from separate file
-local StateModule = VFS.Include("LuaUI/TURBOBARCAM/config/state.lua")
-TurboModule.STATE = StateModule.STATE
+WidgetConfig.CONFIG = WG.TURBOBARCAM.CONFIG
 
 -- Export the module (both CONFIG and STATE are shared via WG)
-return TurboModule
+return WidgetConfig

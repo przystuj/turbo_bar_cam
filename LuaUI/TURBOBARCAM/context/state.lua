@@ -2,11 +2,14 @@
 WG.TURBOBARCAM = WG.TURBOBARCAM or {}
 
 -- Create a module to export
-local StateModule = {}
+
+---@class WidgetStateModule
+---@field STATE WidgetState
+local WidgetState = {}
 
 -- Only initialize STATE if it doesn't exist in WG already
 if not WG.TURBOBARCAM.STATE then
-    ---@class STATE
+    ---@class WidgetState
     WG.TURBOBARCAM.STATE = {
         -- Core widget state
         enabled = false,
@@ -131,7 +134,7 @@ if not WG.TURBOBARCAM.STATE then
 end
 
 -- Link STATE to the module
-StateModule.STATE = WG.TURBOBARCAM.STATE
+WidgetState.STATE = WG.TURBOBARCAM.STATE
 
 -- Export the module
-return StateModule
+return WidgetState
