@@ -10,7 +10,7 @@ local UpdateManager = {}
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
-    if STATE.tracking.graceTimer and STATE.tracking.mode then
+    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "turbo_overview" then
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
 

@@ -133,26 +133,6 @@ function TrackingManager.loadUnitSettings(mode, unitID)
     end
 end
 
---- Handles tracking grace period
----@return boolean trackingChanged Whether tracking state changed
-function TrackingManager.handleGracePeriod()
-    if not STATE.tracking.graceTimer or not STATE.tracking.mode then
-        return false
-    end
-
-    local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
-
-    -- If grace period expired (1 second), disable tracking
-    if elapsed > 1.0 then
-        Util.disableTracking()
-        Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
-        return true
-    end
-
-    return false
-end
-
 --- Sets a fixed look point for the camera
 ---@param fixedPoint table Point to look at {x, y, z}
 ---@param targetUnitID number|nil Optional unit ID to track
