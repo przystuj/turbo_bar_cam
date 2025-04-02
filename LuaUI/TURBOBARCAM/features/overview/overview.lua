@@ -1,121 +1,17 @@
--- Turbo Overview Camera module for TURBOBARCAM with improved freecam
+-- Turbo Overview Camera module for TURBOBARCAM
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/utils.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
+local Util = TurboCore.Util
+local CameraCommons = TurboCore.CameraCommons
+local OverviewCameraUtils = OverviewUtils.OverviewCameraUtils
 
 ---@class TurboOverviewCamera
 local TurboOverviewCamera = {}
-
--- Helper function to calculate camera height based on current zoom level
-local function calculateCurrentHeight()
-    local zoomFactor = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
-    -- Enforce minimum height to prevent getting too close to ground
-    return math.max(STATE.turboOverview.height / zoomFactor, 500)
-end
-
--- Helper function to get cursor world position
-local function getCursorWorldPosition()
-    local mx, my = Spring.GetMouseState()
-    local _, pos = Spring.TraceScreenRay(mx, my, true)
-
-    if pos then
-        return { x = pos[1], y = pos[2], z = pos[3] }
-    else
-        -- Return center of map if cursor is not over the map
-        return { x = Game.mapSizeX / 2, y = 0, z = Game.mapSizeZ / 2 }
-    end
-end
-
--- Helper function to calculate position on movement path
----@param targetPoint table Target point {x, y, z}
----@param angle number Angle in radians
----@param distance number Distance from target
----@param height number Height above ground
----@return table position Position on movement path {x, y, z}
-local function calculateMovementPosition(targetPoint, angle, distance, height)
-    return {
-        x = targetPoint.x + distance * math.sin(angle),
-        y = targetPoint.y + height,
-        z = targetPoint.z + distance * math.cos(angle)
-    }
-end
-
--- Helper function to calculate movement angle between two positions
----@param targetPoint table Target point {x, y, z}
----@param position table Position {x, y, z}
----@return number angle Angle in radians
-local function calculateMovementAngle(targetPoint, position)
-    return math.atan2(position.x - targetPoint.x, position.z - targetPoint.z)
-end
-
--- NEW: Function for continuous rotation toward cursor position
-local function updateCursorTracking()
-    -- Skip if we're in another movement mode
-    if STATE.turboOverview.isMovingToTarget or STATE.turboOverview.movingToTarget then
-        return
-    end
-
-    -- Get current mouse position
-    local mouseX, mouseY = Spring.GetMouseState()
-    local screenWidth, screenHeight = Spring.GetViewGeometry()
-
-    -- Calculate normalized cursor position (-1 to 1) from screen center
-    local normalizedX = (mouseX - (screenWidth / 2)) / (screenWidth / 2)
-    local normalizedY = (mouseY - (screenHeight / 2)) / (screenHeight / 2)
-
-    -- Calculate distance from center (0-1 range)
-    local distanceFromCenter = math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY)
-
-    -- Buffer zone in screen center - no rotation in this area
-    if distanceFromCenter < CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE then
-        -- Inside buffer zone, no rotation adjustment needed
-        return
-    end
-
-    -- Calculate gradual rotation multiplier based on distance from buffer zone
-    -- This creates a smooth ramp-up from buffer edge to screen edge
-    local availableRange = 1.0 - CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE
-    local distanceBeyondBuffer = distanceFromCenter - CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE
-
-    -- Apply quadratic/cubic easing for smoother acceleration
-    -- This gives a more natural feel with gradual start and stronger finish
-    local gradualMultiplier = (distanceBeyondBuffer / availableRange) ^ 2
-
-    -- Check if cursor is at the very edge for maximum speed
-    local EDGE_THRESHOLD = 0.05
-    local thresholdPixelsX = screenWidth * EDGE_THRESHOLD
-    local thresholdPixelsY = screenHeight * EDGE_THRESHOLD
-
-    local isAtEdge = mouseX < thresholdPixelsX or
-            mouseX > screenWidth - thresholdPixelsX or
-            mouseY < thresholdPixelsY or
-            mouseY > screenHeight - thresholdPixelsY
-
-    -- Apply edge multiplier on top of gradual multiplier if at the edge
-    local finalMultiplier = gradualMultiplier
-    if isAtEdge then
-        finalMultiplier = gradualMultiplier * STATE.turboOverview.edgeRotationMultiplier
-    end
-
-    -- Calculate rotation speeds based on cursor position and gradual multiplier
-    local rySpeed = normalizedX * STATE.turboOverview.maxRotationSpeed * finalMultiplier
-    local rxSpeed = -normalizedY * STATE.turboOverview.maxRotationSpeed * finalMultiplier
-
-    -- Update target rotations
-    STATE.turboOverview.targetRy = STATE.turboOverview.targetRy + rySpeed
-    STATE.turboOverview.targetRx = STATE.turboOverview.targetRx + rxSpeed
-
-    -- Normalize angles
-    STATE.turboOverview.targetRy = Util.normalizeAngle(STATE.turboOverview.targetRy)
-
-    -- Vertical rotation constraint
-    STATE.turboOverview.targetRx = math.max(math.pi / 2, math.min(math.pi, STATE.turboOverview.targetRx))
-end
 
 --- Toggles turbo overview camera mode
 function TurboOverviewCamera.toggle()
@@ -147,10 +43,10 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.initialMovementSmoothing = STATE.turboOverview.initialMovementSmoothing or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.INITIAL_SMOOTHING
     STATE.turboOverview.zoomTransitionFactor = STATE.turboOverview.zoomTransitionFactor or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR
 
-    -- NEW: Add configuration for improved cursor tracking
+    -- Add configuration for improved cursor tracking
     STATE.turboOverview.cursorTrackingEnabled = true  -- Always enabled, no toggle needed
     STATE.turboOverview.rotationAcceleration = 0.005  -- How fast rotation accelerates toward cursor
-    STATE.turboOverview.maxRotationSpeed = 0.015       -- Maximum rotation speed
+    STATE.turboOverview.maxRotationSpeed = 0.015      -- Maximum rotation speed
     STATE.turboOverview.edgeRotationMultiplier = 2.0  -- Faster rotation at screen edges
 
     -- For tracking zoom transitions
@@ -193,7 +89,7 @@ function TurboOverviewCamera.toggle()
     Util.debugEcho("Base camera height: " .. STATE.turboOverview.height)
 
     -- Calculate current height based on zoom level
-    local currentHeight = calculateCurrentHeight()
+    local currentHeight = OverviewCameraUtils.calculateCurrentHeight()
     STATE.turboOverview.targetHeight = currentHeight -- Initialize target height
     Util.debugEcho("Current camera height: " .. currentHeight)
 
@@ -251,119 +147,6 @@ function TurboOverviewCamera.toggle()
             STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel] .. ")")
 end
 
--- Updates target movement based on mouse position and button state
-local function updateTargetMovement()
-    if not STATE.turboOverview.isMovingToTarget then
-        return
-    end
-
-    -- Get current mouse position
-    local mouseX, mouseY = Spring.GetMouseState()
-
-    -- Initialize screen center if needed
-    if not STATE.turboOverview.screenCenterX or not STATE.turboOverview.screenCenterY then
-        local screenWidth, screenHeight = Spring.GetViewGeometry()
-        STATE.turboOverview.screenCenterX = screenWidth / 2
-        STATE.turboOverview.screenCenterY = screenHeight / 2
-    end
-
-    -- Initialize last mouse position if needed
-    if not STATE.turboOverview.lastMouseX or not STATE.turboOverview.lastMouseY then
-        STATE.turboOverview.lastMouseX = mouseX
-        STATE.turboOverview.lastMouseY = mouseY
-        return
-    end
-
-    -- Calculate position-based steering
-    -- The further from center, the stronger the steering effect
-    local distFromCenterX = mouseX - STATE.turboOverview.screenCenterX
-    local screenWidth = STATE.turboOverview.screenCenterX * 2
-    local normalizedDistFromCenter = distFromCenterX / (screenWidth * 0.5)
-
-    -- Apply a deadzone in the center for stability
-    local DEADZONE = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.DEADZONE
-    if math.abs(normalizedDistFromCenter) < DEADZONE then
-        normalizedDistFromCenter = 0
-    else
-        -- Adjust for deadzone and rescale to 0-1 range
-        normalizedDistFromCenter = normalizedDistFromCenter * (1.0 / (1.0 - DEADZONE))
-        if normalizedDistFromCenter > 1.0 then
-            normalizedDistFromCenter = 1.0
-        elseif normalizedDistFromCenter < -1.0 then
-            normalizedDistFromCenter = -1.0
-        end
-    end
-
-    -- Set angular velocity based on mouse position
-    STATE.turboOverview.angularVelocity = normalizedDistFromCenter * STATE.turboOverview.maxAngularVelocity
-
-    -- Forward velocity is constant when the button is pressed
-    if STATE.turboOverview.movingToTarget then
-        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.FORWARD_VELOCITY
-    else
-        -- Apply damping to angular velocity to smoothly stop turning
-        STATE.turboOverview.angularVelocity = STATE.turboOverview.angularVelocity * STATE.turboOverview.angularDamping
-
-        -- Exit movement mode if button is released
-        STATE.turboOverview.isMovingToTarget = false
-        Util.debugEcho("Exiting target movement mode")
-        return
-    end
-
-    -- Update movement angle based on angular velocity (steering)
-    STATE.turboOverview.movementAngle = STATE.turboOverview.movementAngle + STATE.turboOverview.angularVelocity
-
-    -- Update distance to target based on forward velocity
-    STATE.turboOverview.distanceToTarget = math.max(
-            STATE.turboOverview.minDistanceToTarget,
-            STATE.turboOverview.distanceToTarget - STATE.turboOverview.forwardVelocity
-    )
-
-    -- Calculate new position on movement path
-    local newPos = calculateMovementPosition(
-            STATE.turboOverview.targetPoint,
-            STATE.turboOverview.movementAngle,
-            STATE.turboOverview.distanceToTarget,
-            calculateCurrentHeight()
-    )
-
-    -- Update fixed camera position with transitional smoothing during movement initialization
-    if STATE.turboOverview.inMovementTransition then
-        -- During transition, smoothly move from current position to new position
-        STATE.turboOverview.fixedCamPos = {
-            x = Util.smoothStep(STATE.turboOverview.fixedCamPos.x, newPos.x, STATE.turboOverview.movementTransitionFactor),
-            y = Util.smoothStep(STATE.turboOverview.fixedCamPos.y, newPos.y, STATE.turboOverview.movementTransitionFactor),
-            z = Util.smoothStep(STATE.turboOverview.fixedCamPos.z, newPos.z, STATE.turboOverview.movementTransitionFactor)
-        }
-
-        -- Calculate look direction to target
-        local targetLookDir = Util.calculateLookAtPoint(STATE.turboOverview.fixedCamPos, STATE.turboOverview.targetPoint)
-
-        -- Smoothly transition rotation to point to target
-        STATE.turboOverview.targetRx = Util.smoothStep(STATE.turboOverview.targetRx, targetLookDir.rx, STATE.turboOverview.movementTransitionFactor)
-        STATE.turboOverview.targetRy = Util.smoothStepAngle(STATE.turboOverview.targetRy, targetLookDir.ry, STATE.turboOverview.movementTransitionFactor)
-
-        -- Check if we've reached the movement path (close enough)
-        local dx = STATE.turboOverview.fixedCamPos.x - newPos.x
-        local dz = STATE.turboOverview.fixedCamPos.z - newPos.z
-        local distSquared = dx * dx + dz * dz
-
-        if distSquared < 1 then
-            STATE.turboOverview.inMovementTransition = false
-            STATE.turboOverview.fixedCamPos = newPos
-        end
-    else
-        STATE.turboOverview.fixedCamPos = newPos
-    end
-
-    -- Check if we're very close to the target, and if so, stop moving
-    if STATE.turboOverview.distanceToTarget <= STATE.turboOverview.minDistanceToTarget + 1 then
-        STATE.turboOverview.isMovingToTarget = false
-        STATE.turboOverview.movingToTarget = false
-        Util.debugEcho("Reached target position")
-    end
-end
-
 --- Updates the turbo overview camera's position and orientation
 function TurboOverviewCamera.update()
     if STATE.tracking.mode ~= 'turbo_overview' then
@@ -387,10 +170,8 @@ function TurboOverviewCamera.update()
         -- Use a gentler transition factor during mode changes to avoid fast movement
         smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR * 0.5
 
-        -- Check if we should end the transition (after ~1 second)
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed > 1.0 then
+        -- Check if we should end the transition
+        if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
             STATE.tracking.modeTransition = false
         end
     end
@@ -406,7 +187,7 @@ function TurboOverviewCamera.update()
 
     -- Handle zoom height transitions
     local currentHeight = camState.py
-    local targetHeight = STATE.turboOverview.targetHeight or calculateCurrentHeight()
+    local targetHeight = STATE.turboOverview.targetHeight or OverviewCameraUtils.calculateCurrentHeight()
 
     if math.abs(currentHeight - targetHeight) > 1 then
         -- We're in a zoom transition
@@ -419,7 +200,7 @@ function TurboOverviewCamera.update()
 
     -- Update target movement if in that mode
     if STATE.turboOverview.isMovingToTarget then
-        updateTargetMovement()
+        OverviewCameraUtils.updateTargetMovement(STATE.turboOverview)
 
         -- Get camera position with current height
         local camPos = {
@@ -475,7 +256,7 @@ function TurboOverviewCamera.update()
     end
 
     -- Use continuous rotation based on cursor position
-    updateCursorTracking()
+    OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
 
     -- Get camera position
     local camPos = {
@@ -540,7 +321,7 @@ function TurboOverviewCamera.toggleZoom()
     end
 
     -- Update target height for smooth transition
-    STATE.turboOverview.targetHeight = calculateCurrentHeight()
+    STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
     local newZoom = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
     Util.debugEcho("Turbo Overview camera zoom: x" .. newZoom)
@@ -567,7 +348,7 @@ function TurboOverviewCamera.setZoomLevel(level)
     STATE.turboOverview.zoomLevel = level
 
     -- Update target height for smooth transition
-    STATE.turboOverview.targetHeight = calculateCurrentHeight()
+    STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
     local newZoom = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
     Util.debugEcho("Turbo Overview camera zoom set to: x" .. newZoom)
@@ -579,15 +360,7 @@ end
 --- Adjusts the smoothing factor for cursor following
 ---@param amount number Amount to adjust smoothing by
 function TurboOverviewCamera.adjustSmoothing(amount)
-    if STATE.tracking.mode ~= 'turbo_overview' then
-        Util.debugEcho("Turbo Overview camera must be enabled first")
-        return
-    end
-
-    -- Adjust smoothing factor (keep between 0.001 and 0.5)
-    STATE.turboOverview.movementSmoothing = math.max(0.001, math.min(0.5, STATE.turboOverview.movementSmoothing + amount))
-
-    Util.debugEcho("Turbo Overview smoothing: " .. STATE.turboOverview.movementSmoothing)
+    OverviewCameraUtils.adjustSmoothing(amount)
 end
 
 --- Moves the camera toward a target point with steering capability
@@ -604,7 +377,7 @@ function TurboOverviewCamera.moveToTarget()
         Util.debugEcho("Target movement mode exited")
     else
         -- Get cursor position and set it as target point
-        STATE.turboOverview.targetPoint = getCursorWorldPosition()
+        STATE.turboOverview.targetPoint = OverviewCameraUtils.getCursorWorldPosition()
 
         -- Get current camera state
         local currentCamState = Spring.GetCameraState()
@@ -633,7 +406,8 @@ function TurboOverviewCamera.moveToTarget()
         STATE.turboOverview.targetRy = currentCamState.ry
 
         -- Calculate the movement angle based on camera position
-        STATE.turboOverview.movementAngle = calculateMovementAngle(STATE.turboOverview.targetPoint, camPos)
+        STATE.turboOverview.movementAngle = TurboCore.Movement.calculateMovementAngle(
+            STATE.turboOverview.targetPoint, camPos)
         STATE.turboOverview.targetMovementAngle = STATE.turboOverview.movementAngle
 
         -- Calculate initial distance

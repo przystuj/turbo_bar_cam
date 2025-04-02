@@ -1,17 +1,13 @@
 -- Camera Anchor module for TURBOBARCAM
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+---@type {Base: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
+local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
-
--- Import CameraTransition for transition start function
----@type {CameraTransition: CameraTransition}
-local CameraTransitionModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_transition.lua")
-local CameraTransition = CameraTransitionModule.CameraTransition
+local Util = TurboCore.Util
+local CameraTransition = TurboCore.Transition
 
 ---@class CameraAnchor
 local CameraAnchor = {}

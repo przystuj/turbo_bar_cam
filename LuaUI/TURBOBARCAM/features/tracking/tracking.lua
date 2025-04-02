@@ -1,12 +1,14 @@
 -- Tracking Camera module for TURBOBARCAM
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+---@type {Base: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
+local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
+local Util = TurboCore.Util
+local CameraCommons = TurboCore.CameraCommons
+local TrackingManager = TurboCore.Tracking
 
 ---@class TrackingCamera
 local TrackingCamera = {}
@@ -41,20 +43,12 @@ function TrackingCamera.toggle()
         return true
     end
 
-    -- Otherwise we're either starting fresh or switching units
-    Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
 
-    -- Get current camera state and ensure it's FPS mode
-    local camState = Spring.GetCameraState()
-    if camState.mode ~= 0 then
-        camState.mode = 0
-        camState.name = "fps"
-        Spring.SetCameraState(camState, 0)
+    -- Initialize the tracking system
+    if TrackingManager.initializeTracking('tracking_camera', selectedUnitID) then
+        Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
+
     end
-
-    -- Begin mode transition
-    Util.beginModeTransition('tracking_camera')
-    STATE.tracking.unitID = selectedUnitID
 
     return true
 end
@@ -64,6 +58,7 @@ function TrackingCamera.update()
     if STATE.tracking.mode ~= 'tracking_camera' or not STATE.tracking.unitID then
         return
     end
+
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
@@ -80,6 +75,7 @@ function TrackingCamera.update()
         currentState.name = "fps"
         Spring.SetCameraState(currentState, 0)
     end
+
 
     -- Get unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
@@ -100,19 +96,20 @@ function TrackingCamera.update()
         dirFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
         rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
 
-        -- Check if we should end the transition (after ~1 second)
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed > 1.0 then
+        -- Check if we should end the transition
+        if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
             STATE.tracking.modeTransition = false
         end
     end
+
+
 
     -- Initialize last values if needed
     if STATE.tracking.lastCamDir.x == 0 and STATE.tracking.lastCamDir.y == 0 and STATE.tracking.lastCamDir.z == 0 then
         STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
         STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
     end
+
 
     -- Create camera state patch - only update direction, not position
     local camStatePatch = {

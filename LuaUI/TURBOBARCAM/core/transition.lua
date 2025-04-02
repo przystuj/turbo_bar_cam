@@ -1,8 +1,6 @@
 -- Camera Transition module for TURBOBARCAM
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
@@ -127,6 +125,99 @@ function CameraTransition.start(endState, duration)
     STATE.transition.currentStepIndex = 1
     STATE.transition.startTime = Spring.GetTimer()
     STATE.transition.active = true
+end
+
+--- Starts a position transition with optional focus point
+---@param startPos table Start position {x, y, z}
+---@param endPos table End position {x, y, z}
+---@param duration number Transition duration
+---@param targetPoint table|nil Point to keep looking at during transition
+---@return table transitionSteps Array of transition steps
+function CameraTransition.createPositionTransition(startPos, endPos, duration, targetPoint)
+    local numSteps = math.max(2, math.floor(duration * CONFIG.TRANSITION.STEPS_PER_SECOND))
+    local steps = {}
+    
+    for i = 1, numSteps do
+        local t = (i - 1) / (numSteps - 1)
+        local easedT = Util.easeInOutCubic(t)
+        
+        -- Interpolate position
+        local position = {
+            x = Util.lerp(startPos.x, endPos.x, easedT),
+            y = Util.lerp(startPos.y, endPos.y, easedT),
+            z = Util.lerp(startPos.z, endPos.z, easedT)
+        }
+        
+        -- Create state patch
+        local statePatch = {
+            mode = 0,
+            name = "fps",
+            px = position.x,
+            py = position.y,
+            pz = position.z
+        }
+        
+        -- If we have a target point, calculate look direction
+        if targetPoint then
+            local lookDir = Util.calculateLookAtPoint(position, targetPoint)
+            statePatch.dx = lookDir.dx
+            statePatch.dy = lookDir.dy
+            statePatch.dz = lookDir.dz
+            statePatch.rx = lookDir.rx
+            statePatch.ry = lookDir.ry
+            statePatch.rz = 0
+        end
+        
+        table.insert(steps, statePatch)
+    end
+    
+    return steps
+end
+
+--- Starts a mode transition
+---@param prevMode string Previous camera mode
+---@param newMode string New camera mode
+---@return boolean success Whether transition started successfully
+function CameraTransition.startModeTransition(prevMode, newMode)
+    -- Only start a transition if we're switching between different modes
+    if prevMode == newMode then
+        return false
+    end
+    
+    -- Store modes
+    STATE.tracking.prevMode = prevMode
+    STATE.tracking.mode = newMode
+    
+    -- Set up transition state
+    STATE.tracking.modeTransition = true
+    STATE.tracking.transitionStartState = Spring.GetCameraState()
+    STATE.tracking.transitionStartTime = Spring.GetTimer()
+    
+    -- Store current camera position as last position to smooth from
+    local camState = Spring.GetCameraState()
+    STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
+    STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
+    STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
+    
+    return true
+end
+
+--- Checks if a mode transition is complete
+---@return boolean isComplete Whether the transition is complete
+function CameraTransition.isModeTransitionComplete()
+    if not STATE.tracking.modeTransition then
+        return true
+    end
+    
+    local now = Spring.GetTimer()
+    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+    
+    if elapsed > 1.0 then
+        STATE.tracking.modeTransition = false
+        return true
+    end
+    
+    return false
 end
 
 return {

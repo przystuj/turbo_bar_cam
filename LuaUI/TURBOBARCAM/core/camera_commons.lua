@@ -1,22 +1,22 @@
--- Base Camera module for TURBOBARCAM
+-- Camera Commons module for TURBOBARCAM
 -- This module provides shared functionality used by all camera types
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
 ---@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
 
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
 local Util = TurboUtils.Util
 
----@class BaseCameraMode
-local BaseCameraMode = {}
+---@class CameraCommons
+local CameraCommons = {}
 
 --- Determines appropriate smoothing factors based on current state
 ---@param isTransitioning boolean Whether we're in a mode transition
 ---@param smoothType string Type of smoothing ('position', 'rotation', 'direction')
 ---@return number smoothingFactor The smoothing factor to use
-function BaseCameraMode.getSmoothingFactor(isTransitioning, smoothType)
+function CameraCommons.getSmoothingFactor(isTransitioning, smoothType)
     if isTransitioning then
         return CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
     end
@@ -40,7 +40,7 @@ end
 --- Checks if a transition has completed
 ---@param startTime number Timer when transition started
 ---@return boolean hasCompleted True if transition is complete
-function BaseCameraMode.isTransitionComplete(startTime)
+function CameraCommons.isTransitionComplete(startTime)
     local now = Spring.GetTimer()
     local elapsed = Spring.DiffTimers(now, startTime)
     return elapsed > 1.0
@@ -54,7 +54,7 @@ end
 ---@param smoothFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
-function BaseCameraMode.focusOnPoint(camPos, targetPos, lastCamDir, lastRotation, smoothFactor, rotFactor)
+function CameraCommons.focusOnPoint(camPos, targetPos, lastCamDir, lastRotation, smoothFactor, rotFactor)
     -- Calculate look direction to the target point
     local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
@@ -81,7 +81,7 @@ end
 ---@param right table Right vector {x, y, z}
 ---@param offsets table Offset values {height, forward, side}
 ---@return table adjustedPos Adjusted camera position
-function BaseCameraMode.applyOffsets(unitPos, front, up, right, offsets)
+function CameraCommons.applyOffsets(unitPos, front, up, right, offsets)
     local x, y, z = unitPos.x, unitPos.y, unitPos.z
 
     -- Extract components from the vector tables
@@ -117,7 +117,7 @@ end
 ---@param position table Camera position {x, y, z}
 ---@param direction table Camera direction {dx, dy, dz, rx, ry, rz}
 ---@return table cameraState Complete camera state object
-function BaseCameraMode.createCameraState(position, direction)
+function CameraCommons.createCameraState(position, direction)
     return {
         mode = 0, -- FPS camera mode
         name = "fps",
@@ -142,7 +142,7 @@ end
 --- Handles the transition from one camera mode to another
 ---@param prevMode string Previous camera mode
 ---@param newMode string New camera mode to transition to
-function BaseCameraMode.beginModeTransition(prevMode, newMode)
+function CameraCommons.beginModeTransition(prevMode, newMode)
     -- Store the previous and current mode
     STATE.tracking.prevMode = prevMode
     STATE.tracking.mode = newMode
@@ -165,7 +165,7 @@ end
 ---@param unitID number Unit ID to check
 ---@param modeName string Camera mode name (for debug message)
 ---@return boolean isValid Whether the unit exists and is valid
-function BaseCameraMode.validateUnit(unitID, modeName)
+function CameraCommons.validateUnit(unitID, modeName)
     if not Spring.ValidUnitID(unitID) then
         Util.debugEcho("Unit no longer exists, detaching " .. modeName .. " camera")
         return false
@@ -175,7 +175,7 @@ end
 
 --- Updates tracking state values after applying camera state
 ---@param camState table Camera state that was applied
-function BaseCameraMode.updateTrackingState(camState)
+function CameraCommons.updateTrackingState(camState)
     -- Update last camera position
     STATE.tracking.lastCamPos.x = camState.px
     STATE.tracking.lastCamPos.y = camState.py
@@ -195,7 +195,7 @@ end
 --- Ensures camera state is in FPS mode
 ---@param camState table Camera state to check and modify
 ---@return table fixedState Camera state with FPS mode set
-function BaseCameraMode.ensureFPSMode(camState)
+function CameraCommons.ensureFPSMode(camState)
     if camState.mode ~= 0 then
         camState.mode = 0
         camState.name = "fps"
@@ -204,5 +204,5 @@ function BaseCameraMode.ensureFPSMode(camState)
 end
 
 return {
-    BaseCameraMode = BaseCameraMode
+    CameraCommons = CameraCommons
 }

@@ -1,6 +1,6 @@
 -- Import configuration
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
 
@@ -238,7 +238,7 @@ function Util.disableTracking()
     end
 
     -- Restore original transition factor if needed
-    if STATE.orbit.originalTransitionFactor then
+    if STATE.orbit and STATE.orbit.originalTransitionFactor then
         CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.orbit.originalTransitionFactor
         STATE.orbit.originalTransitionFactor = nil
     end
@@ -258,16 +258,20 @@ function Util.disableTracking()
     STATE.tracking.prevFixedPoint = nil
 
     -- Reset orbit-specific states
-    STATE.orbit.autoOrbitActive = false
-    STATE.orbit.stationaryTimer = nil
-    STATE.orbit.lastPosition = nil
+    if STATE.orbit then
+        STATE.orbit.autoOrbitActive = false
+        STATE.orbit.stationaryTimer = nil
+        STATE.orbit.lastPosition = nil
+    end
 
     -- Clear freeCam state to prevent null pointer exceptions
-    STATE.tracking.freeCam.lastMouseX = nil
-    STATE.tracking.freeCam.lastMouseY = nil
-    STATE.tracking.freeCam.targetRx = nil
-    STATE.tracking.freeCam.targetRy = nil
-    STATE.tracking.freeCam.lastUnitHeading = nil
+    if STATE.tracking.freeCam then
+        STATE.tracking.freeCam.lastMouseX = nil
+        STATE.tracking.freeCam.lastMouseY = nil
+        STATE.tracking.freeCam.targetRx = nil
+        STATE.tracking.freeCam.targetRy = nil
+        STATE.tracking.freeCam.lastUnitHeading = nil
+    end
 end
 
 function Util.debugEcho(message)

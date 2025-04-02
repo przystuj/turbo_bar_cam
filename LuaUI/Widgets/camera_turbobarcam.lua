@@ -12,461 +12,61 @@ function widget:GetInfo()
     }
 end
 
--- Include supporting files
-local CONFIG_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua"
-local MODES_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_modes.lua"
-local UTILS_PATH = "LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua"
-
 -- Load modules
+---@type Types
+local _ = VFS.Include("LuaUI/TURBOBARCAM/types.lua")
 ---@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include(CONFIG_PATH)
----@type {WidgetControl: WidgetControl, CameraTransition: CameraTransition, FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor, SpecGroups: SpecGroups, TurboOverviewCamera: TurboOverviewCamera}
-local TurboModes = VFS.Include(MODES_PATH)
----@type {Util: Util}
-local TurboUtils = VFS.Include(UTILS_PATH)
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+---@type {Commons: CameraCommons, Util: Util, Movement: CameraMovement, Transition: CameraTransition, FreeCam: FreeCam, Tracking: TrackingManager, WidgetControl: WidgetControl}
+local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+---@type {FPSCamera: FPSCamera, TrackingCamera: TrackingCamera, OrbitingCamera: OrbitingCamera, CameraAnchor: CameraAnchor}
+local TurboFeatures = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
 
 -- Initialize shorthand references
 local CONFIG = TurboConfig.CONFIG
 local STATE = TurboConfig.STATE
-local Util = TurboUtils.Util
-local WidgetControl = TurboModes.WidgetControl
-local FPSCamera = TurboModes.FPSCamera
-local TrackingCamera = TurboModes.TrackingCamera
-local OrbitingCamera = TurboModes.OrbitingCamera
-local CameraAnchor = TurboModes.CameraAnchor
-local SpecGroups = TurboModes.SpecGroups
-local TurboOverviewCamera = TurboModes.TurboOverviewCamera
+local Util = TurboCore.Util
+local WidgetControl = TurboCore.WidgetControl
+local FPSCamera = TurboFeatures.FPSCamera
+local Actions = TurboCore.Actions
+local UpdateManager = TurboCore.UpdateManager
+local SelectionManager = TurboCore.SelectionManager
 
---------------------------------------------------------------------------------
--- HELPER FUNCTIONS
---------------------------------------------------------------------------------
-
---- Updates tracking camera during a transition
---- @param posState table Position state from transition
-local function updateTrackingDuringTransition(posState)
-    -- Get unit position for look direction
-    local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
-    local targetPos = { x = unitX, y = unitY, z = unitZ }
-
-    -- Get current (transitioning) camera position
-    local camPos = { x = posState.px, y = posState.py, z = posState.pz }
-
-    -- Calculate look direction to the unit
-    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
-
-    -- Create complete camera state with position and look direction
-    local combinedState = {
-        mode = 0,
-        name = "fps",
-        px = camPos.x,
-        py = camPos.y,
-        pz = camPos.z,
-        dx = lookDir.dx,
-        dy = lookDir.dy,
-        dz = lookDir.dz,
-        rx = lookDir.rx,
-        ry = lookDir.ry,
-        rz = 0
-    }
-
-    -- Apply combined state
-    Spring.SetCameraState(combinedState, 0)
-
-    -- Update last values for smooth tracking
-    STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
-    STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
-
-end
-
---- Handles delayed position storage callback
-local function handleDelayedCallbacks()
-    if STATE.delayed.frame and Spring.GetGameFrame() >= STATE.delayed.frame then
-        if STATE.delayed.callback then
-            STATE.delayed.callback()
-
-        end
-
-        STATE.delayed.frame = nil
-        STATE.delayed.callback = nil
-    end
-
-end
-
---- Handles active camera transitions
-local function updateCameraTransition()
-    local now = Spring.GetTimer()
-
-    -- Calculate current progress
-    local elapsed = Spring.DiffTimers(now, STATE.transition.startTime)
-    local targetProgress = math.min(elapsed / CONFIG.TRANSITION.DURATION, 1.0)
-
-    -- Determine which position step to use
-    local totalSteps = #STATE.transition.steps
-    local targetStep = math.max(1, math.min(totalSteps, math.ceil(targetProgress * totalSteps)))
-
-    -- Only update position if we need to move to a new step
-    if targetStep > STATE.transition.currentStepIndex then
-        STATE.transition.currentStepIndex = targetStep
-
-        -- Get the position state for this step
-        local posState = STATE.transition.steps[STATE.transition.currentStepIndex]
-
-        -- Check if we've reached the end
-        if STATE.transition.currentStepIndex >= totalSteps then
-            STATE.transition.active = false
-            STATE.transition.currentAnchorIndex = nil
-        end
-
-        -- Special handling for tracking camera mode
-        if STATE.tracking.mode == 'tracking_camera' and STATE.tracking.unitID then
-            updateTrackingDuringTransition(posState)
-        else
-            -- If not tracking, just apply position
-            Spring.SetCameraState(posState, 0)
-
-        end
-
-    end
-
-end
-
---- Handles grace period for tracking when no units are selected
-local function handleTrackingGracePeriod()
-    if STATE.tracking.graceTimer and STATE.tracking.mode then
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
-
-        -- If grace period expired (1 second), disable tracking
-        if elapsed > 1.0 then
-            Util.disableTracking()
-            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
-        end
-    end
-end
-
---- Handles transitions between camera modes
-local function handleModeTransitions()
-    -- If we're in a mode transition but not tracking any unit,
-    -- then we're transitioning back to normal camera from a tracking mode
-    if STATE.tracking.modeTransition and not STATE.tracking.mode then
-        -- We're transitioning to free camera
-        -- Just let the transition time out
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed > 1.0 then
-            STATE.tracking.modeTransition = false
-        end
-    end
-end
-
---- Updates the camera based on current mode
-local function updateCameraMode()
-    -- First handle active transitions, which override normal camera updates
-    if STATE.transition.active then
-        updateCameraTransition()
-    else
-        -- Normal camera updates based on current mode
-        if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
-            -- Check for auto-orbit
-            OrbitingCamera.checkUnitMovement()
-
-            if STATE.orbit.autoOrbitActive then
-                -- Handle auto-orbit camera update
-                OrbitingCamera.updateAutoOrbit()
-            else
-                -- Normal FPS update
-                FPSCamera.update()
-            end
-        elseif STATE.tracking.mode == 'tracking_camera' then
-            TrackingCamera.update()
-        elseif STATE.tracking.mode == 'orbit' then
-            OrbitingCamera.update()
-        elseif STATE.tracking.mode == 'turbo_overview' then
-            TurboOverviewCamera.update()
-        end
-
-    end
-end
-
+-- Create a modules container for passing to managers
+local Modules = {
+    Core = TurboCore,
+    Features = TurboFeatures
+}
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
 
 ---@param selectedUnits number[] Array of selected unit IDs
----@param selectedUnits number[] Array of selected unit IDs
 function widget:SelectionChanged(selectedUnits)
-    if not STATE.enabled then
-        return
-    end
-
-    -- If no units are selected and tracking is active, start grace period
-    if #selectedUnits == 0 then
-        if STATE.tracking.mode then
-            -- Store the current tracked unit ID
-            STATE.tracking.lastUnitID = STATE.tracking.unitID
-
-            -- Start grace period timer (1 second)
-            STATE.tracking.graceTimer = Spring.GetTimer()
-        end
-        return
-    end
-
-    -- If units are selected, cancel any active grace period
-    if STATE.tracking.graceTimer then
-        STATE.tracking.graceTimer = nil
-    end
-
-    -- Get the first selected unit
-    local unitID = selectedUnits[1]
-
-    -- Update tracking if it's enabled
-    if STATE.tracking.mode and STATE.tracking.unitID ~= unitID then
-        -- Save current offsets for the previous unit if in FPS mode
-        if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID then
-            STATE.tracking.unitOffsets[STATE.tracking.unitID] = {
-                height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-                forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-                side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-                rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-            }
-        end
-
-        -- Switch tracking to the new unit
-        STATE.tracking.unitID = unitID
-
-        -- For FPS mode, load appropriate offsets
-        if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
-            if STATE.tracking.unitOffsets[unitID] then
-                -- Use saved offsets
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.unitOffsets[unitID].height
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.unitOffsets[unitID].forward
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.unitOffsets[unitID].side
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.unitOffsets[unitID].rotation or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-                Util.debugEcho("Camera switched to unit " .. unitID .. " with saved offsets")
-            else
-                -- Get new default height for this unit
-                local unitHeight = Util.getUnitHeight(unitID)
-                CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-                CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-
-                -- Initialize storage for this unit
-                STATE.tracking.unitOffsets[unitID] = {
-                    height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-                    forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-                    side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-                    rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-                }
-
-                Util.debugEcho("Camera switched to unit " .. unitID .. " with new offsets")
-            end
-        else
-            Util.debugEcho("Tracking switched to unit " .. unitID)
-        end
-    end
+    SelectionManager.handleSelectionChanged(selectedUnits)
 end
 
 function widget:Update()
-    if not STATE.enabled then
-        return
-    end
-
-    -- Handle tracking grace period
-    handleTrackingGracePeriod()
-
-    -- Handle mode transitions
-    handleModeTransitions()
-
-    -- Check for fixed point command activation
-    FPSCamera.checkFixedPointCommandActivation()
-
-    -- Handle camera updates
-    updateCameraMode()
-
-    -- Handle delayed callbacks
-    handleDelayedCallbacks()
+    UpdateManager.processCycle(Modules)
 end
 
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
 
-    widgetHandler.actionHandler:AddAction(self, "toggle_camera_suite", function()
-        WidgetControl.toggle()
-        return true
-    end, nil, 'tp')
+    -- Initialize the managers with modules reference
+    UpdateManager.setModules(Modules)
+    SelectionManager.setModules(Modules)
 
-    widgetHandler.actionHandler:AddAction(self, "set_smooth_camera_anchor", function(_, index)
-        CameraAnchor.set(index)
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "focus_smooth_camera_anchor", function(_, index)
-        CameraAnchor.focus(index)
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "decrease_smooth_camera_duration", function()
-        CameraAnchor.adjustDuration(-1)
-        return true
-    end, nil, 'p')
-
-    widgetHandler.actionHandler:AddAction(self, "increase_smooth_camera_duration", function()
-        CameraAnchor.adjustDuration(1)
-        return true
-    end, nil, 'p')
-
-    widgetHandler.actionHandler:AddAction(self, "toggle_fps_camera", function()
-        FPSCamera.toggle()
-        return true
-    end, nil, 'p+t')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_height_offset_up", function()
-        FPSCamera.adjustOffset("height", 10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_height_offset_down", function()
-        FPSCamera.adjustOffset("height", -10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_forward_offset_up", function()
-        FPSCamera.adjustOffset("forward", 10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_forward_offset_down", function()
-        FPSCamera.adjustOffset("forward", -10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_side_offset_right", function()
-        FPSCamera.adjustOffset("side", 10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_side_offset_left", function()
-        FPSCamera.adjustOffset("side", -10)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_rotation_right", function()
-        FPSCamera.adjustRotationOffset(0.1)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_rotation_left", function()
-        FPSCamera.adjustRotationOffset(-0.1)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_toggle_free_cam", function()
-        FPSCamera.toggleFreeCam()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "fps_reset_defaults", function()
-        FPSCamera.resetOffsets()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "clear_fixed_look_point", function()
-        FPSCamera.clearFixedLookPoint()
-        return true
-    end, nil, 'tp')
-
-    -- Register Tracking Camera command
-    widgetHandler.actionHandler:AddAction(self, "toggle_tracking_camera", function()
-        TrackingCamera.toggle()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "focus_anchor_and_track", function(_, index)
-        CameraAnchor.focusAndTrack(index)
-        return true
-    end, nil, 'tp')
-
-    -- Register Orbiting Camera commands
-    widgetHandler.actionHandler:AddAction(self, "toggle_orbiting_camera", function()
-        OrbitingCamera.toggle()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "orbit_speed_up", function()
-        OrbitingCamera.adjustSpeed(0.0001)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "orbit_speed_down", function()
-        OrbitingCamera.adjustSpeed(-0.0001)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "orbit_reset_defaults", function()
-        OrbitingCamera.resetSettings()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "spec_unit_group", function(_, params)
-        SpecGroups.handleCommand(params)
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_toggle", function()
-        TurboOverviewCamera.toggle()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_change_zoom", function()
-        TurboOverviewCamera.toggleZoom()
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_move_camera", function()
-        if STATE.tracking.mode == 'turbo_overview' then
-            TurboOverviewCamera.moveToTarget()
-        end
-        return true
-    end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_up", function()
-        TurboOverviewCamera.adjustSmoothing(0.01)
-        return true
-    end, nil, 'pR')
-
-    widgetHandler.actionHandler:AddAction(self, "turbo_overview_smoothing_down", function()
-        TurboOverviewCamera.adjustSmoothing(-0.01)
-        return true
-    end, nil, 'pR')
-
-    --widgetHandler.actionHandler:AddAction(self, "turbo_overview_set_zoom", function(_, level)
-    --    TurboOverviewCamera.setZoomLevel(level)
-    --    return true
-    --end, nil, 'tp')
-
-    widgetHandler.actionHandler:AddAction(self, "turbobarcam_toggle_debug", function()
-        CONFIG.DEBUG = not CONFIG.DEBUG
-        Util.echo("DEBUG: " .. (CONFIG.DEBUG and "true" or "false"))
-        return true
-    end, nil)
-
-    Spring.I18N.load({
-        en = {
-            ["ui.orderMenu.set_fixed_look_point"] = "Look point",
-            ["ui.orderMenu.set_fixed_look_point_tooltip"] = "Click on a location to focus camera on while following unit.",
-        }
-    })
+    -- Register all action handlers
+    Actions.registerAllActions(Modules)
 
     Util.debugEcho("TURBOBARCAM loaded but disabled. Use /toggle_camera_suite to enable.")
 end
 
 function widget:Shutdown()
     -- Make sure we clean up
-    widgetHandler:DeregisterGlobal("spec_unit_group")
     if STATE.enabled then
         WidgetControl.disable()
     end
@@ -492,16 +92,5 @@ function widget:CommandsChanged()
     if #selectedUnits > 0 then
         local customCommands = widgetHandler.customCommands
         customCommands[#customCommands + 1] = FPSCamera.COMMAND_DEFINITION
-    end
-end
-
-function widget:GameStart()
-    SpecGroups.checkSpectatorStatus()
-end
-
----@param playerID number Player ID
-function widget:PlayerChanged(playerID)
-    if playerID == Spring.GetMyPlayerID() then
-        SpecGroups.checkSpectatorStatus()
     end
 end

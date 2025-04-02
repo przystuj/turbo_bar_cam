@@ -1,23 +1,28 @@
 -- Main module file that imports and exposes all camera modes
 -- This file serves as the interface for all camera modules
 
--- Import all mode modules
+-- Import widget control
 ---@type {WidgetControl: WidgetControl}
-local WidgetControlModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_widget_control.lua")
+local WidgetControlModule = VFS.Include("LuaUI/TURBOBARCAM/core/widget_control.lua")
+
+-- Import transition module
 ---@type {CameraTransition: CameraTransition}
-local CameraTransitionModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_transition.lua")
+local CameraTransitionModule = VFS.Include("LuaUI/TURBOBARCAM/core/transition.lua")
+
+-- Import camera feature modules
 ---@type {FPSCamera: FPSCamera}
-local FPSCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_fps.lua")
+local FPSCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/fps/fps.lua")
 ---@type {TrackingCamera: TrackingCamera}
-local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_tracking.lua")
+local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/tracking/tracking.lua")
 ---@type {OrbitingCamera: OrbitingCamera}
-local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_orbiting.lua")
+local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit.lua")
 ---@type {CameraAnchor: CameraAnchor}
-local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_anchor.lua")
+local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/anchors.lua")
+-- Uncomment these when implemented
 ---@type {SpecGroups: SpecGroups}
-local SpecGroupsModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_spec_groups.lua")
+local SpecGroupsModule = VFS.Include("LuaUI/TURBOBARCAM/features/spec_groups/spec_groups.lua")
 ---@type {TurboOverviewCamera: TurboOverviewCamera}
-local TurboOverviewCameraModule = VFS.Include("LuaUI/TURBOBARCAM/modes/camera_turbobarcam_overview.lua")
+local TurboOverviewCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/overview/overview.lua")
 
 -- Export all camera mode modules
 return {

@@ -1,8 +1,6 @@
 -- Widget Control module for TURBOBARCAM
----@type {CONFIG: CONFIG, STATE: STATE}
-local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_config.lua")
----@type {Util: Util}
-local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/camera_turbobarcam_utils.lua")
+local TurboConfig = VFS.Include("LuaUI/TURBOBARCAM/config/config.lua")
+local TurboUtils = VFS.Include("LuaUI/TURBOBARCAM/core/utils.lua")
 
 local STATE = TurboConfig.STATE
 local Util = TurboUtils.Util
