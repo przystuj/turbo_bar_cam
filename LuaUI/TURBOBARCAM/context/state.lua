@@ -14,7 +14,7 @@ if not WG.TURBOBARCAM.STATE then
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
-        DEBUG = true,
+        DEBUG = false,
 
         -- Camera anchors
         anchors = {},

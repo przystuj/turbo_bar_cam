@@ -1,6 +1,6 @@
 function widget:GetInfo()
     return {
-        name = "Tactical Ultra-Responsive Rotation & Brilliant Optics for BAR Camera",
+        name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
         desc = "Advanced camera control suite with smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and fixed point tracking. Features include camera anchors, dynamic offsets, free camera mode, auto-orbit, and spectator unit groups.",
         author = "SuperKitowiec",
         date = "Mar 2025",
