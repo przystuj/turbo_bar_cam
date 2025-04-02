@@ -18,6 +18,7 @@
 ---@field CameraAnchor CameraAnchor
 ---@field SpecGroups SpecGroups
 ---@field TurboOverviewCamera TurboOverviewCamera
+---@field GroupTrackingCamera GroupTrackingCamera
 
 ---@class WidgetContext
 ---@field WidgetState WidgetStateModule

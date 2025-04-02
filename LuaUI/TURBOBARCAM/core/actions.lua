@@ -210,6 +210,77 @@ function Actions.registerAllActions(modules)
                 return true
             end)
 
+    -- Group Tracking camera actions
+    registerAction("toggle_group_tracking_camera", 'tp',
+            function()
+                Features.GroupTrackingCamera.toggle()
+                return true
+            end)
+
+    registerAction("group_tracking_distance_increase", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.DEFAULT_DISTANCE = config.DEFAULT_DISTANCE + 50
+                Util.debugEcho("Group tracking default distance increased to: " .. config.DEFAULT_DISTANCE)
+                return true
+            end)
+
+    registerAction("group_tracking_distance_decrease", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.DEFAULT_DISTANCE = math.max(config.MIN_DISTANCE, config.DEFAULT_DISTANCE - 50)
+                Util.debugEcho("Group tracking default distance decreased to: " .. config.DEFAULT_DISTANCE)
+                return true
+            end)
+
+    registerAction("group_tracking_cutoff_increase", 'tp',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.OUTLIER_CUTOFF_FACTOR = config.OUTLIER_CUTOFF_FACTOR + 0.5
+                Util.debugEcho("Group tracking outlier cutoff increased to: " .. config.OUTLIER_CUTOFF_FACTOR)
+                return true
+            end)
+
+    registerAction("group_tracking_cutoff_decrease", 'tp',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.OUTLIER_CUTOFF_FACTOR = math.max(1.0, config.OUTLIER_CUTOFF_FACTOR - 0.5)
+                Util.debugEcho("Group tracking outlier cutoff decreased to: " .. config.OUTLIER_CUTOFF_FACTOR)
+                return true
+            end)
+
+    registerAction("group_tracking_height_increase", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.DEFAULT_HEIGHT_FACTOR = config.DEFAULT_HEIGHT_FACTOR + 0.1
+                Util.debugEcho("Group tracking height factor increased to: " .. config.DEFAULT_HEIGHT_FACTOR)
+                return true
+            end)
+
+    registerAction("group_tracking_height_decrease", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.DEFAULT_HEIGHT_FACTOR = math.max(0.1, config.DEFAULT_HEIGHT_FACTOR - 0.1)
+                Util.debugEcho("Group tracking height factor decreased to: " .. config.DEFAULT_HEIGHT_FACTOR)
+                return true
+            end)
+
+    registerAction("group_tracking_backward_increase", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.BACKWARD_FACTOR = config.BACKWARD_FACTOR + 0.1
+                Util.debugEcho("Group tracking backward factor increased to: " .. config.BACKWARD_FACTOR)
+                return true
+            end)
+
+    registerAction("group_tracking_backward_decrease", 'pR',
+            function()
+                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
+                config.BACKWARD_FACTOR = math.max(1.0, config.BACKWARD_FACTOR - 0.1)
+                Util.debugEcho("Group tracking backward factor decreased to: " .. config.BACKWARD_FACTOR)
+                return true
+            end)
+
     -- Load translations
     Spring.I18N.load({
         en = {

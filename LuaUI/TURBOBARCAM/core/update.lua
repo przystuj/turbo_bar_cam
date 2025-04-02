@@ -65,6 +65,7 @@ function UpdateManager.updateCameraMode(modules)
         return
     end
 
+    ---@type FeatureModules
     local Features = modules.Features
     local Core = modules.Core
 
@@ -90,6 +91,8 @@ function UpdateManager.updateCameraMode(modules)
             Features.OrbitingCamera.update()
         elseif STATE.tracking.mode == 'turbo_overview' then
             Features.TurboOverviewCamera.update()
+        elseif STATE.tracking.mode == 'group_tracking' then
+            Features.GroupTrackingCamera.update()
         end
     end
 end

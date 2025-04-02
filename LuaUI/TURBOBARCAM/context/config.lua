@@ -68,6 +68,21 @@ if not WG.TURBOBARCAM.CONFIG then
                     INVERT_SIDE_MOVEMENT = false, -- When true, camera will move opposite side of the mouse
                 }
             },
+
+            GROUP_TRACKING = {
+                DEFAULT_DISTANCE = 600, -- Default camera distance from center of mass (will be adjusted based on group spread)
+                MIN_DISTANCE = 400, -- Minimum distance (camera won't get closer than this)
+                MAX_DISTANCE = 900, -- Maximum distance (camera won't get further than this)
+                FOV_FACTOR = 1.4, -- Field of view consideration factor for determining if all units are visible
+                DEFAULT_HEIGHT_FACTOR = 1.5, -- Default height above the center of mass. Camera height will be DEFAULT_DISTANCE * HEIGHT_FACTOR
+                BACKWARD_FACTOR = 2, -- Backward positioning factor. 1.0 = normal distance, higher = more backward
+                OUTLIER_CUTOFF_FACTOR = 1.3, -- Distance cutoff factor relative to group radius (units farther than this will be ignored)
+                DISTANCE_PADDING = 50, -- Distance padding (additional distance beyond minimum required)
+                DISTANCE_SMOOTHING = 0.05, -- Smoothing factors
+                POSITION_SMOOTHING = 0.08,
+                ROTATION_SMOOTHING = 0.05,
+                OUTLIER_TRANSITION_SPEED = 0.1, -- Transition speed when adding/removing outliers
+            }
         },
 
         -- Transition settings

@@ -14,7 +14,7 @@ if not WG.TURBOBARCAM.STATE then
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
-        DEBUG = false,
+        DEBUG = true,
 
         -- Camera anchors
         anchors = {},
@@ -70,6 +70,22 @@ if not WG.TURBOBARCAM.STATE then
                 targetRy = nil, -- Target rotation Y (yaw)
                 mouseMoveSensitivity = 0.003, -- How sensitive the camera is to mouse movement
                 lastUnitHeading = nil -- Last unit heading for rotation tracking
+            },
+
+            -- Group tracking
+            group = {
+                unitIDs = {}, -- Array of tracked unit IDs
+                centerOfMass = {x = 0, y = 0, z = 0}, -- Calculated center of mass position
+                targetDistance = nil, -- Current camera target distance (will be adjusted based on group spread)
+                currentDistance = nil, -- Current actual camera distance
+                radius = 0, -- Group radius (max distance from center to any unit)
+                outliers = {}, -- Units considered outliers (too far from group)
+                totalWeight = 0, -- Total weight of all tracked units
+                lastCenterOfMass = {x = 0, y = 0, z = 0}, -- Previous frame's center of mass
+                centerChanged = false, -- Whether center of mass has significantly changed
+                lastOutlierCheck = 0, -- Last time outliers were recalculated
+                currentFOV = nil, -- Current FOV consideration
+                velocity = {x = 0, y = 0, z = 0}, -- Velocity of center of mass (for determining movement direction)
             }
         },
 
