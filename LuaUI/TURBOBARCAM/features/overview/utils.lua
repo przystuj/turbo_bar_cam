@@ -154,6 +154,9 @@ function OverviewCameraUtils.updateTargetMovement(state)
     else
         -- Apply damping to angular velocity to smoothly stop turning
         state.angularVelocity = state.angularVelocity * state.angularDamping
+        if CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.INVERT_SIDE_MOVEMENT then
+             state.angularVelocity = state.angularVelocity * -1
+        end
 
         -- Exit movement mode if button is released
         state.isMovingToTarget = false

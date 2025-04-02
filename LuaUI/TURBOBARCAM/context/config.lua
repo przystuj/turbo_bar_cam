@@ -65,6 +65,7 @@ if not WG.TURBOBARCAM.CONFIG then
                     ANGULAR_DAMPING = 0.70, -- How fast steering angular velocity decreases
                     DEADZONE = 0, -- Deadzone for mouse steering (0-1)
                     TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions
+                    INVERT_SIDE_MOVEMENT = false, -- When true, camera will move opposite side of the mouse
                 }
             },
         },
