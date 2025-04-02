@@ -129,8 +129,9 @@ function CameraAnchor.focusAndTrack(index)
 
     -- Get the selected unit to track
     local selectedUnits = Spring.GetSelectedUnits()
-    if #selectedUnits == 0 then
-        Util.debugEcho("No unit selected for tracking during anchor transition")
+
+    if (STATE.tracking.mode ~= 'tracking_camera' and STATE.tracking.mode ~= 'fps') or not STATE.tracking.unitID then
+        Util.debugEcho("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
@@ -163,40 +164,21 @@ function CameraAnchor.focusAndTrack(index)
     endState.mode = 0
     endState.name = "fps"
 
-    -- Generate transition steps that keep the camera looking at the unit
-    local numSteps = math.max(2, math.floor(CONFIG.TRANSITION.DURATION * CONFIG.TRANSITION.STEPS_PER_SECOND))
-
-    -- Create transition steps with special handling to look at the unit
-    local steps = {}
-
-    for i = 1, numSteps do
-        local t = (i - 1) / (numSteps - 1)
-        local easedT = Util.easeInOutCubic(t)
-
-        -- Interpolate position only
-        local statePatch = {
-            mode = 0,
-            name = "fps",
-            px = Util.lerp(startState.px, endState.px, easedT),
-            py = Util.lerp(startState.py, endState.py, easedT),
-            pz = Util.lerp(startState.pz, endState.pz, easedT)
-        }
-
-        steps[i] = statePatch
-    end
-
-    -- Set up the transition
-    STATE.transition.steps = steps
-    STATE.transition.currentStepIndex = 1
-    STATE.transition.startTime = Spring.GetTimer()
-    STATE.transition.active = true
-    STATE.transition.currentAnchorIndex = index
-
     -- Enable tracking camera on the unit
     STATE.tracking.mode = 'tracking_camera'
     STATE.tracking.unitID = unitID
     STATE.tracking.lastCamDir = { x = 0, y = 0, z = 0 }
     STATE.tracking.lastRotation = { rx = 0, ry = 0, rz = 0 }
+
+    local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
+    local targetPos = { x = unitX, y = unitY, z = unitZ }
+
+    -- Set up the transition
+    STATE.transition.steps = CameraTransition.createPositionTransition(startState, STATE.anchors[index], CONFIG.TRANSITION.DURATION, targetPos)
+    STATE.transition.currentStepIndex = 1
+    STATE.transition.startTime = Spring.GetTimer()
+    STATE.transition.active = true
+    STATE.transition.currentAnchorIndex = index
 
     Util.debugEcho("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true

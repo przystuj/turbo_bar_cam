@@ -74,6 +74,7 @@ function widget:Shutdown()
     if STATE.enabled then
         WidgetControl.disable()
     end
+    WG.TURBOBARCAM = nil
 end
 
 ---@param cmdID number Command ID

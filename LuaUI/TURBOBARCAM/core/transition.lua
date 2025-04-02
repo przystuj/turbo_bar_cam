@@ -2,12 +2,12 @@
 -- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type Util
-local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
+---@type {Util Util}
+local Utils = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = UtilsModule.Util
+local Util = Utils.Util
 
 ---@class CameraTransition
 local CameraTransition = {}
@@ -108,6 +108,7 @@ function CameraTransition.update()
         if STATE.transition.currentStepIndex >= totalSteps then
             STATE.transition.active = false
             STATE.transition.currentAnchorIndex = nil
+            Util.debugEcho("transition complete")
         end
     end
 end
@@ -131,24 +132,24 @@ function CameraTransition.start(endState, duration)
 end
 
 --- Starts a position transition with optional focus point
----@param startPos table Start position {x, y, z}
----@param endPos table End position {x, y, z}
+---@param startPos table Start camera state
+---@param endPos table End camera state
 ---@param duration number Transition duration
 ---@param targetPoint table|nil Point to keep looking at during transition
 ---@return table transitionSteps Array of transition steps
 function CameraTransition.createPositionTransition(startPos, endPos, duration, targetPoint)
     local numSteps = math.max(2, math.floor(duration * CONFIG.TRANSITION.STEPS_PER_SECOND))
     local steps = {}
-    
+
     for i = 1, numSteps do
         local t = (i - 1) / (numSteps - 1)
         local easedT = Util.easeInOutCubic(t)
-        
+
         -- Interpolate position
         local position = {
-            x = Util.lerp(startPos.x, endPos.x, easedT),
-            y = Util.lerp(startPos.y, endPos.y, easedT),
-            z = Util.lerp(startPos.z, endPos.z, easedT)
+            x = Util.lerp(startPos.px, endPos.px, easedT),
+            y = Util.lerp(startPos.py, endPos.py, easedT),
+            z = Util.lerp(startPos.pz, endPos.pz, easedT)
         }
         
         -- Create state patch

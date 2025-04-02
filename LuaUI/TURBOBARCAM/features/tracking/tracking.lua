@@ -62,7 +62,6 @@ function TrackingCamera.update()
         return
     end
 
-
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Util.debugEcho("Tracked unit no longer exists, disabling Tracking Camera")
