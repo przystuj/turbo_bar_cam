@@ -38,9 +38,16 @@ function OrbitCameraUtils.checkUnitMovement()
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
     local currentPos = { x = unitX, y = unitY, z = unitZ }
 
-    -- If this is the first check, just store the position
+    -- Get current camera state
+    local camState = Spring.GetCameraState()
+    local currentCamPos = { x = camState.px, y = camState.py, z = camState.pz }
+    local currentCamRot = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
+
+    -- If this is the first check, just store the positions
     if not STATE.orbit.lastPosition then
         STATE.orbit.lastPosition = currentPos
+        STATE.orbit.lastCamPos = currentCamPos
+        STATE.orbit.lastCamRot = currentCamRot
         return false
     end
 
@@ -50,10 +57,27 @@ function OrbitCameraUtils.checkUnitMovement()
             math.abs(currentPos.y - STATE.orbit.lastPosition.y) > epsilon or
             math.abs(currentPos.z - STATE.orbit.lastPosition.z) > epsilon
 
+    -- Check if camera has moved (user interaction)
+    local camEpsilon = 0.5  -- Slightly larger threshold for camera movement
+    local rotEpsilon = 0.01  -- Threshold for rotation changes
+
+    -- Only check camera position/rotation if we have previous values
+    local hasCamMoved = false
+    if STATE.orbit.autoOrbitActive then
+        hasCamMoved = false
+    elseif STATE.orbit.lastCamPos and STATE.orbit.lastCamRot then
+        hasCamMoved = math.abs(currentCamPos.x - STATE.orbit.lastCamPos.x) > camEpsilon or
+                math.abs(currentCamPos.y - STATE.orbit.lastCamPos.y) > camEpsilon or
+                math.abs(currentCamPos.z - STATE.orbit.lastCamPos.z) > camEpsilon or
+                math.abs(currentCamRot.rx - STATE.orbit.lastCamRot.rx) > rotEpsilon or
+                math.abs(currentCamRot.ry - STATE.orbit.lastCamRot.ry) > rotEpsilon
+    end
+
     local stateChanged = false
 
-    if hasMoved then
-        -- Unit is moving, reset timer
+    -- Consider either unit movement or camera movement as activity
+    if hasMoved or hasCamMoved then
+        -- Unit or camera is moving, reset timer
         STATE.orbit.stationaryTimer = nil
 
         -- If auto-orbit is active, transition back to FPS
@@ -73,13 +97,12 @@ function OrbitCameraUtils.checkUnitMovement()
             end
 
             -- Store current camera position as last position to smooth from
-            local camState = Spring.GetCameraState()
             STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
             STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
             STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
         end
     else
-        -- Unit is stationary
+        -- Unit and camera are stationary
         if not STATE.orbit.stationaryTimer then
             -- Start timer
             STATE.orbit.stationaryTimer = Spring.GetTimer()
@@ -99,7 +122,6 @@ function OrbitCameraUtils.checkUnitMovement()
                 CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
                 -- Initialize orbit angle based on current camera position
-                local camState = Spring.GetCameraState()
                 STATE.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 
                 -- Begin transition from FPS to orbit
@@ -118,9 +140,12 @@ function OrbitCameraUtils.checkUnitMovement()
             end
         end
     end
-    
-    -- Update last position
+
+    -- Update last positions
     STATE.orbit.lastPosition = currentPos
+    STATE.orbit.lastCamPos = currentCamPos
+    STATE.orbit.lastCamRot = currentCamRot
+
     return stateChanged
 end
 

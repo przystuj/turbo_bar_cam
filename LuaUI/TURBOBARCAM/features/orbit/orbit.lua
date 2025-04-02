@@ -191,7 +191,7 @@ end
 
 --- Updates the auto-orbit camera
 function OrbitingCamera.updateAutoOrbit()
-    if not STATE.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
+    if not STATE.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID or STATE.tracking.inTargetSelectionMode or STATE.tracking.inFreeCameraMode then
         return
     end
 

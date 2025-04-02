@@ -170,7 +170,6 @@ function FreeCam.toggle(state, modeType)
     end
     
     -- Toggle free camera mode
-    local wasInFreeCameraMode = state.inFreeCameraMode
     state.inFreeCameraMode = not state.inFreeCameraMode
     
     -- Initialize or clear free camera state
@@ -195,7 +194,7 @@ function FreeCam.toggle(state, modeType)
         state.freeCam.targetRx = nil
         state.freeCam.targetRy = nil
         state.freeCam.lastUnitHeading = nil
-        
+
         Util.debugEcho("Free camera mode disabled - view follows " .. modeType .. " orientation")
     end
     
