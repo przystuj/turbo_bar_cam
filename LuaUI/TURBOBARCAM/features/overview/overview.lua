@@ -22,7 +22,7 @@ local TurboOverviewCamera = {}
 --- Toggles turbo overview camera mode
 function TurboOverviewCamera.toggle()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 

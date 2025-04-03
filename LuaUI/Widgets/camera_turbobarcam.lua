@@ -66,7 +66,7 @@ function widget:Initialize()
     -- Register all action handlers
     Actions.registerAllActions(AllModules)
 
-    Util.debugEcho("TURBOBARCAM loaded but disabled. Use /toggle_camera_suite to enable.")
+    Util.debugEcho("Loaded but disabled. Use /turbobarcam_toggle to enable.")
 end
 
 function widget:Shutdown()

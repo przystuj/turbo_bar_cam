@@ -21,7 +21,7 @@ local TrackingManager = {}
 ---@return boolean success Whether tracking was initialized successfully
 function TrackingManager.initializeTracking(mode, unitID)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 
@@ -139,7 +139,7 @@ end
 ---@return boolean success Whether fixed point was set successfully
 function TrackingManager.setFixedLookPoint(fixedPoint, targetUnitID)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 
@@ -187,7 +187,7 @@ end
 --- Clears fixed point tracking
 function TrackingManager.clearFixedLookPoint()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 

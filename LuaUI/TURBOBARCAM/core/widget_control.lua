@@ -14,7 +14,7 @@ local WidgetControl = {}
 --- Enables the widget
 function WidgetControl.enable()
     if STATE.enabled then
-        Util.debugEcho("TURBOBARCAM is already enabled")
+        Util.debugEcho("Already enabled")
         return
     end
 
@@ -49,13 +49,13 @@ function WidgetControl.enable()
     Spring.SetCameraState(camStatePatch, 0.5)
 
     STATE.enabled = true
-    Util.debugEcho("TURBOBARCAM enabled - camera centered on map")
+    Util.debugEcho("Enabled")
 end
 
 --- Disables the widget
 function WidgetControl.disable()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM is already disabled")
+        Util.debugEcho("Already disabled")
         return
     end
 
@@ -78,7 +78,7 @@ function WidgetControl.disable()
     end
 
     STATE.enabled = false
-    Util.debugEcho("TURBOBARCAM disabled")
+    Util.debugEcho("Disabled")
 end
 
 --- Toggles the widget state

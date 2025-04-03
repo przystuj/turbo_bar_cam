@@ -149,12 +149,13 @@ function OrbitCameraUtils.checkUnitMovement()
     return stateChanged
 end
 
---- Adjusts the orbit speed
----@param amount number Amount to adjust orbit speed by
----@return boolean success Whether speed was adjusted successfully
-function OrbitCameraUtils.adjustSpeed(amount)
+--- Adjusts the orbit height
+---@param param string Config param to modify
+---@param amount number Amount to adjust by
+---@return boolean success Whether param was adjusted successfully
+function OrbitCameraUtils.adjustParam(param, amount)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 
@@ -164,7 +165,13 @@ function OrbitCameraUtils.adjustSpeed(amount)
         return false
     end
 
-    CONFIG.CAMERA_MODES.ORBIT.SPEED = math.max(0.0001, math.min(0.005, CONFIG.CAMERA_MODES.ORBIT.SPEED + amount))
+    local minMaxValues = {
+        HEIGHT = {100, 3000},
+        DISTANCE = {100, 3000},
+        SPEED = {-0.005, 0.005},
+    }
+
+    CONFIG.CAMERA_MODES.ORBIT[param] = math.max(minMaxValues[param][1], math.min(minMaxValues[param][2], CONFIG.CAMERA_MODES.ORBIT[param] + amount))
 
     -- Update stored settings for the current unit
     if STATE.tracking.unitID then
@@ -172,11 +179,11 @@ function OrbitCameraUtils.adjustSpeed(amount)
             STATE.orbit.unitOffsets[STATE.tracking.unitID] = {}
         end
 
-        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
+        STATE.orbit.unitOffsets[STATE.tracking.unitID] = CONFIG.CAMERA_MODES.ORBIT
     end
 
     -- Print the updated settings
-    Util.debugEcho("Orbit speed for unit " .. STATE.tracking.unitID .. ": " .. CONFIG.CAMERA_MODES.ORBIT.SPEED)
+    Util.debugEcho("Orbit config for unit " .. STATE.tracking.unitID .. ": " .. param .. " = " .. CONFIG.CAMERA_MODES.ORBIT[param])
     return true
 end
 
@@ -184,7 +191,7 @@ end
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.resetSettings()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 

@@ -20,7 +20,7 @@ local CameraAnchor = {}
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.set(index)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return true
     end
 
@@ -41,7 +41,7 @@ end
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focus(index)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return true
     end
 
@@ -96,7 +96,7 @@ end
 ---@param amount number Amount to adjust transition duration by
 function CameraAnchor.adjustDuration(amount)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 
@@ -114,7 +114,7 @@ end
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focusAndTrack(index)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return true
     end
 

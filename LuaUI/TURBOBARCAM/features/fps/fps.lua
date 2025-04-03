@@ -38,7 +38,7 @@ FPSCamera.COMMAND_DEFINITION = {
 --- Toggles FPS camera attached to a unit
 function FPSCamera.toggle()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 
@@ -255,7 +255,7 @@ end
 ---@return boolean success Whether fixed point was set successfully
 function FPSCamera.setFixedLookPoint(cmdParams)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 
@@ -319,7 +319,7 @@ end
 --- Toggles free camera mode
 function FPSCamera.toggleFreeCam()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 

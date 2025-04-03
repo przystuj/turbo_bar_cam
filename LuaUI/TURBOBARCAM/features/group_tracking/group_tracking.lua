@@ -22,7 +22,7 @@ local GroupTrackingCamera = {}
 ---@return boolean success Always returns true for widget handler
 function GroupTrackingCamera.toggle()
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return true
     end
 

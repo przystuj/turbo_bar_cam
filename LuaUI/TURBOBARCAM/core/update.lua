@@ -7,6 +7,15 @@ local STATE = WidgetContext.WidgetState.STATE
 ---@class UpdateManager
 local UpdateManager = {}
 
+--- Checks if the player is currently spectating
+---@return boolean isSpectator Whether the player is spectating
+function UpdateManager.isSpectating()
+    -- Check if we're a spectator
+    local _, _, spec = Spring.GetPlayerInfo(Spring.GetMyPlayerID())
+    STATE.specGroups.isSpectator = spec
+    return spec
+end
+
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
@@ -15,7 +24,7 @@ function UpdateManager.handleTrackingGracePeriod()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
 
         -- If grace period expired (1 second), disable tracking
-        if elapsed > 1.0 then
+        if elapsed > 1.0 and not UpdateManager.isSpectating() then
             local Util = WG.TURBOBARCAM.Util
             if Util then
                 Util.disableTracking()

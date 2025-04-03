@@ -23,7 +23,7 @@ local OrbitingCamera = {}
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
 function OrbitingCamera.toggle(unitID)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return
     end
 
@@ -95,7 +95,6 @@ function OrbitingCamera.toggle(unitID)
         STATE.orbit.autoOrbitActive = false
 
         Util.debugEcho("Orbiting camera attached to unit " .. unitID)
-
     end
 
 end
@@ -141,7 +140,6 @@ function OrbitingCamera.update()
         rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
 
         -- Check if we should end the transition
-        Util.debugEcho(CameraCommons)
         if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
             STATE.tracking.modeTransition = false
         end
@@ -256,7 +254,19 @@ end
 --- Adjusts the orbit speed
 ---@param amount number Amount to adjust orbit speed by
 function OrbitingCamera.adjustSpeed(amount)
-    OrbitCameraUtils.adjustSpeed(amount)
+    OrbitCameraUtils.adjustParam("SPEED", amount)
+end
+
+--- Adjusts the orbit speed
+---@param amount number Amount to adjust orbit speed by
+function OrbitingCamera.adjustHeight(amount)
+    OrbitCameraUtils.adjustParam("HEIGHT", amount)
+end
+
+--- Adjusts the orbit distance
+---@param amount number Amount to adjust orbit distance by
+function OrbitingCamera.adjustDistance(amount)
+    OrbitCameraUtils.adjustParam("DISTANCE", amount)
 end
 
 --- Resets orbit settings to defaults

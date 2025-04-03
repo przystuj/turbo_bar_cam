@@ -20,265 +20,215 @@ function Actions.registerAllActions(modules)
     local Core = modules.Core
     local Context = modules.Context
     local Common = modules.Common
+    local CONFIG = Context.WidgetConfig.CONFIG
+    local STATE = Context.WidgetConfig.STATE
 
     -- Core widget actions
-    registerAction("toggle_camera_suite", 'tp',
+    registerAction("turbobarcam_toggle", 'tp',
             function()
                 Core.WidgetControl.toggle()
                 return true
             end)
 
     -- Debug toggle
-    registerAction("turbobarcam_toggle_debug", 'tp',
+    registerAction("turbobarcam_debug", 'tp',
             function()
-                Context.WidgetState.STATE.DEBUG = not Context.WidgetState.STATE.DEBUG
-                local DEBUG = Context.WidgetState.STATE.DEBUG
+                STATE.DEBUG = not STATE.DEBUG
+                local DEBUG = STATE.DEBUG
                 Common.Util.echo("DEBUG: " .. (DEBUG and "true" or "false"))
                 return true
             end)
 
     -- Anchor actions
-    registerAction("set_smooth_camera_anchor", 'tp',
+    registerAction("turbobarcam_set_smooth_camera_anchor", 'tp',
             function(_, index)
                 Features.CameraAnchor.set(index)
                 return true
             end)
 
-    registerAction("focus_smooth_camera_anchor", 'tp',
+    registerAction("turbobarcam_focus_smooth_camera_anchor", 'tp',
             function(_, index)
                 Features.CameraAnchor.focus(index)
                 return true
             end)
 
-    registerAction("decrease_smooth_camera_duration", 'p',
+    registerAction("turbobarcam_decrease_smooth_camera_duration", 'p',
             function()
                 Features.CameraAnchor.adjustDuration(-1)
                 return true
             end)
 
-    registerAction("increase_smooth_camera_duration", 'p',
+    registerAction("turbobarcam_increase_smooth_camera_duration", 'p',
             function()
                 Features.CameraAnchor.adjustDuration(1)
                 return true
             end)
 
-    registerAction("focus_anchor_and_track", 'tp',
+    registerAction("turbobarcam_focus_anchor_and_track", 'tp',
             function(_, index)
                 Features.CameraAnchor.focusAndTrack(index)
                 return true
             end)
 
     -- FPS camera actions
-    registerAction("toggle_fps_camera", 'tp',
+    registerAction("turbobarcam_toggle_fps_camera", 'tp',
             function()
                 Features.FPSCamera.toggle()
                 return true
             end, nil)
 
-    registerAction("fps_height_offset_up", 'pR',
+    registerAction("turbobarcam_fps_height_offset_up", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("height", 10)
                 return true
             end)
 
-    registerAction("fps_height_offset_down", 'pR',
+    registerAction("turbobarcam_fps_height_offset_down", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("height", -10)
                 return true
             end)
 
-    registerAction("fps_forward_offset_up", 'pR',
+    registerAction("turbobarcam_fps_forward_offset_up", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("forward", 10)
                 return true
             end)
 
-    registerAction("fps_forward_offset_down", 'pR',
+    registerAction("turbobarcam_fps_forward_offset_down", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("forward", -10)
                 return true
             end)
 
-    registerAction("fps_side_offset_right", 'pR',
+    registerAction("turbobarcam_fps_side_offset_right", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("side", 10)
                 return true
             end)
 
-    registerAction("fps_side_offset_left", 'pR',
+    registerAction("turbobarcam_fps_side_offset_left", 'pR',
             function()
                 Features.FPSCamera.adjustOffset("side", -10)
                 return true
             end)
 
-    registerAction("fps_rotation_right", 'pR',
+    registerAction("turbobarcam_fps_rotation_right", 'pR',
             function()
                 Features.FPSCamera.adjustRotationOffset(0.1)
                 return true
             end)
 
-    registerAction("fps_rotation_left", 'pR',
+    registerAction("turbobarcam_fps_rotation_left", 'pR',
             function()
                 Features.FPSCamera.adjustRotationOffset(-0.1)
                 return true
             end)
 
-    registerAction("fps_toggle_free_cam", 'tp',
+    registerAction("turbobarcam_fps_toggle_free_cam", 'tp',
             function()
                 Features.FPSCamera.toggleFreeCam()
                 return true
             end)
 
-    registerAction("fps_reset_defaults", 'tp',
+    registerAction("turbobarcam_fps_reset_defaults", 'tp',
             function()
                 Features.FPSCamera.resetOffsets()
                 return true
             end)
 
-    registerAction("clear_fixed_look_point", 'tp',
+    registerAction("turbobarcam_clear_fixed_look_point", 'tp',
             function()
                 Features.FPSCamera.clearFixedLookPoint()
                 return true
             end)
 
     -- Tracking camera actions
-    registerAction("toggle_tracking_camera", 'tp',
+    registerAction("turbobarcam_toggle_tracking_camera", 'tp',
             function()
                 Features.TrackingCamera.toggle()
                 return true
             end)
 
     -- Orbiting camera actions
-    registerAction("toggle_orbiting_camera", 'tp',
+    registerAction("turbobarcam_toggle_orbiting_camera", 'tp',
             function()
                 Features.OrbitingCamera.toggle()
                 return true
             end)
 
-    registerAction("orbit_speed_up", 'pR',
+    registerAction("turbobarcam_orbit_speed_up", 'pR',
             function()
                 Features.OrbitingCamera.adjustSpeed(0.0001)
-                return true
+                return false
             end)
 
-    registerAction("orbit_speed_down", 'pR',
+    registerAction("turbobarcam_orbit_speed_down", 'pR',
             function()
                 Features.OrbitingCamera.adjustSpeed(-0.0001)
-                return true
+                return false
             end)
 
-    registerAction("orbit_reset_defaults", 'tp',
+    registerAction("turbobarcam_orbit_height_up", 'pR',
+            function()
+                Features.OrbitingCamera.adjustHeight(10)
+                return false
+            end)
+
+    registerAction("turbobarcam_orbit_height_down", 'pR',
+            function()
+                Features.OrbitingCamera.adjustHeight(-10)
+                return false
+            end)
+
+    registerAction("turbobarcam_orbit_distance_up", 'pR',
+            function()
+                Features.OrbitingCamera.adjustDistance(10)
+                return false
+            end)
+
+    registerAction("turbobarcam_orbit_distance_down", 'pR',
+            function()
+                Features.OrbitingCamera.adjustDistance(-10)
+                return false
+            end)
+
+    registerAction("turbobarcam_orbit_reset_defaults", 'tp',
             function()
                 Features.OrbitingCamera.resetSettings()
                 return true
             end)
 
     -- SpecGroups actions
-    registerAction("spec_unit_group", 'tp',
+    registerAction("turbobarcam_spec_unit_group", 'tp',
             function(_, params)
                 Features.SpecGroups.handleCommand(params)
                 return true
             end)
 
     -- TurboOverview actions
-    registerAction("turbo_overview_toggle", 'tp',
+    registerAction("turbobarcam_overview_toggle", 'tp',
             function()
                 Features.TurboOverviewCamera.toggle()
                 return true
             end)
 
-    registerAction("turbo_overview_change_zoom", 'tp',
+    registerAction("turbobarcam_overview_change_zoom", 'tp',
             function()
                 Features.TurboOverviewCamera.toggleZoom()
                 return true
             end)
 
-    registerAction("turbo_overview_move_camera", 'tp',
+    registerAction("turbobarcam_overview_move_camera", 'tp',
             function()
                 Features.TurboOverviewCamera.moveToTarget()
                 return true
             end)
 
-    registerAction("turbo_overview_smoothing_up", 'pR',
-            function()
-                Features.TurboOverviewCamera.adjustSmoothing(0.01)
-                return true
-            end)
-
-    registerAction("turbo_overview_smoothing_down", 'pR',
-            function()
-                Features.TurboOverviewCamera.adjustSmoothing(-0.01)
-                return true
-            end)
-
     -- Group Tracking camera actions
-    registerAction("toggle_group_tracking_camera", 'tp',
+    registerAction("turbobarcam_follow_camera_toggle", 'tp',
             function()
                 Features.GroupTrackingCamera.toggle()
-                return true
-            end)
-
-    registerAction("group_tracking_distance_increase", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.DEFAULT_DISTANCE = config.DEFAULT_DISTANCE + 50
-                Util.debugEcho("Group tracking default distance increased to: " .. config.DEFAULT_DISTANCE)
-                return true
-            end)
-
-    registerAction("group_tracking_distance_decrease", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.DEFAULT_DISTANCE = math.max(config.MIN_DISTANCE, config.DEFAULT_DISTANCE - 50)
-                Util.debugEcho("Group tracking default distance decreased to: " .. config.DEFAULT_DISTANCE)
-                return true
-            end)
-
-    registerAction("group_tracking_cutoff_increase", 'tp',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.OUTLIER_CUTOFF_FACTOR = config.OUTLIER_CUTOFF_FACTOR + 0.5
-                Util.debugEcho("Group tracking outlier cutoff increased to: " .. config.OUTLIER_CUTOFF_FACTOR)
-                return true
-            end)
-
-    registerAction("group_tracking_cutoff_decrease", 'tp',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.OUTLIER_CUTOFF_FACTOR = math.max(1.0, config.OUTLIER_CUTOFF_FACTOR - 0.5)
-                Util.debugEcho("Group tracking outlier cutoff decreased to: " .. config.OUTLIER_CUTOFF_FACTOR)
-                return true
-            end)
-
-    registerAction("group_tracking_height_increase", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.DEFAULT_HEIGHT_FACTOR = config.DEFAULT_HEIGHT_FACTOR + 0.1
-                Util.debugEcho("Group tracking height factor increased to: " .. config.DEFAULT_HEIGHT_FACTOR)
-                return true
-            end)
-
-    registerAction("group_tracking_height_decrease", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.DEFAULT_HEIGHT_FACTOR = math.max(0.1, config.DEFAULT_HEIGHT_FACTOR - 0.1)
-                Util.debugEcho("Group tracking height factor decreased to: " .. config.DEFAULT_HEIGHT_FACTOR)
-                return true
-            end)
-
-    registerAction("group_tracking_backward_increase", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.BACKWARD_FACTOR = config.BACKWARD_FACTOR + 0.1
-                Util.debugEcho("Group tracking backward factor increased to: " .. config.BACKWARD_FACTOR)
-                return true
-            end)
-
-    registerAction("group_tracking_backward_decrease", 'pR',
-            function()
-                local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-                config.BACKWARD_FACTOR = math.max(1.0, config.BACKWARD_FACTOR - 0.1)
-                Util.debugEcho("Group tracking backward factor decreased to: " .. config.BACKWARD_FACTOR)
                 return true
             end)
 

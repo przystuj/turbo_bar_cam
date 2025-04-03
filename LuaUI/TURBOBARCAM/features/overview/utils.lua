@@ -226,7 +226,7 @@ end
 ---@return boolean success Whether smoothing was adjusted
 function OverviewCameraUtils.adjustSmoothing(amount)
     if not STATE.enabled then
-        Util.debugEcho("TURBOBARCAM must be enabled first")
+        Util.debugEcho("Must be enabled first")
         return false
     end
 
