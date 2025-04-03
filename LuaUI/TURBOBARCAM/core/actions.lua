@@ -19,6 +19,7 @@ function Actions.registerAllActions(modules)
     local Features = modules.Features
     local Core = modules.Core
     local Context = modules.Context
+    local Common = modules.Common
 
     -- Core widget actions
     registerAction("toggle_camera_suite", 'tp',
@@ -30,9 +31,9 @@ function Actions.registerAllActions(modules)
     -- Debug toggle
     registerAction("turbobarcam_toggle_debug", 'tp',
             function()
-                Context.WidgetState.DEBUG = not Context.WidgetState.DEBUG
-                local DEBUG = Context.WidgetState.DEBUG
-                Core.Util.echo("DEBUG: " .. (DEBUG and "true" or "false"))
+                Context.WidgetState.STATE.DEBUG = not Context.WidgetState.STATE.DEBUG
+                local DEBUG = Context.WidgetState.STATE.DEBUG
+                Common.Util.echo("DEBUG: " .. (DEBUG and "true" or "false"))
                 return true
             end)
 

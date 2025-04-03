@@ -27,6 +27,8 @@
 ---@class CommonModules
 ---@field Util Util
 ---@field Tracking TrackingManager
+---@field ClusterMathUtils ClusterMathUtils
+---@field DBSCAN DBSCAN
 
 ---@class AllModules
 ---@field Core CoreModules

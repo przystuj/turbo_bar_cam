@@ -78,10 +78,74 @@ if not WG.TURBOBARCAM.CONFIG then
                 BACKWARD_FACTOR = 2, -- Backward positioning factor. 1.0 = normal distance, higher = more backward
                 OUTLIER_CUTOFF_FACTOR = 1.3, -- Distance cutoff factor relative to group radius (units farther than this will be ignored)
                 DISTANCE_PADDING = 50, -- Distance padding (additional distance beyond minimum required)
-                DISTANCE_SMOOTHING = 0.05, -- Smoothing factors
-                POSITION_SMOOTHING = 0.08,
-                ROTATION_SMOOTHING = 0.05,
-                OUTLIER_TRANSITION_SPEED = 0.1, -- Transition speed when adding/removing outliers
+                DISTANCE_SMOOTHING = 0.02, -- Smoothing factors
+                POSITION_SMOOTHING = 0.03,
+                ROTATION_SMOOTHING = 0.008,
+                OUTLIER_TRANSITION_SPEED = 0, -- Transition speed when adding/removing outliers
+
+                CENTER_CHANGE_THRESHOLD_SQ = 100, -- Threshold for determining if center of mass has changed (squared units)
+                CLUSTER_CHECK_INTERVAL = 1.0, -- Time between clustering checks (seconds) - less frequent checks
+                MIN_CLUSTER_SIZE = 2, -- Minimum number of units before we do clustering - smaller groups
+                EPSILON_FACTOR = 3.0, -- Scale factor for adaptive DBSCAN epsilon - MUCH larger, more inclusive clusters
+                MIN_EPSILON = 400, -- Minimum epsilon value (distance threshold) - higher minimum distance
+                MAX_EPSILON = 1100, -- Maximum epsilon value (distance threshold) - higher maximum distance
+                MIN_POINTS_FACTOR = 0.05, -- Minimum points as a fraction of total unit count - fewer units required
+                MAX_MIN_POINTS = 2, -- Maximum value for minPoints parameter - fewer points needed for core
+
+                -- Core smoothing parameters - dramatically increased
+                POSITION_SMOOTHING = 0.01,           -- Ultra-low for super smooth camera movement
+                ROTATION_SMOOTHING = 0.005,          -- Ultra-low for super smooth rotation
+                VELOCITY_SMOOTHING_FACTOR = 0.008,    -- Lower for more smoothing
+                DISTANCE_SMOOTHING = 0.007,           -- Smoother distance changes
+
+                -- Stability settings
+                STATIONARY_BIAS_FACTOR = 0.95,       -- Very high bias for stability
+                MIN_VELOCITY_THRESHOLD = 5.0,        -- Much higher threshold to reduce vibration
+                VELOCITY_SIGNIFICANCE_THRESHOLD = 10.0, -- Only major movements trigger direction changes
+                DIRECTION_CHANGE_THRESHOLD = 0.3,    -- Much lower threshold (big angle change needed)
+                MIN_DIRECTION_CHANGE_INTERVAL = 2.0, -- Minimum seconds between direction changes
+
+                -- Anti-vibration measures
+                JITTER_PROTECTION_RADIUS = 10.0,      -- Ignore small position changes within this radius
+                USE_POSITION_AVERAGING = true,       -- Use position averaging
+                POSITION_AVERAGING_SAMPLES = 10,     -- Number of samples for position averaging
+                POSITION_SAMPLE_INTERVAL = 0.1,      -- Seconds between position samples
+
+                -- Camera tracking behavior
+                TRACKING_UPDATE_INTERVAL = 0.0001, -- Ensures smooth tracking (update every frame)
+                DEBUG_TRACKING = false, -- Enable tracking debug info
+
+                -- Special aircraft handling
+                AIRCRAFT_DETECTION_ENABLED = true,  -- Enable aircraft detection
+                ALWAYS_INCLUDE_AIRCRAFT = true,     -- Always include aircraft in clusters
+                AIRCRAFT_EPSILON_FACTOR = 10.0,     -- 10x looser clustering for aircraft
+                AIRCRAFT_MIN_EPSILON = 800,         -- Much higher minimum for aircraft
+                AIRCRAFT_MAX_EPSILON = 3200,        -- Much higher maximum for aircraft
+                AIRCRAFT_EXTRA_DISTANCE = 700,      -- Extra camera distance for aircraft
+
+                -- Contiguous unit detection
+                USE_CONTIGUOUS_UNIT_DETECTION = true, -- Enable detection of touching units
+
+                -- Aircraft unit types to detect - add all your air unit defNames
+                AIRCRAFT_UNIT_TYPES = {
+                    ["armfig"] = true,
+                    ["corvamp"] = true,
+                    ["armthund"] = true,
+                    ["corshad"] = true,
+                    ["armbrawl"] = true,
+                    ["corsent"] = true,
+                    ["armsehak"] = true,
+                    ["armawac"] = true,
+                    ["armatlas"] = true,
+                    ["armdrop"] = true,
+                    ["armca"] = true,
+                    ["armcsa"] = true,
+                    ["armaca"] = true,
+                    ["coraca"] = true,
+                    ["corca"] = true,
+                    ["corcsa"] = true,
+                    -- Add all your other air units here
+                }
             }
         },
 
