@@ -28,7 +28,7 @@ function TrackingUtils.isAircraftUnit(unitID)
     end
 
     -- Check if unit is in the aircraft types list
-    local aircraftTypes = CONFIG.GROUP_TRACKING.AIRCRAFT_UNIT_TYPES
+    local aircraftTypes = CONFIG.CAMERA_MODES.GROUP_TRACKING.AIRCRAFT_UNIT_TYPES
     if aircraftTypes and aircraftTypes[unitDef.name] then
         return true
     end

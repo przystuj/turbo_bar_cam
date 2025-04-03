@@ -6,7 +6,7 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type TrackingUtils
-local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua")
+local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua").TrackingUtils
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
@@ -240,6 +240,7 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- Check if we're dealing with aircraft units
+    Util.debugEcho({"units", units})
     local hasAircraft = TrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units

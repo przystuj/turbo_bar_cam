@@ -77,7 +77,7 @@ if not WG.TURBOBARCAM.CONFIG then
                 MAX_DISTANCE = 900,      -- Maximum camera distance
 
                 -- Height settings
-                DEFAULT_HEIGHT_FACTOR = 0.9, -- Default height as a factor of distance
+                DEFAULT_HEIGHT_FACTOR = 1.3, -- Default height as a factor of distance
 
                 -- Aircraft handling
                 AIRCRAFT_UNIT_TYPES = {
