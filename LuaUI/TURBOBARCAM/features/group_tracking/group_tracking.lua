@@ -1,17 +1,16 @@
--- Group Tracking module for TURBOBARCAM with stability improvements
+-- Group Tracking module for TURBOBARCAM
 -- This extends the existing tracking system with multi-unit group tracking capabilities
--- using DBSCAN clustering to identify unit groups and focus on significant ones
+
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
----@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+---@type TrackingUtils
+local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
-local CameraCommons = TurboCore.CameraCommons
 local TrackingManager = TurboCommons.Tracking
 local ClusterMathUtils = TurboCommons.ClusterMathUtils
 local DBSCAN = TurboCommons.DBSCAN
@@ -57,22 +56,32 @@ function GroupTrackingCamera.toggle()
         end
 
         -- Initialize group tracking state
-        STATE.tracking.group.centerOfMass = { x = 0, y = 0, z = 0 }
-        STATE.tracking.group.targetDistance = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_DISTANCE
-        STATE.tracking.group.currentDistance = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_DISTANCE
-        STATE.tracking.group.radius = 0
-        STATE.tracking.group.outliers = {}
-        STATE.tracking.group.currentCluster = {} -- Store current focused cluster
-        STATE.tracking.group.totalWeight = 0
-        STATE.tracking.group.lastCenterOfMass = { x = 0, y = 0, z = 0 }
-        STATE.tracking.group.centerChanged = true
-        STATE.tracking.group.lastClusterCheck = Spring.GetGameSeconds()
-        STATE.tracking.group.velocity = { x = 0, y = 0, z = 0 }
-        STATE.tracking.group.smoothedVelocity = { x = 0, y = 0, z = 0 } -- Add smoothed velocity
-        STATE.tracking.group.lastCenterUpdateTime = Spring.GetTimer()
-        STATE.tracking.group.lastTrackingUpdate = Spring.GetGameSeconds()
-        STATE.tracking.group.lastDirectionChangeTime = Spring.GetGameSeconds() -- Track direction changes
-        STATE.tracking.group.lastCameraDir = { x = 0, z = 0 } -- Track camera direction
+        STATE.tracking.group = {
+            unitIDs = STATE.tracking.group.unitIDs,
+            centerOfMass = { x = 0, y = 0, z = 0 },
+            lastCenterOfMass = { x = 0, y = 0, z = 0 },
+            targetDistance = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_DISTANCE,
+            radius = 0,
+            outliers = {},
+            currentCluster = {},
+            totalWeight = 0,
+
+            -- Tracking state
+            lastClusterCheck = Spring.GetGameSeconds(),
+            lastCenterUpdateTime = Spring.GetTimer(),
+            lastDirectionChangeTime = Spring.GetGameSeconds(),
+
+            -- Movement tracking
+            velocity = { x = 0, y = 0, z = 0 },
+            smoothedVelocity = { x = 0, y = 0, z = 0 },
+            directionHistory = {},
+            stabilityCounter = 0,
+
+            -- Camera control
+            lastCameraDir = { x = 0, z = 0 },
+            inStableMode = false,
+            stableModeStartTime = 0
+        }
 
         -- Calculate the initial center of mass and radius
         GroupTrackingCamera.calculateCenterOfMass()
@@ -119,13 +128,6 @@ function GroupTrackingCamera.calculateCenterOfMass()
     STATE.tracking.group.centerOfMass = newCenter
     STATE.tracking.group.totalWeight = totalWeight
 
-    -- Check if center of mass has significantly changed
-    STATE.tracking.group.centerChanged = ClusterMathUtils.centerChanged(
-            STATE.tracking.group.centerOfMass,
-            STATE.tracking.group.lastCenterOfMass,
-            CONFIG.CAMERA_MODES.GROUP_TRACKING.CENTER_CHANGE_THRESHOLD_SQ or 100 -- Default if not set
-    )
-
     -- Calculate velocity for the group (for determining movement direction)
     local timeSinceLast = Spring.DiffTimers(
             Spring.GetTimer(),
@@ -140,8 +142,8 @@ function GroupTrackingCamera.calculateCenterOfMass()
                 timeSinceLast
         )
 
-        -- Get smoothing factor
-        local velocitySmoothingFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.VELOCITY_SMOOTHING_FACTOR or 0.1
+        -- Use a simple but effective smoothing factor
+        local velocitySmoothingFactor = 0.1
 
         -- If we don't have smoothed velocity yet, initialize it
         if not STATE.tracking.group.smoothedVelocity then
@@ -159,17 +161,37 @@ function GroupTrackingCamera.calculateCenterOfMass()
             }
         end
 
-        -- Store raw velocity for debugging
+        -- Store raw velocity
         STATE.tracking.group.velocity = rawVelocity
+
+        -- Track direction history
+        if STATE.tracking.group.directionHistory == nil then
+            STATE.tracking.group.directionHistory = {}
+        end
+
+        -- Add current direction to history (but only if the velocity is significant)
+        local velocityMagnitude = ClusterMathUtils.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
+        if velocityMagnitude > 5.0 then
+            -- Normalize the velocity to get just the direction
+            local normalizedDir = {
+                x = STATE.tracking.group.smoothedVelocity.x / velocityMagnitude,
+                z = STATE.tracking.group.smoothedVelocity.z / velocityMagnitude,
+                time = Spring.GetGameSeconds(),
+                magnitude = velocityMagnitude
+            }
+
+            -- Add to history
+            table.insert(STATE.tracking.group.directionHistory, normalizedDir)
+
+            -- Keep only the last 5 directions
+            while #STATE.tracking.group.directionHistory > 5 do
+                table.remove(STATE.tracking.group.directionHistory, 1)
+            end
+        end
     end
 
     -- Update last center update time
     STATE.tracking.group.lastCenterUpdateTime = Spring.GetTimer()
-
-    if CONFIG.CAMERA_MODES.GROUP_TRACKING.DEBUG_TRACKING then
-        Util.debugEcho(string.format("Center of mass updated: x=%.1f, y=%.1f, z=%.1f (valid units: %d)",
-                newCenter.x, newCenter.y, newCenter.z, validUnits))
-    end
 
     return validUnits > 0
 end
@@ -197,10 +219,6 @@ function GroupTrackingCamera.calculateGroupRadius()
 
     -- Calculate radius using the math utility
     STATE.tracking.group.radius = ClusterMathUtils.calculateGroupRadius(unitsToUse, center)
-
-    if CONFIG.CAMERA_MODES.GROUP_TRACKING.DEBUG_TRACKING then
-        Util.debugEcho(string.format("Group radius: %.1f", STATE.tracking.group.radius))
-    end
 end
 
 --- Detects clusters and focuses on the most significant one using DBSCAN
@@ -208,7 +226,7 @@ function GroupTrackingCamera.detectClusters()
     local now = Spring.GetGameSeconds()
 
     -- Only check for clusters periodically to avoid performance impact
-    local checkInterval = CONFIG.CAMERA_MODES.GROUP_TRACKING.CLUSTER_CHECK_INTERVAL or 1.0
+    local checkInterval = 1.0
     if now - STATE.tracking.group.lastClusterCheck < checkInterval then
         return
     end
@@ -217,17 +235,19 @@ function GroupTrackingCamera.detectClusters()
 
     -- Get current set of tracked units
     local units = STATE.tracking.group.unitIDs
-    if #units == 0 then return end
+    if #units == 0 then
+        return
+    end
 
     -- Check if we're dealing with aircraft units
-    local hasAircraft = GroupTrackingCamera.containsAircraft()
+    local hasAircraft = TrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units
     local allAircraft = true
     for _, unitID in ipairs(units) do
         if Spring.ValidUnitID(unitID) then
             local unitDefID = Spring.GetUnitDefID(unitID)
-            if unitDefID and not GroupTrackingCamera.isAircraftUnit(unitID) then
+            if unitDefID and not TrackingUtils.isAircraftUnit(unitID) then
                 allAircraft = false
                 break
             end
@@ -246,27 +266,9 @@ function GroupTrackingCamera.detectClusters()
         return
     end
 
-    -- Calculate average distance between units for adaptive epsilon
-    local positionSum = {x = 0, y = 0, z = 0}
-    local validUnits = 0
-    local unitPositions = {}
-
-    for _, unitID in ipairs(units) do
-        if Spring.ValidUnitID(unitID) then
-            local x, y, z = Spring.GetUnitPosition(unitID)
-            unitPositions[validUnits+1] = {x = x, y = y, z = z, unitID = unitID}
-
-            positionSum.x = positionSum.x + x
-            positionSum.y = positionSum.y + y
-            positionSum.z = positionSum.z + z
-
-            validUnits = validUnits + 1
-        end
-    end
-
-    -- If we have too few units, don't bother with clustering
-    local minClusterSize = CONFIG.CAMERA_MODES.GROUP_TRACKING.MIN_CLUSTER_SIZE or 2
-    if validUnits <= minClusterSize then
+    -- If there are very few units, don't bother with clustering
+    local validUnits = TrackingUtils.countValidUnits(units)
+    if validUnits <= 2 then
         STATE.tracking.group.outliers = {}
         STATE.tracking.group.currentCluster = {}
         for _, unitID in ipairs(units) do
@@ -277,40 +279,15 @@ function GroupTrackingCamera.detectClusters()
         return
     end
 
-    -- Calculate adaptive parameters with different settings based on unit types
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-
-    -- Much more lenient values for clustering
-    local epsilonFactor = config.EPSILON_FACTOR or 2.0
-
-    -- If we have aircraft in the mix, use a much higher epsilon for clustering
-    if hasAircraft then
-        epsilonFactor = config.AIRCRAFT_EPSILON_FACTOR or 10.0
-    end
-
-    -- Get the other parameters
-    local minEpsilon = config.MIN_EPSILON or 300
-    local maxEpsilon = config.MAX_EPSILON or 1200
-
-    if hasAircraft then
-        minEpsilon = config.AIRCRAFT_MIN_EPSILON or 600 -- Double for aircraft
-        maxEpsilon = config.AIRCRAFT_MAX_EPSILON or 2400 -- Double for aircraft
-    end
-
-    local minPointsFactor = config.MIN_POINTS_FACTOR or 0.1
-    local maxMinPoints = config.MAX_MIN_POINTS or 3
-
-    -- Create custom config for this clustering run
+    -- Create custom config for clustering
     local clusterConfig = {
-        EPSILON_FACTOR = epsilonFactor,
-        MIN_EPSILON = minEpsilon,
-        MAX_EPSILON = maxEpsilon,
-        MIN_POINTS_FACTOR = minPointsFactor,
-        MAX_MIN_POINTS = maxMinPoints,
-        MIN_CLUSTER_SIZE = config.MIN_CLUSTER_SIZE
+        EPSILON_FACTOR = hasAircraft and 10.0 or 3.0,
+        MIN_EPSILON = hasAircraft and 600 or 400,
+        MAX_EPSILON = hasAircraft and 2400 or 1100,
+        MIN_POINTS_FACTOR = 0.05,
+        MAX_MIN_POINTS = 2,
+        MIN_CLUSTER_SIZE = 2
     }
-
-    Util.debugEcho(clusterConfig)
 
     local adaptiveEpsilon, minPoints = DBSCAN.calculateAdaptiveParameters(units, clusterConfig)
 
@@ -321,8 +298,7 @@ function GroupTrackingCamera.detectClusters()
     local newOutliers = {}
     for _, unitID in ipairs(noise) do
         -- Don't mark aircraft as outliers if we want to include them
-        if not (hasAircraft and GroupTrackingCamera.isAircraftUnit(unitID) and
-                config.ALWAYS_INCLUDE_AIRCRAFT) then
+        if not (hasAircraft and TrackingUtils.isAircraftUnit(unitID) and true) then
             newOutliers[unitID] = true
         end
     end
@@ -343,17 +319,11 @@ function GroupTrackingCamera.detectClusters()
     if #clusters > 0 then
         local significantCluster, _ = DBSCAN.findMostSignificantCluster(clusters)
 
-        -- If using contiguous unit detection, extend the cluster to include touching units
-        if config.USE_CONTIGUOUS_UNIT_DETECTION then
-            significantCluster = GroupTrackingCamera.extendClusterWithTouchingUnits(
-                    significantCluster, units, adaptiveEpsilon)
-        end
-
         -- Add aircraft to the cluster if needed
-        if hasAircraft and config.ALWAYS_INCLUDE_AIRCRAFT then
+        if hasAircraft then
             for _, unitID in ipairs(units) do
                 if Spring.ValidUnitID(unitID) and
-                        GroupTrackingCamera.isAircraftUnit(unitID) and
+                        TrackingUtils.isAircraftUnit(unitID) and
                         not ClusterMathUtils.tableContains(significantCluster, unitID) then
                     table.insert(significantCluster, unitID)
                 end
@@ -364,8 +334,7 @@ function GroupTrackingCamera.detectClusters()
         for _, unitID in ipairs(units) do
             if Spring.ValidUnitID(unitID) and not ClusterMathUtils.tableContains(significantCluster, unitID) then
                 -- Don't mark aircraft as outliers if we want to include them
-                if not (hasAircraft and GroupTrackingCamera.isAircraftUnit(unitID) and
-                        config.ALWAYS_INCLUDE_AIRCRAFT) then
+                if not (hasAircraft and TrackingUtils.isAircraftUnit(unitID)) then
                     newOutliers[unitID] = true
                 end
             end
@@ -373,12 +342,6 @@ function GroupTrackingCamera.detectClusters()
 
         -- Update our main group to focus only on the significant cluster
         STATE.tracking.group.currentCluster = significantCluster
-
-        -- Log diagnostic info
-        if STATE.DEBUG then
-            Util.debugEcho(string.format("Found %d clusters. Using largest with %d units.",
-                    #clusters, #significantCluster))
-        end
     else
         -- If no clusters found, just use all valid units and no outliers
         STATE.tracking.group.currentCluster = {}
@@ -421,185 +384,10 @@ function GroupTrackingCamera.detectClusters()
     if outliersChanged then
         STATE.tracking.group.outliers = newOutliers
 
-        -- Log diagnostic info if debug is enabled
-        if STATE.DEBUG then
-            local outlierCount = ClusterMathUtils.tableCount(newOutliers)
-            local clusterCount = #clusters
-            Util.debugEcho(string.format(
-                    "Updated clusters: Found %d clusters, %d outliers. Using epsilon: %.1f, minPoints: %d",
-                    clusterCount, outlierCount, adaptiveEpsilon, minPoints
-            ))
-        end
-
         -- Recalculate center of mass and radius without outliers
         GroupTrackingCamera.calculateCenterOfMass()
         GroupTrackingCamera.calculateGroupRadius()
     end
-end
-
-function GroupTrackingCamera.isAircraftUnit(unitID)
-    if not Spring.ValidUnitID(unitID) then
-        return false
-    end
-
-    local unitDefID = Spring.GetUnitDefID(unitID)
-    if not unitDefID then
-        return false
-    end
-
-    local unitDef = UnitDefs[unitDefID]
-    if not unitDef then
-        return false
-    end
-
-    -- Check if unit is in the aircraft types list
-    local aircraftTypes = CONFIG.CAMERA_MODES.GROUP_TRACKING.AIRCRAFT_UNIT_TYPES
-    if aircraftTypes and aircraftTypes[unitDef.name] then
-        return true
-    end
-
-    -- Check if the unit can fly
-    if unitDef.canFly then
-        return true
-    end
-
-    return false
-end
-
---- Extends a cluster to include units that are touching or very close to cluster units
---- with completely clean code (no goto statements)
----@param cluster table Array of unit IDs in the cluster
----@param allUnits table Array of all unit IDs to consider
----@param epsilon number Current epsilon value
----@return table extendedCluster The extended cluster
-function GroupTrackingCamera.extendClusterWithTouchingUnits(cluster, allUnits, epsilon)
-    local extendedCluster = {unpack(cluster)}
-    local unitPositions = {}
-    local clusterUnits = {}
-
-    -- Get positions of all valid units
-    for _, unitID in ipairs(allUnits) do
-        if Spring.ValidUnitID(unitID) then
-            local x, y, z = Spring.GetUnitPosition(unitID)
-            unitPositions[unitID] = {x = x, y = y, z = z}
-        end
-    end
-
-    -- Mark cluster units for quick lookup
-    for _, unitID in ipairs(cluster) do
-        clusterUnits[unitID] = true
-    end
-
-    -- Get unit radii for distance calculations
-    local unitRadii = {}
-    for _, unitID in ipairs(allUnits) do
-        if Spring.ValidUnitID(unitID) then
-            local unitDefID = Spring.GetUnitDefID(unitID)
-            local radius = 20 -- Default radius
-
-            if unitDefID and UnitDefs[unitDefID] then
-                radius = UnitDefs[unitDefID].radius or 20
-            end
-
-            unitRadii[unitID] = radius
-        end
-    end
-
-    -- Use a more aggressive epsilon for touching detection
-    local touchingEpsilon = epsilon * 0.5 -- Half the clustering epsilon
-
-    -- Check for units that are touching or very close to cluster units
-    local changed = true
-    local iterations = 0
-    local maxIterations = 5 -- Limit iterations to prevent infinite loops
-
-    while changed and iterations < maxIterations do
-        changed = false
-        iterations = iterations + 1
-
-        -- First gather candidate units (not in cluster and valid)
-        local candidateUnits = {}
-        for _, unitID in ipairs(allUnits) do
-            if not clusterUnits[unitID] and Spring.ValidUnitID(unitID) and unitPositions[unitID] then
-                table.insert(candidateUnits, unitID)
-            end
-        end
-
-        -- Now check each candidate against the existing cluster
-        for _, unitID in ipairs(candidateUnits) do
-            local unitPos = unitPositions[unitID]
-            local isTouching = false
-
-            -- Check against each cluster unit
-            for _, clusterUnitID in ipairs(extendedCluster) do
-                local clusterPos = unitPositions[clusterUnitID]
-
-                -- Skip invalid positions
-                if not clusterPos then
-                    -- Just continue to next cluster unit
-                else
-                    -- Calculate distance between unit centers
-                    local dx = unitPos.x - clusterPos.x
-                    local dy = unitPos.y - clusterPos.y
-                    local dz = unitPos.z - clusterPos.z
-                    local distSquared = dx*dx + dy*dy + dz*dz
-
-                    -- Sum of unit radii
-                    local combinedRadius = (unitRadii[unitID] or 20) + (unitRadii[clusterUnitID] or 20)
-
-                    -- Units are touching if distance is less than sum of radii plus a small buffer
-                    local touchingDistanceSquared = (combinedRadius + touchingEpsilon) ^ 2
-
-                    if distSquared <= touchingDistanceSquared then
-                        isTouching = true
-                        break -- No need to check other cluster units
-                    end
-                end
-            end
-
-            -- If unit is touching any cluster unit, add it
-            if isTouching then
-                table.insert(extendedCluster, unitID)
-                clusterUnits[unitID] = true
-                changed = true
-            end
-        end
-    end
-
-    return extendedCluster
-end
-
---- Calculates required camera distance to see all units
-function GroupTrackingCamera.calculateRequiredDistance()
-    local radius = STATE.tracking.group.radius
-    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR
-    local fovFactor = STATE.tracking.group.currentFOV
-
-    -- Update FOV consideration based on current camera state
-    local currentState = Spring.GetCameraState()
-    if currentState.fov then
-        STATE.tracking.group.currentFOV = currentState.fov * CONFIG.CAMERA_MODES.GROUP_TRACKING.FOV_FACTOR
-        fovFactor = STATE.tracking.group.currentFOV
-    end
-
-    -- Calculate required distance using trigonometry:
-    -- We need enough distance so that the radius fits within our FOV
-    local fovRadians = math.rad(fovFactor)
-    local requiredDistance = (radius / math.tan(fovRadians / 2)) / heightFactor
-
-    -- Add padding and ensure within min/max bounds
-    requiredDistance = requiredDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.DISTANCE_PADDING
-    requiredDistance = math.max(CONFIG.CAMERA_MODES.GROUP_TRACKING.MIN_DISTANCE,
-            math.min(CONFIG.CAMERA_MODES.GROUP_TRACKING.MAX_DISTANCE, requiredDistance))
-
-    -- Smoothly update target distance
-    STATE.tracking.group.targetDistance = Util.smoothStep(
-            STATE.tracking.group.targetDistance,
-            requiredDistance,
-            CONFIG.CAMERA_MODES.GROUP_TRACKING.DISTANCE_SMOOTHING
-    )
-
-    return STATE.tracking.group.targetDistance
 end
 
 --- Initializes camera position for group tracking
@@ -607,7 +395,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     local center = STATE.tracking.group.centerOfMass
     local currentState = Spring.GetCameraState()
 
-    -- Calculate a good initial position behind the group
+    -- Calculate a good initial position more to the side than directly behind the group
     -- Try to position camera between current pos and center for a smooth transition
     local dx = currentState.px - center.x
     local dz = currentState.pz - center.z
@@ -627,13 +415,31 @@ function GroupTrackingCamera.initializeCameraPosition()
     -- Set distance to initial target distance
     distance = STATE.tracking.group.targetDistance
 
-    -- Calculate height based on distance (with increased factor for more height)
-    local height = center.y + (distance * CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR)
+    -- Adjust camera position to be more to the side (45 degrees offset)
+    -- We'll rotate the normalized direction vector to position camera more to the side
+    local sideAngle = math.pi / 4  -- 45 degrees in radians
+    local rotatedDx = dx * math.cos(sideAngle) - dz * math.sin(sideAngle)
+    local rotatedDz = dx * math.sin(sideAngle) + dz * math.cos(sideAngle)
 
-    -- Set camera position
+    -- Use the rotated vector instead
+    dx = rotatedDx
+    dz = rotatedDz
+
+    -- Save current camera height for smoother transition
+    local currentHeight = currentState.py
+
+    -- Reduce the height factor to position camera less above the units (60% of original)
+    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
+    local targetHeight = center.y + (distance * heightFactor)
+
+    -- Apply a gradual height transition from current to target height
+    -- Start at an intermediate height rather than jumping directly to final height
+    local transitionHeight = currentHeight + ((targetHeight - currentHeight) * 0.3)
+
+    -- Set camera position with smoother height transition
     local camPos = {
         x = center.x + (dx * distance),
-        y = height,
+        y = transitionHeight, -- Use transition height instead of target height
         z = center.z + (dz * distance)
     }
 
@@ -663,287 +469,102 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
     STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
 
-    -- Apply camera state
-    Spring.SetCameraState(camState, 0.5)
+    -- Store the target height for smooth transition in the update function
+    STATE.tracking.group.targetHeight = targetHeight
 
-    if CONFIG.CAMERA_MODES.GROUP_TRACKING.DEBUG_TRACKING then
-        Util.debugEcho("Camera position initialized")
-    end
+    -- Apply camera state with a slower initial transition
+    Spring.SetCameraState(camState, 0.8) -- Increase transition time for smoother start
 end
 
---- Tracks and averages unit positions to reduce jitter
-function GroupTrackingCamera.updatePositionHistory()
-    -- Initialize position history if it doesn't exist
-    if not STATE.tracking.group.positionHistory then
-        STATE.tracking.group.positionHistory = {}
-        STATE.tracking.group.lastPositionSampleTime = Spring.GetGameSeconds()
-        STATE.tracking.group.positionSampleIndex = 1
-    end
+--- Calculates required camera distance to see all units
+function GroupTrackingCamera.calculateRequiredDistance()
+    local radius = STATE.tracking.group.radius
+    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR
 
-    local now = Spring.GetGameSeconds()
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-    local sampleInterval = config.POSITION_SAMPLE_INTERVAL or 0.1
+    -- Use a fixed FOV factor
+    local fovFactor = 45
 
-    -- Only add samples at the specified interval
-    if now - STATE.tracking.group.lastPositionSampleTime >= sampleInterval then
-        STATE.tracking.group.lastPositionSampleTime = now
+    -- Calculate required distance using trigonometry:
+    -- We need enough distance so that the radius fits within our FOV
+    local fovRadians = math.rad(fovFactor)
+    local requiredDistance = (radius / math.tan(fovRadians / 2)) / heightFactor
 
-        -- Store current center of mass
-        local center = STATE.tracking.group.centerOfMass
-        local sampleIndex = STATE.tracking.group.positionSampleIndex
-        local samples = config.POSITION_AVERAGING_SAMPLES or 10
+    -- Add padding and ensure within min/max bounds
+    requiredDistance = requiredDistance + 50 -- padding
+    requiredDistance = math.max(CONFIG.CAMERA_MODES.GROUP_TRACKING.MIN_DISTANCE,
+            math.min(CONFIG.CAMERA_MODES.GROUP_TRACKING.MAX_DISTANCE, requiredDistance))
 
-        -- Add to history
-        STATE.tracking.group.positionHistory[sampleIndex] = {
-            x = center.x,
-            y = center.y,
-            z = center.z,
-            time = now
-        }
+    -- Smoothly update target distance
+    STATE.tracking.group.targetDistance = Util.smoothStep(
+            STATE.tracking.group.targetDistance,
+            requiredDistance,
+            0.03
+    )
 
-        -- Update index for next sample
-        STATE.tracking.group.positionSampleIndex = (sampleIndex % samples) + 1
-    end
+    return STATE.tracking.group.targetDistance
 end
 
---- Calculates the averaged center position from history
-function GroupTrackingCamera.getSmoothedCenterPosition()
-    if not STATE.tracking.group.positionHistory or not CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_POSITION_AVERAGING then
-        return STATE.tracking.group.centerOfMass
-    end
-
-    local history = STATE.tracking.group.positionHistory
-    local count = 0
-    local sumX, sumY, sumZ = 0, 0, 0
-
-    -- Calculate weighted average (more recent samples have higher weight)
-    local totalWeight = 0
-    local now = Spring.GetGameSeconds()
-
-    for _, pos in pairs(history) do
-        if pos then
-            -- Calculate age-based weight (newer samples have higher weight)
-            local age = now - (pos.time or 0)
-            local weight = math.max(0.1, 1.0 - (age / 3.0)) -- Samples older than 3 seconds have minimum weight
-
-            sumX = sumX + (pos.x * weight)
-            sumY = sumY + (pos.y * weight)
-            sumZ = sumZ + (pos.z * weight)
-            totalWeight = totalWeight + weight
-            count = count + 1
-        end
-    end
-
-    if count > 0 and totalWeight > 0 then
-        return {
-            x = sumX / totalWeight,
-            y = sumY / totalWeight,
-            z = sumZ / totalWeight
-        }
-    else
-        return STATE.tracking.group.centerOfMass
-    end
-end
-
---- Applies Bezier smoothing to camera movement
-function GroupTrackingCamera.applyBezierSmoothing(start, target, factor)
-    if not CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_BEZIER_SMOOTHING then
-        return Util.smoothStep(start, target, factor)
-    end
-
-    -- Get current camera angle
-    local cameraDir = STATE.tracking.group.lastCameraDir or { x = 0, z = 0 }
-    local controlFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.BEZIER_CONTROL_POINT_FACTOR or 0.8
-
-    -- Create a control point that's on the path from start toward current camera direction
-    local distance = math.sqrt((target - start) ^ 2) * controlFactor
-    local controlPoint = start + (cameraDir * distance)
-
-    -- Apply quadratic Bezier interpolation
-    local t = factor
-    return (1 - t) ^ 2 * start + 2 * (1 - t) * t * controlPoint + t ^ 2 * target
-end
-
---- Detects if the current unit group contains aircraft
-function GroupTrackingCamera.containsAircraft()
-    if not CONFIG.CAMERA_MODES.GROUP_TRACKING.AIRCRAFT_DETECTION_ENABLED then
+--- Checks if the movement pattern indicates back-and-forth movement
+function GroupTrackingCamera.isBackAndForthMovement()
+    -- Need at least 4 direction samples
+    local dirHistory = STATE.tracking.group.directionHistory
+    if not dirHistory or #dirHistory < 4 then
         return false
     end
 
-    local units = STATE.tracking.group.currentCluster or STATE.tracking.group.unitIDs
+    -- Check for direction changes
+    local directionChanges = 0
+    local lastDot = nil
 
-    for _, unitID in ipairs(units) do
-        if Spring.ValidUnitID(unitID) then
-            local unitDefID = Spring.GetUnitDefID(unitID)
-            if unitDefID then
-                local unitDef = UnitDefs[unitDefID]
+    for i = 2, #dirHistory do
+        local d1 = dirHistory[i - 1]
+        local d2 = dirHistory[i]
 
-                -- Check if unit is an aircraft either by name or by properties
-                local isAircraft = false
+        -- Get dot product between consecutive directions
+        local dot = d1.x * d2.x + d1.z * d2.z
 
-                -- Method 1: Check against our list of known aircraft types
-                local aircraftTypes = CONFIG.CAMERA_MODES.GROUP_TRACKING.AIRCRAFT_UNIT_TYPES
-                if aircraftTypes and aircraftTypes[unitDef.name] then
-                    isAircraft = true
-                end
-
-                -- Method 2: Check by unit properties
-                if unitDef.canFly then
-                    isAircraft = true
-                end
-
-                if isAircraft then
-                    return true
-                end
-            end
+        -- If dot product is negative, direction has significantly changed
+        if dot < 0.3 then
+            directionChanges = directionChanges + 1
         end
+
+        -- If we have opposing directions, may indicate back and forth
+        if i > 2 and dot < -0.7 and lastDot and lastDot < -0.7 then
+            return true
+        end
+
+        lastDot = dot
+    end
+
+    -- If we have multiple direction changes in our short history, likely back and forth
+    return directionChanges >= 2
+end
+
+--- Determines if we should enter stable camera mode
+function GroupTrackingCamera.shouldUseStableMode()
+    -- If we're already in stable mode, continue using it for a minimum time
+    if STATE.tracking.group.inStableMode then
+        local timeSinceStableModeStart = Spring.GetGameSeconds() - STATE.tracking.group.stableModeStartTime
+        if timeSinceStableModeStart < 4.0 then
+            return true
+        end
+    end
+
+    -- Check velocity magnitude - very small movement doesn't need tracking
+    local velocityMagnitude = ClusterMathUtils.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
+    if velocityMagnitude < 3.0 then
+        return true
+    end
+
+    -- Check for back and forth movement patterns
+    if GroupTrackingCamera.isBackAndForthMovement() then
+        return true
     end
 
     return false
 end
 
---- Calculates the appropriate camera distance based on unit type and movement
-function GroupTrackingCamera.calculateCameraDistance(baseDistance)
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-    local distance = baseDistance
-
-    -- Check if units are nearly stationary
-    local velocityMagnitude = ClusterMathUtils.vectorMagnitude(STATE.tracking.group.smoothedVelocity or { x = 0, y = 0, z = 0 })
-    if velocityMagnitude < (config.MIN_VELOCITY_THRESHOLD or 5.0) then
-        -- Apply stationary distance factor
-        distance = distance * (config.STATIONARY_DISTANCE_FACTOR or 1.5)
-    end
-
-    -- Check if group contains aircraft
-    if GroupTrackingCamera.containsAircraft() then
-        -- Add extra distance for aircraft
-        distance = distance + (config.AIRCRAFT_EXTRA_DISTANCE or 300)
-    end
-
-    -- Ensure within min/max bounds
-    return math.max(config.MIN_DISTANCE or 600,
-            math.min(config.MAX_DISTANCE or 1200, distance))
-end
-
---- Interpolates camera movement for smoother motion between updates
-function GroupTrackingCamera.setupInterpolation(currentPos, targetPos)
-    if not CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_FRAME_INTERPOLATION then
-        return
-    end
-
-    -- Initialize interpolation state if needed
-    if not STATE.tracking.group.interpolation then
-        STATE.tracking.group.interpolation = {
-            active = false,
-            currentStep = 0,
-            steps = CONFIG.CAMERA_MODES.GROUP_TRACKING.INTERPOLATION_STEPS or 10,
-            startPos = nil,
-            endPos = nil,
-            currentPos = nil
-        }
-    end
-
-    -- Setup new interpolation
-    STATE.tracking.group.interpolation.active = true
-    STATE.tracking.group.interpolation.currentStep = 0
-    STATE.tracking.group.interpolation.startPos = {
-        x = currentPos.x,
-        y = currentPos.y,
-        z = currentPos.z
-    }
-    STATE.tracking.group.interpolation.endPos = {
-        x = targetPos.x,
-        y = targetPos.y,
-        z = targetPos.z
-    }
-    STATE.tracking.group.interpolation.currentPos = {
-        x = currentPos.x,
-        y = currentPos.y,
-        z = currentPos.z
-    }
-end
-
---- Updates the interpolation between camera positions
-function GroupTrackingCamera.updateInterpolation()
-    if not CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_FRAME_INTERPOLATION or
-            not STATE.tracking.group.interpolation or
-            not STATE.tracking.group.interpolation.active then
-        return nil
-    end
-
-    local interp = STATE.tracking.group.interpolation
-    local steps = interp.steps
-
-    -- Update step
-    interp.currentStep = interp.currentStep + 1
-
-    if interp.currentStep >= steps then
-        -- Interpolation complete
-        interp.active = false
-        return nil
-    end
-
-    -- Calculate interpolated position
-    local progress = interp.currentStep / steps
-    local startPos = interp.startPos
-    local endPos = interp.endPos
-
-    -- Use smooth easing function
-    local easedProgress = Util.easeInOutCubic(progress)
-
-    -- Interpolate position
-    interp.currentPos = {
-        x = Util.lerp(startPos.x, endPos.x, easedProgress),
-        y = Util.lerp(startPos.y, endPos.y, easedProgress),
-        z = Util.lerp(startPos.z, endPos.z, easedProgress)
-    }
-
-    return interp.currentPos
-end
-
---- Accelerates direction changes when turning
-function GroupTrackingCamera.accelerateDirectionChange(lastDir, newDir, factor)
-    if not lastDir or not newDir then
-        return newDir
-    end
-
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-    local accelerationFactor = config.DIRECTION_CHANGE_ACCELERATION or 3.0
-
-    -- Calculate dot product to measure how different the directions are
-    local dotProduct = (lastDir.x * newDir.x) + (lastDir.z * newDir.z)
-
-    -- If directions are very different, apply acceleration
-    if dotProduct < config.DIRECTION_CHANGE_THRESHOLD then
-        -- More acceleration for bigger turns
-        local turnAcceleration = accelerationFactor * (1 - dotProduct)
-
-        -- Accelerate the smoothing factor
-        return factor * turnAcceleration
-    end
-
-    return factor
-end
-
---- Applies a low-speed boost to make slow movements more noticeable
-function GroupTrackingCamera.applyLowSpeedBoost(velocity)
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-    local velocityMagnitude = ClusterMathUtils.vectorMagnitude(velocity)
-
-    if velocityMagnitude > 0 and velocityMagnitude < (config.LOW_SPEED_BOOST_THRESHOLD or 0.5) then
-        local boostFactor = config.LOW_SPEED_BOOST_FACTOR or 3.0
-
-        return {
-            x = velocity.x * boostFactor,
-            y = velocity.y * boostFactor,
-            z = velocity.z * boostFactor
-        }
-    end
-
-    return velocity
-end
-
---- Updates tracking camera to point at the group center of mass with ultra-smooth tracking
+--- Updates tracking camera to point at the group center of mass
 function GroupTrackingCamera.update()
     if STATE.tracking.mode ~= 'group_tracking' then
         return
@@ -971,44 +592,16 @@ function GroupTrackingCamera.update()
         return
     end
 
-    -- First check if we have an active interpolation to update
-    if CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_FRAME_INTERPOLATION and
-            STATE.tracking.group.interpolation and
-            STATE.tracking.group.interpolation.active then
-
-        local interpolatedPos = GroupTrackingCamera.updateInterpolation()
-        if interpolatedPos then
-            -- Get current camera state
-            local currentState = Spring.GetCameraState()
-
-            -- Create minimal update to the interpolated position
-            local camStatePatch = {
-                px = interpolatedPos.x,
-                py = interpolatedPos.y,
-                pz = interpolatedPos.z
-            }
-
-            -- Apply the interpolated position
-            Spring.SetCameraState(camStatePatch, 0)
-            return
-        end
-    end
-
-    -- Update tracking at a fixed interval for main updates
-    local now = Spring.GetGameSeconds()
-
     -- Main tracking update
     GroupTrackingCamera.detectClusters()
     GroupTrackingCamera.calculateCenterOfMass()
     GroupTrackingCamera.calculateGroupRadius()
-    GroupTrackingCamera.updatePositionHistory()
 
-    -- Get smoothed center position
-    local center = GroupTrackingCamera.getSmoothedCenterPosition()
+    -- Get center position
+    local center = STATE.tracking.group.centerOfMass
 
     -- Calculate required camera distance
-    local baseDistance = GroupTrackingCamera.calculateRequiredDistance()
-    local targetDistance = GroupTrackingCamera.calculateCameraDistance(baseDistance)
+    local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
 
     -- Check if we're still in FPS mode
     local currentState = Spring.GetCameraState()
@@ -1021,106 +614,79 @@ function GroupTrackingCamera.update()
     -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
-    -- Calculate direction from camera to center
-    local dx = center.x - camPos.x
-    local dy = center.y - camPos.y
-    local dz = center.z - camPos.z
-    local currentDistance = math.sqrt(dx * dx + dy * dy + dz * dz)
-
     -- Determine camera height
-    local targetHeight = center.y + (targetDistance * CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR)
+    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
+    local targetHeight = center.y + (targetDistance * heightFactor)
 
-    -- Normalize direction vector
-    if currentDistance > 0 then
-        dx = dx / currentDistance
-        dz = dz / currentDistance
+    -- Check if we should be in stable camera mode
+    local shouldUseStable = GroupTrackingCamera.shouldUseStableMode()
+
+    -- Toggle stable mode if necessary
+    if shouldUseStable and not STATE.tracking.group.inStableMode then
+        STATE.tracking.group.inStableMode = true
+        STATE.tracking.group.stableModeStartTime = Spring.GetGameSeconds()
+    elseif not shouldUseStable and STATE.tracking.group.inStableMode then
+        STATE.tracking.group.inStableMode = false
+    end
+
+    -- Determine camera direction based on mode
+    local newCameraDir
+
+    if STATE.tracking.group.inStableMode then
+        -- In stable mode, maintain current camera direction
+        newCameraDir = STATE.tracking.group.lastCameraDir
     else
-        dx = 1
-        dz = 0
-    end
+        -- Normal tracking mode
+        -- Get smoothed velocity and calculate direction
+        local smoothedVelocity = STATE.tracking.group.smoothedVelocity
+        local velocityMagnitude = ClusterMathUtils.vectorMagnitude(smoothedVelocity)
 
-    -- Get config parameters
-    local config = CONFIG.CAMERA_MODES.GROUP_TRACKING
-    local posFactor = config.POSITION_SMOOTHING or 0.03
-    local rotFactor = config.ROTATION_SMOOTHING or 0.04
-
-    if STATE.tracking.modeTransition then
-        posFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-        rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-
-        if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
-            STATE.tracking.modeTransition = false
-        end
-    end
-
-    -- Apply low-speed boost to velocity
-    local smoothedVelocity = STATE.tracking.group.smoothedVelocity or { x = 0, y = 0, z = 0 }
-    smoothedVelocity = GroupTrackingCamera.applyLowSpeedBoost(smoothedVelocity)
-
-    -- Get velocity magnitude and thresholds
-    local velocityMagnitude = ClusterMathUtils.vectorMagnitude(smoothedVelocity)
-    local minVelocity = config.MIN_VELOCITY_THRESHOLD or 5.0
-    local velocitySignificanceThreshold = config.VELOCITY_SIGNIFICANCE_THRESHOLD or 10.0
-    local directionChangeThreshold = config.DIRECTION_CHANGE_THRESHOLD or 0.7
-    local minDirectionChangeInterval = config.MIN_DIRECTION_CHANGE_INTERVAL or 0.5
-
-    -- Get last camera direction or initialize it
-    if not STATE.tracking.group.lastCameraDir then
-        STATE.tracking.group.lastCameraDir = {
-            x = -dx,
-            z = -dz
-        }
-    end
-
-    -- Determine camera direction
-    local newCameraDir = { x = 0, z = 0 }
-    local backwardFactor = config.BACKWARD_FACTOR or 1.0
-
-    -- Check if we should use velocity-based direction or maintain current direction
-    if velocityMagnitude > minVelocity then
-        -- For significant movement, use smoothed velocity direction
-        local velMag = math.sqrt(smoothedVelocity.x ^ 2 + smoothedVelocity.z ^ 2)
-
-        if velMag > 0 then
+        if velocityMagnitude > 5.0 then
+            -- Use velocity direction (position camera behind units)
             newCameraDir = {
-                x = -smoothedVelocity.x / velMag,
-                z = -smoothedVelocity.z / velMag
+                x = -smoothedVelocity.x / velocityMagnitude,
+                z = -smoothedVelocity.z / velocityMagnitude
             }
 
-            -- Check if this is a significant direction change
+            -- Limit maximum rotation per update (gradual turns)
             local lastDir = STATE.tracking.group.lastCameraDir
-            local dotProduct = newCameraDir.x * lastDir.x + newCameraDir.z * lastDir.z
+            local currentDot = newCameraDir.x * lastDir.x + newCameraDir.z * lastDir.z
 
-            -- Only allow significant direction changes after minimum interval
-            if dotProduct < directionChangeThreshold then
-                local lastChangeTime = STATE.tracking.group.lastDirectionChangeTime or 0
+            -- If directions are very different, limit the change
+            if currentDot < 0 then
+                -- Severe direction change (more than 90 degrees)
+                -- Limit to a maximum of 45 degrees per update
+                local angle = math.atan2(lastDir.z, lastDir.x)
+                local targetAngle = math.atan2(newCameraDir.z, newCameraDir.x)
+                local angleDiff = targetAngle - angle
 
-                if now - lastChangeTime >= minDirectionChangeInterval then
-                    -- New direction accepted, accelerate turning
-                    STATE.tracking.group.lastDirectionChangeTime = now
-                    rotFactor = GroupTrackingCamera.accelerateDirectionChange(lastDir, newCameraDir, rotFactor)
-                else
-                    -- Not enough time passed, blend directions
-                    local blendFactor = (now - lastChangeTime) / minDirectionChangeInterval
+                -- Normalize to -pi to pi
+                while angleDiff > math.pi do
+                    angleDiff = angleDiff - 2 * math.pi
+                end
+                while angleDiff < -math.pi do
+                    angleDiff = angleDiff + 2 * math.pi
+                end
+
+                -- Limit angle change to 45 degrees max (π/4 radians)
+                local maxChange = math.pi / 4
+                if math.abs(angleDiff) > maxChange then
+                    local sign = angleDiff > 0 and 1 or -1
+                    angle = angle + (sign * maxChange)
+
+                    -- Convert back to direction vector
                     newCameraDir = {
-                        x = Util.lerp(lastDir.x, newCameraDir.x, blendFactor),
-                        z = Util.lerp(lastDir.z, newCameraDir.z, blendFactor)
+                        x = math.cos(angle),
+                        z = math.sin(angle)
                     }
                 end
+
             end
+
         else
-            -- Fallback to current direction
+            -- For slow/stationary units, maintain current camera direction
             newCameraDir = STATE.tracking.group.lastCameraDir
         end
-    else
-        -- For slow/stationary units, maintain current camera direction
-        local stationaryBias = config.STATIONARY_BIAS_FACTOR or 0.95
-        local lastDir = STATE.tracking.group.lastCameraDir
-
-        newCameraDir = {
-            x = lastDir.x,
-            z = lastDir.z
-        }
     end
 
     -- Calculate new camera position with the determined direction
@@ -1130,30 +696,17 @@ function GroupTrackingCamera.update()
         z = center.z + (newCameraDir.z * targetDistance)
     }
 
-    -- Check for jitter protection - avoid tiny movements
-    local jitterRadius = config.JITTER_PROTECTION_RADIUS or 3.0
-    local movementDelta = {
-        x = newCamPos.x - camPos.x,
-        y = newCamPos.y - camPos.y,
-        z = newCamPos.z - camPos.z
-    }
-    local movementMagnitude = math.sqrt(movementDelta.x ^ 2 + movementDelta.y ^ 2 + movementDelta.z ^ 2)
+    -- Smooth camera position with appropriate factors
+    local posFactor = 0.03
+    local rotFactor = 0.01
 
-    -- If movement is very small, don't move the camera at all
-    if movementMagnitude < jitterRadius then
-        newCamPos = {
-            x = camPos.x,
-            y = camPos.y,
-            z = camPos.z
-        }
+    -- If in stable mode, use slower factors
+    if STATE.tracking.group.inStableMode then
+        posFactor = 0.01
+        rotFactor = 0.005
     end
 
-    -- Setup interpolation for smoother movement
-    if CONFIG.CAMERA_MODES.GROUP_TRACKING.USE_FRAME_INTERPOLATION then
-        GroupTrackingCamera.setupInterpolation(camPos, newCamPos)
-    end
-
-    -- Smooth camera position
+    -- Apply smoothing
     local smoothedPos = {
         x = Util.smoothStep(camPos.x, newCamPos.x, posFactor),
         y = Util.smoothStep(camPos.y, newCamPos.y, posFactor),
@@ -1197,12 +750,6 @@ function GroupTrackingCamera.update()
 
     -- Apply camera state
     Spring.SetCameraState(camStatePatch, 0)
-
-    if config.DEBUG_TRACKING then
-        Util.debugEcho(string.format("Tracking: VelMag=%.1f, Dist=%.1f, Aircraft=%s",
-                velocityMagnitude, targetDistance, tostring(GroupTrackingCamera.containsAircraft())))
-    end
-
 end
 
 return {

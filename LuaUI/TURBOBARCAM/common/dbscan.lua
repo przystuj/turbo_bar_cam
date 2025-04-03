@@ -188,9 +188,6 @@ function DBSCAN.calculateAdaptiveParameters(units, config)
     end
     
     -- If too few units, use default parameters
-
-    WG.TURBOBARCAM.Util.debugEcho({"MIN_CLUSTER_SIZE", config.MIN_CLUSTER_SIZE})
-    WG.TURBOBARCAM.Util.debugEcho({"validUnits", validUnits})
     if validUnits <= config.MIN_CLUSTER_SIZE then
         return config.MIN_EPSILON, 2
     end
