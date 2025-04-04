@@ -22,8 +22,7 @@ local OrbitingCamera = {}
 --- Toggles orbiting camera mode
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
 function OrbitingCamera.toggle(unitID)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -251,8 +250,8 @@ function OrbitingCamera.updateAutoOrbit()
     Spring.SetCameraState(camStatePatch, 0)
 end
 
---- Adjusts the orbit params
---- @see ModifiableParams
+---@see ModifiableParams
+---@see Util#adjustParams
 function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
 end

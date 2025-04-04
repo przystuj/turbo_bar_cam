@@ -15,15 +15,15 @@ local CameraMovement = TurboCore.Movement
 ---@class OverviewCameraUtils
 local OverviewCameraUtils = {}
 
---- Calculates camera height based on zoom level
----@return number height The camera height
+--- Uses the current zoom level to determine the appropriate height above ground
+---@return number height The camera height in world units
 function OverviewCameraUtils.calculateCurrentHeight()
-    local zoomFactor = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
+    local zoomFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     -- Enforce minimum height to prevent getting too close to ground
     return math.max(STATE.turboOverview.height / zoomFactor, 500)
 end
 
---- Gets cursor world position
+--- Converts screen cursor position to 3D world coordinates
 ---@return table position Position {x, y, z}
 function OverviewCameraUtils.getCursorWorldPosition()
     local mx, my = Spring.GetMouseState()
@@ -38,6 +38,7 @@ function OverviewCameraUtils.getCursorWorldPosition()
 end
 
 --- Updates camera rotation based on cursor position
+--- Provides gradual rotation speed based on cursor distance from screen center
 ---@param state table State object with cursor tracking properties
 ---@return boolean updated Whether rotation was updated
 function OverviewCameraUtils.updateCursorTracking(state)
@@ -96,12 +97,12 @@ function OverviewCameraUtils.updateCursorTracking(state)
 
     -- Vertical rotation constraint
     state.targetRx = math.max(math.pi / 2, math.min(math.pi, state.targetRx))
-    
+
     return true
 end
 
---- Updates target movement mode
----@param state table Overview camera state 
+--- Handles moving the camera toward a target point with steering
+---@param state table Overview camera state
 ---@return boolean stateChanged Whether state was updated
 function OverviewCameraUtils.updateTargetMovement(state)
     if not state.isMovingToTarget then
@@ -155,7 +156,7 @@ function OverviewCameraUtils.updateTargetMovement(state)
         -- Apply damping to angular velocity to smoothly stop turning
         state.angularVelocity = state.angularVelocity * state.angularDamping
         if CONFIG.CAMERA_MODES.TURBO_OVERVIEW.INVERT_SIDE_MOVEMENT then
-             state.angularVelocity = state.angularVelocity * -1
+            state.angularVelocity = state.angularVelocity * -1
         end
 
         -- Exit movement mode if button is released
@@ -217,27 +218,26 @@ function OverviewCameraUtils.updateTargetMovement(state)
         Util.debugEcho("Reached target position")
         return true
     end
-    
+
     return false
 end
 
---- Adjusts the smoothing factor for cursor following
----@param amount number Amount to adjust smoothing by
----@return boolean success Whether smoothing was adjusted
-function OverviewCameraUtils.adjustSmoothing(amount)
+---@see ModifiableParams
+---@see Util#adjustParams
+function OverviewCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
     end
 
-    if STATE.tracking.mode ~= 'turbo_overview' then
-        Util.debugEcho("Turbo Overview camera must be enabled first")
+    if Util.isModeDisabled("turbo_overview") then
         return false
     end
 
-    -- Adjust smoothing factor (keep between 0.001 and 0.5)
-    STATE.turboOverview.movementSmoothing = math.max(0.001, math.min(0.5, STATE.turboOverview.movementSmoothing + amount))
+    Util.
 
-    Util.debugEcho("Turbo Overview smoothing: " .. STATE.turboOverview.movementSmoothing)
+    -- Adjust smoothing factor (keep between 0.001 and 0.5)
+    CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING + amount))
+
     return true
 end
 

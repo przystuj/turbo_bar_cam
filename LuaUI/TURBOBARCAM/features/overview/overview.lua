@@ -1,5 +1,3 @@
--- Turbo Overview Camera module for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CoreModules
@@ -20,9 +18,11 @@ local OverviewCameraUtils = OverviewUtils.OverviewCameraUtils
 local TurboOverviewCamera = {}
 
 --- Toggles turbo overview camera mode
+--- Enables or disables the turbo overview camera. This camera mode provides a
+--- high-altitude perspective with smooth rotation based on cursor position
+--- and the ability to move toward target points.
 function TurboOverviewCamera.toggle()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -41,54 +41,38 @@ function TurboOverviewCamera.toggle()
     Util.debugEcho("Map dimensions: " .. mapX .. " x " .. mapZ)
     Util.debugEcho("Map diagonal: " .. mapDiagonal)
 
-    -- Initialize turbo overview state with guaranteed values
-    STATE.turboOverview = STATE.turboOverview or {}
-    STATE.turboOverview.zoomLevel = STATE.turboOverview.zoomLevel or 1
-    STATE.turboOverview.zoomLevels = STATE.turboOverview.zoomLevels or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS
-    STATE.turboOverview.movementSmoothing = STATE.turboOverview.movementSmoothing or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_SMOOTHING
-    STATE.turboOverview.initialMovementSmoothing = STATE.turboOverview.initialMovementSmoothing or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.INITIAL_SMOOTHING
-    STATE.turboOverview.zoomTransitionFactor = STATE.turboOverview.zoomTransitionFactor or CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR
+    -- Initialize turbo overview state with config values
+    STATE.turboOverview.zoomLevel = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_ZOOM_LEVEL
+    STATE.turboOverview.zoomTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR
 
-    -- Add configuration for improved cursor tracking
-    STATE.turboOverview.cursorTrackingEnabled = true  -- Always enabled, no toggle needed
-    STATE.turboOverview.rotationAcceleration = 0.005  -- How fast rotation accelerates toward cursor
-    STATE.turboOverview.maxRotationSpeed = 0.015      -- Maximum rotation speed
-    STATE.turboOverview.edgeRotationMultiplier = 2.0  -- Faster rotation at screen edges
+    -- Camera rotation parameters
+    STATE.turboOverview.maxRotationSpeed = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ROTATION_SPEED
+    STATE.turboOverview.edgeRotationMultiplier = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.EDGE_ROTATION_MULTIPLIER
 
-    -- For tracking zoom transitions
-    STATE.turboOverview.targetHeight = nil
-    STATE.turboOverview.inZoomTransition = false
-
-    -- Fixed camera position
-    STATE.turboOverview.fixedCamPos = STATE.turboOverview.fixedCamPos or { x = 0, y = 0, z = 0 }
-    -- Target position when movement button is pressed
-    STATE.turboOverview.targetPos = STATE.turboOverview.targetPos or { x = 0, y = 0, z = 0 }
-    -- Whether we're currently moving to a target
-    STATE.turboOverview.movingToTarget = false
-    -- Keep track of movement start time for smooth acceleration
-    STATE.turboOverview.moveStartTime = nil
-
-    -- Initialize mouse control variables
-    STATE.turboOverview.lastMouseX = nil
-    STATE.turboOverview.lastMouseY = nil
-    STATE.turboOverview.mouseMoveSensitivity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOUSE_MOVE_SENSITIVITY / 10
-    STATE.turboOverview.targetRx = 0
-    STATE.turboOverview.targetRy = 0
-
-    -- Initialize target movement mode variables
-    STATE.turboOverview.isMovingToTarget = false
-    STATE.turboOverview.targetPoint = nil
-    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
-    STATE.turboOverview.movementAngle = 0
-    STATE.turboOverview.angularVelocity = 0
+    -- Movement parameters
     STATE.turboOverview.maxAngularVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ANGULAR_VELOCITY
     STATE.turboOverview.angularDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ANGULAR_DAMPING
     STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
     STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
     STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TRANSITION_FACTOR
-    STATE.turboOverview.inMovementTransition = false
-    STATE.turboOverview.targetMovementAngle = 0
     STATE.turboOverview.modeTransitionTime = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MODE_TRANSITION_TIME
+    STATE.turboOverview.mouseMoveSensitivity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOUSE_MOVE_SENSITIVITY / 10
+
+    -- For tracking zoom transitions
+    STATE.turboOverview.targetHeight = nil
+    STATE.turboOverview.inZoomTransition = false
+
+    -- Initialize camera position
+    STATE.turboOverview.fixedCamPos = { x = 0, y = 0, z = 0 }
+    STATE.turboOverview.targetPoint = nil
+
+    -- Reset movement states
+    STATE.turboOverview.isMovingToTarget = false
+    STATE.turboOverview.movingToTarget = false
+    STATE.turboOverview.inMovementTransition = false
+    STATE.turboOverview.angularVelocity = 0
+    STATE.turboOverview.movementAngle = 0
+    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
 
     -- Set a good default height based on map size
     STATE.turboOverview.height = math.max(mapDiagonal * CONFIG.CAMERA_MODES.TURBO_OVERVIEW.HEIGHT_FACTOR, 500)
@@ -150,10 +134,13 @@ function TurboOverviewCamera.toggle()
     Spring.SetCameraState(camStatePatch, 0.5)
 
     Util.debugEcho("Turbo Overview camera enabled (Zoom: x" ..
-            STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel] .. ")")
+            CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
 end
 
 --- Updates the turbo overview camera's position and orientation
+--- Called every frame when the camera is in turbo overview mode.
+--- Handles smooth transitions, cursor tracking, zoom effects,
+--- and target movement behavior.
 function TurboOverviewCamera.update()
     if STATE.tracking.mode ~= 'turbo_overview' then
         return
@@ -169,7 +156,7 @@ function TurboOverviewCamera.update()
     end
 
     -- Determine smoothing factor based on whether we're in a mode transition
-    local smoothFactor = STATE.turboOverview.movementSmoothing
+    local smoothFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING
     local rotFactor = CONFIG.SMOOTHING.FREE_CAMERA_FACTOR * 0.5
 
     if STATE.tracking.modeTransition then
@@ -314,6 +301,7 @@ function TurboOverviewCamera.update()
 end
 
 --- Toggles between available zoom levels
+--- Cycles through the predefined zoom levels with smooth transitions.
 function TurboOverviewCamera.toggleZoom()
     if STATE.tracking.mode ~= 'turbo_overview' then
         Util.debugEcho("Turbo Overview camera must be enabled first")
@@ -322,14 +310,14 @@ function TurboOverviewCamera.toggleZoom()
 
     -- Cycle to the next zoom level
     STATE.turboOverview.zoomLevel = STATE.turboOverview.zoomLevel + 1
-    if STATE.turboOverview.zoomLevel > #STATE.turboOverview.zoomLevels then
+    if STATE.turboOverview.zoomLevel > #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS then
         STATE.turboOverview.zoomLevel = 1
     end
 
     -- Update target height for smooth transition
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
-    local newZoom = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
+    local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     Util.debugEcho("Turbo Overview camera zoom: x" .. newZoom)
 
     -- Force an update to start the transition
@@ -337,7 +325,8 @@ function TurboOverviewCamera.toggleZoom()
 end
 
 --- Sets a specific zoom level
----@param level number Zoom level index
+--- Directly sets the camera to the specified zoom level with a smooth transition.
+---@param level number Zoom level index (1-based index to zoomLevels array)
 function TurboOverviewCamera.setZoomLevel(level)
     if STATE.tracking.mode ~= 'turbo_overview' then
         Util.debugEcho("Turbo Overview camera must be enabled first")
@@ -345,8 +334,8 @@ function TurboOverviewCamera.setZoomLevel(level)
     end
 
     level = tonumber(level)
-    if not level or level < 1 or level > #STATE.turboOverview.zoomLevels then
-        Util.debugEcho("Invalid zoom level. Available levels: 1-" .. #STATE.turboOverview.zoomLevels)
+    if not level or level < 1 or level > #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS then
+        Util.debugEcho("Invalid zoom level. Available levels: 1-" .. #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS)
         return
     end
 
@@ -356,24 +345,25 @@ function TurboOverviewCamera.setZoomLevel(level)
     -- Update target height for smooth transition
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
-    local newZoom = STATE.turboOverview.zoomLevels[STATE.turboOverview.zoomLevel]
+    local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     Util.debugEcho("Turbo Overview camera zoom set to: x" .. newZoom)
 
     -- Force an update to start the transition
     TurboOverviewCamera.update()
 end
 
---- Adjusts the smoothing factor for cursor following
----@param amount number Amount to adjust smoothing by
-function TurboOverviewCamera.adjustSmoothing(amount)
-    OverviewCameraUtils.adjustSmoothing(amount)
+---@see ModifiableParams
+---@see Util#adjustParams
+function TurboOverviewCamera.adjustParams(params)
+    OverviewCameraUtils.adjustParams(params)
 end
 
 --- Moves the camera toward a target point with steering capability
+--- Enables a mode where the camera moves toward the cursor position,
+--- with the ability to steer using the mouse position.
 ---@return boolean success Whether the camera started moving successfully
 function TurboOverviewCamera.moveToTarget()
-    if STATE.tracking.mode ~= 'turbo_overview' then
-        Util.debugEcho("Turbo Overview camera must be enabled first")
+    if Util.isModeDisabled("turbo_overview") then
         return false
     end
 
@@ -413,7 +403,7 @@ function TurboOverviewCamera.moveToTarget()
 
         -- Calculate the movement angle based on camera position
         STATE.turboOverview.movementAngle = TurboCore.Movement.calculateMovementAngle(
-            STATE.turboOverview.targetPoint, camPos)
+                STATE.turboOverview.targetPoint, camPos)
         STATE.turboOverview.targetMovementAngle = STATE.turboOverview.movementAngle
 
         -- Calculate initial distance

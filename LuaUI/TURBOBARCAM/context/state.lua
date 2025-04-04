@@ -107,40 +107,47 @@ if not WG.TURBOBARCAM.STATE then
             isSpectator = false -- Tracks if we're currently spectating
         },
 
-        -- Turbo overview camera state initialized with defaults
-        -- These will be properly initialized in TurboOverviewCamera.toggle()
+        -- Turbo overview
         turboOverview = {
-            height = nil, -- Will be set dynamically based on map size
+            height = nil, -- Current base height, calculated from map size
+
+            -- Current state values
             zoomLevel = 1, -- Current zoom level index
-            zoomLevels = {1, 2, 4}, -- Available zoom levels (multipliers)
-            movementSmoothing = 0.05, -- Smoothing factor for movement to target
-            initialMovementSmoothing = 0.01, -- Initial (slower) smoothing factor
-            zoomTransitionFactor = 0.04, -- How fast zoom transitions occur
-            targetHeight = nil, -- Target height for smooth zoom transitions
-            inZoomTransition = false, -- Whether currently in a zoom transition
-            fixedCamPos = {x = 0, y = 0, z = 0}, -- Fixed camera position
-            targetPos = {x = 0, y = 0, z = 0}, -- Target position to move to
-            movingToTarget = false, -- Whether currently moving to target
-            moveStartTime = nil, -- When movement to target started
+            fixedCamPos = {x = 0, y = 0, z = 0}, -- Fixed camera position (changes when moving to target)
             targetRx = 0, -- Target pitch rotation
             targetRy = 0, -- Target yaw rotation
-            lastMouseX = nil, -- Last mouse X position for rotation calculation
-            lastMouseY = nil, -- Last mouse Y position for rotation calculation
-            mouseMoveSensitivity = 0.003, -- How sensitive rotation is to mouse movement
 
-            -- Target movement variables
+            -- Movement to target state
             isMovingToTarget = false, -- Whether movement mode is active
+            movingToTarget = false, -- Whether the movement button is pressed
             targetPoint = nil, -- Target point to move toward {x, y, z}
-            distanceToTarget = 500, -- Distance from target point
+            distanceToTarget = 0, -- Current distance from target point
             movementAngle = 0, -- Current movement angle in radians (for steering)
             angularVelocity = 0, -- Current angular velocity (for steering)
-            maxAngularVelocity = 0.05, -- Maximum angular velocity
-            angularDamping = 0.70, -- How fast angular velocity decreases
-            forwardVelocity = 5, -- Constant forward velocity toward target
-            minDistanceToTarget = 150, -- Minimum target distance (stop moving when reached)
-            movementTransitionFactor = 0.05, -- Smooth transition factor for movement
+
+            -- Transition states
             inMovementTransition = false, -- Whether in transition to movement mode
-            targetMovementAngle = 0, -- Target angle for smooth transitions
+            inZoomTransition = false, -- Whether currently in a zoom transition
+            targetHeight = nil, -- Target height for smooth zoom transitions
+
+            -- Mouse tracking
+            lastMouseX = nil, -- Last mouse X position
+            lastMouseY = nil, -- Last mouse Y position
+            screenCenterX = nil, -- Screen center X coordinate
+            screenCenterY = nil, -- Screen center Y coordinate
+
+            -- Derived from CONFIG during initialization
+            zoomLevels = nil, -- Available zoom levels (will be set from CONFIG)
+            movementSmoothing = nil, -- Current smoothing factor
+            zoomTransitionFactor = nil, -- Zoom transition speed
+            maxRotationSpeed = nil, -- Maximum rotation speed from config
+            edgeRotationMultiplier = nil, -- Edge rotation speed multiplier
+            maxAngularVelocity = nil, -- Maximum angular velocity for steering
+            angularDamping = nil, -- How fast angular velocity decreases
+            forwardVelocity = nil, -- Current forward velocity toward target
+            minDistanceToTarget = nil, -- Minimum distance to stop at
+            movementTransitionFactor = nil, -- Transition smoothing factor
+            modeTransitionTime = nil, -- Mode transition duration
         },
 
         -- Delayed actions

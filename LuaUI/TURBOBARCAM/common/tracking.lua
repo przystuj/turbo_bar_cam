@@ -184,8 +184,7 @@ end
 
 --- Clears fixed point tracking
 function TrackingManager.clearFixedLookPoint()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return
     end
 

@@ -37,8 +37,7 @@ FPSCamera.COMMAND_DEFINITION = {
 
 --- Toggles FPS camera attached to a unit
 function FPSCamera.toggle()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -317,8 +316,7 @@ end
 
 --- Toggles free camera mode
 function FPSCamera.toggleFreeCam()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -337,9 +335,8 @@ function FPSCamera.toggleFreeCam()
     end
 end
 
---- Adjusts parameters
----@param params string Config param to modify
 ---@see ModifiableParams
+---@see Util#adjustParams
 function FPSCamera.adjustOffset(params)
     FPSCameraUtils.adjustParams(params)
 end

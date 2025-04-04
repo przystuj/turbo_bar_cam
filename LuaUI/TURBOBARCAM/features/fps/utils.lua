@@ -94,9 +94,8 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     return directionState
 end
 
---- Adjusts parameters
----@param params string Config param to modify
 ---@see ModifiableParams
+---@see Util#adjustParams
 function FPSCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
