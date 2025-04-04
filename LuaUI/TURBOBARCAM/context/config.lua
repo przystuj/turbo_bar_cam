@@ -35,8 +35,8 @@ if not WG.TURBOBARCAM.CONFIG then
 
             -- Orbit camera settings
             ORBIT = {
-                HEIGHT_FACTOR = 4, -- Height is 4x unit height
-                DISTANCE = 300, -- Distance from unit
+                HEIGHT_FACTOR = 8, -- Height is 4x unit height
+                DISTANCE = 800, -- Distance from unit
                 SPEED = 0.01, -- Orbit speed in radians per frame
                 DEFAULT_SPEED = 0.0005,
                 AUTO_ORBIT = {

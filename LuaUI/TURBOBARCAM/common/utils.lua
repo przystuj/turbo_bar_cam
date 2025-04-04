@@ -21,7 +21,7 @@ end
 
 ---@param mode 'fps'|'tracking_camera'|'orbit'|'turbo_overview'
 function Util.isModeDisabled(mode)
-    if not STATE.tracking.mode ~= mode then
+    if not STATE.tracking.mode == mode then
         Util.traceEcho(string.format("Mode %s must be enabled first. Current mode: %s", mode, STATE.tracking.mode))
         return false
     end

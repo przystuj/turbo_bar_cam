@@ -102,6 +102,9 @@ function FPSCameraUtils.adjustOffset(offsetType, amount)
     if Util.isTurboBarCamDisabled() then
         return
     end
+    if Util.isModeDisabled("fps") then
+        return
+    end
 
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
@@ -130,13 +133,6 @@ function FPSCameraUtils.adjustOffset(offsetType, amount)
             rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
         }
     end
-
-    -- Print the updated offsets
-    Util.debugEcho("Camera offsets for unit " .. STATE.tracking.unitID .. ":")
-    Util.debugEcho("  Height: " .. CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT)
-    Util.debugEcho("  Forward: " .. CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD)
-    Util.debugEcho("  Side: " .. CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE)
-    
     return true
 end
 
