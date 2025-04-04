@@ -8,6 +8,7 @@ local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
+local Tracking = TurboCommons.Tracking
 local CameraCommons = TurboCore.CameraCommons
 
 ---@type {OverviewCameraUtils: OverviewCameraUtils}
@@ -28,7 +29,7 @@ function TurboOverviewCamera.toggle()
 
     -- If we're already in turbo overview mode, turn it off
     if STATE.tracking.mode == 'turbo_overview' then
-        Util.disableTracking()
+        Tracking.disableTracking()
         Util.debugEcho("Turbo Overview camera disabled")
         return
     end
@@ -43,7 +44,6 @@ function TurboOverviewCamera.toggle()
 
     -- Initialize turbo overview state with config values
     STATE.turboOverview.zoomLevel = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_ZOOM_LEVEL
-    STATE.turboOverview.zoomTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR
 
     -- Camera rotation parameters
     STATE.turboOverview.maxRotationSpeed = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ROTATION_SPEED
@@ -116,7 +116,7 @@ function TurboOverviewCamera.toggle()
 
     -- Begin mode transition from previous mode to turbo overview mode
     -- This must be called after initializing lastCamPos for smooth transition
-    Util.beginModeTransition('turbo_overview')
+    CameraCommons.beginModeTransition('turbo_overview')
 
     -- Create camera state at current position
     local camStatePatch = {
@@ -185,7 +185,7 @@ function TurboOverviewCamera.update()
     if math.abs(currentHeight - targetHeight) > 1 then
         -- We're in a zoom transition
         STATE.turboOverview.inZoomTransition = true
-        currentHeight = Util.smoothStep(currentHeight, targetHeight, STATE.turboOverview.zoomTransitionFactor)
+        currentHeight = Util.smoothStep(currentHeight, targetHeight, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR)
     else
         STATE.turboOverview.inZoomTransition = false
         currentHeight = targetHeight
@@ -193,7 +193,7 @@ function TurboOverviewCamera.update()
 
     -- Update target movement if in that mode
     if STATE.turboOverview.isMovingToTarget then
-        OverviewCameraUtils.updateTargetMovement(STATE.turboOverview)
+        OverviewCameraUtils.updateTargetMovement()
 
         -- Get camera position with current height
         local camPos = {
@@ -233,15 +233,7 @@ function TurboOverviewCamera.update()
             rz = 0
         }
 
-        -- Update last position for next frame
-        STATE.tracking.lastCamPos.x = camStatePatch.px
-        STATE.tracking.lastCamPos.y = camStatePatch.py
-        STATE.tracking.lastCamPos.z = camStatePatch.pz
-
-        -- Update last rotation for next frame
-        STATE.tracking.lastRotation.rx = camStatePatch.rx
-        STATE.tracking.lastRotation.ry = camStatePatch.ry
-        STATE.tracking.lastRotation.rz = camStatePatch.rz
+        Tracking.updateTrackingState(camStatePatch)
 
         -- Apply camera state
         Spring.SetCameraState(camStatePatch, 0)
@@ -353,7 +345,7 @@ function TurboOverviewCamera.setZoomLevel(level)
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see UtilsModule#adjustParams
 function TurboOverviewCamera.adjustParams(params)
     OverviewCameraUtils.adjustParams(params)
 end
@@ -393,16 +385,13 @@ function TurboOverviewCamera.moveToTarget()
         -- Initialize movement parameters
         local camPos = STATE.turboOverview.fixedCamPos
 
-        -- Calculate initial look angle to target
-        local lookDir = Util.calculateLookAtPoint(camPos, STATE.turboOverview.targetPoint)
-
         -- Set initial target rotation to match current view direction
         -- This ensures smooth transition from current view to target
         STATE.turboOverview.targetRx = currentCamState.rx
         STATE.turboOverview.targetRy = currentCamState.ry
 
         -- Calculate the movement angle based on camera position
-        STATE.turboOverview.movementAngle = TurboCore.Movement.calculateMovementAngle(
+        STATE.turboOverview.movementAngle = OverviewCameraUtils.calculateMovementAngle(
                 STATE.turboOverview.targetPoint, camPos)
         STATE.turboOverview.targetMovementAngle = STATE.turboOverview.movementAngle
 

@@ -1,4 +1,4 @@
----@type {Util: Util}
+---@type {Util: UtilsModule}
 local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 ---@type {TrackingManager: TrackingManager}
 local TrackingModule = VFS.Include("LuaUI/TURBOBARCAM/common/tracking.lua")

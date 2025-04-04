@@ -50,7 +50,7 @@ function OrbitingCamera.toggle(unitID)
             speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
         }
 
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         Util.debugEcho("Orbiting camera detached")
         return
     end
@@ -59,7 +59,7 @@ function OrbitingCamera.toggle(unitID)
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('orbit', unitID) then
         -- Get unit height for the default height offset
-        local unitHeight = Util.getUnitHeight(unitID)
+        local unitHeight = math.max(Util.getUnitHeight(unitID) + 30, 100)
 
         -- Check if we have stored settings for this unit
         if STATE.orbit.unitOffsets[unitID] and STATE.orbit.unitOffsets[unitID].speed then
@@ -106,8 +106,8 @@ function OrbitingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Util.debugEcho("Unit no longer exists, detaching Orbiting camera")
-        Util.disableTracking()
+        Util.debugEcho("Unit no longer exists")
+        TrackingManager.disableTracking()
         return
     end
 
@@ -127,7 +127,6 @@ function OrbitingCamera.update()
 
     -- Create camera state looking at the unit
     local targetPos = { x = unitX, y = unitY, z = unitZ }
-    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
     -- Determine smoothing factor based on whether we're in a mode transition
     local smoothFactor = CONFIG.SMOOTHING.POSITION_FACTOR
@@ -144,46 +143,11 @@ function OrbitingCamera.update()
         end
     end
 
-    -- If this is the first update, initialize last positions
-    if STATE.tracking.lastCamPos.x == 0 and STATE.tracking.lastCamPos.y == 0 and STATE.tracking.lastCamPos.z == 0 then
-        STATE.tracking.lastCamPos = { x = camPos.x, y = camPos.y, z = camPos.z }
-        STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
-        STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
-    end
-
-    -- Prepare camera state patch with smoothed values
-    local camStatePatch = {
-        mode = 0,
-        name = "fps",
-
-        -- Smooth camera position
-        px = Util.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
-        py = Util.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
-        pz = Util.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
-
-        -- Smooth direction
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
-
-        -- Smooth rotation
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
-        rz = 0
-    }
-
-    -- Update last values for next frame
-    STATE.tracking.lastCamPos.x = camStatePatch.px
-    STATE.tracking.lastCamPos.y = camStatePatch.py
-    STATE.tracking.lastCamPos.z = camStatePatch.pz
-    STATE.tracking.lastCamDir.x = camStatePatch.dx
-    STATE.tracking.lastCamDir.y = camStatePatch.dy
-    STATE.tracking.lastCamDir.z = camStatePatch.dz
-    STATE.tracking.lastRotation.rx = camStatePatch.rx
-    STATE.tracking.lastRotation.ry = camStatePatch.ry
+    local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
+    TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Spring.SetCameraState(camStatePatch, 0)
+    Spring.SetCameraState(camState, 0)
 end
 
 --- Updates the auto-orbit camera
@@ -209,49 +173,20 @@ function OrbitingCamera.updateAutoOrbit()
 
     -- Create camera state looking at the unit
     local targetPos = { x = unitX, y = unitY, z = unitZ }
-    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
     -- Determine smoothing factor - use a very smooth transition for auto-orbit
     local smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
     local rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
 
-    -- Prepare camera state patch with smoothed values
-    local camStatePatch = {
-        mode = 0,
-        name = "fps",
-
-        -- Smooth camera position
-        px = Util.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
-        py = Util.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
-        pz = Util.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
-
-        -- Smooth direction
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
-
-        -- Smooth rotation
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
-        rz = 0
-    }
-
-    -- Update last values for next frame
-    STATE.tracking.lastCamPos.x = camStatePatch.px
-    STATE.tracking.lastCamPos.y = camStatePatch.py
-    STATE.tracking.lastCamPos.z = camStatePatch.pz
-    STATE.tracking.lastCamDir.x = camStatePatch.dx
-    STATE.tracking.lastCamDir.y = camStatePatch.dy
-    STATE.tracking.lastCamDir.z = camStatePatch.dz
-    STATE.tracking.lastRotation.rx = camStatePatch.rx
-    STATE.tracking.lastRotation.ry = camStatePatch.ry
+    local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
+    TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Spring.SetCameraState(camStatePatch, 0)
+    Spring.SetCameraState(camState, 0)
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see UtilsModule#adjustParams
 function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
 end

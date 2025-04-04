@@ -8,6 +8,7 @@ local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
+local Tracking = TurboCommons.Tracking
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
@@ -97,9 +98,7 @@ function OrbitCameraUtils.handleAutoOrbit()
             end
 
             -- Store current camera position as last position to smooth from
-            STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
-            STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
-            STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
+            Tracking.updateTrackingState(camState)
         end
     else
         -- Unit and camera are stationary
@@ -117,7 +116,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 stateChanged = true
 
                 -- Initialize orbit settings with default values
-                local unitHeight = Util.getUnitHeight(STATE.tracking.unitID)
+                local unitHeight = math.max(Util.getUnitHeight(unitID) + 30, 100)
                 CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
                 CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
@@ -130,9 +129,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
                 -- Store current camera position as last position to smooth from
-                STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
-                STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
-                STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
+                Tracking.updateTrackingState(camState)
 
                 -- Store original transition factor and use a more delayed transition
                 STATE.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
@@ -150,7 +147,7 @@ function OrbitCameraUtils.handleAutoOrbit()
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see UtilsModule#adjustParams
 function OrbitCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

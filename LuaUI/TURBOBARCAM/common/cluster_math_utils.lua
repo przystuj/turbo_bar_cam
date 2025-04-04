@@ -39,17 +39,6 @@ function ClusterMathUtils.tableCount(t)
     return count
 end
 
---- Converts table with unitID keys to array of unitIDs
----@param unitTable table Table with unitIDs as keys
----@return table unitArray Array of unitIDs
-function ClusterMathUtils.tableToArray(unitTable)
-    local result = {}
-    for unitID in pairs(unitTable) do
-        table.insert(result, unitID)
-    end
-    return result
-end
-
 --- Calculates the weighted center of mass for a group of units
 ---@param unitIDs table Array of unit IDs
 ---@return table centerOfMass Position {x, y, z} of center of mass
@@ -155,20 +144,6 @@ end
 ---@return number magnitude The magnitude of the vector
 function ClusterMathUtils.vectorMagnitude(vector)
     return math.sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
-end
-
---- Determines if a center of mass position has significantly changed
----@param current table Current position {x, y, z}
----@param previous table Previous position {x, y, z}
----@param threshold number Square of the distance threshold
----@return boolean changed Whether position changed significantly
-function ClusterMathUtils.centerChanged(current, previous, threshold)
-    local dx = current.x - previous.x
-    local dy = current.y - previous.y
-    local dz = current.z - previous.z
-    local distSquared = dx*dx + dy*dy + dz*dz
-    
-    return distSquared > threshold
 end
 
 return {

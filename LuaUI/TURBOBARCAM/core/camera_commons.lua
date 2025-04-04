@@ -1,6 +1,3 @@
--- Camera Commons module for TURBOBARCAM
--- This module provides shared functionality used by all camera types
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
@@ -9,34 +6,10 @@ local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
+local Tracking = TurboCommons.Tracking
 
 ---@class CameraCommons
 local CameraCommons = {}
-
---- Determines appropriate smoothing factors based on current state
----@param isTransitioning boolean Whether we're in a mode transition
----@param smoothType string Type of smoothing ('position', 'rotation', 'direction')
----@return number smoothingFactor The smoothing factor to use
-function CameraCommons.getSmoothingFactor(isTransitioning, smoothType)
-    if isTransitioning then
-        return CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-    end
-
-    if smoothType == 'position' then
-        return CONFIG.SMOOTHING.POSITION_FACTOR
-    elseif smoothType == 'rotation' then
-        return CONFIG.SMOOTHING.ROTATION_FACTOR
-    elseif smoothType == 'direction' then
-        return CONFIG.SMOOTHING.TRACKING_FACTOR
-    elseif smoothType == 'free_camera' then
-        return CONFIG.SMOOTHING.FREE_CAMERA_FACTOR
-    elseif smoothType == 'fps' then
-        return CONFIG.SMOOTHING.FPS_FACTOR
-    end
-
-    -- Default
-    return CONFIG.SMOOTHING.POSITION_FACTOR
-end
 
 --- Checks if a transition has completed
 ---@param startTime number Timer when transition started
@@ -55,20 +28,25 @@ end
 ---@param smoothFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
-function CameraCommons.focusOnPoint(camPos, targetPos, lastCamDir, lastRotation, smoothFactor, rotFactor)
+function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
     -- Calculate look direction to the target point
     local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
+        -- Smooth camera position
+        px = Util.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
+        py = Util.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
+        pz = Util.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
+
         -- Smooth direction vector
-        dx = Util.smoothStep(lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = Util.smoothStep(lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = Util.smoothStep(lastCamDir.z, lookDir.dz, smoothFactor),
+        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
+        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
+        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
 
         -- Smooth rotations
-        rx = Util.smoothStep(lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(lastRotation.ry, lookDir.ry, rotFactor),
+        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
+        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
         rz = 0
     }
 
@@ -140,57 +118,23 @@ function CameraCommons.createCameraState(position, direction)
     }
 end
 
---- Handles the transition from one camera mode to another
----@param prevMode string Previous camera mode
----@param newMode string New camera mode to transition to
-function CameraCommons.beginModeTransition(prevMode, newMode)
-    -- Store the previous and current mode
-    STATE.tracking.prevMode = prevMode
+--- Begins a transition between camera modes
+---@param newMode string|nil New camera mode to transition to
+function CameraCommons.beginModeTransition(newMode)
+    -- Save the previous mode
+    STATE.tracking.prevMode = STATE.tracking.mode
     STATE.tracking.mode = newMode
 
     -- Only start a transition if we're switching between different modes
-    if prevMode ~= newMode then
+    if STATE.tracking.prevMode ~= newMode then
         STATE.tracking.modeTransition = true
         STATE.tracking.transitionStartState = Spring.GetCameraState()
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
         -- Store current camera position as last position to smooth from
         local camState = Spring.GetCameraState()
-        STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
-        STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
-        STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
+        Tracking.updateTrackingState(camState)
     end
-end
-
---- Checks if a unit exists and is valid
----@param unitID number Unit ID to check
----@param modeName string Camera mode name (for debug message)
----@return boolean isValid Whether the unit exists and is valid
-function CameraCommons.validateUnit(unitID, modeName)
-    if not Spring.ValidUnitID(unitID) then
-        Util.debugEcho("Unit no longer exists, detaching " .. modeName .. " camera")
-        return false
-    end
-    return true
-end
-
---- Updates tracking state values after applying camera state
----@param camState table Camera state that was applied
-function CameraCommons.updateTrackingState(camState)
-    -- Update last camera position
-    STATE.tracking.lastCamPos.x = camState.px
-    STATE.tracking.lastCamPos.y = camState.py
-    STATE.tracking.lastCamPos.z = camState.pz
-
-    -- Update last camera direction
-    STATE.tracking.lastCamDir.x = camState.dx
-    STATE.tracking.lastCamDir.y = camState.dy
-    STATE.tracking.lastCamDir.z = camState.dz
-
-    -- Update last rotation
-    STATE.tracking.lastRotation.rx = camState.rx
-    STATE.tracking.lastRotation.ry = camState.ry
-    STATE.tracking.lastRotation.rz = camState.rz
 end
 
 --- Ensures camera state is in FPS mode

@@ -21,16 +21,17 @@ if not WG.TURBOBARCAM.CONFIG then
             FPS = {
                 OFFSETS = {
                     HEIGHT = 60, -- Default height, will be updated based on unit height
-                    FORWARD = -100,
+                    FORWARD = -300,
                     SIDE = 0,
                     ROTATION = 0 -- Rotation offset (radians)
                 },
                 DEFAULT_OFFSETS = {
                     HEIGHT = 60,
-                    FORWARD = -100,
+                    FORWARD = -300,
                     SIDE = 0,
                     ROTATION = 0
-                }
+                },
+                MOUSE_SENSITIVITY = 0.003,
             },
 
             -- Orbit camera settings
@@ -57,7 +58,7 @@ if not WG.TURBOBARCAM.CONFIG then
                 FORWARD_VELOCITY = 5, -- Base forward movement speed in map units per frame. Higher values = faster camera movement toward target.
                 MOUSE_MOVE_SENSITIVITY = 0.01, -- Mouse sensitivity for camera rotation. Higher values make camera rotate faster with mouse movement.
                 BUFFER_ZONE = 0.10, -- Area in the middle of the screen (0-1 range) where mouse does not cause camera rotation. Larger values create a larger "dead zone".
-                INVERT_SIDE_MOVEMENT = false, -- When true, camera moves opposite to the mouse side movement direction.
+                INVERT_SIDE_MOVEMENT = true, -- When true, camera moves opposite to the mouse side movement direction.
 
                 -- Rotation Settings
                 MAX_ROTATION_SPEED = 0.015, -- Maximum rotation speed (radians per frame). Higher values = faster max rotation.
@@ -118,9 +119,8 @@ if not WG.TURBOBARCAM.CONFIG then
 
         -- Smoothing factors
         SMOOTHING = {
-            POSITION_FACTOR = 0.05, -- Lower = smoother but more lag (0.0-1.0)
+            POSITION_FACTOR = 0.008, -- Lower = smoother but more lag (0.0-1.0)
             ROTATION_FACTOR = 0.008, -- Lower = smoother but more lag (0.0-1.0)
-            FPS_FACTOR = 0.15, -- Specific for FPS mode
             TRACKING_FACTOR = 0.05, -- Specific for Tracking Camera mode
             MODE_TRANSITION_FACTOR = 0.04, -- For smoothing between camera modes
             FREE_CAMERA_FACTOR = 0.05  -- Smoothing factor for free camera mouse movement
@@ -145,7 +145,7 @@ WidgetConfig.CONFIG = WG.TURBOBARCAM.CONFIG
 
 --- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
----@see Util#adjustParams
+---@see UtilsModule#adjustParams
 WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
         PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.FPS.OFFSETS,
@@ -153,7 +153,8 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             HEIGHT = { 0, nil },
             FORWARD = { nil, nil },
             SIDE = { nil, nil },
-            ROTATION = { nil, nil, "rad" }
+            ROTATION = { nil, nil, "rad" },
+            MOUSE_SENSITIVITY = { 0.0001, 0.01}
         }
     },
     ORBIT = {

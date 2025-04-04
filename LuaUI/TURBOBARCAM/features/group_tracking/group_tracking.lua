@@ -4,16 +4,19 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type CoreModules
+local CoreModules = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type TrackingUtils
 local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua").TrackingUtils
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local TrackingManager = TurboCommons.Tracking
-local ClusterMathUtils = TurboCommons.ClusterMathUtils
-local DBSCAN = TurboCommons.DBSCAN
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.Tracking
+local ClusterMathUtils = CommonModules.ClusterMathUtils
+local DBSCAN = CommonModules.DBSCAN
+local CameraCommons = CoreModules.CameraCommons
 
 ---@class GroupTrackingCamera
 local GroupTrackingCamera = {}
@@ -21,8 +24,7 @@ local GroupTrackingCamera = {}
 --- Toggles group tracking camera mode
 ---@return boolean success Always returns true for widget handler
 function GroupTrackingCamera.toggle()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return true
     end
 
@@ -31,7 +33,7 @@ function GroupTrackingCamera.toggle()
     if #selectedUnits == 0 then
         -- If no units are selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'group_tracking' then
-            Util.disableTracking()
+            TrackingManager.disableTracking()
             Util.debugEcho("Group Tracking Camera disabled")
         else
             Util.debugEcho("No units selected for Group Tracking Camera")
@@ -41,7 +43,7 @@ function GroupTrackingCamera.toggle()
 
     -- If we're already in group tracking mode, turn it off
     if STATE.tracking.mode == 'group_tracking' then
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         Util.debugEcho("Group Tracking Camera disabled")
         return true
     end
@@ -240,7 +242,7 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- Check if we're dealing with aircraft units
-    Util.debugEcho({"units", units})
+    Util.debugEcho({ "units", units })
     local hasAircraft = TrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units
@@ -448,33 +450,17 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.lastCameraDir = { x = dx, z = dz }
 
     -- Calculate look direction to center
-    local lookDir = Util.calculateLookAtPoint(camPos, center)
-
-    -- Create camera state
-    local camState = {
-        mode = 0, -- FPS camera mode
-        name = "fps",
-        px = camPos.x,
-        py = camPos.y,
-        pz = camPos.z,
-        dx = lookDir.dx,
-        dy = lookDir.dy,
-        dz = lookDir.dz,
-        rx = lookDir.rx,
-        ry = lookDir.ry,
-        rz = 0
-    }
+    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.SMOOTHING.TRACKING_FACTOR, CONFIG.SMOOTHING.ROTATION_FACTOR)
 
     -- Initialize tracking state with this position
-    STATE.tracking.lastCamPos = { x = camPos.x, y = camPos.y, z = camPos.z }
-    STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
-    STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
+
+    TrackingManager.updateTrackingState(camState)
 
     -- Store the target height for smooth transition in the update function
     STATE.tracking.group.targetHeight = targetHeight
 
     -- Apply camera state with a slower initial transition
-    Spring.SetCameraState(camState, 0.8) -- Increase transition time for smoother start
+    Spring.SetCameraState(camState, 1)
 end
 
 --- Calculates required camera distance to see all units
@@ -573,7 +559,7 @@ function GroupTrackingCamera.update()
 
     -- Check if we have any units to track
     if #STATE.tracking.group.unitIDs == 0 then
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         return
     end
 
@@ -589,7 +575,7 @@ function GroupTrackingCamera.update()
     STATE.tracking.group.unitIDs = validUnits
 
     if #validUnits == 0 then
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         return
     end
 
@@ -714,29 +700,7 @@ function GroupTrackingCamera.update()
         z = Util.smoothStep(camPos.z, newCamPos.z, posFactor)
     }
 
-    -- Calculate look direction to center
-    local lookDir = Util.calculateLookAtPoint(smoothedPos, center)
-
-    -- Create camera state patch
-    local camStatePatch = {
-        mode = 0,
-        name = "fps",
-
-        -- Position
-        px = smoothedPos.x,
-        py = smoothedPos.y,
-        pz = smoothedPos.z,
-
-        -- Direction vector
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, rotFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, rotFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, rotFactor),
-
-        -- Rotation
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
-        rz = 0
-    }
+    local camStatePatch = CameraCommons.focusOnPoint(camPos, center, posFactor, rotFactor)
 
     -- Update camera state
     STATE.tracking.lastCamPos.x = camStatePatch.px

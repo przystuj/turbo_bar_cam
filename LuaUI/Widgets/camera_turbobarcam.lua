@@ -57,11 +57,6 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:Update()
-
-    --local cam = Spring.GetCameraState()
-    --Util.traceEcho({ px = cam.px,py = cam.py,pz = cam.pz,rx = cam.rx,ry = cam.ry,rz = cam.rz,dx = cam.dx,dy = cam.dy,dz = cam.dz, })
-
-
     UpdateManager.processCycle(AllModules)
 end
 
@@ -78,7 +73,7 @@ function widget:Initialize()
     -- Register all action handlers
     Actions.registerAllActions(AllModules)
 
-    Util.debugEcho("Loaded but disabled. Use /turbobarcam_toggle to enable.")
+    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. STATE.logLevel )
 end
 
 function widget:Shutdown()
@@ -87,6 +82,11 @@ function widget:Shutdown()
         WidgetControl.disable()
     end
     WG.TURBOBARCAM = nil
+    -- refresh units command bar to remove custom command
+    local selectedUnits = Spring.GetSelectedUnits()
+    if #selectedUnits > 0 then
+        Spring.SelectUnitArray(selectedUnits)
+    end
 end
 
 ---@param cmdID number Command ID
@@ -101,7 +101,10 @@ function widget:CommandNotify(cmdID, cmdParams, _)
 end
 
 function widget:CommandsChanged()
-    if not STATE.enabled then
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled("fps") then
         return
     end
 

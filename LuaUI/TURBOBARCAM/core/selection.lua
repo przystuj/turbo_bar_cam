@@ -3,9 +3,12 @@
 -- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CommonModules
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
+local Util = CommonModules.Util
 
 ---@class SelectionManager
 local SelectionManager = {}
@@ -22,13 +25,9 @@ end
 --- Handles selection changes
 ---@param selectedUnits number[] Array of selected unit IDs
 function SelectionManager.handleSelectionChanged(selectedUnits)
-    if not STATE.enabled then
+    if Util.isTurboBarCamDisabled() then
         return
     end
-    
-    -- Access utility functions
-    local Util = WG.TURBOBARCAM.Util
-    if not Util then return end
 
     -- If no units are selected and tracking is active, start grace period
     if #selectedUnits == 0 then
@@ -76,7 +75,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
                 Util.debugEcho("Camera switched to unit " .. unitID .. " with saved offsets")
             else
                 -- Get new default height for this unit
-                local unitHeight = Util.getUnitHeight(unitID)
+                local unitHeight = math.max(Util.getUnitHeight(unitID) * 2, 100)
                 CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
                 CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
                 CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD

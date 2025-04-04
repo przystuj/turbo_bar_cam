@@ -9,15 +9,14 @@ local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
----@type Util
 local Util = TurboCommons.Util
 
----@type {FPSCameraUtils: FPSCameraUtils}
-local FPSUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/utils.lua")
+---@type FreeCam
+local FreeCam = VFS.Include("LuaUI/TURBOBARCAM/features/fps/freecam.lua").FreeCam
+---@type FPSCameraUtils
+local FPSCameraUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/utils.lua").FPSCameraUtils
 local CameraCommons = TurboCore.CameraCommons
-local FreeCam = TurboCore.FreeCam
 local TrackingManager = TurboCommons.Tracking
-local FPSCameraUtils = FPSUtils.FPSCameraUtils
 
 local prevActiveCmd
 
@@ -71,8 +70,15 @@ function FPSCamera.toggle()
         STATE.tracking.fixedPoint = nil
         STATE.tracking.targetUnitID = nil
 
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         Util.debugEcho("FPS camera detached")
+
+        -- refresh units command bar to remove custom command
+        selectedUnits = Spring.GetSelectedUnits()
+        if #selectedUnits > 0 then
+            Spring.SelectUnitArray(selectedUnits)
+        end
+
         return
     end
 
@@ -107,8 +113,8 @@ function FPSCamera.update()
     local camPos = FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
 
     -- Determine smoothing factors
-    local posFactor = CameraCommons.getSmoothingFactor(STATE.tracking.modeTransition, 'position')
-    local rotFactor = CameraCommons.getSmoothingFactor(STATE.tracking.modeTransition, 'rotation')
+    local posFactor = FPSCameraUtils.getSmoothingFactor(STATE.tracking.modeTransition, 'position')
+    local rotFactor = FPSCameraUtils.getSmoothingFactor(STATE.tracking.modeTransition, 'rotation')
 
     -- If this is the first update, initialize last positions
     if STATE.tracking.lastCamPos.x == 0 and STATE.tracking.lastCamPos.y == 0 and STATE.tracking.lastCamPos.z == 0 then
@@ -138,14 +144,12 @@ function FPSCamera.update()
 
     if STATE.tracking.mode == 'fixed_point' then
         -- Update fixed point if tracking a unit
-        TrackingManager.updateFixedPointTarget()
+        FPSCameraUtils.updateFixedPointTarget()
 
         -- Use base camera module to calculate direction to fixed point
         directionState = CameraCommons.focusOnPoint(
                 smoothedPos,
                 STATE.tracking.fixedPoint,
-                STATE.tracking.lastCamDir,
-                STATE.tracking.lastRotation,
                 rotFactor,
                 rotFactor
         )
@@ -154,7 +158,7 @@ function FPSCamera.update()
         directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
     else
         -- Free camera mode - controlled by mouse
-        local rotation = FreeCam.updateMouseRotation(STATE.tracking.freeCam, STATE.tracking.lastRotation, rotFactor)
+        local rotation = FreeCam.updateMouseRotation(rotFactor)
         FreeCam.updateUnitHeadingTracking(STATE.tracking.freeCam, STATE.tracking.unitID)
 
         -- Create camera state for free camera mode
@@ -170,12 +174,12 @@ function FPSCamera.update()
     -- Apply camera state and update tracking for next frame
     local camStatePatch = CameraCommons.createCameraState(smoothedPos, directionState)
     Spring.SetCameraState(camStatePatch, 0)
-    CameraCommons.updateTrackingState(camStatePatch)
+    TrackingManager.updateTrackingState(camStatePatch)
 end
 
 --- Checks if the fixed point command has been activated
 function FPSCamera.checkFixedPointCommandActivation()
-    if not STATE.enabled then
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -306,12 +310,12 @@ function FPSCamera.setFixedLookPoint(cmdParams)
         z = z
     }
 
-    return TrackingManager.setFixedLookPoint(fixedPoint, STATE.tracking.targetUnitID)
+    return FPSCameraUtils.setFixedLookPoint(fixedPoint, STATE.tracking.targetUnitID)
 end
 
 --- Clears fixed point tracking
 function FPSCamera.clearFixedLookPoint()
-    TrackingManager.clearFixedLookPoint()
+    FPSCameraUtils.clearFixedLookPoint()
 end
 
 --- Toggles free camera mode
@@ -331,13 +335,13 @@ function FPSCamera.toggleFreeCam()
 
     -- If we have a fixed point active, we need to explicitly clear it when disabling free cam
     if not STATE.tracking.inFreeCameraMode and STATE.tracking.mode == 'fixed_point' then
-        FPSCamera.clearFixedLookPoint()
+        FPSCameraUtils.clearFixedLookPoint()
     end
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
-function FPSCamera.adjustOffset(params)
+---@see UtilsModule#adjustParams
+function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
 end
 

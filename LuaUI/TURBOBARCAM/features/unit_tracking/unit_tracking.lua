@@ -19,53 +19,52 @@ local TrackingCamera = {}
 --- Toggles tracking camera mode
 ---@return boolean success Always returns true for widget handler
 function TrackingCamera.toggle()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return true
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- Get the selected unit
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
         -- If no unit is selected and tracking is currently on, turn it off
-        if STATE.tracking.mode == 'tracking_camera' then
-            Util.disableTracking()
+        if STATE.tracking.mode == 'unit_tracking' then
+            TrackingManager.disableTracking()
             Util.debugEcho("Tracking Camera disabled")
         else
             Util.debugEcho("No unit selected for Tracking Camera")
         end
-        return true
+        return
     end
 
     local selectedUnitID = selectedUnits[1]
 
     -- If we're already tracking this exact unit in tracking camera mode, turn it off
-    if STATE.tracking.mode == 'tracking_camera' and STATE.tracking.unitID == selectedUnitID then
-        Util.disableTracking()
+    if STATE.tracking.mode == 'unit_tracking' and STATE.tracking.unitID == selectedUnitID then
+        TrackingManager.disableTracking()
         Util.debugEcho("Tracking Camera disabled")
-        return true
+        return
     end
 
 
     -- Initialize the tracking system
-    if TrackingManager.initializeTracking('tracking_camera', selectedUnitID) then
+    if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
         Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
 
     end
 
-    return true
+    return
 end
 
 --- Updates tracking camera to point at the tracked unit
 function TrackingCamera.update()
-    if STATE.tracking.mode ~= 'tracking_camera' or not STATE.tracking.unitID then
+    if STATE.tracking.mode ~= 'unit_tracking' or not STATE.tracking.unitID then
         return
     end
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Util.debugEcho("Tracked unit no longer exists, disabling Tracking Camera")
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         return
     end
 
@@ -78,16 +77,12 @@ function TrackingCamera.update()
         Spring.SetCameraState(currentState, 0)
     end
 
-
     -- Get unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
     local targetPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
-
-    -- Calculate look direction to the unit
-    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
 
     -- Determine smoothing factor based on whether we're in a mode transition
     local dirFactor = CONFIG.SMOOTHING.TRACKING_FACTOR
@@ -104,40 +99,21 @@ function TrackingCamera.update()
         end
     end
 
-
-
     -- Initialize last values if needed
     if STATE.tracking.lastCamDir.x == 0 and STATE.tracking.lastCamDir.y == 0 and STATE.tracking.lastCamDir.z == 0 then
-        STATE.tracking.lastCamDir = { x = lookDir.dx, y = lookDir.dy, z = lookDir.dz }
-        STATE.tracking.lastRotation = { rx = lookDir.rx, ry = lookDir.ry, rz = 0 }
+        local initialLookDir = Util.calculateLookAtPoint(camPos, targetPos)
+        STATE.tracking.lastCamDir = { x = initialLookDir.dx, y = initialLookDir.dy, z = initialLookDir.dz }
+        STATE.tracking.lastRotation = { rx = initialLookDir.rx, ry = initialLookDir.ry, rz = 0 }
     end
 
-
-    -- Create camera state patch - only update direction, not position
-    local camStatePatch = {
-        mode = 0,
-        name = "fps",
-
-        -- Smooth direction vector
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, dirFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, dirFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, dirFactor),
-
-        -- Smooth rotations
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
-        rz = 0
-    }
-
-    -- Update last values
-    STATE.tracking.lastCamDir.x = camStatePatch.dx
-    STATE.tracking.lastCamDir.y = camStatePatch.dy
-    STATE.tracking.lastCamDir.z = camStatePatch.dz
-    STATE.tracking.lastRotation.rx = camStatePatch.rx
-    STATE.tracking.lastRotation.ry = camStatePatch.ry
+    -- Use the focusOnPoint method to get camera direction state
+    local camStatePatch = CameraCommons.focusOnPoint(camPos, targetPos, dirFactor, rotFactor)
+    -- Remove position updates to allow free camera movement
+    camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
+    TrackingManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state - only updating direction and rotation
-    Spring.SetCameraState(camStatePatch, 0)
+    Spring.SetCameraState(camStatePatch, 1)
 end
 
 return {

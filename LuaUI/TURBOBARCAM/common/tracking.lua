@@ -2,21 +2,18 @@
 -- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CameraTransition
-local TransitionModule = VFS.Include("LuaUI/TURBOBARCAM/core/transition.lua")
+---@type {Util: UtilsModule}
 local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
----@type Util
 local Util = UtilsModule.Util
-local CameraTransition = TransitionModule.CameraTransition
 
 ---@class TrackingManager
 local TrackingManager = {}
 
 --- Initializes unit tracking
----@param mode string Tracking mode ('fps', 'tracking_camera', 'fixed_point', 'orbit')
+---@param mode string Tracking mode ('fps', 'unit_tracking', 'fixed_point', 'orbit')
 ---@param unitID number|nil Unit ID to track (optional)
 ---@return boolean success Whether tracking was initialized successfully
 function TrackingManager.initializeTracking(mode, unitID)
@@ -44,22 +41,16 @@ function TrackingManager.initializeTracking(mode, unitID)
     if STATE.tracking.mode == mode and STATE.tracking.unitID == unitID then
         -- Save current settings before disabling
         TrackingManager.saveUnitSettings(mode, unitID)
-        Util.disableTracking()
+        TrackingManager.disableTracking()
         Util.debugEcho(mode .. " camera detached")
         return false
     end
 
     -- Begin mode transition from previous mode
-    CameraTransition.startModeTransition(STATE.tracking.mode, mode)
+    TrackingManager.startModeTransition(mode)
     STATE.tracking.unitID = unitID
-
-    -- Switch to FPS camera mode for consistent behavior
-    local camStatePatch = {
-        name = "fps",
-        mode = 0
-    }
-    Spring.SetCameraState(camStatePatch, 0)
-
+    -- refresh unit command bar to add custom command
+    Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
 end
 
@@ -102,7 +93,7 @@ function TrackingManager.loadUnitSettings(mode, unitID)
             Util.debugEcho("Using previous camera offsets for unit " .. unitID)
         else
             -- Get unit height for the default offset
-            local unitHeight = Util.getUnitHeight(unitID)
+            local unitHeight = math.max(Util.getUnitHeight(unitID) + 30, 100)
             CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
             CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
             CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
@@ -132,97 +123,87 @@ function TrackingManager.loadUnitSettings(mode, unitID)
     end
 end
 
---- Sets a fixed look point for the camera
----@param fixedPoint table Point to look at {x, y, z}
----@param targetUnitID number|nil Optional unit ID to track
----@return boolean success Whether fixed point was set successfully
-function TrackingManager.setFixedLookPoint(fixedPoint, targetUnitID)
-    if Util.isTurboBarCamDisabled() then
-        return
+--- Updates tracking state values after applying camera state
+---@param camState table Camera state that was applied
+function TrackingManager.updateTrackingState(camState)
+    -- Update last camera position
+    STATE.tracking.lastCamPos.x = camState.px
+    STATE.tracking.lastCamPos.y = camState.py
+    STATE.tracking.lastCamPos.z = camState.pz
+
+    -- Update last camera direction
+    STATE.tracking.lastCamDir.x = camState.dx
+    STATE.tracking.lastCamDir.y = camState.dy
+    STATE.tracking.lastCamDir.z = camState.dz
+
+    -- Update last rotation
+    STATE.tracking.lastRotation.rx = camState.rx
+    STATE.tracking.lastRotation.ry = camState.ry
+    STATE.tracking.lastRotation.rz = camState.rz
+end
+
+--- Disables tracking and resets tracking state
+function TrackingManager.disableTracking()
+    -- Restore original transition factor if needed
+    if STATE.orbit and STATE.orbit.originalTransitionFactor then
+        CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.orbit.originalTransitionFactor
+        STATE.orbit.originalTransitionFactor = nil
     end
 
-    -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
-        Util.debugEcho("Fixed point tracking only works when in FPS mode")
-        return false
-    end
+    STATE.tracking.unitID = nil
+    STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
+    STATE.tracking.inFreeCameraMode = false
+    STATE.tracking.graceTimer = nil
+    STATE.tracking.lastUnitID = nil
+    STATE.tracking.fixedPoint = nil
+    STATE.tracking.mode = nil
 
-    if not STATE.tracking.unitID then
-        Util.debugEcho("No unit being tracked for fixed point camera")
-        return false
-    end
-
-    -- Set the fixed point
-    STATE.tracking.fixedPoint = fixedPoint
-    STATE.tracking.targetUnitID = targetUnitID
-
-    -- We're no longer in target selection mode
+    -- Clear target selection state
     STATE.tracking.inTargetSelectionMode = false
-    STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
+    STATE.tracking.prevFreeCamState = false
+    STATE.tracking.prevMode = nil
+    STATE.tracking.prevFixedPoint = nil
 
-    -- Switch to fixed point mode
-    STATE.tracking.mode = 'fixed_point'
-
-    -- Use the previous free camera state for normal operation
-    STATE.tracking.inFreeCameraMode = STATE.tracking.prevFreeCamState or false
-
-    -- If not in free camera mode, enable a transition to the fixed point
-    if not STATE.tracking.inFreeCameraMode then
-        -- Trigger a transition to smoothly move to the new view
-        STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
+    -- Reset orbit-specific states
+    if STATE.orbit then
+        STATE.orbit.autoOrbitActive = false
+        STATE.orbit.stationaryTimer = nil
+        STATE.orbit.lastPosition = nil
     end
 
-    if not STATE.tracking.targetUnitID then
-        Util.debugEcho("Camera will follow unit but look at fixed point")
-    else
-        Util.debugEcho("Camera will follow unit but look at unit " .. STATE.tracking.targetUnitID)
+    -- Clear freeCam state to prevent null pointer exceptions
+    if STATE.tracking.freeCam then
+        STATE.tracking.freeCam.lastMouseX = nil
+        STATE.tracking.freeCam.lastMouseY = nil
+        STATE.tracking.freeCam.targetRx = nil
+        STATE.tracking.freeCam.targetRy = nil
+        STATE.tracking.freeCam.lastUnitHeading = nil
+    end
+end
+
+--- Starts a mode transition
+---@param prevMode string Previous camera mode
+---@param newMode string New camera mode
+---@return boolean success Whether transition started successfully
+function TrackingManager.startModeTransition(newMode)
+    -- Only start a transition if we're switching between different modes
+    if STATE.tracking.mode == newMode then
+        return false
     end
 
+    -- Store modes
+    STATE.tracking.prevMode = STATE.tracking.mode
+    STATE.tracking.mode = newMode
+
+    -- Set up transition state
+    STATE.tracking.modeTransition = true
+    STATE.tracking.transitionStartState = Spring.GetCameraState()
+    STATE.tracking.transitionStartTime = Spring.GetTimer()
+
+    -- Store current camera position as last position to smooth from
+    local camState = Spring.GetCameraState()
+    TrackingManager.updateTrackingState(camState)
     return true
-end
-
---- Clears fixed point tracking
-function TrackingManager.clearFixedLookPoint()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
-    if STATE.tracking.mode == 'fixed_point' and STATE.tracking.unitID then
-        -- Switch back to FPS mode
-        STATE.tracking.mode = 'fps'
-        STATE.tracking.fixedPoint = nil
-        STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
-        STATE.tracking.inTargetSelectionMode = false
-        STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
-
-        -- Start a transition when changing modes
-        STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
-
-        if STATE.tracking.inFreeCameraMode then
-            Util.debugEcho("Fixed point tracking disabled, maintaining free camera mode")
-        else
-            Util.debugEcho("Fixed point tracking disabled, returning to FPS mode")
-        end
-    end
-end
-
---- Updates the fixed point if tracking a unit
----@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
-function TrackingManager.updateFixedPointTarget()
-    if not STATE.tracking.targetUnitID or not Spring.ValidUnitID(STATE.tracking.targetUnitID) then
-        return STATE.tracking.fixedPoint
-    end
-    
-    -- Get the current position of the target unit
-    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.tracking.targetUnitID)
-    STATE.tracking.fixedPoint = {
-        x = targetX,
-        y = targetY,
-        z = targetZ
-    }
-    return STATE.tracking.fixedPoint
 end
 
 return {

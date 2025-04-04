@@ -1,13 +1,10 @@
--- Camera Transition module for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type {Util Util}
-local Utils = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
+---@type UtilsModule
+local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = Utils.Util
 
 ---@class CameraTransition
 local CameraTransition = {}
@@ -176,52 +173,6 @@ function CameraTransition.createPositionTransition(startPos, endPos, duration, t
     end
     
     return steps
-end
-
---- Starts a mode transition
----@param prevMode string Previous camera mode
----@param newMode string New camera mode
----@return boolean success Whether transition started successfully
-function CameraTransition.startModeTransition(prevMode, newMode)
-    -- Only start a transition if we're switching between different modes
-    if prevMode == newMode then
-        return false
-    end
-    
-    -- Store modes
-    STATE.tracking.prevMode = prevMode
-    STATE.tracking.mode = newMode
-    
-    -- Set up transition state
-    STATE.tracking.modeTransition = true
-    STATE.tracking.transitionStartState = Spring.GetCameraState()
-    STATE.tracking.transitionStartTime = Spring.GetTimer()
-    
-    -- Store current camera position as last position to smooth from
-    local camState = Spring.GetCameraState()
-    STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
-    STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
-    STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
-    
-    return true
-end
-
---- Checks if a mode transition is complete
----@return boolean isComplete Whether the transition is complete
-function CameraTransition.isModeTransitionComplete()
-    if not STATE.tracking.modeTransition then
-        return true
-    end
-    
-    local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-    
-    if elapsed > 1.0 then
-        STATE.tracking.modeTransition = false
-        return true
-    end
-    
-    return false
 end
 
 return {

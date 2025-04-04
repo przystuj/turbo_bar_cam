@@ -17,6 +17,7 @@ function Actions.registerAllActions(modules)
     Actions.coreActions(Core, STATE, Common)
     Actions.fpsActions(Features)
     Actions.anchorActions(Features)
+    Actions.trackingCameraActions(Features)
     Actions.specGroupsActions(Features)
     Actions.orbitActions(Features)
     Actions.overviewActions(Features)
@@ -62,16 +63,10 @@ function Actions.fpsActions(Features)
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_fps_rotation_right", 'pR',
-            function()
-                Features.FPSCamera.adjustRotationOffset(0.1)
-                return true
-            end)
-
-    Actions.registerAction("turbobarcam_fps_rotation_left", 'pR',
-            function()
-                Features.FPSCamera.adjustRotationOffset(-0.1)
-                return true
+    Actions.registerAction("turbobarcam_fps_adjust_params", 'pR',
+            function(_, params)
+                Features.FPSCamera.adjustParams(params)
+                return false
             end)
 
     Actions.registerAction("turbobarcam_fps_toggle_free_cam", 'tp',
@@ -84,7 +79,7 @@ function Actions.fpsActions(Features)
     Actions.registerAction("turbobarcam_fps_clear_fixed_look_point", 'tp',
             function()
                 Features.FPSCamera.clearFixedLookPoint()
-                return true
+                return false
             end)
 end
 
@@ -108,10 +103,10 @@ function Actions.anchorActions(Features)
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_anchor_adjust_params", 'p',
+    Actions.registerAction("turbobarcam_anchor_adjust_params", 'pR',
             function(_, params)
                 Features.CameraAnchor.adjustParams(params)
-                return true
+                return false
             end)
 end
 

@@ -5,44 +5,19 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
-local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
+local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
 
 ---@class FreeCam
 local FreeCam = {}
 
---- Initializes free camera state
----@param state table State object to initialize
----@return table state Initialized state
-function FreeCam.initializeState(state)
-    -- Initialize with current camera rotation
-    local camState = Spring.GetCameraState()
-    state = state or {}
-    
-    -- Set initial rotations from current camera
-    state.targetRx = camState.rx
-    state.targetRy = camState.ry
-    
-    -- Initialize mouse tracking
-    state.lastMouseX, state.lastMouseY = Spring.GetMouseState()
-    
-    -- Set default sensitivity if not provided
-    state.mouseMoveSensitivity = state.mouseMoveSensitivity or 0.003
-    
-    -- Initialize edge rotation parameters if not set
-    state.maxRotationSpeed = state.maxRotationSpeed or 0.01
-    state.edgeRotationMultiplier = state.edgeRotationMultiplier or 2.0
-    
-    return state
-end
-
 --- Updates free camera rotation based on mouse movement
----@param state table Free camera state to update
----@param lastRotation table Last rotation values
 ---@param rotFactor number Rotation smoothing factor
 ---@return table updated rotation values {rx, ry}
-function FreeCam.updateMouseRotation(state, lastRotation, rotFactor)
+function FreeCam.updateMouseRotation(rotFactor)
     local mouseX, mouseY = Spring.GetMouseState()
+    local state, lastRotation = STATE.tracking.freeCam, STATE.tracking.lastRotation
     
     -- Skip if no previous position recorded
     if not state.lastMouseX or not state.lastMouseY then
@@ -58,8 +33,8 @@ function FreeCam.updateMouseRotation(state, lastRotation, rotFactor)
     -- Only update if mouse has moved
     if deltaX ~= 0 or deltaY ~= 0 then
         -- Update target rotations based on mouse movement
-        state.targetRy = state.targetRy + deltaX * state.mouseMoveSensitivity
-        state.targetRx = state.targetRx - deltaY * state.mouseMoveSensitivity
+        state.targetRy = state.targetRy + deltaX * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
+        state.targetRx = state.targetRx - deltaY * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
         
         -- Normalize yaw angle
         state.targetRy = Util.normalizeAngle(state.targetRy)

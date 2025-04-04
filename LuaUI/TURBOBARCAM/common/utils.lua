@@ -9,21 +9,21 @@ local STATE = WidgetContext.WidgetState.STATE
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
 --------------------------------------------------------------------------------
----@class Util
+---@class UtilsModule
 local Util = {}
 
 function Util.isTurboBarCamDisabled()
     if not STATE.enabled then
-        Util.debugEcho("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
-        return false
+        Util.traceEcho("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
+        return true
     end
 end
 
----@param mode 'fps'|'tracking_camera'|'orbit'|'turbo_overview'
+---@param mode 'fps'|'unit_tracking'|'orbit'|'turbo_overview'
 function Util.isModeDisabled(mode)
-    if not STATE.tracking.mode == mode then
-        Util.traceEcho(string.format("Mode %s must be enabled first. Current mode: %s", mode, STATE.tracking.mode))
-        return false
+    if STATE.tracking.mode ~= mode then
+        --Util.traceEcho(string.format("Mode %s must be enabled first. Current mode: %s", mode, tostring(STATE.tracking.mode)))
+        return true
     end
 end
 
@@ -99,11 +99,20 @@ local function parseParams(params, moduleName)
     return modifiedParams
 end
 
+---@param command CommandData
 local function adjustParam(command, module)
     local newValue = command.value
     local currentValue = CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param]
     if command.name == "add" then
-        newValue = newValue + currentValue
+        if type == "rad" then
+            -- handle radians
+            newValue = (currentValue + newValue) % (2 * math.pi)
+            if newValue > math.pi then
+                newValue = newValue - 2 * math.pi
+            end
+        else
+            newValue = newValue + currentValue
+        end
     end
     local boundaries = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[command.param]
     local minValue = boundaries[1]
@@ -114,13 +123,6 @@ local function adjustParam(command, module)
     end
     if maxValue then
         newValue = math.min(newValue, maxValue)
-    end
-    if type == "rad" then
-        -- handle radians
-        newValue = (currentValue + newValue) % (2 * math.pi)
-        if newValue > math.pi then
-            newValue = newValue - 2 * math.pi
-        end
     end
     if newValue == currentValue then
         Util.debugEcho("Value has not changed.")
@@ -279,7 +281,7 @@ function Util.getUnitHeight(unitID)
     end
 
     -- Return unit height or default if not available
-    return unitDef.height + 20 or 200
+    return unitDef.height or 200
 end
 
 --- Smoothly interpolates between current and target values
@@ -357,71 +359,6 @@ function Util.calculateLookAtPoint(camPos, targetPos)
     }
 end
 
---- Begins a transition between camera modes
----@param newMode string|nil New camera mode to transition to
-function Util.beginModeTransition(newMode)
-    -- Save the previous mode
-    STATE.tracking.prevMode = STATE.tracking.mode
-    STATE.tracking.mode = newMode
-
-    -- Only start a transition if we're switching between different modes
-    if STATE.tracking.prevMode ~= newMode then
-        STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartState = Spring.GetCameraState()
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
-
-        -- Store current camera position as last position to smooth from
-        local camState = Spring.GetCameraState()
-        STATE.tracking.lastCamPos = { x = camState.px, y = camState.py, z = camState.pz }
-        STATE.tracking.lastCamDir = { x = camState.dx, y = camState.dy, z = camState.dz }
-        STATE.tracking.lastRotation = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
-    end
-end
-
---- Disables tracking and resets tracking state
-function Util.disableTracking()
-    -- Start mode transition if we're disabling from a tracking mode
-    if STATE.tracking.mode then
-        Util.beginModeTransition(nil)
-    end
-
-    -- Restore original transition factor if needed
-    if STATE.orbit and STATE.orbit.originalTransitionFactor then
-        CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.orbit.originalTransitionFactor
-        STATE.orbit.originalTransitionFactor = nil
-    end
-
-    STATE.tracking.unitID = nil
-    STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
-    STATE.tracking.inFreeCameraMode = false
-    STATE.tracking.graceTimer = nil
-    STATE.tracking.lastUnitID = nil
-    STATE.tracking.fixedPoint = nil
-    STATE.tracking.mode = nil
-
-    -- Clear target selection state
-    STATE.tracking.inTargetSelectionMode = false
-    STATE.tracking.prevFreeCamState = false
-    STATE.tracking.prevMode = nil
-    STATE.tracking.prevFixedPoint = nil
-
-    -- Reset orbit-specific states
-    if STATE.orbit then
-        STATE.orbit.autoOrbitActive = false
-        STATE.orbit.stationaryTimer = nil
-        STATE.orbit.lastPosition = nil
-    end
-
-    -- Clear freeCam state to prevent null pointer exceptions
-    if STATE.tracking.freeCam then
-        STATE.tracking.freeCam.lastMouseX = nil
-        STATE.tracking.freeCam.lastMouseY = nil
-        STATE.tracking.freeCam.targetRx = nil
-        STATE.tracking.freeCam.targetRy = nil
-        STATE.tracking.freeCam.lastUnitHeading = nil
-    end
-end
-
 function Util.traceEcho(message)
     if STATE.logLevel == "TRACE" then
         if type(message) ~= "string" then
@@ -432,7 +369,7 @@ function Util.traceEcho(message)
 end
 
 function Util.debugEcho(message)
-    if STATE.logLevel == "DEBUG" then
+    if STATE.logLevel == "TRACE" or STATE.logLevel == "DEBUG" then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end

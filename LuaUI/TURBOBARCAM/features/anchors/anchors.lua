@@ -10,6 +10,7 @@ local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
+local Tracking = TurboCommons.Tracking
 local CameraTransition = TurboCore.Transition
 
 ---@class CameraAnchor
@@ -19,9 +20,8 @@ local CameraAnchor = {}
 ---@param index number Anchor index (0-9)
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.set(index)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return true
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     index = tonumber(index)
@@ -33,15 +33,14 @@ function CameraAnchor.set(index)
         STATE.anchors[index] = currentState
         Util.echo("Saved camera anchor: " .. index)
     end
-    return true
+    return
 end
 
 --- Focuses on a camera anchor with smooth transition
 ---@param index number Anchor index (0-9)
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focus(index)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return true
     end
 
@@ -52,12 +51,7 @@ function CameraAnchor.focus(index)
 
     -- Store the anchor we're moving to
     STATE.lastUsedAnchor = index
-
-    -- Always disable any tracking when moving to an anchor
-    if STATE.tracking.mode then
-        -- Disable tracking without planning to restore it
-        Util.disableTracking()
-    end
+    Tracking.disableTracking()
 
     -- Cancel transition if we click the same anchor we're currently moving to
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
@@ -92,22 +86,11 @@ function CameraAnchor.focus(index)
     return true
 end
 
----@see ModifiableParams
----@see Util#adjustParams
-function CameraAnchor.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
-    Util.adjustParams(params, 'ANCHORS', function() CONFIG.TRANSITION.DURATION = 2 end)
-end
-
 --- Focuses on an anchor while tracking a unit
 ---@param index number Anchor index (0-9)
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focusAndTrack(index)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+    if Util.isTurboBarCamDisabled() then
         return true
     end
 
@@ -123,7 +106,7 @@ function CameraAnchor.focusAndTrack(index)
     -- Get the selected unit to track
     local selectedUnits = Spring.GetSelectedUnits()
 
-    if (STATE.tracking.mode ~= 'tracking_camera' and STATE.tracking.mode ~= 'fps') or not STATE.tracking.unitID then
+    if (STATE.tracking.mode ~= 'unit_tracking' and STATE.tracking.mode ~= 'fps') or not STATE.tracking.unitID then
         Util.debugEcho("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
@@ -143,8 +126,8 @@ function CameraAnchor.focusAndTrack(index)
     end
 
     -- Disable any existing tracking modes to avoid conflicts
-    if STATE.tracking.mode then
-        Util.disableTracking()
+    if not STATE.tracking.mode then
+        Tracking.disableTracking()
     end
 
     -- Create a specialized transition that maintains focus on the unit
@@ -158,7 +141,7 @@ function CameraAnchor.focusAndTrack(index)
     endState.name = "fps"
 
     -- Enable tracking camera on the unit
-    STATE.tracking.mode = 'tracking_camera'
+    STATE.tracking.mode = 'unit_tracking'
     STATE.tracking.unitID = unitID
     STATE.tracking.lastCamDir = { x = 0, y = 0, z = 0 }
     STATE.tracking.lastRotation = { rx = 0, ry = 0, rz = 0 }
@@ -175,6 +158,16 @@ function CameraAnchor.focusAndTrack(index)
 
     Util.debugEcho("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true
+end
+
+---@see ModifiableParams
+---@see UtilsModule#adjustParams
+function CameraAnchor.adjustParams(params)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    Util.adjustParams(params, 'ANCHORS', function() CONFIG.TRANSITION.DURATION = 2 end)
 end
 
 return {

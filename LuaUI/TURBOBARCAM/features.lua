@@ -3,7 +3,7 @@
 ---@type {FPSCamera: FPSCamera}
 local FPSCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/fps/fps.lua")
 ---@type {TrackingCamera: TrackingCamera}
-local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/tracking/tracking.lua")
+local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/unit_tracking/unit_tracking.lua")
 ---@type {OrbitingCamera: OrbitingCamera}
 local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit.lua")
 ---@type {CameraAnchor: CameraAnchor}

@@ -2,7 +2,11 @@
 -- Handles camera system updates and callbacks
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CommonModules
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local STATE = WidgetContext.WidgetState.STATE
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.Tracking
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -25,12 +29,9 @@ function UpdateManager.handleTrackingGracePeriod()
 
         -- If grace period expired (1 second), disable tracking
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
-            local Util = WG.TURBOBARCAM.Util
-            if Util then
-                Util.disableTracking()
-                Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
-                return true
-            end
+            TrackingManager.disableTracking()
+            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
+            return true
         end
     end
 
@@ -50,21 +51,6 @@ function UpdateManager.handleModeTransitions()
             STATE.tracking.modeTransition = false
         end
     end
-end
-
---- Handles delayed callbacks
----@return boolean executed Whether a callback was executed
-function UpdateManager.handleDelayedCallbacks()
-    if STATE.delayed.frame and Spring.GetGameFrame() >= STATE.delayed.frame then
-        if STATE.delayed.callback then
-            STATE.delayed.callback()
-            STATE.delayed.frame = nil
-            STATE.delayed.callback = nil
-            return true
-        end
-    end
-
-    return false
 end
 
 --- Updates the camera based on current mode
@@ -94,7 +80,7 @@ function UpdateManager.updateCameraMode(modules)
                 -- Normal FPS update
                 Features.FPSCamera.update()
             end
-        elseif STATE.tracking.mode == 'tracking_camera' then
+        elseif STATE.tracking.mode == 'unit_tracking' then
             Features.TrackingCamera.update()
         elseif STATE.tracking.mode == 'orbit' then
             Features.OrbitingCamera.update()
@@ -115,7 +101,7 @@ end
 --- Processes the main update cycle
 ---@param modules AllModules
 function UpdateManager.processCycle(modules)
-    if not STATE.enabled then
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
@@ -137,9 +123,6 @@ function UpdateManager.processCycle(modules)
 
     -- Handle camera updates
     UpdateManager.updateCameraMode(modules)
-
-    -- Handle delayed callbacks
-    UpdateManager.handleDelayedCallbacks()
 end
 
 return {
