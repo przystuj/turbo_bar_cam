@@ -4,11 +4,11 @@
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CameraTransition
 local TransitionModule = VFS.Include("LuaUI/TURBOBARCAM/core/transition.lua")
----@type Util
 local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
+---@type Util
 local Util = UtilsModule.Util
 local CameraTransition = TransitionModule.CameraTransition
 

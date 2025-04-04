@@ -1,3 +1,10 @@
+---@type Spring
+Spring = Spring
+---@type Widget
+widget = widget
+---@type WeaponDefs
+WeaponDefs = WeaponDefs
+
 function widget:GetInfo()
     return {
         name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
@@ -50,6 +57,11 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:Update()
+
+    --local cam = Spring.GetCameraState()
+    --Util.traceEcho({ px = cam.px,py = cam.py,pz = cam.pz,rx = cam.rx,ry = cam.ry,rz = cam.rz,dx = cam.dx,dy = cam.dy,dz = cam.dz, })
+
+
     UpdateManager.processCycle(AllModules)
 end
 

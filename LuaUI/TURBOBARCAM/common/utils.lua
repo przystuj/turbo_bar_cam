@@ -251,22 +251,22 @@ end
 ---@return number unit height
 function Util.getUnitHeight(unitID)
     if not Spring.ValidUnitID(unitID) then
-        return 100
+        return 200
     end
 
     -- Get unit definition ID and access height from UnitDefs
     local unitDefID = Spring.GetUnitDefID(unitID)
     if not unitDefID then
-        return 100
+        return 200
     end
 
     local unitDef = UnitDefs[unitDefID]
     if not unitDef then
-        return 100
+        return 200
     end
 
     -- Return unit height or default if not available
-    return unitDef.height + 20 or 100
+    return unitDef.height + 20 or 200
 end
 
 --- Smoothly interpolates between current and target values

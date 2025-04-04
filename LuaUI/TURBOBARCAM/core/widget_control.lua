@@ -15,6 +15,17 @@ local function switchToFpsCamera()
     -- Get current camera state
     local springState = Spring.GetCameraState()
 
+    local selectedUnits = Spring.GetSelectedUnits()
+
+    local x, height, z
+    local useUnitPos = false
+
+    if #selectedUnits > 0 then
+        x, _, z = Spring.GetUnitPosition(selectedUnits[1])
+        height = Util.getUnitHeight(selectedUnits[1])
+        useUnitPos = true
+    end
+
     -- Check if we're actually switching from Spring camera mode
     if springState.mode ~= 2 then
         -- Not coming from spring camera, just switch to FPS mode
@@ -26,37 +37,55 @@ local function switchToFpsCamera()
         return
     end
 
-    Spring.SetCameraState({rx = math.pi}, 0.1)
+    Spring.SetCameraState({ rx = math.pi }, 0.1) -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
+
 
     -- Create a new state for FPS camera
     local fpsState = {}
+    if useUnitPos then
+        -- Get map dimensions
+        local mapSizeX, mapSizeZ = Game.mapSizeX, Game.mapSizeZ
 
-    Util.traceEcho("Mapping spring height to fps height")
+        -- Calculate potential position
+        local potentialPz = z + height * 16
 
-    -- Adjust the position directly in the state
-    fpsState.py = springState.py + springState.dist * 0.986 -- this is magic number which makes fps camera height perfectly match the spring height
-    fpsState.pz = springState.pz + (springState.dist * 0.0014)
+        -- Check if potential position exceeds map boundaries
+        if potentialPz >= mapSizeZ * 0.95 then -- Using 95% as a safety margin
+            fpsState.px = x
+            fpsState.py = height * 20
+            fpsState.pz = z - height * 16 -- Subtract instead of add
+            fpsState.rx = 2.4
+            fpsState.ry = springState.ry + math.pi -- Add 180 degrees
+            Util.traceEcho("Boundary detected, rotating camera. Height: " .. height)
+        else
+            fpsState.px = x
+            fpsState.py = height * 20
+            fpsState.pz = z + height * 16
+            fpsState.rx = 2.4
+            Util.traceEcho("Normal positioning. Height: " .. height)
+        end
+    else
+        fpsState.py = springState.py + springState.dist * 0.986 -- this is magic number which makes fps camera height perfectly match the spring height
+        fpsState.pz = springState.pz + (springState.dist * 0.0014)
+    end
 
     -- Set FPS mode properties
     fpsState.mode = 0
     fpsState.name = "fps"
     fpsState.fov = 45
 
-    Util.traceEcho(STATE.originalCameraState)
     Spring.SetCameraState(fpsState, 1)
-    Util.traceEcho(Spring.GetCameraState())
 end
 
 --- Enables the widget
 function WidgetControl.enable()
     if STATE.enabled then
-        Util.debugEcho("Already enabled")
+        Util.traceEcho("Already enabled")
         return
     end
 
     -- Save current camera state before enabling
     STATE.originalCameraState = Spring.GetCameraState()
-    Util.traceEcho("Original camera mode=" .. STATE.originalCameraState.mode)
 
     -- Set required configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
