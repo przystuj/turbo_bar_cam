@@ -63,7 +63,7 @@ function OrbitingCamera.toggle(unitID)
         local unitHeight = Util.getUnitHeight(unitID)
 
         -- Check if we have stored settings for this unit
-        if STATE.orbit.unitOffsets[unitID] then
+        if STATE.orbit.unitOffsets[unitID] and STATE.orbit.unitOffsets[unitID].speed then
             -- Use stored settings
             CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
             Util.debugEcho("Using previous orbit speed for unit " .. unitID)

@@ -15,6 +15,7 @@ if not WG.TURBOBARCAM.STATE then
         enabled = false,
         originalCameraState = nil,
         DEBUG = true,
+        TRACE = true,
 
         -- Camera anchors
         anchors = {},

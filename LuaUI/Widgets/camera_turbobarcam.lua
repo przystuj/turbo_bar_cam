@@ -5,7 +5,7 @@ function widget:GetInfo()
         author = "SuperKitowiec",
         date = "Mar 2025",
         license = "GNU GPL, v2 or later",
-        layer = 0,
+        layer = 1,
         enabled = true,
         version = 1,
         handler = true,
@@ -95,9 +95,7 @@ function widget:CommandsChanged()
 
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then
-        Util.debugEcho("adding command")
         local customCommands = widgetHandler.customCommands
-        Util.debugEcho(customCommands)
         customCommands[#customCommands + 1] = FPSCamera.COMMAND_DEFINITION
     end
 end

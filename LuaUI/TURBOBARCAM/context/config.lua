@@ -121,7 +121,7 @@ if not WG.TURBOBARCAM.CONFIG then
 
         -- Command IDs
         COMMANDS = {
-            SET_FIXED_LOOK_POINT = 455625,
+            SET_FIXED_LOOK_POINT = 455626,
         },
 
         -- Spectator settings

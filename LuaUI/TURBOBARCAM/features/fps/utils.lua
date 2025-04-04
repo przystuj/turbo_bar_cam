@@ -147,6 +147,9 @@ function FPSCameraUtils.adjustRotationOffset(amount)
     if Util.isTurboBarCamDisabled() then
         return
     end
+    if Util.isModeDisabled("fps") then
+        return
+    end
 
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then

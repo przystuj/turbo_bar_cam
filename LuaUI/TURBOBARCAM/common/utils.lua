@@ -22,7 +22,7 @@ end
 ---@param mode 'fps'|'tracking_camera'|'orbit'|'turbo_overview'
 function Util.isModeDisabled(mode)
     if not STATE.tracking.mode ~= mode then
-        Util.debugEcho(string.format("Mode <%s> must be enabled first", mode))
+        Util.traceEcho(string.format("Mode %s must be enabled first. Current mode: %s", mode, STATE.tracking.mode))
         return false
     end
 end
@@ -55,7 +55,7 @@ local function parseParams(params, moduleName)
         Util.error("No command specified")
     end
 
-    local validParams = CONFIG.MODIFIABLE_PARAMS[moduleName]
+    local validParams = CONFIG.MODIFIABLE_PARAMS[moduleName].PARAM_NAMES
     local modifiedParams = {}
 
     -- Handle reset command
@@ -409,12 +409,21 @@ function Util.disableTracking()
     end
 end
 
+function Util.traceEcho(message)
+    if STATE.TRACE then
+        if type(message) ~= "string" then
+            message = Util.dump(message)
+        end
+        Util.echo("[TRACE] " .. message)
+    end
+end
+
 function Util.debugEcho(message)
     if STATE.DEBUG then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end
-        Spring.Echo("[TURBOBARCAM] " .. message)
+        Util.echo("[DEBUG] " .. message)
     end
 end
 
