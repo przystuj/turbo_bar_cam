@@ -225,9 +225,8 @@ end
 ---@param amount number Amount to adjust smoothing by
 ---@return boolean success Whether smoothing was adjusted
 function OverviewCameraUtils.adjustSmoothing(amount)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     if STATE.tracking.mode ~= 'turbo_overview' then

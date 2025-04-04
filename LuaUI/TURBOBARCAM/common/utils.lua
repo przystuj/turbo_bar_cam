@@ -12,6 +12,139 @@ local STATE = WidgetContext.WidgetState.STATE
 ---@class Util
 local Util = {}
 
+function Util.isTurboBarCamDisabled()
+    if not STATE.enabled then
+        Util.debugEcho("Turbo Bar Cam must be enabled first")
+        return false
+    end
+end
+
+---@param mode 'fps'|'tracking_camera'|'orbit'|'turbo_overview'
+function Util.isModeDisabled(mode)
+    if not STATE.tracking.mode ~= mode then
+        Util.debugEcho(string.format("Mode <%s> must be enabled first", mode))
+        return false
+    end
+end
+
+---@param message string error message
+function Util.error(message)
+    error("[TURBOBARCAM] Error: " .. message)
+end
+
+local function parseParams(params, moduleName)
+    -- Check if the moduleName string is empty or nil
+    if not moduleName or moduleName == "" or not CONFIG.MODIFIABLE_PARAMS[moduleName] then
+        Util.error("Invalid moduleName " .. moduleName)
+    end
+
+    -- Check if the params string is empty or nil
+    if not params or params == "" then
+        Util.error("Empty parameters string")
+    end
+
+    -- Split the params string by semicolons
+    local parts = {}
+    for part in string.gmatch(params, "[^;]+") do
+        table.insert(parts, part)
+    end
+
+    -- Get the command type (first part)
+    local command = parts[1]
+    if not command then
+        Util.error("No command specified")
+    end
+
+    local validParams = CONFIG.MODIFIABLE_PARAMS[moduleName]
+    local modifiedParams = {}
+
+    -- Handle reset command
+    if command == "reset" then
+        table.insert(modifiedParams, {["reset"] = 1}) -- the value doesn't matter here
+        return modifiedParams
+    end
+
+    -- Check if command is valid
+    if command ~= "set" and command ~= "add" then
+        Util.error("Invalid command '" .. command .. "', must be 'set', 'add', or 'reset'")
+    end
+
+    for i = 2, #parts do
+        local paramPair = parts[i]
+
+        -- Split by comma to get parameter name and value
+        local paramName, valueStr = string.match(paramPair, "([^,]+),([^,]*)")
+
+        -- Check if parameter name and value are valid
+        if not paramName then
+            Util.error("Invalid parameter format at '" .. paramPair .. "'")
+        end
+
+        -- Check if parameter name is recognized
+        if not validParams[paramName] then
+            Util.error("Unknown parameter '" .. paramName .. "'")
+        end
+
+        -- Convert value to number
+        local value = tonumber(valueStr)
+        if not value then
+            Util.error("Invalid numeric value for parameter '" .. paramName .. "'")
+        end
+
+        ---@class CommandData
+        local commandData = {name = command, param = paramName, value = value}
+        table.insert(modifiedParams, commandData)
+    end
+
+    return modifiedParams
+end
+
+local function adjustParam(command, module)
+    local newValue = command.value
+    local currentValue = CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param]
+    if command.name == "add" then
+        newValue = newValue + currentValue
+    end
+    local boundaries = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[command.param]
+    local minValue = boundaries[1]
+    local maxValue = boundaries[2]
+    if minValue then
+        newValue = math.max(newValue, minValue)
+    end
+    if maxValue then
+        newValue = math.min(newValue, maxValue)
+    end
+    if newValue == currentValue then
+        Util.debugEcho("Value has not changed.")
+        return
+    end
+    CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param] = newValue
+    Util.debugEcho(string.format("%s.%s = %s", module, command.param, newValue))
+end
+
+---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
+---@param module string module name as in ModifiableParams class (FPS, ORBIT, TRANSITION)
+---@param resetFunction function function which will be called when 'reset' is used
+---to decrease value use 'add' with negative value
+---if you use 'reset', the params will be ignored. All params will be rest to default values
+---example params: add;HEIGHT,100;DISTANCE,-50
+function Util.adjustParams(params, module, resetFunction)
+    local adjustments = parseParams(params, module)
+
+    ---@param adjustment CommandData
+    for _, adjustment in ipairs(adjustments) do
+        if adjustment.name == "reset" then
+            if resetFunction then
+                resetFunction()
+            else
+                Util.error("Rest function missing for module " .. module)
+            end
+        else
+            adjustParam(adjustment, module)
+        end
+    end
+end
+
 --- Converts a value to a string representation for debugging
 ---@param o any Value to dump
 ---@return string representation
@@ -118,22 +251,22 @@ end
 ---@return number unit height
 function Util.getUnitHeight(unitID)
     if not Spring.ValidUnitID(unitID) then
-        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+        return 100
     end
 
     -- Get unit definition ID and access height from UnitDefs
     local unitDefID = Spring.GetUnitDefID(unitID)
     if not unitDefID then
-        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+        return 100
     end
 
     local unitDef = UnitDefs[unitDefID]
     if not unitDef then
-        return CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+        return 100
     end
 
     -- Return unit height or default if not available
-    return unitDef.height + 20 or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+    return unitDef.height + 20 or 100
 end
 
 --- Smoothly interpolates between current and target values

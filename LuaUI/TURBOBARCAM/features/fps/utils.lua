@@ -99,9 +99,8 @@ end
 ---@param amount number Amount to adjust the offset by
 ---@return boolean success Whether offset was adjusted successfully
 function FPSCameraUtils.adjustOffset(offsetType, amount)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- Make sure we have a unit to track
@@ -145,9 +144,8 @@ end
 ---@param amount number Rotation adjustment in radians
 ---@return boolean success Whether rotation was adjusted successfully
 function FPSCameraUtils.adjustRotationOffset(amount)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- Make sure we have a unit to track
@@ -181,9 +179,8 @@ end
 --- Resets camera offsets to default values
 ---@return boolean success Whether offsets were reset successfully
 function FPSCameraUtils.resetOffsets()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- If we have a tracked unit, get its height for the default height offset

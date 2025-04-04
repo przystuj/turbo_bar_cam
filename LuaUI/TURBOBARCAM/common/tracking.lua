@@ -20,9 +20,8 @@ local TrackingManager = {}
 ---@param unitID number|nil Unit ID to track (optional)
 ---@return boolean success Whether tracking was initialized successfully
 function TrackingManager.initializeTracking(mode, unitID)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- If no unit provided, use first selected unit
@@ -138,9 +137,8 @@ end
 ---@param targetUnitID number|nil Optional unit ID to track
 ---@return boolean success Whether fixed point was set successfully
 function TrackingManager.setFixedLookPoint(fixedPoint, targetUnitID)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- Only works if we're tracking a unit in FPS mode

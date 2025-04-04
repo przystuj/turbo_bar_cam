@@ -164,9 +164,8 @@ end
 ---@param modeType string Camera mode type
 ---@return boolean success Whether mode was toggled successfully
 function FreeCam.toggle(state, modeType)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
     
     -- Toggle free camera mode

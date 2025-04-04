@@ -85,7 +85,7 @@ function UpdateManager.updateCameraMode(modules)
         -- Normal camera updates based on current mode
         if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
             -- Check for auto-orbit
-            Features.OrbitingCamera.checkUnitMovement()
+            Features.OrbitingCamera.handleAutoOrbit()
 
             if STATE.orbit.autoOrbitActive then
                 -- Handle auto-orbit camera update

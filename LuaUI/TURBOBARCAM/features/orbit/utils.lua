@@ -27,8 +27,8 @@ function OrbitCameraUtils.calculateOrbitPosition(unitPos, angle, height, distanc
 end
 
 --- Checks for unit movement and handles auto-orbit functionality
----@return boolean stateChanged Whether the tracking state changed
-function OrbitCameraUtils.checkUnitMovement()
+---@return boolean stateChanged Whether the auto orbit state has changed
+function OrbitCameraUtils.handleAutoOrbit()
     -- Only check if we're in FPS mode with a valid unit and auto-orbit is enabled
     if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID or not CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.ENABLED then
         return false
@@ -149,29 +149,22 @@ function OrbitCameraUtils.checkUnitMovement()
     return stateChanged
 end
 
---- Adjusts the orbit height
----@param param string Config param to modify
----@param amount number Amount to adjust by
----@return boolean success Whether param was adjusted successfully
-function OrbitCameraUtils.adjustParam(param, amount)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+--- Adjusts the orbit parameters
+---@param params string Config param to modify
+function OrbitCameraUtils.adjustParams(params)
+    if Util.isTurboBarCamDisabled() then
+        return
     end
-
+    if Util.isModeDisabled("orbit") then
+        return
+    end
     -- Make sure we have a unit to orbit around
-    if STATE.tracking.mode ~= 'orbit' or not STATE.tracking.unitID then
-        Util.debugEcho("No unit being orbited")
-        return false
+    if not STATE.tracking.unitID then
+        Util.debugEcho("No unit is being orbited")
+        return
     end
 
-    local minMaxValues = {
-        HEIGHT = {100, 3000},
-        DISTANCE = {100, 3000},
-        SPEED = {-0.005, 0.005},
-    }
-
-    CONFIG.CAMERA_MODES.ORBIT[param] = math.max(minMaxValues[param][1], math.min(minMaxValues[param][2], CONFIG.CAMERA_MODES.ORBIT[param] + amount))
+    Util.adjustParams(params, "ORBIT", function() OrbitCameraUtils.resetSettings() end)
 
     -- Update stored settings for the current unit
     if STATE.tracking.unitID then
@@ -181,22 +174,20 @@ function OrbitCameraUtils.adjustParam(param, amount)
 
         STATE.orbit.unitOffsets[STATE.tracking.unitID] = CONFIG.CAMERA_MODES.ORBIT
     end
-
-    -- Print the updated settings
-    Util.debugEcho("Orbit config for unit " .. STATE.tracking.unitID .. ": " .. param .. " = " .. CONFIG.CAMERA_MODES.ORBIT[param])
-    return true
 end
 
 --- Resets orbit settings to defaults
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.resetSettings()
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled("orbit") then
+        return
     end
 
     -- If we have a tracked unit, reset its orbit speed
-    if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
+    if STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
         CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
         -- Update stored settings for this unit

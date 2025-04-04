@@ -254,9 +254,8 @@ end
 ---@param cmdParams table|nil Command parameters
 ---@return boolean success Whether fixed point was set successfully
 function FPSCamera.setFixedLookPoint(cmdParams)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
-        return false
+    if Util.isTurboBarCamDisabled() then
+        return
     end
 
     -- Only works if we're tracking a unit in FPS mode

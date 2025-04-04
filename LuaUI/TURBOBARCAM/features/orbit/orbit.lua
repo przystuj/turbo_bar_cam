@@ -251,33 +251,14 @@ function OrbitingCamera.updateAutoOrbit()
     Spring.SetCameraState(camStatePatch, 0)
 end
 
---- Adjusts the orbit speed
----@param amount number Amount to adjust orbit speed by
-function OrbitingCamera.adjustSpeed(amount)
-    OrbitCameraUtils.adjustParam("SPEED", amount)
-end
-
---- Adjusts the orbit speed
----@param amount number Amount to adjust orbit speed by
-function OrbitingCamera.adjustHeight(amount)
-    OrbitCameraUtils.adjustParam("HEIGHT", amount)
-end
-
---- Adjusts the orbit distance
----@param amount number Amount to adjust orbit distance by
-function OrbitingCamera.adjustDistance(amount)
-    OrbitCameraUtils.adjustParam("DISTANCE", amount)
-end
-
---- Resets orbit settings to defaults
-function OrbitingCamera.resetSettings()
-    OrbitCameraUtils.resetSettings()
+--- Adjusts the orbit params (SPEED, HEIGHT, DISTANCE)
+function OrbitingCamera.adjustParams(params)
+    OrbitCameraUtils.adjustParams(params)
 end
 
 --- Checks for unit movement and handles auto-orbit functionality
-function OrbitingCamera.checkUnitMovement()
-    -- Delegate to utils function
-    if OrbitCameraUtils.checkUnitMovement() then
+function OrbitingCamera.handleAutoOrbit()
+    if OrbitCameraUtils.handleAutoOrbit() then
         -- State was changed, may need to update UI or other state
     end
 end

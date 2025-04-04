@@ -14,6 +14,7 @@ local WidgetConfig = {}
 if not WG.TURBOBARCAM.CONFIG then
     ---@class WidgetConfig
     WG.TURBOBARCAM.CONFIG = {
+
         -- Camera mode settings
         CAMERA_MODES = {
             -- FPS camera settings
@@ -51,7 +52,7 @@ if not WG.TURBOBARCAM.CONFIG then
                 DEFAULT_SMOOTHING = 0.05, -- Default smoothing factor
                 INITIAL_SMOOTHING = 0.01, -- Initial (slower) smoothing factor for acceleration
                 DEFAULT_ZOOM_LEVEL = 1, -- Default zoom level index
-                ZOOM_LEVELS = {1, 2, 4}, -- Available zoom levels (multipliers)
+                ZOOM_LEVELS = { 1, 2, 4 }, -- Available zoom levels (multipliers)
                 ZOOM_TRANSITION_FACTOR = 0.04, -- How fast zoom transitions occur
                 MOUSE_MOVE_SENSITIVITY = 0.01, -- Mouse sensitivity for free camera mode
                 MODE_TRANSITION_TIME = 0.5, -- Duration of mode transition in seconds
@@ -72,9 +73,9 @@ if not WG.TURBOBARCAM.CONFIG then
             -- Group tracking camera settings
             GROUP_TRACKING = {
                 -- Distance settings
-                DEFAULT_DISTANCE = 600,  -- Default camera distance from center of mass
-                MIN_DISTANCE = 400,      -- Minimum camera distance
-                MAX_DISTANCE = 900,      -- Maximum camera distance
+                DEFAULT_DISTANCE = 600, -- Default camera distance from center of mass
+                MIN_DISTANCE = 400, -- Minimum camera distance
+                MAX_DISTANCE = 900, -- Maximum camera distance
 
                 -- Height settings
                 DEFAULT_HEIGHT_FACTOR = 1.3, -- Default height as a factor of distance
@@ -105,7 +106,6 @@ if not WG.TURBOBARCAM.CONFIG then
         -- Transition settings
         TRANSITION = {
             DURATION = 2.0, -- Default transition duration (seconds)
-            MIN_DURATION = 0.0, -- Minimum transition duration
             STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
         },
 
@@ -133,7 +133,36 @@ if not WG.TURBOBARCAM.CONFIG then
 end
 
 -- Link CONFIG to the module
+---@type WidgetConfig
 WidgetConfig.CONFIG = WG.TURBOBARCAM.CONFIG
+
+--- Parameters which can be modified by actions. paramName = {minValue, maxValue}
+---@class ModifiableParams
+WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
+    FPS = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.FPS.OFFSETS,
+        PARAM_NAMES = {
+            HEIGHT = {0, nil},
+            FORWARD = {nil, nil},
+            SIDE = {nil, nil},
+            ROTATION = {nil, nil}
+        }
+    },
+    ORBIT = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.ORBIT,
+        PARAM_NAMES = {
+            HEIGHT = { 100, nil },
+            DISTANCE = { 100, nil },
+            SPEED = { -0.005, 0.005 },
+        }
+    },
+    TRANSITION = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.TRANSITION,
+        PARAM_NAMES = {
+            DURATION = { 0, nil },
+        }
+    }
+}
 
 -- Export the module (both CONFIG and STATE are shared via WG)
 return WidgetConfig

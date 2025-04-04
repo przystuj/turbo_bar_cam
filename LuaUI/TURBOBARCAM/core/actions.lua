@@ -29,8 +29,6 @@ function Actions.registerAllActions(modules)
                 Core.WidgetControl.toggle()
                 return true
             end)
-
-    -- Debug toggle
     registerAction("turbobarcam_debug", 'tp',
             function()
                 STATE.DEBUG = not STATE.DEBUG
@@ -157,46 +155,10 @@ function Actions.registerAllActions(modules)
                 return true
             end)
 
-    registerAction("turbobarcam_orbit_speed_up", 'pR',
-            function()
-                Features.OrbitingCamera.adjustSpeed(0.0001)
+    registerAction("turbobarcam_orbit_adjust_params", 'pR',
+            function(_, params)
+                Features.OrbitingCamera.adjustParams(params)
                 return false
-            end)
-
-    registerAction("turbobarcam_orbit_speed_down", 'pR',
-            function()
-                Features.OrbitingCamera.adjustSpeed(-0.0001)
-                return false
-            end)
-
-    registerAction("turbobarcam_orbit_height_up", 'pR',
-            function()
-                Features.OrbitingCamera.adjustHeight(10)
-                return false
-            end)
-
-    registerAction("turbobarcam_orbit_height_down", 'pR',
-            function()
-                Features.OrbitingCamera.adjustHeight(-10)
-                return false
-            end)
-
-    registerAction("turbobarcam_orbit_distance_up", 'pR',
-            function()
-                Features.OrbitingCamera.adjustDistance(10)
-                return false
-            end)
-
-    registerAction("turbobarcam_orbit_distance_down", 'pR',
-            function()
-                Features.OrbitingCamera.adjustDistance(-10)
-                return false
-            end)
-
-    registerAction("turbobarcam_orbit_reset_defaults", 'tp',
-            function()
-                Features.OrbitingCamera.resetSettings()
-                return true
             end)
 
     -- SpecGroups actions
