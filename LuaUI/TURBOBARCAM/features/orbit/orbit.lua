@@ -251,7 +251,8 @@ function OrbitingCamera.updateAutoOrbit()
     Spring.SetCameraState(camStatePatch, 0)
 end
 
---- Adjusts the orbit params (SPEED, HEIGHT, DISTANCE)
+--- Adjusts the orbit params
+--- @see ModifiableParams
 function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
 end

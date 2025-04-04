@@ -92,21 +92,14 @@ function CameraAnchor.focus(index)
     return true
 end
 
---- Adjusts the transition duration
----@param amount number Amount to adjust transition duration by
-function CameraAnchor.adjustDuration(amount)
-    if not STATE.enabled then
-        Util.debugEcho("Must be enabled first")
+---@see ModifiableParams
+---@see Util#adjustParams
+function CameraAnchor.adjustParams(params)
+    if Util.isTurboBarCamDisabled() then
         return
     end
 
-    CONFIG.TRANSITION.DURATION = math.max(CONFIG.TRANSITION.MIN_DURATION, CONFIG.TRANSITION.DURATION + amount)
-
-    if CONFIG.TRANSITION.DURATION == 0 then
-        Util.debugEcho("Transition duration: INSTANT")
-    else
-        Util.debugEcho("Transition duration: " .. CONFIG.TRANSITION.DURATION .. "s")
-    end
+    Util.adjustParams(params, 'ANCHORS', function() CONFIG.TRANSITION.DURATION = 2 end)
 end
 
 --- Focuses on an anchor while tracking a unit

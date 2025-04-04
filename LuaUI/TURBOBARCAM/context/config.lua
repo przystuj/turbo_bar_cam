@@ -59,15 +59,13 @@ if not WG.TURBOBARCAM.CONFIG then
                 BUFFER_ZONE = 0.10, -- Area in the middle of the screen when mouse does not cause camera rotation
 
                 -- Target movement settings
-                TARGET_MOVEMENT = {
-                    MIN_DISTANCE = 150, -- Minimum distance to target (stop moving when reached)
-                    FORWARD_VELOCITY = 5, -- Constant forward movement speed
-                    MAX_ANGULAR_VELOCITY = 0.008, -- Maximum steering angular velocity
-                    ANGULAR_DAMPING = 0.70, -- How fast steering angular velocity decreases
-                    DEADZONE = 0, -- Deadzone for mouse steering (0-1)
-                    TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions
-                    INVERT_SIDE_MOVEMENT = false, -- When true, camera will move opposite side of the mouse
-                }
+                MIN_DISTANCE = 150, -- Minimum distance to target (stop moving when reached)
+                FORWARD_VELOCITY = 5, -- Constant forward movement speed
+                MAX_ANGULAR_VELOCITY = 0.008, -- Maximum steering angular velocity
+                ANGULAR_DAMPING = 0.70, -- How fast steering angular velocity decreases
+                DEADZONE = 0, -- Deadzone for mouse steering (0-1)
+                TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions
+                INVERT_SIDE_MOVEMENT = false, -- When true, camera will move opposite side of the mouse
             },
 
             -- Group tracking camera settings
@@ -136,8 +134,9 @@ end
 ---@type WidgetConfig
 WidgetConfig.CONFIG = WG.TURBOBARCAM.CONFIG
 
---- Parameters which can be modified by actions. paramName = {minValue, maxValue}
+--- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
+---@see Util#adjustParams
 WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
         PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.FPS.OFFSETS,
@@ -145,7 +144,7 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             HEIGHT = {0, nil},
             FORWARD = {nil, nil},
             SIDE = {nil, nil},
-            ROTATION = {nil, nil}
+            ROTATION = {nil, nil, "rad"}
         }
     },
     ORBIT = {
@@ -156,12 +155,18 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             SPEED = { -0.005, 0.005 },
         }
     },
-    TRANSITION = {
+    ANCHORS = {
         PARAMS_ROOT = WidgetConfig.CONFIG.TRANSITION,
         PARAM_NAMES = {
             DURATION = { 0, nil },
         }
-    }
+    },
+    --OVERVIEW = {
+    --    PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.TURBO_OVERVIEW,
+    --    PARAM_NAMES = {
+    --        DURATION = { 0, nil },
+    --    }
+    --}
 }
 
 -- Export the module (both CONFIG and STATE are shared via WG)

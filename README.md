@@ -76,7 +76,7 @@ Once enabled, the camera will center on the map and switch to FPS mode. Now you 
 | `/fps_rotation_left` | Rotate camera left |
 | `/fps_toggle_free_cam` | Toggle free camera control (mouse look) |
 | `/fps_reset_defaults` | Reset all offsets to default values |
-| `/set_fixed_look_point` | Select a point or unit which will be focused by camera |
+| `/turbobarcam_fps_set_fixed_look_point` | Select a point or unit which will be focused by camera |
 | `/clear_fixed_look_point` | Clear fixed look point and return to normal FPS view |
 
 ### Tracking Camera

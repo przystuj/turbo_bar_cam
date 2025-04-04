@@ -78,14 +78,14 @@ function TurboOverviewCamera.toggle()
     -- Initialize target movement mode variables
     STATE.turboOverview.isMovingToTarget = false
     STATE.turboOverview.targetPoint = nil
-    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.MIN_DISTANCE
+    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
     STATE.turboOverview.movementAngle = 0
     STATE.turboOverview.angularVelocity = 0
-    STATE.turboOverview.maxAngularVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.MAX_ANGULAR_VELOCITY
-    STATE.turboOverview.angularDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.ANGULAR_DAMPING
-    STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.FORWARD_VELOCITY
-    STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.MIN_DISTANCE
-    STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.TRANSITION_FACTOR
+    STATE.turboOverview.maxAngularVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ANGULAR_VELOCITY
+    STATE.turboOverview.angularDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ANGULAR_DAMPING
+    STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
+    STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
+    STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TRANSITION_FACTOR
     STATE.turboOverview.inMovementTransition = false
     STATE.turboOverview.targetMovementAngle = 0
     STATE.turboOverview.modeTransitionTime = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MODE_TRANSITION_TIME
@@ -425,7 +425,7 @@ function TurboOverviewCamera.moveToTarget()
         STATE.turboOverview.angularVelocity = 0
 
         -- Set the forward velocity constant from CONFIG
-        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.FORWARD_VELOCITY
+        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
 
         -- Turn on active movement
         STATE.turboOverview.movingToTarget = true

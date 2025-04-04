@@ -149,8 +149,9 @@ function OrbitCameraUtils.handleAutoOrbit()
     return stateChanged
 end
 
---- Adjusts the orbit parameters
+--- Adjusts parameters
 ---@param params string Config param to modify
+---@see ModifiableParams
 function OrbitCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

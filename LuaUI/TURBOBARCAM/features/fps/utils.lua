@@ -94,11 +94,10 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     return directionState
 end
 
---- Adjusts FPS camera offset values
----@param offsetType string Type of offset to adjust: "height", "forward", or "side"
----@param amount number Amount to adjust the offset by
----@return boolean success Whether offset was adjusted successfully
-function FPSCameraUtils.adjustOffset(offsetType, amount)
+--- Adjusts parameters
+---@param params string Config param to modify
+---@see ModifiableParams
+function FPSCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -109,16 +108,10 @@ function FPSCameraUtils.adjustOffset(offsetType, amount)
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
         Util.debugEcho("No unit being tracked")
-        return false
+        return
     end
 
-    if offsetType == "height" then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT + amount
-    elseif offsetType == "forward" then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD + amount
-    elseif offsetType == "side" then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE + amount
-    end
+    Util.adjustParams(params, "FPS", function() FPSCameraUtils.resetOffsets() end)
 
     -- Update stored offsets for the current unit
     if STATE.tracking.unitID then
@@ -133,7 +126,7 @@ function FPSCameraUtils.adjustOffset(offsetType, amount)
             rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
         }
     end
-    return true
+    return
 end
 
 --- Adjusts the rotation offset
@@ -146,17 +139,10 @@ function FPSCameraUtils.adjustRotationOffset(amount)
     if Util.isModeDisabled("fps") then
         return
     end
-
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
         Util.debugEcho("No unit being tracked")
         return false
-    end
-
-    -- Adjust rotation offset, keep between -pi and pi
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = (CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION + amount) % (2 * math.pi)
-    if CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION > math.pi then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION - 2 * math.pi
     end
 
     -- Update stored offsets for the current unit
@@ -170,8 +156,7 @@ function FPSCameraUtils.adjustRotationOffset(amount)
 
     -- Print the updated offsets with rotation in degrees for easier understanding
     local rotationDegrees = math.floor(CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION * 180 / math.pi)
-    Util.debugEcho("Camera rotation offset for unit " .. STATE.tracking.unitID .. ": " .. rotationDegrees .. "°")
-    
+    Util.traceEcho("Camera rotation offset for unit " .. STATE.tracking.unitID .. ": " .. rotationDegrees .. "°")
     return true
 end
 

@@ -132,7 +132,7 @@ function OverviewCameraUtils.updateTargetMovement(state)
     local normalizedDistFromCenter = distFromCenterX / (screenWidth * 0.5)
 
     -- Apply a deadzone in the center for stability
-    local DEADZONE = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.DEADZONE
+    local DEADZONE = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEADZONE
     if math.abs(normalizedDistFromCenter) < DEADZONE then
         normalizedDistFromCenter = 0
     else
@@ -150,11 +150,11 @@ function OverviewCameraUtils.updateTargetMovement(state)
 
     -- Forward velocity is constant when the button is pressed
     if state.movingToTarget then
-        state.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.FORWARD_VELOCITY
+        state.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
     else
         -- Apply damping to angular velocity to smoothly stop turning
         state.angularVelocity = state.angularVelocity * state.angularDamping
-        if CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TARGET_MOVEMENT.INVERT_SIDE_MOVEMENT then
+        if CONFIG.CAMERA_MODES.TURBO_OVERVIEW.INVERT_SIDE_MOVEMENT then
              state.angularVelocity = state.angularVelocity * -1
         end
 

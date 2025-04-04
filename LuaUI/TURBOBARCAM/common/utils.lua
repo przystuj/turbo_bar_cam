@@ -14,7 +14,7 @@ local Util = {}
 
 function Util.isTurboBarCamDisabled()
     if not STATE.enabled then
-        Util.debugEcho("Turbo Bar Cam must be enabled first")
+        Util.debugEcho("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
         return false
     end
 end
@@ -60,7 +60,7 @@ local function parseParams(params, moduleName)
 
     -- Handle reset command
     if command == "reset" then
-        table.insert(modifiedParams, {["reset"] = 1}) -- the value doesn't matter here
+        table.insert(modifiedParams, { ["reset"] = 1 }) -- the value doesn't matter here
         return modifiedParams
     end
 
@@ -92,7 +92,7 @@ local function parseParams(params, moduleName)
         end
 
         ---@class CommandData
-        local commandData = {name = command, param = paramName, value = value}
+        local commandData = { name = command, param = paramName, value = value }
         table.insert(modifiedParams, commandData)
     end
 
@@ -108,17 +108,29 @@ local function adjustParam(command, module)
     local boundaries = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[command.param]
     local minValue = boundaries[1]
     local maxValue = boundaries[2]
+    local type = boundaries[3]
     if minValue then
         newValue = math.max(newValue, minValue)
     end
     if maxValue then
         newValue = math.min(newValue, maxValue)
     end
+    if type == "rad" then
+        -- handle radians
+        newValue = (currentValue + newValue) % (2 * math.pi)
+        if newValue > math.pi then
+            newValue = newValue - 2 * math.pi
+        end
+    end
     if newValue == currentValue then
         Util.debugEcho("Value has not changed.")
         return
     end
     CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param] = newValue
+    if type == "rad" then
+        -- Print the updated offsets with rotation in degrees for easier understanding
+        newValue = math.floor(newValue * 180 / math.pi)
+    end
     Util.debugEcho(string.format("%s.%s = %s", module, command.param, newValue))
 end
 
@@ -128,6 +140,7 @@ end
 ---to decrease value use 'add' with negative value
 ---if you use 'reset', the params will be ignored. All params will be rest to default values
 ---example params: add;HEIGHT,100;DISTANCE,-50
+---@see ModifiableParams
 function Util.adjustParams(params, module, resetFunction)
     local adjustments = parseParams(params, module)
 
@@ -410,7 +423,7 @@ function Util.disableTracking()
 end
 
 function Util.traceEcho(message)
-    if STATE.TRACE then
+    if STATE.logLevel == "TRACE" then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end
@@ -419,7 +432,7 @@ function Util.traceEcho(message)
 end
 
 function Util.debugEcho(message)
-    if STATE.DEBUG then
+    if STATE.logLevel == "DEBUG" then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end

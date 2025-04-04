@@ -32,7 +32,7 @@ FPSCamera.COMMAND_DEFINITION = {
     name = 'Set Fixed Look Point',
     tooltip = 'Click on a location to focus camera on while following unit',
     cursor = 'settarget',
-    action = 'set_fixed_look_point',
+    action = 'turbobarcam_fps_set_fixed_look_point',
 }
 
 --- Toggles FPS camera attached to a unit
@@ -85,7 +85,7 @@ function FPSCamera.toggle()
 
         -- Load unit settings
         TrackingManager.loadUnitSettings('fps', unitID)
-        
+
         Util.debugEcho("FPS camera attached to unit " .. unitID)
     end
 end
@@ -157,14 +157,14 @@ function FPSCamera.update()
         -- Free camera mode - controlled by mouse
         local rotation = FreeCam.updateMouseRotation(STATE.tracking.freeCam, STATE.tracking.lastRotation, rotFactor)
         FreeCam.updateUnitHeadingTracking(STATE.tracking.freeCam, STATE.tracking.unitID)
-        
+
         -- Create camera state for free camera mode
         directionState = FreeCam.createCameraState(
-            smoothedPos, 
-            rotation, 
-            STATE.tracking.lastCamDir, 
-            STATE.tracking.lastRotation, 
-            rotFactor
+                smoothedPos,
+                rotation,
+                STATE.tracking.lastCamDir,
+                STATE.tracking.lastRotation,
+                rotFactor
         )
     end
 
@@ -221,7 +221,7 @@ function FPSCamera.checkFixedPointCommandActivation()
 
                 Util.debugEcho("Target selection mode activated - select a target to look at")
             end
-        -- Case 2: Command deactivated - exiting target selection mode without setting a point
+            -- Case 2: Command deactivated - exiting target selection mode without setting a point
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.inTargetSelectionMode then
             -- User canceled target selection, restore previous state
             STATE.tracking.inTargetSelectionMode = false
@@ -337,22 +337,11 @@ function FPSCamera.toggleFreeCam()
     end
 end
 
---- Adjusts camera offset values
----@param offsetType string Type of offset to adjust: "height", "forward", or "side"
----@param amount number Amount to adjust the offset by
-function FPSCamera.adjustOffset(offsetType, amount)
-    FPSCameraUtils.adjustOffset(offsetType, amount)
-end
-
---- Adjusts the rotation offset
----@param amount number Rotation adjustment in radians
-function FPSCamera.adjustRotationOffset(amount)
-    FPSCameraUtils.adjustRotationOffset(amount)
-end
-
---- Resets camera offsets to default values
-function FPSCamera.resetOffsets()
-    FPSCameraUtils.resetOffsets()
+--- Adjusts parameters
+---@param params string Config param to modify
+---@see ModifiableParams
+function FPSCamera.adjustOffset(params)
+    FPSCameraUtils.adjustParams(params)
 end
 
 return {
