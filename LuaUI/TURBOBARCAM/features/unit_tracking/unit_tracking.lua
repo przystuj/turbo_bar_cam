@@ -74,7 +74,7 @@ function TrackingCamera.update()
         -- Force back to FPS mode
         currentState.mode = 0
         currentState.name = "fps"
-        Spring.SetCameraState(currentState, 0)
+        Util.setCameraState(currentState, false, "TrackingCamera.update")
     end
 
     -- Get unit position
@@ -113,7 +113,7 @@ function TrackingCamera.update()
     TrackingManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state - only updating direction and rotation
-    Spring.SetCameraState(camStatePatch, 1)
+    Util.setCameraState(camStatePatch, true, "TrackingCamera.update")
 end
 
 return {

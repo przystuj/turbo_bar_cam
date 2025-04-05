@@ -99,13 +99,17 @@ function CameraTransition.update()
         local state = STATE.transition.steps[STATE.transition.currentStepIndex]
 
         -- Apply the base camera state (position)
-        Spring.SetCameraState(state, 0)
+        Util.setCameraState(state, true, "CameraTransition.update")
 
         -- Check if we've reached the end
         if STATE.transition.currentStepIndex >= totalSteps then
             STATE.transition.active = false
             STATE.transition.currentAnchorIndex = nil
             Util.debugEcho("transition complete")
+
+            local currentState = Spring.GetCameraState()
+            Util.debugEcho(string.format("currentState.rx=%.3f currentState.ry=%.3f",
+                    currentState.rx or 0, currentState.rx or 0))
         end
     end
 end

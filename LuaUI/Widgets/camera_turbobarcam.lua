@@ -73,7 +73,7 @@ function widget:Initialize()
     -- Register all action handlers
     Actions.registerAllActions(AllModules)
 
-    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. STATE.logLevel )
+    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. STATE.logLevel)
 end
 
 function widget:Shutdown()

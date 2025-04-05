@@ -460,7 +460,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.targetHeight = targetHeight
 
     -- Apply camera state with a slower initial transition
-    Spring.SetCameraState(camState, 1)
+    Util.setCameraState(camState, true, "GroupTrackingCamera.initializeCameraPosition")
 end
 
 --- Calculates required camera distance to see all units
@@ -595,7 +595,7 @@ function GroupTrackingCamera.update()
     if currentState.mode ~= 0 then
         currentState.mode = 0
         currentState.name = "fps"
-        Spring.SetCameraState(currentState, 0)
+        Util.setCameraState(currentState, false, "GroupTrackingCamera.update")
     end
 
     -- Get current camera position
@@ -714,7 +714,7 @@ function GroupTrackingCamera.update()
     STATE.tracking.group.lastCameraDir = newCameraDir
 
     -- Apply camera state
-    Spring.SetCameraState(camStatePatch, 0)
+    Util.setCameraState(camStatePatch, false, "GroupTrackingCamera.update")
 end
 
 return {

@@ -34,10 +34,7 @@ function WidgetControl.disable()
     if Util.isTurboBarCamDisabled() then
         return
     end
-    -- Reset any active features
-    if not STATE.tracking.mode then
-        Tracking.disableTracking()
-    end
+    Tracking.disableTracking()
 
     if STATE.transition.active then
         STATE.transition.active = false
@@ -48,7 +45,7 @@ function WidgetControl.disable()
 
     -- Restore original camera state
     if STATE.originalCameraState then
-        Spring.SetCameraState(STATE.originalCameraState, 1)
+        Util.setCameraState(STATE.originalCameraState, false, "WidgetControl.disable")
         STATE.originalCameraState = nil
     end
 
@@ -96,11 +93,11 @@ function WidgetControl.switchToFpsCamera()
         newState.mode = 0
         newState.name = "fps"
         newState.fov = 45
-        Spring.SetCameraState(springState, 1)
+        Util.setCameraState(springState, true, "WidgetControl.switchToFpsCamera")
         return
     end
 
-    Spring.SetCameraState({ rx = math.pi }, 0.1) -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
+    Util.setCameraState({ rx = math.pi }, true, "WidgetControl.switchToFpsCamera") -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
 
     -- Create a new state for FPS camera
     local fpsState = {
@@ -143,8 +140,7 @@ function WidgetControl.switchToFpsCamera()
         fpsState.pz = springState.pz + springState.dist * 0.0014 -- Slight forward adjustment
     end
 
-    -- Apply the camera state with a 1-second transition
-    Spring.SetCameraState(fpsState, 1)
+    Util.setCameraState(fpsState, true, "WidgetControl.switchToFpsCamera")
 end
 
 return {

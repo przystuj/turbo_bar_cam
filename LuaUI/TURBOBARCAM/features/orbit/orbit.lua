@@ -147,7 +147,7 @@ function OrbitingCamera.update()
     TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Spring.SetCameraState(camState, 0)
+    Util.setCameraState(camState, false, "OrbitingCamera.update")
 end
 
 --- Updates the auto-orbit camera
@@ -182,7 +182,7 @@ function OrbitingCamera.updateAutoOrbit()
     TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Spring.SetCameraState(camState, 0)
+    Util.setCameraState(camState, false, "OrbitingCamera.updateAutoOrbit")
 end
 
 ---@see ModifiableParams

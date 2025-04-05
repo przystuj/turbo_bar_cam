@@ -12,6 +12,24 @@ local STATE = WidgetContext.WidgetState.STATE
 ---@class UtilsModule
 local Util = {}
 
+local lastThrottledExecutionTimes = {}
+
+function Util.throttleExecution(fn, interval, id)
+    -- Default to a generic ID if none provided
+    local functionId = id or "default"
+
+    -- Initialize lastLogTime for this ID if it doesn't exist yet
+    if not lastThrottledExecutionTimes[functionId] then
+        lastThrottledExecutionTimes[functionId] = 0
+    end
+
+    local currentTime = Spring.GetGameSeconds()
+    if currentTime - lastThrottledExecutionTimes[functionId] >= interval then
+        fn()
+        lastThrottledExecutionTimes[functionId] = currentTime
+    end
+end
+
 function Util.isTurboBarCamDisabled()
     if not STATE.enabled then
         Util.traceEcho("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
@@ -384,6 +402,74 @@ function Util.echo(message)
         message = Util.dump(message)
     end
     Spring.Echo("[TURBOBARCAM] " .. message)
+end
+
+---@param camState CameraState
+---@param withSmoothing boolean if ture, Spring smoothing will be applied
+function Util.setCameraState(camState, withSmoothing, source)
+    -- Make a copy to avoid modifying the original
+    local normalizedState = Util.deepCopy(camState)
+
+    -- Normalize rotation values for Spring engine
+    if normalizedState.rx ~= nil then
+        -- Ensure rx is properly normalized for Spring
+        -- Spring expects rx in range [0, pi]
+        normalizedState.rx = normalizedState.rx % (2 * math.pi)
+        if normalizedState.rx > math.pi then
+            normalizedState.rx = 2 * math.pi - normalizedState.rx
+        end
+    end
+
+    if normalizedState.ry ~= nil then
+        -- Ensure ry is properly normalized for Spring
+        -- Spring expects ry in range [-pi, pi]
+        normalizedState.ry = normalizedState.ry % (2 * math.pi)
+        if normalizedState.ry > math.pi then
+            normalizedState.ry = normalizedState.ry - 2 * math.pi
+        end
+    end
+
+    if normalizedState.rz ~= nil then
+        -- Ensure rz is properly normalized for Spring
+        -- Spring expects rz in range [-pi, pi]
+        normalizedState.rz = normalizedState.rz % (2 * math.pi)
+        if normalizedState.rz > math.pi then
+            normalizedState.rz = normalizedState.rz - 2 * math.pi
+        end
+    end
+
+    -- Convert withSmoothing to 0 or 1 for Spring
+    local smoothing = 0
+    if withSmoothing then
+        if type(withSmoothing) == "number" then
+            smoothing = withSmoothing
+        else
+            smoothing = 0.1
+        end
+    end
+
+    local currentState = Spring.GetCameraState()
+
+    local fixRotationPatch = {}
+    local fixRequired = false
+    if currentState.rx ~= normalizedState.rx and currentState.rx and normalizedState.rx and math.abs(currentState.rx - normalizedState.rx) > 0.5 then
+        Util.debugEcho(string.format("[%s] currentState.rx=%.3f normalizedState.rx=%.3f", source,
+                currentState.rx or 0, normalizedState.rx or 0))
+        fixRequired = true
+        fixRotationPatch.rx = normalizedState.rx
+    end
+    if currentState.ry ~= normalizedState.ry and currentState.ry and normalizedState.ry and math.abs(currentState.ry - normalizedState.ry) > 0.5 then
+        Util.debugEcho(string.format("[%s] currentState.ry=%.3f normalizedState.ry=%.3f", source,
+                currentState.ry or 0, normalizedState.ry or 0))
+        fixRequired = true
+        fixRotationPatch.ry = normalizedState.ry
+    end
+
+    -- fix rotation without smoothing to avoid camera spinning
+    if fixRequired and withSmoothing then
+        Spring.SetCameraState(fixRotationPatch, 0)
+    end
+    Spring.SetCameraState(camState, smoothing)
 end
 
 -- Export to global scope

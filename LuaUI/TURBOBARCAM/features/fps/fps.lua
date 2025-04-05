@@ -173,7 +173,7 @@ function FPSCamera.update()
 
     -- Apply camera state and update tracking for next frame
     local camStatePatch = CameraCommons.createCameraState(smoothedPos, directionState)
-    Spring.SetCameraState(camStatePatch, 0)
+    Util.setCameraState(camStatePatch, false, "FPSCamera.update")
     TrackingManager.updateTrackingState(camStatePatch)
 end
 

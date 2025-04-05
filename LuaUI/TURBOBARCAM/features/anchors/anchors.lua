@@ -74,7 +74,7 @@ function CameraAnchor.focus(index)
         -- Ensure the target state is in FPS mode
         targetState.mode = 0
         targetState.name = "fps"
-        Spring.SetCameraState(targetState, 0)
+        Util.setCameraState(targetState, false, "CameraAnchor.focus")
         Util.debugEcho("Instantly jumped to camera anchor: " .. index)
         return true
     end

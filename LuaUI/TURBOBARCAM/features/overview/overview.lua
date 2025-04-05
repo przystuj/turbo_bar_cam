@@ -131,7 +131,7 @@ function TurboOverviewCamera.toggle()
     }
 
     -- Apply the camera state with a longer transition time to avoid initial fast movement
-    Spring.SetCameraState(camStatePatch, 0.5)
+    Util.setCameraState(camStatePatch, true, "TurboOverviewCamera.toggle")
 
     Util.debugEcho("Turbo Overview camera enabled (Zoom: x" ..
             CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
@@ -236,7 +236,7 @@ function TurboOverviewCamera.update()
         Tracking.updateTrackingState(camStatePatch)
 
         -- Apply camera state
-        Spring.SetCameraState(camStatePatch, 0)
+        Util.setCameraState(camStatePatch, false, "TurboOverviewCamera.update")
         return
     end
 
@@ -289,7 +289,7 @@ function TurboOverviewCamera.update()
     STATE.tracking.lastRotation.rz = camStatePatch.rz
 
     -- Apply camera state
-    Spring.SetCameraState(camStatePatch, 0)
+    Util.setCameraState(camStatePatch, false, "TurboOverviewCamera.update")
 end
 
 --- Toggles between available zoom levels
