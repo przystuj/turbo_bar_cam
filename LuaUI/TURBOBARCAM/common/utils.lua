@@ -78,7 +78,7 @@ local function parseParams(params, moduleName)
 
     -- Handle reset command
     if command == "reset" then
-        table.insert(modifiedParams, { ["reset"] = 1 }) -- the value doesn't matter here
+        table.insert(modifiedParams, { name = "reset"}) -- the value doesn't matter here
         return modifiedParams
     end
 
@@ -162,15 +162,19 @@ end
 ---example params: add;HEIGHT,100;DISTANCE,-50
 ---@see ModifiableParams
 function Util.adjustParams(params, module, resetFunction)
+    Util.debugEcho("Adjusting module: " .. module)
     local adjustments = parseParams(params, module)
 
     ---@param adjustment CommandData
     for _, adjustment in ipairs(adjustments) do
         if adjustment.name == "reset" then
             if resetFunction then
+                Util.debugEcho("Resetting params for module " .. module)
                 resetFunction()
+                return
             else
-                Util.error("Rest function missing for module " .. module)
+                Util.error("Reset function missing for module " .. module)
+                return
             end
         else
             adjustParam(adjustment, module)
@@ -441,24 +445,20 @@ function Util.setCameraState(camState, withSmoothing, source)
     -- Convert withSmoothing to 0 or 1 for Spring
     local smoothing = 0
     if withSmoothing then
-        if type(withSmoothing) == "number" then
-            smoothing = withSmoothing
-        else
-            smoothing = 0.1
-        end
+        smoothing = 1
     end
 
     local currentState = Spring.GetCameraState()
 
     local fixRotationPatch = {}
     local fixRequired = false
-    if currentState.rx ~= normalizedState.rx and currentState.rx and normalizedState.rx and math.abs(currentState.rx - normalizedState.rx) > 0.5 then
+    if currentState.rx ~= normalizedState.rx and currentState.rx and normalizedState.rx and math.abs(currentState.rx - normalizedState.rx) > 1 then
         Util.debugEcho(string.format("[%s] currentState.rx=%.3f normalizedState.rx=%.3f", source,
                 currentState.rx or 0, normalizedState.rx or 0))
         fixRequired = true
         fixRotationPatch.rx = normalizedState.rx
     end
-    if currentState.ry ~= normalizedState.ry and currentState.ry and normalizedState.ry and math.abs(currentState.ry - normalizedState.ry) > 0.5 then
+    if currentState.ry ~= normalizedState.ry and currentState.ry and normalizedState.ry and math.abs(currentState.ry - normalizedState.ry) > 1 then
         Util.debugEcho(string.format("[%s] currentState.ry=%.3f normalizedState.ry=%.3f", source,
                 currentState.ry or 0, normalizedState.ry or 0))
         fixRequired = true
@@ -469,7 +469,9 @@ function Util.setCameraState(camState, withSmoothing, source)
     if fixRequired and withSmoothing then
         Spring.SetCameraState(fixRotationPatch, 0)
     end
-    Spring.SetCameraState(camState, smoothing)
+
+    Util.traceEcho(string.format("[%s] Change camera state. Smoothing=%s.", source, smoothing))
+    Spring.SetCameraState(normalizedState, smoothing)
 end
 
 -- Export to global scope

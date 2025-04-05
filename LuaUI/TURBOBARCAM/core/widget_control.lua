@@ -45,7 +45,7 @@ function WidgetControl.disable()
 
     -- Restore original camera state
     if STATE.originalCameraState then
-        Util.setCameraState(STATE.originalCameraState, false, "WidgetControl.disable")
+        Util.setCameraState(STATE.originalCameraState, true, "WidgetControl.disable")
         STATE.originalCameraState = nil
     end
 
@@ -97,7 +97,8 @@ function WidgetControl.switchToFpsCamera()
         return
     end
 
-    Util.setCameraState({ rx = math.pi }, true, "WidgetControl.switchToFpsCamera") -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
+    -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
+    Util.setCameraState({ rx = math.pi, dx = 0, dy = -1, dz = 0 }, true, "WidgetControl.switchToFpsCamera")
 
     -- Create a new state for FPS camera
     local fpsState = {
@@ -116,6 +117,7 @@ function WidgetControl.switchToFpsCamera()
         fpsState.px = x
         fpsState.py = cameraHeight
         fpsState.rx = lookdownAngle
+        fpsState.ry = 0
 
         -- Check if forward position would exceed map boundaries
         local forwardPosition = z + offsetDistance
@@ -123,12 +125,11 @@ function WidgetControl.switchToFpsCamera()
             -- 95% safety margin
             -- Position camera behind the unit instead
             fpsState.pz = z - offsetDistance
-            fpsState.ry = springState.ry + math.pi -- Rotate 180 degrees
+            fpsState.ry = fpsState.ry + math.pi -- Rotate 180 degrees
             Util.traceEcho("Boundary detected, positioning camera behind unit")
         else
             -- Normal positioning in front of unit
             fpsState.pz = forwardPosition
-            fpsState.ry = springState.ry
             Util.traceEcho("Normal positioning in front of unit")
         end
 

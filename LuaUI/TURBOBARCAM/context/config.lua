@@ -78,6 +78,10 @@ if not WG.TURBOBARCAM.CONFIG then
                 MODE_TRANSITION_TIME = 0.5, -- Duration of mode transition in seconds. Lower values = faster mode switching.
             },
 
+            UNIT_TRACKING = {
+                HEIGHT = 0, -- Height offset for look-at point in world units
+            },
+
             -- Group tracking camera settings
             GROUP_TRACKING = {
                 -- Distance settings
@@ -179,7 +183,13 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             MAX_ROTATION_SPEED = { 0.001, 0.05 },
             BUFFER_ZONE = { 0, 0.5 },
         }
-    }
+    },
+    UNIT_TRACKING = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.UNIT_TRACKING,
+        PARAM_NAMES = {
+            HEIGHT = { -500, 400 },
+        }
+    },
 }
 
 -- Export the module (both CONFIG and STATE are shared via WG)

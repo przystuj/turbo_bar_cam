@@ -45,7 +45,6 @@ function UnitTrackingCamera.toggle()
         return
     end
 
-
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
         Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
@@ -76,7 +75,13 @@ function UnitTrackingCamera.update()
 
     -- Get unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
-    local targetPos = { x = unitX, y = unitY, z = unitZ }
+
+    -- Apply the target height offset from config
+    local targetPos = {
+        x = unitX,
+        y = unitY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT,
+        z = unitZ
+    }
 
     -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
@@ -122,13 +127,13 @@ function UnitTrackingCamera.adjustParams(params)
     if Util.isModeDisabled("unit_tracking") then
         return
     end
-    -- Make sure we have a unit to orbit around
+    -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
         Util.debugEcho("No unit is tracked")
         return
     end
 
-    Util.adjustParams(params, "UNIT_TRACKING", function() end)
+    Util.adjustParams(params, "UNIT_TRACKING", function() CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT = 0 end)
 end
 
 return {

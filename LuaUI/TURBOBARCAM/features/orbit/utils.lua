@@ -35,6 +35,12 @@ function OrbitCameraUtils.handleAutoOrbit()
         return false
     end
 
+    if not Spring.ValidUnitID(STATE.tracking.unitID) then
+        Util.debugEcho("[handleAutoOrbit] Unit no longer exists")
+        Tracking.disableTracking()
+        return
+    end
+
     -- Get current unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
     local currentPos = { x = unitX, y = unitY, z = unitZ }
