@@ -13,12 +13,12 @@ local Util = TurboCommons.Util
 local CameraCommons = TurboCore.CameraCommons
 local TrackingManager = TurboCommons.Tracking
 
----@class TrackingCamera
-local TrackingCamera = {}
+---@class UnitTrackingCamera
+local UnitTrackingCamera = {}
 
 --- Toggles tracking camera mode
 ---@return boolean success Always returns true for widget handler
-function TrackingCamera.toggle()
+function UnitTrackingCamera.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -49,14 +49,11 @@ function TrackingCamera.toggle()
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
         Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
-
     end
-
-    return
 end
 
 --- Updates tracking camera to point at the tracked unit
-function TrackingCamera.update()
+function UnitTrackingCamera.update()
     if STATE.tracking.mode ~= 'unit_tracking' or not STATE.tracking.unitID then
         return
     end
@@ -74,7 +71,7 @@ function TrackingCamera.update()
         -- Force back to FPS mode
         currentState.mode = 0
         currentState.name = "fps"
-        Util.setCameraState(currentState, false, "TrackingCamera.update")
+        Util.setCameraState(currentState, false, "UnitTrackingCamera.update")
     end
 
     -- Get unit position
@@ -113,9 +110,27 @@ function TrackingCamera.update()
     TrackingManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state - only updating direction and rotation
-    Util.setCameraState(camStatePatch, true, "TrackingCamera.update")
+    Util.setCameraState(camStatePatch, true, "UnitTrackingCamera.update")
+end
+
+---@see ModifiableParams
+---@see UtilsModule#adjustParams
+function UnitTrackingCamera.adjustParams(params)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled("unit_tracking") then
+        return
+    end
+    -- Make sure we have a unit to orbit around
+    if not STATE.tracking.unitID then
+        Util.debugEcho("No unit is tracked")
+        return
+    end
+
+    Util.adjustParams(params, "UNIT_TRACKING", function() end)
 end
 
 return {
-    TrackingCamera = TrackingCamera
+    UnitTrackingCamera = UnitTrackingCamera
 }

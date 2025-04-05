@@ -114,8 +114,14 @@ end
 function Actions.trackingCameraActions(Features)
     Actions.registerAction("turbobarcam_toggle_tracking_camera", 'tp',
             function()
-                Features.TrackingCamera.toggle()
+                Features.UnitTrackingCamera.toggle()
                 return true
+            end)
+
+    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'pR',
+            function(_, params)
+                Features.UnitTrackingCamera.adjustParams(params)
+                return false
             end)
 end
 

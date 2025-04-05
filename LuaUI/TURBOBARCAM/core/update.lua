@@ -81,7 +81,7 @@ function UpdateManager.updateCameraMode(modules)
                 Features.FPSCamera.update()
             end
         elseif STATE.tracking.mode == 'unit_tracking' then
-            Features.TrackingCamera.update()
+            Features.UnitTrackingCamera.update()
         elseif STATE.tracking.mode == 'orbit' then
             Features.OrbitingCamera.update()
         elseif STATE.tracking.mode == 'turbo_overview' then

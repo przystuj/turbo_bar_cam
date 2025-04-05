@@ -11,7 +11,7 @@
 
 ---@class FeatureModules
 ---@field FPSCamera FPSCamera
----@field TrackingCamera TrackingCamera
+---@field UnitTrackingCamera UnitTrackingCamera
 ---@field OrbitingCamera OrbitingCamera
 ---@field CameraAnchor CameraAnchor
 ---@field SpecGroups SpecGroups

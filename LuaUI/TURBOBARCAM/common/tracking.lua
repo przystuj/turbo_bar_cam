@@ -49,6 +49,7 @@ function TrackingManager.initializeTracking(mode, unitID)
     -- Begin mode transition from previous mode
     TrackingManager.startModeTransition(mode)
     STATE.tracking.unitID = unitID
+
     -- refresh unit command bar to add custom command
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
