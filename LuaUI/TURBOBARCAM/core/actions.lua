@@ -21,6 +21,7 @@ function Actions.registerAllActions(modules)
     Actions.specGroupsActions(Features)
     Actions.orbitActions(Features)
     Actions.overviewActions(Features)
+    Actions.groupTrackingActions(Features)
     Actions.I18N()
 end
 
@@ -174,6 +175,21 @@ function Actions.overviewActions(Features)
             function()
                 Features.GroupTrackingCamera.toggle()
                 return true
+            end)
+end
+
+---@param Features FeatureModules
+function Actions.groupTrackingActions(Features)
+    Actions.registerAction("turbobarcam_toggle_group_tracking_camera", 'tp',
+            function()
+                Features.GroupTrackingCamera.toggle()
+                return true
+            end, nil)
+
+    Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'pR',
+            function(_, params)
+                Features.GroupTrackingCamera.adjustParams(params)
+                return false
             end)
 end
 

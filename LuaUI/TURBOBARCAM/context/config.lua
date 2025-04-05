@@ -92,6 +92,34 @@ if not WG.TURBOBARCAM.CONFIG then
                 -- Height settings
                 DEFAULT_HEIGHT_FACTOR = 1.3, -- Default height as a factor of distance
 
+                -- Camera adjustments
+                EXTRA_DISTANCE = 0, -- Additional distance from group (adds to calculated distance)
+                EXTRA_HEIGHT = 0, -- Additional height (adds to calculated height)
+                ORBIT_OFFSET = 0, -- Orbit angle offset in radians (0 = behind, π/2 = right side, π = front, 3π/2 = left side)
+
+                -- Default adjustments (for reset)
+                DEFAULT_ADJUSTMENTS = {
+                    EXTRA_DISTANCE = 0,
+                    EXTRA_HEIGHT = 0,
+                    ORBIT_OFFSET = 0,
+                },
+
+                -- Smoothing settings
+                SMOOTHING = {
+                    POSITION = 0.03, -- Position smoothing factor (lower = smoother but more lag)
+                    ROTATION = 0.01, -- Rotation smoothing factor
+                    STABLE_POSITION = 0.01, -- Stable mode position smoothing
+                    STABLE_ROTATION = 0.005, -- Stable mode rotation smoothing
+                },
+
+                -- Default smoothing values (for reset)
+                DEFAULT_SMOOTHING = {
+                    POSITION = 0.03,
+                    ROTATION = 0.01,
+                    STABLE_POSITION = 0.01,
+                    STABLE_ROTATION = 0.005,
+                },
+
                 -- Aircraft handling
                 AIRCRAFT_UNIT_TYPES = {
                     ["armfig"] = true,
@@ -158,7 +186,7 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             FORWARD = { nil, nil },
             SIDE = { nil, nil },
             ROTATION = { nil, nil, "rad" },
-            MOUSE_SENSITIVITY = { 0.0001, 0.01}
+            MOUSE_SENSITIVITY = { 0.0001, 0.01 }
         }
     },
     ORBIT = {
@@ -190,6 +218,21 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             HEIGHT = { -500, 400 },
         }
     },
+    GROUP_TRACKING = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.GROUP_TRACKING,
+        PARAM_NAMES = {
+            -- Camera adjustments
+            EXTRA_DISTANCE = { -1000, 3000 }, -- Extra distance beyond calculated value
+            EXTRA_HEIGHT = { -1000, 3000 }, -- Extra height beyond calculated value
+            ORBIT_OFFSET = { -3.14, 3.14, "rad" }, -- Orbit offset angle in radians
+
+            -- Smoothing factors
+            ["SMOOTHING.POSITION"] = { 0.001, 0.2 }, -- Min/max for position smoothing
+            ["SMOOTHING.ROTATION"] = { 0.001, 0.2 }, -- Min/max for rotation smoothing
+            ["SMOOTHING.STABLE_POSITION"] = { 0.001, 0.2 }, -- Min/max for stable position smoothing
+            ["SMOOTHING.STABLE_ROTATION"] = { 0.001, 0.2 }, -- Min/max for stable rotation smoothing
+        }
+    }
 }
 
 -- Export the module (both CONFIG and STATE are shared via WG)

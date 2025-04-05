@@ -53,7 +53,7 @@ end
 local function parseParams(params, moduleName)
     -- Check if the moduleName string is empty or nil
     if not moduleName or moduleName == "" or not CONFIG.MODIFIABLE_PARAMS[moduleName] then
-        Util.error("Invalid moduleName " .. moduleName)
+        Util.error("Invalid moduleName " .. tostring(moduleName))
     end
 
     -- Check if the params string is empty or nil
@@ -99,7 +99,25 @@ local function parseParams(params, moduleName)
         end
 
         -- Check if parameter name is recognized
-        if not validParams[paramName] then
+        local isValidParam = false
+        local paramConfig
+
+        -- Try direct match first
+        if validParams[paramName] then
+            isValidParam = true
+            paramConfig = validParams[paramName]
+        else
+            -- Check for nested parameters (e.g., "OFFSETS.FORWARD")
+            for validParamName, config in pairs(validParams) do
+                if validParamName == paramName then
+                    isValidParam = true
+                    paramConfig = config
+                    break
+                end
+            end
+        end
+
+        if not isValidParam then
             Util.error("Unknown parameter '" .. paramName .. "'")
         end
 
@@ -120,9 +138,53 @@ end
 ---@param command CommandData
 local function adjustParam(command, module)
     local newValue = command.value
-    local currentValue = CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param]
+
+    -- Handle nested parameters (e.g., "OFFSETS.FORWARD")
+    local paramParts = {}
+    for part in string.gmatch(command.param, "[^.]+") do
+        table.insert(paramParts, part)
+    end
+
+    -- Navigate to the correct parameter location
+    local currentConfigTable = CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT
+    local paramPath = {} -- For error reporting
+    local paramName = paramParts[#paramParts] -- The last part is the actual parameter name
+
+    -- Navigate the nested structure (except for the last part which is the parameter name)
+    for i = 1, #paramParts - 1 do
+        table.insert(paramPath, paramParts[i])
+        if currentConfigTable[paramParts[i]] then
+            currentConfigTable = currentConfigTable[paramParts[i]]
+        else
+            Util.error("Invalid parameter path: " .. table.concat(paramPath, "."))
+            return
+        end
+    end
+
+    -- Get the current value
+    local currentValue = currentConfigTable[paramName]
+    if currentValue == nil then
+        Util.error("Parameter not found: " .. command.param)
+        return
+    end
+
+    -- Get the parameter boundaries
+    local boundaries = nil
+    for validParamName, config in pairs(CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES) do
+        if validParamName == command.param then
+            boundaries = config
+            break
+        end
+    end
+
+    if not boundaries then
+        Util.error("Parameter boundaries not found for: " .. command.param)
+        return
+    end
+
+    -- Apply 'add' command if needed
     if command.name == "add" then
-        if type == "rad" then
+        if boundaries[3] == "rad" then
             -- handle radians
             newValue = (currentValue + newValue) % (2 * math.pi)
             if newValue > math.pi then
@@ -132,26 +194,36 @@ local function adjustParam(command, module)
             newValue = newValue + currentValue
         end
     end
-    local boundaries = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[command.param]
+
+    -- Apply boundaries
     local minValue = boundaries[1]
     local maxValue = boundaries[2]
     local type = boundaries[3]
+
     if minValue then
         newValue = math.max(newValue, minValue)
     end
     if maxValue then
         newValue = math.min(newValue, maxValue)
     end
+
+    -- Check if value has changed
     if newValue == currentValue then
         Util.debugEcho("Value has not changed.")
         return
     end
-    CONFIG.MODIFIABLE_PARAMS[module].PARAMS_ROOT[command.param] = newValue
+
+    -- Update the value
+    currentConfigTable[paramName] = newValue
+
+    -- Display formatted value
+    local displayValue = newValue
     if type == "rad" then
         -- Print the updated offsets with rotation in degrees for easier understanding
-        newValue = math.floor(newValue * 180 / math.pi)
+        displayValue = math.floor(newValue * 180 / math.pi)
     end
-    Util.debugEcho(string.format("%s.%s = %s", module, command.param, newValue))
+
+    Util.debugEcho(string.format("%s.%s = %s", module, command.param, displayValue))
 end
 
 ---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...

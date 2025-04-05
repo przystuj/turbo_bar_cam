@@ -3,7 +3,6 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = TurboCommons.Util
 local Tracking = TurboCommons.Tracking

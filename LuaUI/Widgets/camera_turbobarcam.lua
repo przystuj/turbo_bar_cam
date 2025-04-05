@@ -57,11 +57,6 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:Update()
-    --Util.throttleExecution(function()
-    --    local currentState = Spring.GetCameraState()
-    --    Util.debugEcho(currentState)
-    --end, 1)
-
     UpdateManager.processCycle(AllModules)
 end
 

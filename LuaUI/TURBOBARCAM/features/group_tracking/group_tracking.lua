@@ -1,13 +1,10 @@
--- Group Tracking module for TURBOBARCAM
--- This extends the existing tracking system with multi-unit group tracking capabilities
-
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type CoreModules
 local CoreModules = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
----@type TrackingUtils
+---@type GroupTrackingUtils
 local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua").TrackingUtils
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
@@ -598,9 +595,6 @@ function GroupTrackingCamera.update()
         Util.setCameraState(currentState, false, "GroupTrackingCamera.update")
     end
 
-    -- Get current camera position
-    local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
-
     -- Determine camera height
     local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
     local targetHeight = center.y + (targetDistance * heightFactor)
@@ -667,30 +661,33 @@ function GroupTrackingCamera.update()
                         z = math.sin(angle)
                     }
                 end
-
             end
-
         else
             -- For slow/stationary units, maintain current camera direction
             newCameraDir = STATE.tracking.group.lastCameraDir
         end
     end
 
-    -- Calculate new camera position with the determined direction
-    local newCamPos = {
-        x = center.x + (newCameraDir.x * targetDistance),
-        y = targetHeight,
-        z = center.z + (newCameraDir.z * targetDistance)
-    }
+    -- Apply orbit-style camera adjustments
+    local newCamPos = TrackingUtils.applyCameraAdjustments(
+            center,
+            newCameraDir,
+            targetDistance,
+            targetHeight
+    )
 
-    -- Smooth camera position with appropriate factors
-    local posFactor = 0.03
-    local rotFactor = 0.01
+    -- Get current camera position for smooth transition
+    local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
-    -- If in stable mode, use slower factors
+    -- Determine smoothing factors based on stable mode
+    local posFactor, rotFactor
+
     if STATE.tracking.group.inStableMode then
-        posFactor = 0.01
-        rotFactor = 0.005
+        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION
+        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION
+    else
+        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.POSITION
+        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
     end
 
     -- Apply smoothing
@@ -700,7 +697,8 @@ function GroupTrackingCamera.update()
         z = Util.smoothStep(camPos.z, newCamPos.z, posFactor)
     }
 
-    local camStatePatch = CameraCommons.focusOnPoint(camPos, center, posFactor, rotFactor)
+    -- Calculate look direction to center using the smoothed position
+    local camStatePatch = CameraCommons.focusOnPoint(smoothedPos, center, posFactor, rotFactor)
 
     -- Update camera state
     STATE.tracking.lastCamPos.x = camStatePatch.px
@@ -715,6 +713,12 @@ function GroupTrackingCamera.update()
 
     -- Apply camera state
     Util.setCameraState(camStatePatch, false, "GroupTrackingCamera.update")
+end
+
+---@see ModifiableParams
+---@see UtilsModule#adjustParams
+function GroupTrackingCamera.adjustParams(params)
+    TrackingUtils.adjustGroupTrackingParams(params)
 end
 
 return {
