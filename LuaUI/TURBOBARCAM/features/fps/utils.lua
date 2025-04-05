@@ -142,7 +142,7 @@ function FPSCameraUtils.resetOffsets()
     -- If we have a tracked unit, get its height for the default height offset
     if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and
             STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        local unitHeight = math.max(Util.getUnitHeight(unitID) * 2, 100)
+        local unitHeight = Tracking.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
         CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
         CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
         CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD

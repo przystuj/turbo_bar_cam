@@ -78,6 +78,11 @@ function TrackingManager.saveUnitSettings(mode, unitID)
     end
 end
 
+
+function TrackingManager.getDefaultHeightForUnitTracking(unitID)
+    return math.max(Util.getUnitHeight(unitID) + 30, 100)
+end
+
 --- Loads unit-specific settings
 ---@param mode string Camera mode
 ---@param unitID number Unit ID
@@ -94,7 +99,7 @@ function TrackingManager.loadUnitSettings(mode, unitID)
             Util.debugEcho("Using previous camera offsets for unit " .. unitID)
         else
             -- Get unit height for the default offset
-            local unitHeight = math.max(Util.getUnitHeight(unitID) + 30, 100)
+            local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(unitID)
             CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
             CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
             CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
