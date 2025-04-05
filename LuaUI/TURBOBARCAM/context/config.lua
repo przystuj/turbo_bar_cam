@@ -215,7 +215,7 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
     UNIT_TRACKING = {
         PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.UNIT_TRACKING,
         PARAM_NAMES = {
-            HEIGHT = { -500, 400 },
+            HEIGHT = { -2000, 2000 },
         }
     },
     GROUP_TRACKING = {

@@ -26,8 +26,8 @@ bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
 // Single Unit Tracking
 bind		numpad3  		turbobarcam_toggle_tracking_camera
 bind		Ctrl+numpad3  	turbobarcam_tracking_camera_adjust_params reset
-bind		numpad8			turbobarcam_tracking_camera_adjust_params add;HEIGHT,10
-bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-10
+bind		numpad8			turbobarcam_tracking_camera_adjust_params add;HEIGHT,20
+bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-20
 
 // Orbit
 bind		numpad2  		turbobarcam_toggle_orbiting_camera

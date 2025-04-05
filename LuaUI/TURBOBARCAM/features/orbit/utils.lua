@@ -122,7 +122,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 stateChanged = true
 
                 -- Initialize orbit settings with default values
-                local unitHeight = math.max(Util.getUnitHeight(unitID) + 30, 100)
+                local unitHeight = Tracking.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
                 CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
                 CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
