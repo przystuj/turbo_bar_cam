@@ -8,13 +8,13 @@ WeaponDefs = WeaponDefs
 function widget:GetInfo()
     return {
         name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
-        desc = "Advanced camera control suite with smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and fixed point tracking. Features include camera anchors, dynamic offsets, free camera mode, auto-orbit, and spectator unit groups.",
+        desc = "Advanced camera control suite with smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and more.",
         author = "SuperKitowiec",
         date = "Mar 2025",
         license = "GNU GPL, v2 or later",
         layer = 1,
         enabled = true,
-        version = 1,
+        version = 1.1,
         handler = true,
     }
 end
