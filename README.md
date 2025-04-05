@@ -62,61 +62,61 @@ keyload     luaui/TURBOBARCAM/turbobarcam.uikeys.txt
 
 Here's a summary of the default keybinds:
 
-| Key | Action | Description |
-|-----|--------|-------------|
-| **General Controls** |
-| Numpad . | Toggle TURBOBARCAM | Enable/disable the camera suite |
-| Ctrl+Numpad . | Toggle widget | Alternative way to toggle the widget |
-| **Camera Anchors** |
-| Ctrl+F1 to F4 | Set anchor 1-4 | Save current camera position as anchors 1-4 |
-| F1 to F4 | Focus anchor 1-4 | Transition to saved anchor positions 1-4 |
-| Shift+F1 to F4 | Focus and track 1-4 | Move to anchor and track selected unit |
-| Ctrl+Shift+Numpad - | Decrease transition duration | Make transitions between anchors faster |
-| Ctrl+Shift+Numpad + | Increase transition duration | Make transitions between anchors slower |
-| **FPS Camera** |
-| Numpad 1 | Toggle FPS camera | Attach camera to selected unit in FPS mode |
-| Numpad 8 | Forward/Up | Move camera forward and slightly down |
-| Numpad 5 | Backward/Down | Move camera backward and slightly up |
-| Ctrl+Numpad 8 | Height up | Increase camera height |
-| Ctrl+Numpad 5 | Height down | Decrease camera height |
-| Numpad 6 | Side right | Move camera right |
-| Numpad 4 | Side left | Move camera left |
-| Numpad 7 | Rotate left | Rotate camera left |
-| Numpad 9 | Rotate right | Rotate camera right |
-| Ctrl+Numpad 1 | Reset FPS | Reset all FPS camera offsets to defaults |
-| Numpad 0 | Set look point | Select a fixed point for camera to look at |
-| Ctrl+Numpad 0 | Clear look point | Return to normal unit following mode |
-| **Unit Tracking Camera** |
-| Numpad 3 | Toggle unit tracking | Follow selected unit, maintaining camera angle |
-| Ctrl+Numpad 3 | Reset tracking | Reset tracking camera parameters |
-| Numpad 8 | Height up | Increase look-at point height |
-| Numpad 5 | Height down | Decrease look-at point height |
-| **Orbiting Camera** |
-| Numpad 2 | Toggle orbit camera | Circle around selected unit |
-| Numpad 5 | Decrease orbit | Decrease height and distance |
-| Numpad 8 | Increase orbit | Increase height and distance |
-| Numpad 9 | Speed up | Increase orbit speed |
-| Numpad 7 | Speed down | Decrease orbit speed |
+| Key                       | Action | Description |
+|---------------------------|--------|-------------|
+| **General Controls**      |
+| Numpad .                  | Toggle TURBOBARCAM | Enable/disable the camera suite |
+| Ctrl+Numpad .             | Toggle widget | Alternative way to toggle the widget |
+| **Camera Anchors**        |
+| Ctrl+F1 to F4             | Set anchor 1-4 | Save current camera position as anchors 1-4 |
+| F1 to F4                  | Focus anchor 1-4 | Transition to saved anchor positions 1-4 |
+| Shift+F1 to F4            | Focus and track 1-4 | Move to anchor and track selected unit |
+| Ctrl+Shift+Numpad -       | Decrease transition duration | Make transitions between anchors faster |
+| Ctrl+Shift+Numpad +       | Increase transition duration | Make transitions between anchors slower |
+| **FPS Camera**            |
+| Numpad 1                  | Toggle FPS camera | Attach camera to selected unit in FPS mode |
+| Numpad 8                  | Forward/Up | Move camera forward and slightly down |
+| Numpad 5                  | Backward/Down | Move camera backward and slightly up |
+| Ctrl+Numpad 8             | Height up | Increase camera height |
+| Ctrl+Numpad 5             | Height down | Decrease camera height |
+| Numpad 6                  | Side right | Move camera right |
+| Numpad 4                  | Side left | Move camera left |
+| Numpad 7                  | Rotate left | Rotate camera left |
+| Numpad 9                  | Rotate right | Rotate camera right |
+| Ctrl+Numpad 1             | Reset FPS | Reset all FPS camera offsets to defaults |
+| Numpad /                  | Set look point | Select a fixed point for camera to look at |
+| Numpad *                  | Clear look point | Return to normal unit following mode |
+| **Unit Tracking Camera**  |
+| Numpad 3                  | Toggle unit tracking | Follow selected unit, maintaining camera angle |
+| Ctrl+Numpad 3             | Reset tracking | Reset tracking camera parameters |
+| Numpad 8                  | Height up | Increase look-at point height |
+| Numpad 5                  | Height down | Decrease look-at point height |
+| **Orbiting Camera**       |
+| Numpad 2                  | Toggle orbit camera | Circle around selected unit |
+| Numpad 5                  | Decrease orbit | Decrease height and distance |
+| Numpad 8                  | Increase orbit | Increase height and distance |
+| Numpad 9                  | Speed up | Increase orbit speed |
+| Numpad 7                  | Speed down | Decrease orbit speed |
 | **Group Tracking Camera** |
-| Numpad 0 | Toggle group tracking | Track selected group of units |
-| Numpad 5 | Decrease distance/height | Move camera closer and lower |
-| Numpad 8 | Increase distance/height | Move camera farther and higher |
-| Numpad 6 | Orbit right | Rotate camera position right |
-| Numpad 4 | Orbit left | Rotate camera position left |
-| Numpad 7 | Decrease smoothing | Make camera movements more responsive |
-| Numpad 9 | Increase smoothing | Make camera movements smoother |
-| Ctrl+Numpad 0 | Reset group tracking | Reset all group tracking settings |
-| **Overview Camera** |
-| End | Toggle overview camera | Enable strategic overview mode |
-| PageDown | Move to cursor | Move camera to cursor position |
-| Delete | Change zoom level | Cycle through zoom levels |
-| **Spectator Groups** |
-| Ctrl+Insert | Set group 1 | Save selected units as spectator group 1 |
-| Insert | Select group 1 | Select units from spectator group 1 |
-| Ctrl+Home | Set group 2 | Save selected units as spectator group 2 |
-| Home | Select group 2 | Select units from spectator group 2 |
-| Ctrl+PageUp | Set group 3 | Save selected units as spectator group 3 |
-| PageUp | Select group 3 | Select units from spectator group 3 |
+| Numpad 0                  | Toggle group tracking | Track selected group of units |
+| Numpad 5                  | Decrease distance/height | Move camera closer and lower |
+| Numpad 8                  | Increase distance/height | Move camera farther and higher |
+| Numpad 6                  | Orbit right | Rotate camera position right |
+| Numpad 4                  | Orbit left | Rotate camera position left |
+| Numpad 7                  | Decrease smoothing | Make camera movements more responsive |
+| Numpad 9                  | Increase smoothing | Make camera movements smoother |
+| Ctrl+Numpad 0             | Reset group tracking | Reset all group tracking settings |
+| **Overview Camera**       |
+| End                       | Toggle overview camera | Enable strategic overview mode |
+| PageDown                  | Move to cursor | Move camera to cursor position |
+| Delete                    | Change zoom level | Cycle through zoom levels |
+| **Spectator Groups**      |
+| Ctrl+Insert               | Set group 1 | Save selected units as spectator group 1 |
+| Insert                    | Select group 1 | Select units from spectator group 1 |
+| Ctrl+Home                 | Set group 2 | Save selected units as spectator group 2 |
+| Home                      | Select group 2 | Select units from spectator group 2 |
+| Ctrl+PageUp               | Set group 3 | Save selected units as spectator group 3 |
+| PageUp                    | Select group 3 | Select units from spectator group 3 |
 
 ## Command Reference
 
