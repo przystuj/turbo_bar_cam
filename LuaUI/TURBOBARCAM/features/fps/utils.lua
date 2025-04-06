@@ -1,17 +1,13 @@
--- FPS Camera utils for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
-local CameraCommons = TurboCore.CameraCommons
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.TrackingManager
+local CameraCommons = CommonModules.CameraCommons
 
 ---@class FPSCameraUtils
 local FPSCameraUtils = {}
@@ -26,7 +22,7 @@ function FPSCameraUtils.shouldUpdateFPSCamera()
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Util.debugEcho("Unit no longer exists")
-        Tracking.disableTracking()
+        TrackingManager.disableTracking()
         return false
     end
 
@@ -142,7 +138,7 @@ function FPSCameraUtils.resetOffsets()
     -- If we have a tracked unit, get its height for the default height offset
     if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and
             STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        local unitHeight = Tracking.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
+        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
         CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
         CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
         CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD

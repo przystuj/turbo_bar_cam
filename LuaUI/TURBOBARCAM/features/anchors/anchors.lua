@@ -3,15 +3,14 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
----@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type CameraAnchorUtils
+local CameraAnchorUtils = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/utils.lua").CameraAnchorUtils
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
-local CameraTransition = TurboCore.Transition
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.TrackingManager
 
 ---@class CameraAnchor
 local CameraAnchor = {}
@@ -51,7 +50,7 @@ function CameraAnchor.focus(index)
 
     -- Store the anchor we're moving to
     STATE.lastUsedAnchor = index
-    Tracking.disableTracking()
+    TrackingManager.disableTracking()
 
     -- Cancel transition if we click the same anchor we're currently moving to
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
@@ -68,7 +67,7 @@ function CameraAnchor.focus(index)
     end
 
     -- Check if we should do an instant transition (duration = 0)
-    if CONFIG.TRANSITION.DURATION <= 0 then
+    if CONFIG.CAMERA_MODES.ANCHOR.DURATION <= 0 then
         -- Instant camera jump
         local targetState = Util.deepCopy(STATE.anchors[index])
         -- Ensure the target state is in FPS mode
@@ -80,7 +79,7 @@ function CameraAnchor.focus(index)
     end
 
     -- Start transition
-    CameraTransition.start(STATE.anchors[index], CONFIG.TRANSITION.DURATION)
+    CameraAnchorUtils.start(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
     STATE.transition.currentAnchorIndex = index
     Util.debugEcho("Loading camera anchor: " .. index)
     return true
@@ -103,16 +102,23 @@ function CameraAnchor.focusAndTrack(index)
     -- Store the anchor we're moving to
     STATE.lastUsedAnchor = index
 
-    -- Get the selected unit to track
-    local selectedUnits = Spring.GetSelectedUnits()
+    -- Check if current mode is compatible with tracking during anchor focus
+    local isCompatibleMode = false
+    for _, mode in ipairs(CONFIG.CAMERA_MODES.ANCHOR.COMPATIBLE_MODES) do
+        if STATE.tracking.mode == mode then
+            isCompatibleMode = true
+            break
+        end
+    end
 
-    if (STATE.tracking.mode ~= 'unit_tracking' and STATE.tracking.mode ~= 'fps') or not STATE.tracking.unitID then
+    -- If not in a compatible tracking mode or no unit is being tracked, do normal focus
+    if not isCompatibleMode or not STATE.tracking.unitID then
         Util.debugEcho("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
 
-    local unitID = selectedUnits[1]
+    local unitID = STATE.tracking.unitID
     if not Spring.ValidUnitID(unitID) then
         Util.debugEcho("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
@@ -127,7 +133,7 @@ function CameraAnchor.focusAndTrack(index)
 
     -- Disable any existing tracking modes to avoid conflicts
     if not STATE.tracking.mode then
-        Tracking.disableTracking()
+        TrackingManager.disableTracking()
     end
 
     -- Create a specialized transition that maintains focus on the unit
@@ -150,7 +156,7 @@ function CameraAnchor.focusAndTrack(index)
     local targetPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Set up the transition
-    STATE.transition.steps = CameraTransition.createPositionTransition(startState, STATE.anchors[index], CONFIG.TRANSITION.DURATION, targetPos)
+    STATE.transition.steps = CameraAnchorUtils.createPositionTransition(startState, STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION, targetPos)
     STATE.transition.currentStepIndex = 1
     STATE.transition.startTime = Spring.GetTimer()
     STATE.transition.active = true
@@ -160,6 +166,44 @@ function CameraAnchor.focusAndTrack(index)
     return true
 end
 
+function CameraAnchor.update()
+    if not STATE.transition.active then
+        return
+    end
+
+    local now = Spring.GetTimer()
+
+    -- Calculate current progress
+    local elapsed = Spring.DiffTimers(now, STATE.transition.startTime)
+    local targetProgress = math.min(elapsed / CONFIG.CAMERA_MODES.ANCHOR.DURATION, 1.0)
+
+    -- Determine which step to use based on progress
+    local totalSteps = #STATE.transition.steps
+    local targetStep = math.max(1, math.min(totalSteps, math.ceil(targetProgress * totalSteps)))
+
+    -- Only update if we need to move to a new step
+    if targetStep > STATE.transition.currentStepIndex then
+        STATE.transition.currentStepIndex = targetStep
+
+        -- Apply the camera state for this step
+        local state = STATE.transition.steps[STATE.transition.currentStepIndex]
+
+        -- Apply the base camera state (position)
+        Util.setCameraState(state, true, "CameraTransition.update")
+
+        -- Check if we've reached the end
+        if STATE.transition.currentStepIndex >= totalSteps then
+            STATE.transition.active = false
+            STATE.transition.currentAnchorIndex = nil
+            Util.debugEcho("transition complete")
+
+            local currentState = Spring.GetCameraState()
+            Util.debugEcho(string.format("currentState.rx=%.3f currentState.ry=%.3f",
+                    currentState.rx or 0, currentState.rx or 0))
+        end
+    end
+end
+
 ---@see ModifiableParams
 ---@see UtilsModule#adjustParams
 function CameraAnchor.adjustParams(params)
@@ -167,7 +211,7 @@ function CameraAnchor.adjustParams(params)
         return
     end
 
-    Util.adjustParams(params, 'ANCHORS', function() CONFIG.TRANSITION.DURATION = 2 end)
+    Util.adjustParams(params, 'ANCHOR', function() CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2 end)
 end
 
 return {

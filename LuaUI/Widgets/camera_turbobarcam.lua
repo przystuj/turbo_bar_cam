@@ -27,23 +27,24 @@ local TurboFeatures = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
 ---@type CoreModules
 local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type Actions
+local Actions = VFS.Include("LuaUI/TURBOBARCAM/actions.lua").Actions
 
 ---@type AllModules
 local AllModules = {
     Context = WidgetContext,
     Features = TurboFeatures,
     Core = TurboCore,
-    Common = TurboCommons,
+    Common = CommonModules,
 }
 
 -- Initialize shorthand references
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
+local Util = CommonModules.Util
 local WidgetControl = TurboCore.WidgetControl
 local FPSCamera = TurboFeatures.FPSCamera
-local Actions = TurboCore.Actions
 local UpdateManager = TurboCore.UpdateManager
 local SelectionManager = TurboCore.SelectionManager
 
@@ -57,22 +58,14 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:Update()
-    UpdateManager.processCycle(AllModules)
+    UpdateManager.processCycle()
 end
 
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
-
     WG.TURBOBARCAM.Util = AllModules.Common.Util
-
-    -- Initialize the managers with modules reference
-    UpdateManager.setModules(AllModules)
-    SelectionManager.setModules(AllModules)
-
-    -- Register all action handlers
-    Actions.registerAllActions(AllModules)
-
+    Actions.registerAllActions()
     Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. STATE.logLevel)
 end
 

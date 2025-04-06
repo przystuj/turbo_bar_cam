@@ -3,11 +3,11 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.TrackingManager
 
 ---@class WidgetControl
 local WidgetControl = {}
@@ -34,7 +34,7 @@ function WidgetControl.disable()
     if Util.isTurboBarCamDisabled() then
         return
     end
-    Tracking.disableTracking()
+    TrackingManager.disableTracking()
 
     if STATE.transition.active then
         STATE.transition.active = false

@@ -1,6 +1,3 @@
--- Selection handling module for TURBOBARCAM
--- Handles unit selection changes
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
@@ -12,15 +9,6 @@ local Util = CommonModules.Util
 
 ---@class SelectionManager
 local SelectionManager = {}
-
--- Store modules for internal use
-SelectionManager.modules = nil
-
---- Initializes modules reference for internal use
----@param modules table Modules object containing Features and Core
-function SelectionManager.setModules(modules)
-    SelectionManager.modules = modules
-end
 
 --- Handles selection changes
 ---@param selectedUnits number[] Array of selected unit IDs

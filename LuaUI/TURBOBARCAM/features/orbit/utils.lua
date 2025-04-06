@@ -3,12 +3,12 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.TrackingManager
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
@@ -37,7 +37,7 @@ function OrbitCameraUtils.handleAutoOrbit()
 
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Util.debugEcho("[handleAutoOrbit] Unit no longer exists")
-        Tracking.disableTracking()
+        TrackingManager.disableTracking()
         return
     end
 
@@ -104,7 +104,7 @@ function OrbitCameraUtils.handleAutoOrbit()
             end
 
             -- Store current camera position as last position to smooth from
-            Tracking.updateTrackingState(camState)
+            TrackingManager.updateTrackingState(camState)
         end
     else
         -- Unit and camera are stationary
@@ -122,7 +122,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 stateChanged = true
 
                 -- Initialize orbit settings with default values
-                local unitHeight = Tracking.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
+                local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
                 CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
                 CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
 
@@ -135,7 +135,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
                 -- Store current camera position as last position to smooth from
-                Tracking.updateTrackingState(camState)
+                TrackingManager.updateTrackingState(camState)
 
                 -- Store original transition factor and use a more delayed transition
                 STATE.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR

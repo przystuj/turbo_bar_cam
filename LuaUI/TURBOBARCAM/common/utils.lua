@@ -14,6 +14,30 @@ local Util = {}
 
 local lastThrottledExecutionTimes = {}
 
+--- Checks if a value exists in an array
+---@param tbl table The array to search in
+---@param value any The value to search for
+---@return boolean found Whether the value was found
+function Util.tableContains(tbl, value)
+    for _, v in ipairs(tbl) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+
+--- Counts number of elements in a table (including non-numeric keys)
+---@param t table The table to count
+---@return number count The number of elements
+function Util.tableCount(t)
+    local count = 0
+    for _ in pairs(t) do
+        count = count + 1
+    end
+    return count
+end
+
 function Util.throttleExecution(fn, interval, id)
     -- Default to a generic ID if none provided
     local functionId = id or "default"
@@ -525,13 +549,13 @@ function Util.setCameraState(camState, withSmoothing, source)
     local fixRotationPatch = {}
     local fixRequired = false
     if currentState.rx ~= normalizedState.rx and currentState.rx and normalizedState.rx and math.abs(currentState.rx - normalizedState.rx) > 1 then
-        Util.debugEcho(string.format("[%s] currentState.rx=%.3f normalizedState.rx=%.3f", source,
+        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.rx=%.3f normalizedState.rx=%.3f", source,
                 currentState.rx or 0, normalizedState.rx or 0))
         fixRequired = true
         fixRotationPatch.rx = normalizedState.rx
     end
     if currentState.ry ~= normalizedState.ry and currentState.ry and normalizedState.ry and math.abs(currentState.ry - normalizedState.ry) > 1 then
-        Util.debugEcho(string.format("[%s] currentState.ry=%.3f normalizedState.ry=%.3f", source,
+        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.ry=%.3f normalizedState.ry=%.3f", source,
                 currentState.ry or 0, normalizedState.ry or 0))
         fixRequired = true
         fixRotationPatch.ry = normalizedState.ry

@@ -1,15 +1,13 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
-local CameraCommons = TurboCore.CameraCommons
+local Util = CommonModules.Util
+local TrackingManager = CommonModules.TrackingManager
+local CameraCommons = CommonModules.CameraCommons
 
 ---@type {OverviewCameraUtils: OverviewCameraUtils}
 local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/utils.lua")
@@ -29,7 +27,7 @@ function TurboOverviewCamera.toggle()
 
     -- If we're already in turbo overview mode, turn it off
     if STATE.tracking.mode == 'turbo_overview' then
-        Tracking.disableTracking()
+        TrackingManager.disableTracking()
         Util.debugEcho("Turbo Overview camera disabled")
         return
     end
@@ -233,7 +231,7 @@ function TurboOverviewCamera.update()
             rz = 0
         }
 
-        Tracking.updateTrackingState(camStatePatch)
+        TrackingManager.updateTrackingState(camStatePatch)
 
         -- Apply camera state
         Util.setCameraState(camStatePatch, false, "TurboOverviewCamera.update")

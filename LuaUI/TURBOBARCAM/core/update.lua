@@ -4,20 +4,31 @@
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type FeatureModules
+local Features = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
-local TrackingManager = CommonModules.Tracking
+local TrackingManager = CommonModules.TrackingManager
 
 ---@class UpdateManager
 local UpdateManager = {}
 
---- Checks if the player is currently spectating
----@return boolean isSpectator Whether the player is spectating
-function UpdateManager.isSpectating()
-    -- Check if we're a spectator
-    local _, _, spec = Spring.GetPlayerInfo(Spring.GetMyPlayerID())
-    STATE.specGroups.isSpectator = spec
-    return spec
+--- Processes the main update cycle
+function UpdateManager.processCycle()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    -- Handle tracking grace period
+    UpdateManager.handleTrackingGracePeriod()
+
+    -- Handle mode transitions
+    UpdateManager.handleModeTransitions()
+
+    Features.FPSCamera.checkFixedPointCommandActivation()
+
+    -- Handle camera updates
+    UpdateManager.updateCameraMode()
 end
 
 --- Handles tracking grace period
@@ -38,6 +49,15 @@ function UpdateManager.handleTrackingGracePeriod()
     return false
 end
 
+--- Checks if the player is currently spectating
+---@return boolean isSpectator Whether the player is spectating
+function UpdateManager.isSpectating()
+    -- Check if we're a spectator
+    local _, _, spec = Spring.GetPlayerInfo(Spring.GetMyPlayerID())
+    STATE.specGroups.isSpectator = spec
+    return spec
+end
+
 --- Handles transitions between camera modes
 function UpdateManager.handleModeTransitions()
     -- If we're in a mode transition but not tracking any unit,
@@ -54,19 +74,10 @@ function UpdateManager.handleModeTransitions()
 end
 
 --- Updates the camera based on current mode
----@param modules AllModules
-function UpdateManager.updateCameraMode(modules)
-    if not modules then
-        return
-    end
-
-    ---@type FeatureModules
-    local Features = modules.Features
-    local Core = modules.Core
-
+function UpdateManager.updateCameraMode()
     -- First handle active transitions, which override normal camera updates
     if STATE.transition.active then
-        Core.Transition.update()
+        Features.CameraAnchor.update()
     else
         -- Normal camera updates based on current mode
         if STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point' then
@@ -90,39 +101,6 @@ function UpdateManager.updateCameraMode(modules)
             Features.GroupTrackingCamera.update()
         end
     end
-end
-
---- Initializes modules reference for internal use
----@param modules AllModules
-function UpdateManager.setModules(modules)
-    UpdateManager.modules = modules
-end
-
---- Processes the main update cycle
----@param modules AllModules
-function UpdateManager.processCycle(modules)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
-    -- Store modules for internal use if not already set
-    if not UpdateManager.modules then
-        UpdateManager.setModules(modules)
-    end
-
-    -- Handle tracking grace period
-    UpdateManager.handleTrackingGracePeriod()
-
-    -- Handle mode transitions
-    UpdateManager.handleModeTransitions()
-
-    -- Check for fixed point command activation
-    if modules and modules.Features then
-        modules.Features.FPSCamera.checkFixedPointCommandActivation()
-    end
-
-    -- Handle camera updates
-    UpdateManager.updateCameraMode(modules)
 end
 
 return {

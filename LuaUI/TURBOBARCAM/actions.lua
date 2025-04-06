@@ -1,27 +1,29 @@
--- Actions module for TURBOBARCAM
--- Handles registering action handlers for all camera modules
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CommonModules
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type CoreModules
+local CoreModules = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+---@type FeatureModules
+local FeatureModules = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
+
+local STATE = WidgetContext.WidgetState.STATE
+local Util = CommonModules.Util
 
 ---@class Actions
 local Actions = {}
 local w = widget
 
 --- Register all camera action handlers
----@param modules AllModules
-function Actions.registerAllActions(modules)
-    local Features = modules.Features
-    local Core = modules.Core
-    local Context = modules.Context
-    local Common = modules.Common
-    local STATE = Context.WidgetState.STATE
-
-    Actions.coreActions(Core, STATE, Common)
-    Actions.fpsActions(Features)
-    Actions.anchorActions(Features)
-    Actions.trackingCameraActions(Features)
-    Actions.specGroupsActions(Features)
-    Actions.orbitActions(Features)
-    Actions.overviewActions(Features)
-    Actions.groupTrackingActions(Features)
+function Actions.registerAllActions()
+    Actions.coreActions()
+    Actions.fpsActions()
+    Actions.anchorActions()
+    Actions.trackingCameraActions()
+    Actions.specGroupsActions()
+    Actions.orbitActions()
+    Actions.overviewActions()
+    Actions.groupTrackingActions()
     Actions.I18N()
 end
 
@@ -33,13 +35,10 @@ function Actions.registerAction(actionName, flags, handler)
     w.widgetHandler.actionHandler:AddAction(w, actionName, handler, nil, flags)
 end
 
----@param Core CoreModules
----@param STATE WidgetState
----@param Common CommonModules
-function Actions.coreActions(Core, STATE, Common)
+function Actions.coreActions()
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
-                Core.WidgetControl.toggle()
+                CoreModules.WidgetControl.toggle()
                 return true
             end)
     Actions.registerAction("turbobarcam_debug", 'tp',
@@ -50,148 +49,165 @@ function Actions.coreActions(Core, STATE, Common)
                     TRACE = "INFO"
                 }
                 STATE.logLevel = logLevelCycle[STATE.logLevel] or "INFO"
-                Common.Util.echo("Log level: " .. STATE.logLevel)
+                Util.echo("Log level: " .. STATE.logLevel)
                 return true
             end)
 end
 
----@param Features FeatureModules
-function Actions.fpsActions(Features)
+
+
+
+function Actions.fpsActions()
     -- FPS camera actions
     Actions.registerAction("turbobarcam_toggle_fps_camera", 'tp',
             function()
-                Features.FPSCamera.toggle()
+                FeatureModules.FPSCamera.toggle()
                 return true
             end, nil)
 
     Actions.registerAction("turbobarcam_fps_adjust_params", 'pR',
             function(_, params)
-                Features.FPSCamera.adjustParams(params)
+                FeatureModules.FPSCamera.adjustParams(params)
                 return false
             end)
 
     Actions.registerAction("turbobarcam_fps_toggle_free_cam", 'tp',
             function()
-                Features.FPSCamera.toggleFreeCam()
+                FeatureModules.FPSCamera.toggleFreeCam()
                 return true
             end)
 
     --- turbobarcam_fps_set_fixed_look_point is an ui action so it's not listed here
     Actions.registerAction("turbobarcam_fps_clear_fixed_look_point", 'tp',
             function()
-                Features.FPSCamera.clearFixedLookPoint()
+                FeatureModules.FPSCamera.clearFixedLookPoint()
                 return false
             end)
 end
 
----@param Features FeatureModules
-function Actions.anchorActions(Features)
+
+
+
+function Actions.anchorActions()
     Actions.registerAction("turbobarcam_anchor_set", 'tp',
             function(_, index)
-                Features.CameraAnchor.set(index)
+                FeatureModules.CameraAnchor.set(index)
                 return true
             end)
 
     Actions.registerAction("turbobarcam_anchor_focus", 'tp',
             function(_, index)
-                Features.CameraAnchor.focus(index)
+                FeatureModules.CameraAnchor.focus(index)
                 return true
             end)
 
     Actions.registerAction("turbobarcam_anchor_focus_while_tracking", 'tp',
             function(_, index)
-                Features.CameraAnchor.focusAndTrack(index)
+                FeatureModules.CameraAnchor.focusAndTrack(index)
                 return true
             end)
 
     Actions.registerAction("turbobarcam_anchor_adjust_params", 'pR',
             function(_, params)
-                Features.CameraAnchor.adjustParams(params)
+                FeatureModules.CameraAnchor.adjustParams(params)
                 return false
             end)
 end
 
----@param Features FeatureModules
-function Actions.trackingCameraActions(Features)
+
+
+
+function Actions.trackingCameraActions()
     Actions.registerAction("turbobarcam_toggle_tracking_camera", 'tp',
             function()
-                Features.UnitTrackingCamera.toggle()
+                FeatureModules.UnitTrackingCamera.toggle()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'pR',
             function(_, params)
-                Features.UnitTrackingCamera.adjustParams(params)
+                FeatureModules.UnitTrackingCamera.adjustParams(params)
                 return false
             end)
 end
 
----@param Features FeatureModules
-function Actions.specGroupsActions(Features)
+
+
+
+function Actions.specGroupsActions()
     Actions.registerAction("turbobarcam_spec_unit_group", 'tp',
             function(_, params)
-                Features.SpecGroups.handleCommand(params)
+                FeatureModules.SpecGroups.handleCommand(params)
                 return true
             end)
 end
 
----@param Features FeatureModules
-function Actions.orbitActions(Features)
+
+
+
+function Actions.orbitActions()
     Actions.registerAction("turbobarcam_toggle_orbiting_camera", 'tp',
             function()
-                Features.OrbitingCamera.toggle()
+                FeatureModules.OrbitingCamera.toggle()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_orbit_adjust_params", 'pR',
             function(_, params)
-                Features.OrbitingCamera.adjustParams(params)
+                FeatureModules.OrbitingCamera.adjustParams(params)
                 return false
             end)
 end
 
----@param Features FeatureModules
-function Actions.overviewActions(Features)
+
+
+
+function Actions.overviewActions()
     Actions.registerAction("turbobarcam_overview_toggle", 'tp',
             function()
-                Features.TurboOverviewCamera.toggle()
+                FeatureModules.TurboOverviewCamera.toggle()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_overview_change_zoom", 'tp',
             function()
-                Features.TurboOverviewCamera.toggleZoom()
+                FeatureModules.TurboOverviewCamera.toggleZoom()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_overview_move_camera", 'tp',
             function()
-                Features.TurboOverviewCamera.moveToTarget()
+                FeatureModules.TurboOverviewCamera.moveToTarget()
                 return true
             end)
 
     -- Group Tracking camera actions
     Actions.registerAction("turbobarcam_follow_camera_toggle", 'tp',
             function()
-                Features.GroupTrackingCamera.toggle()
+                FeatureModules.GroupTrackingCamera.toggle()
                 return true
             end)
 end
 
----@param Features FeatureModules
-function Actions.groupTrackingActions(Features)
+
+
+
+function Actions.groupTrackingActions()
     Actions.registerAction("turbobarcam_toggle_group_tracking_camera", 'tp',
             function()
-                Features.GroupTrackingCamera.toggle()
+                FeatureModules.GroupTrackingCamera.toggle()
                 return true
             end, nil)
 
     Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'pR',
             function(_, params)
-                Features.GroupTrackingCamera.adjustParams(params)
+                FeatureModules.GroupTrackingCamera.adjustParams(params)
                 return false
             end)
 end
+
+
+
 
 function Actions.I18N()
     Spring.I18N.load({

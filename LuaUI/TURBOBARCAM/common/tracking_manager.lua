@@ -2,12 +2,11 @@
 -- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type {Util: UtilsModule}
-local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
+---@type UtilsModule
+local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = UtilsModule.Util
 
 ---@class TrackingManager
 local TrackingManager = {}

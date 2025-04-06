@@ -2,18 +2,16 @@
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
----@type CoreModules
-local CoreModules = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type GroupTrackingUtils
 local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua").TrackingUtils
+---@type DBSCAN
+local DBSCAN = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/dbscan.lua").DBSCAN
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
-local TrackingManager = CommonModules.Tracking
-local ClusterMathUtils = CommonModules.ClusterMathUtils
-local DBSCAN = CommonModules.DBSCAN
-local CameraCommons = CoreModules.CameraCommons
+local TrackingManager = CommonModules.TrackingManager
+local CameraCommons = CommonModules.CameraCommons
 
 ---@class GroupTrackingCamera
 local GroupTrackingCamera = {}
@@ -121,7 +119,7 @@ function GroupTrackingCamera.calculateCenterOfMass()
     STATE.tracking.group.lastCenterOfMass.z = STATE.tracking.group.centerOfMass.z
 
     -- Calculate center of mass using the math utility
-    local newCenter, totalWeight, validUnits = ClusterMathUtils.calculateCenterOfMass(unitsToUse)
+    local newCenter, totalWeight, validUnits = DBSCAN.calculateCenterOfMass(unitsToUse)
 
     -- Update state with new center
     STATE.tracking.group.centerOfMass = newCenter
@@ -135,7 +133,7 @@ function GroupTrackingCamera.calculateCenterOfMass()
 
     if timeSinceLast > 0 then
         -- Calculate raw velocity
-        local rawVelocity = ClusterMathUtils.calculateVelocity(
+        local rawVelocity = DBSCAN.calculateVelocity(
                 STATE.tracking.group.centerOfMass,
                 STATE.tracking.group.lastCenterOfMass,
                 timeSinceLast
@@ -169,7 +167,7 @@ function GroupTrackingCamera.calculateCenterOfMass()
         end
 
         -- Add current direction to history (but only if the velocity is significant)
-        local velocityMagnitude = ClusterMathUtils.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
+        local velocityMagnitude = DBSCAN.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
         if velocityMagnitude > 5.0 then
             -- Normalize the velocity to get just the direction
             local normalizedDir = {
@@ -217,7 +215,7 @@ function GroupTrackingCamera.calculateGroupRadius()
     end
 
     -- Calculate radius using the math utility
-    STATE.tracking.group.radius = ClusterMathUtils.calculateGroupRadius(unitsToUse, center)
+    STATE.tracking.group.radius = DBSCAN.calculateGroupRadius(unitsToUse, center)
 end
 
 --- Detects clusters and focuses on the most significant one using DBSCAN
@@ -324,7 +322,7 @@ function GroupTrackingCamera.detectClusters()
             for _, unitID in ipairs(units) do
                 if Spring.ValidUnitID(unitID) and
                         TrackingUtils.isAircraftUnit(unitID) and
-                        not ClusterMathUtils.tableContains(significantCluster, unitID) then
+                        not Util.tableContains(significantCluster, unitID) then
                     table.insert(significantCluster, unitID)
                 end
             end
@@ -332,7 +330,7 @@ function GroupTrackingCamera.detectClusters()
 
         -- Mark units not in significant cluster as outliers
         for _, unitID in ipairs(units) do
-            if Spring.ValidUnitID(unitID) and not ClusterMathUtils.tableContains(significantCluster, unitID) then
+            if Spring.ValidUnitID(unitID) and not Util.tableContains(significantCluster, unitID) then
                 -- Don't mark aircraft as outliers if we want to include them
                 if not (hasAircraft and TrackingUtils.isAircraftUnit(unitID)) then
                     newOutliers[unitID] = true
@@ -358,7 +356,7 @@ function GroupTrackingCamera.detectClusters()
     local previousOutliers = STATE.tracking.group.outliers
 
     -- Compare previous and new outliers
-    if ClusterMathUtils.tableCount(previousOutliers) ~= ClusterMathUtils.tableCount(newOutliers) then
+    if Util.tableCount(previousOutliers) ~= Util.tableCount(newOutliers) then
         outliersChanged = true
     else
         -- Check if any new outliers weren't in the previous set
@@ -535,7 +533,7 @@ function GroupTrackingCamera.shouldUseStableMode()
     end
 
     -- Check velocity magnitude - very small movement doesn't need tracking
-    local velocityMagnitude = ClusterMathUtils.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
+    local velocityMagnitude = DBSCAN.vectorMagnitude(STATE.tracking.group.smoothedVelocity)
     if velocityMagnitude < 3.0 then
         return true
     end
@@ -620,7 +618,7 @@ function GroupTrackingCamera.update()
         -- Normal tracking mode
         -- Get smoothed velocity and calculate direction
         local smoothedVelocity = STATE.tracking.group.smoothedVelocity
-        local velocityMagnitude = ClusterMathUtils.vectorMagnitude(smoothedVelocity)
+        local velocityMagnitude = DBSCAN.vectorMagnitude(smoothedVelocity)
 
         if velocityMagnitude > 5.0 then
             -- Use velocity direction (position camera behind units)

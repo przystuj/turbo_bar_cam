@@ -1,11 +1,11 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type TrackingManager
+local TrackingManager = VFS.Include("LuaUI/TURBOBARCAM/common/tracking_manager.lua").TrackingManager
+---@type UtilsModule
+local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
-local Tracking = TurboCommons.Tracking
 
 ---@class CameraCommons
 local CameraCommons = {}
@@ -132,7 +132,7 @@ function CameraCommons.beginModeTransition(newMode)
 
         -- Store current camera position as last position to smooth from
         local camState = Spring.GetCameraState()
-        Tracking.updateTrackingState(camState)
+        TrackingManager.updateTrackingState(camState)
     end
 end
 

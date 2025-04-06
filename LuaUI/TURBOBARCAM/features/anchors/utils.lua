@@ -1,20 +1,21 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type UtilsModule
-local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
+---@type CommonModules
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
+local Util = CommonModules.Util
 
----@class CameraTransition
-local CameraTransition = {}
+---@class CameraAnchorUtils
+local CameraAnchorUtils = {}
 
 --- Generates a sequence of camera states for smooth transition
 ---@param startState table Start camera state
 ---@param endState table End camera state
 ---@param numSteps number Number of transition steps
 ---@return table[] steps Array of transition step states
-function CameraTransition.generateSteps(startState, endState, numSteps)
+function CameraAnchorUtils.generateSteps(startState, endState, numSteps)
     local steps = {}
 
     -- Camera parameters to interpolate
@@ -74,59 +75,19 @@ function CameraTransition.generateSteps(startState, endState, numSteps)
 
     return steps
 end
-
---- Handles transition updates
-function CameraTransition.update()
-    if not STATE.transition.active then
-        return
-    end
-
-    local now = Spring.GetTimer()
-
-    -- Calculate current progress
-    local elapsed = Spring.DiffTimers(now, STATE.transition.startTime)
-    local targetProgress = math.min(elapsed / CONFIG.TRANSITION.DURATION, 1.0)
-
-    -- Determine which step to use based on progress
-    local totalSteps = #STATE.transition.steps
-    local targetStep = math.max(1, math.min(totalSteps, math.ceil(targetProgress * totalSteps)))
-
-    -- Only update if we need to move to a new step
-    if targetStep > STATE.transition.currentStepIndex then
-        STATE.transition.currentStepIndex = targetStep
-
-        -- Apply the camera state for this step
-        local state = STATE.transition.steps[STATE.transition.currentStepIndex]
-
-        -- Apply the base camera state (position)
-        Util.setCameraState(state, true, "CameraTransition.update")
-
-        -- Check if we've reached the end
-        if STATE.transition.currentStepIndex >= totalSteps then
-            STATE.transition.active = false
-            STATE.transition.currentAnchorIndex = nil
-            Util.debugEcho("transition complete")
-
-            local currentState = Spring.GetCameraState()
-            Util.debugEcho(string.format("currentState.rx=%.3f currentState.ry=%.3f",
-                    currentState.rx or 0, currentState.rx or 0))
-        end
-    end
-end
-
 --- Starts a transition between camera states
 ---@param endState table End camera state
 ---@param duration number Transition duration in seconds
-function CameraTransition.start(endState, duration)
+function CameraAnchorUtils.start(endState, duration)
     -- Generate transition steps for smooth transition
     local startState = Spring.GetCameraState()
-    local numSteps = math.max(2, math.floor(duration * CONFIG.TRANSITION.STEPS_PER_SECOND))
+    local numSteps = math.max(2, math.floor(duration * CONFIG.CAMERA_MODES.ANCHOR.STEPS_PER_SECOND))
 
     -- Ensure the target state is in FPS mode
     endState.mode = 0
     endState.name = "fps"
 
-    STATE.transition.steps = CameraTransition.generateSteps(startState, endState, numSteps)
+    STATE.transition.steps = CameraAnchorUtils.generateSteps(startState, endState, numSteps)
     STATE.transition.currentStepIndex = 1
     STATE.transition.startTime = Spring.GetTimer()
     STATE.transition.active = true
@@ -138,8 +99,8 @@ end
 ---@param duration number Transition duration
 ---@param targetPoint table|nil Point to keep looking at during transition
 ---@return table transitionSteps Array of transition steps
-function CameraTransition.createPositionTransition(startPos, endPos, duration, targetPoint)
-    local numSteps = math.max(2, math.floor(duration * CONFIG.TRANSITION.STEPS_PER_SECOND))
+function CameraAnchorUtils.createPositionTransition(startPos, endPos, duration, targetPoint)
+    local numSteps = math.max(2, math.floor(duration * CONFIG.CAMERA_MODES.ANCHOR.STEPS_PER_SECOND))
     local steps = {}
 
     for i = 1, numSteps do
@@ -180,5 +141,5 @@ function CameraTransition.createPositionTransition(startPos, endPos, duration, t
 end
 
 return {
-    CameraTransition = CameraTransition
+    CameraAnchorUtils = CameraAnchorUtils
 }

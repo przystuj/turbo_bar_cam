@@ -2,10 +2,7 @@
 -- This file centralizes all type annotations for easier imports
 
 ---@class CoreModules
----@field CameraCommons CameraCommons
----@field Transition CameraTransition
 ---@field WidgetControl WidgetControl
----@field Actions Actions
 ---@field UpdateManager UpdateManager
 ---@field SelectionManager SelectionManager
 
@@ -23,10 +20,9 @@
 ---@field WidgetConfig WidgetConfigModule
 
 ---@class CommonModules
+---@field CameraCommons CameraCommons
 ---@field Util UtilsModule
 ---@field Tracking TrackingManager
----@field ClusterMathUtils ClusterMathUtils
----@field DBSCAN DBSCAN
 
 ---@class AllModules
 ---@field Core CoreModules

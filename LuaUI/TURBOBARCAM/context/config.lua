@@ -10,6 +10,15 @@ WG.TURBOBARCAM = WG.TURBOBARCAM or {}
 ---@field CONFIG WidgetConfig
 local WidgetConfig = {}
 
+local MODES = {
+    FPS = "fps",
+    FIXED_POINT = "fps.fixed_point",
+    UNIT_TRACKING = "unit_tracking",
+    ORBIT = "orbit",
+    OVERVIEW = "overview",
+    GROUP_TRACKING = "group_tracking",
+}
+
 -- Only initialize CONFIG if it doesn't exist in WG already
 if not WG.TURBOBARCAM.CONFIG then
     ---@class WidgetConfig
@@ -17,6 +26,14 @@ if not WG.TURBOBARCAM.CONFIG then
 
         -- Camera mode settings
         CAMERA_MODES = {
+            ANCHOR = {
+                -- modes which will trigger focus_while_tracking effect
+                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "fixed_point" },
+                -- Transition settings
+                DURATION = 2.0, -- Default transition duration (seconds)
+                STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
+            },
+
             -- FPS camera settings
             FPS = {
                 OFFSETS = {
@@ -31,7 +48,7 @@ if not WG.TURBOBARCAM.CONFIG then
                     SIDE = 0,
                     ROTATION = 0
                 },
-                MOUSE_SENSITIVITY = 0.003,
+                MOUSE_SENSITIVITY = 0.004,
             },
 
             -- Orbit camera settings
@@ -143,17 +160,11 @@ if not WG.TURBOBARCAM.CONFIG then
             },
         },
 
-        -- Transition settings
-        TRANSITION = {
-            DURATION = 2.0, -- Default transition duration (seconds)
-            STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
-        },
-
         -- Smoothing factors
         SMOOTHING = {
-            POSITION_FACTOR = 0.008, -- Lower = smoother but more lag (0.0-1.0)
-            ROTATION_FACTOR = 0.008, -- Lower = smoother but more lag (0.0-1.0)
-            TRACKING_FACTOR = 0.05, -- Specific for Tracking Camera mode
+            POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+            ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+            TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
             MODE_TRANSITION_FACTOR = 0.04, -- For smoothing between camera modes
             FREE_CAMERA_FACTOR = 0.05  -- Smoothing factor for free camera mouse movement
         },
@@ -197,8 +208,8 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             SPEED = { -0.005, 0.005 },
         }
     },
-    ANCHORS = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.TRANSITION,
+    ANCHOR = {
+        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.ANCHOR,
         PARAM_NAMES = {
             DURATION = { 0, nil },
         }

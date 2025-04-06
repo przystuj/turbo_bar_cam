@@ -2,21 +2,19 @@
 -- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type CommonModules
-local TurboCommons = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
-local Util = TurboCommons.Util
+local Util = CommonModules.Util
 
 ---@type FreeCam
 local FreeCam = VFS.Include("LuaUI/TURBOBARCAM/features/fps/freecam.lua").FreeCam
 ---@type FPSCameraUtils
 local FPSCameraUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/utils.lua").FPSCameraUtils
-local CameraCommons = TurboCore.CameraCommons
-local TrackingManager = TurboCommons.Tracking
+local CameraCommons = CommonModules.CameraCommons
+local TrackingManager = CommonModules.TrackingManager
 
 local prevActiveCmd
 
