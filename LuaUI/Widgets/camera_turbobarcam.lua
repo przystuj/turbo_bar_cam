@@ -32,10 +32,10 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type Actions
 local Actions = VFS.Include("LuaUI/TURBOBARCAM/standalone/actions.lua").Actions
 
--- Initialize shorthand references
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local WidgetControl = TurboCore.WidgetControl
 local FPSCamera = TurboFeatures.FPSCamera
 local UpdateManager = TurboCore.UpdateManager
@@ -58,7 +58,7 @@ function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
     Actions.registerAllActions()
-    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
 function widget:Shutdown()

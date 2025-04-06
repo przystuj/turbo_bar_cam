@@ -1,13 +1,16 @@
+---@type {Log: Log}
+local LogModule = VFS.Include("LuaUI/TURBOBARCAM/common/log.lua")
 ---@type {Util: Util}
 local UtilsModule = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua")
 ---@type {TrackingManager: TrackingManager}
 local TrackingModule = VFS.Include("LuaUI/TURBOBARCAM/common/tracking_manager.lua")
 ---@type {CameraCommons: CameraCommons}
-local CameraCommons = VFS.Include("LuaUI/TURBOBARCAM/common/camera_commons.lua")
+local CameraCommonsModule = VFS.Include("LuaUI/TURBOBARCAM/common/camera_commons.lua")
 
 ---@return CommonModules
 return {
-    CameraCommons = CameraCommons.CameraCommons,
+    CameraCommons = CameraCommonsModule.CameraCommons,
     Util = UtilsModule.Util,
+    Log = LogModule.Log,
     TrackingManager = TrackingModule.TrackingManager,
 }

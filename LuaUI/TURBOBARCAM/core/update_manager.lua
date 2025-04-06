@@ -6,9 +6,10 @@ local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.l
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type FeatureModules
 local Features = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
+
 local STATE = WidgetContext.WidgetState.STATE
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 
 ---@class UpdateManager
@@ -26,7 +27,7 @@ function UpdateManager.processCycle(currentFrame)
     -- Cache camera state and verify it's in FPS mode
     local camState = CameraManager.getCameraState("UpdateManager.processCycle")
     if camState.mode ~= 0 then
-        Util.debugEcho("Wrong camera mode. Disabling widget.")
+        Log.debug("Wrong camera mode. Disabling widget.")
         STATE.enabled = false
         return
     end
@@ -43,14 +44,7 @@ function UpdateManager.processCycle(currentFrame)
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
 
-    -- For debugging, if needed
-    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
-        local callHistory = CameraManager.getCallHistory()
-        Util.traceEcho("Camera operations this frame: " ..
-                callHistory.getCalls.count .. " gets, " ..
-                callHistory.setCalls.count .. " sets")
-    end
-
+    Util.throttleExecution(function() CameraManager.printCallHistory() end, 2)
 end
 
 --- Handles tracking grace period
@@ -63,7 +57,7 @@ function UpdateManager.handleTrackingGracePeriod()
         -- If grace period expired (1 second), disable tracking
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
             TrackingManager.disableTracking()
-            Util.debugEcho("Camera tracking disabled - no units selected (after grace period)")
+            Log.debug("Camera tracking disabled - no units selected (after grace period)")
             return true
         end
     end

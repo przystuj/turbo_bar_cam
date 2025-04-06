@@ -2,10 +2,13 @@
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 
 local STATE = WidgetContext.WidgetState.STATE
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 
 ---@class WidgetControl
@@ -14,7 +17,7 @@ local WidgetControl = {}
 --- Enables the widget
 function WidgetControl.enable()
     if STATE.enabled then
-        Util.traceEcho("Already enabled")
+        Log.trace("Already enabled")
         return
     end
 
@@ -26,7 +29,7 @@ function WidgetControl.enable()
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
     STATE.enabled = true
     WidgetControl.switchToFpsCamera()
-    Util.debugEcho("Enabled")
+    Log.debug("Enabled")
 end
 
 --- Disables the widget
@@ -35,6 +38,7 @@ function WidgetControl.disable()
         return
     end
     TrackingManager.disableTracking()
+    CameraManager.shutdown()
 
     if STATE.transition.active then
         STATE.transition.active = false
@@ -51,7 +55,7 @@ function WidgetControl.disable()
     end
 
     STATE.enabled = false
-    Util.debugEcho("Disabled")
+    Log.debug("Disabled")
 end
 
 --- Toggles the widget state
@@ -127,15 +131,15 @@ function WidgetControl.switchToFpsCamera()
             -- Position camera behind the unit instead
             fpsState.pz = z - offsetDistance
             fpsState.ry = fpsState.ry + math.pi -- Rotate 180 degrees
-            Util.traceEcho("Boundary detected, positioning camera behind unit")
+            Log.trace("Boundary detected, positioning camera behind unit")
         else
             -- Normal positioning in front of unit
             fpsState.pz = forwardPosition
-            Util.traceEcho("Normal positioning in front of unit")
+            Log.trace("Normal positioning in front of unit")
         end
 
-        Util.traceEcho("Camera height: " .. cameraHeight)
-        Util.traceEcho("Offset distance: " .. offsetDistance)
+        Log.trace("Camera height: " .. cameraHeight)
+        Log.trace("Offset distance: " .. offsetDistance)
     else
         -- Calculate position based on spring camera state
         fpsState.py = springState.py + springState.dist * 0.986 -- Height adjustment
@@ -152,7 +156,7 @@ function WidgetControl.toggleDebug()
         TRACE = "INFO"
     }
     CONFIG.DEBUG.LOG_LEVEL = logLevelCycle[CONFIG.DEBUG.LOG_LEVEL] or "INFO"
-    Util.echo("Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    Log.info("Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
     return true
 end
 

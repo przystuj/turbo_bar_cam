@@ -6,6 +6,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 
 ---@class SelectionManager
 local SelectionManager = {}
@@ -60,7 +61,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
                 CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.unitOffsets[unitID].forward
                 CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.unitOffsets[unitID].side
                 CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.unitOffsets[unitID].rotation or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-                Util.debugEcho("Camera switched to unit " .. unitID .. " with saved offsets")
+                Log.debug("Camera switched to unit " .. unitID .. " with saved offsets")
             else
                 -- Get new default height for this unit
                 local unitHeight = math.max(Util.getUnitHeight(unitID) * 2, 100)
@@ -78,10 +79,10 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
                     rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
                 }
 
-                Util.debugEcho("Camera switched to unit " .. unitID .. " with new offsets")
+                Log.debug("Camera switched to unit " .. unitID .. " with new offsets")
             end
         else
-            Util.debugEcho("Tracking switched to unit " .. unitID)
+            Log.debug("Tracking switched to unit " .. unitID)
         end
     end
 end

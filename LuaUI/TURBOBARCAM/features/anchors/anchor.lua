@@ -10,6 +10,7 @@ local CameraAnchorUtils = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/anchor
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 
 ---@class CameraAnchor
@@ -26,7 +27,7 @@ function CameraAnchor.set(index)
     index = tonumber(index)
     if index and index >= 0 and index <= 9 then
         STATE.anchors[index] = CameraManager.getCameraState("CameraAnchor.set")
-        Util.echo("Saved camera anchor: " .. index)
+        Log.info("Saved camera anchor: " .. index)
     end
     return
 end
@@ -52,14 +53,14 @@ function CameraAnchor.focus(index)
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
         STATE.transition.active = false
         STATE.transition.currentAnchorIndex = nil
-        Util.debugEcho("Transition canceled")
+        Log.debug("Transition canceled")
         return true
     end
 
     -- Cancel any in-progress transition when starting a new one
     if STATE.transition.active then
         STATE.transition.active = false
-        Util.debugEcho("Canceled previous transition")
+        Log.debug("Canceled previous transition")
     end
 
     -- Check if we should do an instant transition (duration = 0)
@@ -70,14 +71,14 @@ function CameraAnchor.focus(index)
         targetState.mode = 0
         targetState.name = "fps"
         CameraManager.setCameraState(targetState, 0, "CameraAnchor.focus")
-        Util.debugEcho("Instantly jumped to camera anchor: " .. index)
+        Log.debug("Instantly jumped to camera anchor: " .. index)
         return true
     end
 
     -- Start transition
     CameraAnchorUtils.start(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
     STATE.transition.currentAnchorIndex = index
-    Util.debugEcho("Loading camera anchor: " .. index)
+    Log.debug("Loading camera anchor: " .. index)
     return true
 end
 
@@ -91,7 +92,7 @@ function CameraAnchor.focusAndTrack(index)
 
     index = tonumber(index)
     if not (index and index >= 0 and index <= 9 and STATE.anchors[index]) then
-        Util.debugEcho("Invalid or unset camera anchor: " .. (index or "nil"))
+        Log.debug("Invalid or unset camera anchor: " .. (index or "nil"))
         return true
     end
 
@@ -109,14 +110,14 @@ function CameraAnchor.focusAndTrack(index)
 
     -- If not in a compatible tracking mode or no unit is being tracked, do normal focus
     if not isCompatibleMode or not STATE.tracking.unitID then
-        Util.debugEcho("No unit was tracked during focused anchor transition")
+        Log.debug("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
 
     local unitID = STATE.tracking.unitID
     if not Spring.ValidUnitID(unitID) then
-        Util.debugEcho("Invalid unit for tracking during anchor transition")
+        Log.debug("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
@@ -124,7 +125,7 @@ function CameraAnchor.focusAndTrack(index)
     -- Cancel any in-progress transitions
     if STATE.transition.active then
         STATE.transition.active = false
-        Util.debugEcho("Canceled previous transition")
+        Log.debug("Canceled previous transition")
     end
 
     -- Disable any existing tracking modes to avoid conflicts
@@ -158,7 +159,7 @@ function CameraAnchor.focusAndTrack(index)
     STATE.transition.active = true
     STATE.transition.currentAnchorIndex = index
 
-    Util.debugEcho("Moving to anchor " .. index .. " while tracking unit " .. unitID)
+    Log.debug("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true
 end
 
@@ -191,10 +192,10 @@ function CameraAnchor.update()
         if STATE.transition.currentStepIndex >= totalSteps then
             STATE.transition.active = false
             STATE.transition.currentAnchorIndex = nil
-            Util.debugEcho("transition complete")
+            Log.debug("transition complete")
 
             local currentState = CameraManager.getCameraState("CameraAnchor.update")
-            Util.debugEcho(string.format("currentState.rx=%.3f currentState.ry=%.3f",
+            Log.debug(string.format("currentState.rx=%.3f currentState.ry=%.3f",
                     currentState.rx or 0, currentState.rx or 0))
         end
     end

@@ -4,12 +4,13 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+---@type {OrbitCameraUtils: OrbitCameraUtils}
+local OrbitUtils = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit_utils.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
----@type {OrbitCameraUtils: OrbitCameraUtils}
-local OrbitUtils = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit_utils.lua")
+local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 local OrbitCameraUtils = OrbitUtils.OrbitCameraUtils
@@ -30,14 +31,14 @@ function OrbitingCamera.toggle(unitID)
         if #selectedUnits > 0 then
             unitID = selectedUnits[1]
         else
-            Util.debugEcho("No unit selected for Orbiting view")
+            Log.debug("No unit selected for Orbiting view")
             return
         end
     end
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Util.debugEcho("Invalid unit ID for Orbiting view")
+        Log.debug("Invalid unit ID for Orbiting view")
         return
     end
 
@@ -49,7 +50,7 @@ function OrbitingCamera.toggle(unitID)
         }
 
         TrackingManager.disableTracking()
-        Util.debugEcho("Orbiting camera detached")
+        Log.debug("Orbiting camera detached")
         return
     end
 
@@ -63,7 +64,7 @@ function OrbitingCamera.toggle(unitID)
         if STATE.orbit.unitOffsets[unitID] and STATE.orbit.unitOffsets[unitID].speed then
             -- Use stored settings
             CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
-            Util.debugEcho("Using previous orbit speed for unit " .. unitID)
+            Log.debug("Using previous orbit speed for unit " .. unitID)
         else
             -- Use default settings
             CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
@@ -91,7 +92,7 @@ function OrbitingCamera.toggle(unitID)
         STATE.orbit.stationaryTimer = nil
         STATE.orbit.autoOrbitActive = false
 
-        Util.debugEcho("Orbiting camera attached to unit " .. unitID)
+        Log.debug("Orbiting camera attached to unit " .. unitID)
     end
 
 end
@@ -104,7 +105,7 @@ function OrbitingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Util.debugEcho("Unit no longer exists")
+        Log.debug("Unit no longer exists")
         TrackingManager.disableTracking()
         return
     end

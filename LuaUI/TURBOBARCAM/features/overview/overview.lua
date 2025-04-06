@@ -8,6 +8,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 local CameraCommons = CommonModules.CameraCommons
 
@@ -30,7 +31,7 @@ function TurboOverviewCamera.toggle()
     -- If we're already in turbo overview mode, turn it off
     if STATE.tracking.mode == 'turbo_overview' then
         TrackingManager.disableTracking()
-        Util.debugEcho("Turbo Overview camera disabled")
+        Log.debug("Turbo Overview camera disabled")
         return
     end
 
@@ -39,8 +40,8 @@ function TurboOverviewCamera.toggle()
     local mapZ = Game.mapSizeZ
     local mapDiagonal = math.sqrt(mapX * mapX + mapZ * mapZ)
 
-    Util.debugEcho("Map dimensions: " .. mapX .. " x " .. mapZ)
-    Util.debugEcho("Map diagonal: " .. mapDiagonal)
+    Log.debug("Map dimensions: " .. mapX .. " x " .. mapZ)
+    Log.debug("Map diagonal: " .. mapDiagonal)
 
     -- Initialize turbo overview state with config values
     STATE.turboOverview.zoomLevel = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_ZOOM_LEVEL
@@ -76,12 +77,12 @@ function TurboOverviewCamera.toggle()
 
     -- Set a good default height based on map size
     STATE.turboOverview.height = math.max(mapDiagonal * CONFIG.CAMERA_MODES.TURBO_OVERVIEW.HEIGHT_FACTOR, 500)
-    Util.debugEcho("Base camera height: " .. STATE.turboOverview.height)
+    Log.debug("Base camera height: " .. STATE.turboOverview.height)
 
     -- Calculate current height based on zoom level
     local currentHeight = OverviewCameraUtils.calculateCurrentHeight()
     STATE.turboOverview.targetHeight = currentHeight -- Initialize target height
-    Util.debugEcho("Current camera height: " .. currentHeight)
+    Log.debug("Current camera height: " .. currentHeight)
 
     -- Get current camera position to improve the transition
     local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.toggle")
@@ -133,7 +134,7 @@ function TurboOverviewCamera.toggle()
     -- Apply the camera state with a longer transition time to avoid initial fast movement
     CameraManager.setCameraState(camStatePatch, 1, "TurboOverviewCamera.toggle")
 
-    Util.debugEcho("Turbo Overview camera enabled (Zoom: x" ..
+    Log.debug("Turbo Overview camera enabled (Zoom: x" ..
             CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
 end
 
@@ -296,7 +297,7 @@ end
 --- Cycles through the predefined zoom levels with smooth transitions.
 function TurboOverviewCamera.toggleZoom()
     if STATE.tracking.mode ~= 'turbo_overview' then
-        Util.debugEcho("Turbo Overview camera must be enabled first")
+        Log.debug("Turbo Overview camera must be enabled first")
         return
     end
 
@@ -310,7 +311,7 @@ function TurboOverviewCamera.toggleZoom()
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
     local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
-    Util.debugEcho("Turbo Overview camera zoom: x" .. newZoom)
+    Log.debug("Turbo Overview camera zoom: x" .. newZoom)
 
     -- Force an update to start the transition
     TurboOverviewCamera.update()
@@ -321,13 +322,13 @@ end
 ---@param level number Zoom level index (1-based index to zoomLevels array)
 function TurboOverviewCamera.setZoomLevel(level)
     if STATE.tracking.mode ~= 'turbo_overview' then
-        Util.debugEcho("Turbo Overview camera must be enabled first")
+        Log.debug("Turbo Overview camera must be enabled first")
         return
     end
 
     level = tonumber(level)
     if not level or level < 1 or level > #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS then
-        Util.debugEcho("Invalid zoom level. Available levels: 1-" .. #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS)
+        Log.debug("Invalid zoom level. Available levels: 1-" .. #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS)
         return
     end
 
@@ -338,7 +339,7 @@ function TurboOverviewCamera.setZoomLevel(level)
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
     local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
-    Util.debugEcho("Turbo Overview camera zoom set to: x" .. newZoom)
+    Log.debug("Turbo Overview camera zoom set to: x" .. newZoom)
 
     -- Force an update to start the transition
     TurboOverviewCamera.update()
@@ -362,7 +363,7 @@ function TurboOverviewCamera.moveToTarget()
     -- Toggle target movement mode on/off
     if STATE.turboOverview.movingToTarget then
         STATE.turboOverview.movingToTarget = false
-        Util.debugEcho("Target movement mode exited")
+        Log.debug("Target movement mode exited")
     else
         -- Get cursor position and set it as target point
         STATE.turboOverview.targetPoint = OverviewCameraUtils.getCursorWorldPosition()
@@ -418,7 +419,7 @@ function TurboOverviewCamera.moveToTarget()
         -- Get current mouse position
         STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
 
-        Util.debugEcho("Target movement mode started")
+        Log.debug("Target movement mode started")
     end
 
     return true

@@ -8,6 +8,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 
 ---@type FreeCam
 local FreeCam = VFS.Include("LuaUI/TURBOBARCAM/features/fps/fps_free_camera.lua").FreeCam
@@ -44,13 +45,13 @@ function FPSCamera.toggle()
     if #selectedUnits > 0 then
         unitID = selectedUnits[1]
     else
-        Util.debugEcho("No unit selected for FPS view")
+        Log.debug("No unit selected for FPS view")
         return
     end
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Util.debugEcho("Invalid unit ID for FPS view")
+        Log.debug("Invalid unit ID for FPS view")
         return
     end
 
@@ -69,7 +70,7 @@ function FPSCamera.toggle()
         STATE.tracking.targetUnitID = nil
 
         TrackingManager.disableTracking()
-        Util.debugEcho("FPS camera detached")
+        Log.debug("FPS camera detached")
 
         -- refresh units command bar to remove custom command
         selectedUnits = Spring.GetSelectedUnits()
@@ -89,7 +90,7 @@ function FPSCamera.toggle()
         -- Load unit settings
         TrackingManager.loadUnitSettings('fps', unitID)
 
-        Util.debugEcho("FPS camera attached to unit " .. unitID)
+        Log.debug("FPS camera attached to unit " .. unitID)
     end
 end
 
@@ -216,7 +217,7 @@ function FPSCamera.checkFixedPointCommandActivation()
                 STATE.tracking.modeTransition = true
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-                Util.debugEcho("Target selection mode activated - select a target to look at")
+                Log.debug("Target selection mode activated - select a target to look at")
             end
             -- Case 2: Command deactivated - exiting target selection mode without setting a point
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.inTargetSelectionMode then
@@ -227,7 +228,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             if STATE.tracking.prevMode == 'fixed_point' and STATE.tracking.prevFixedPoint then
                 STATE.tracking.mode = 'fixed_point'
                 STATE.tracking.fixedPoint = STATE.tracking.prevFixedPoint
-                Util.debugEcho("Target selection canceled, returning to fixed point view")
+                Log.debug("Target selection canceled, returning to fixed point view")
             end
 
             -- Restore previous free camera state
@@ -238,7 +239,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             STATE.tracking.transitionStartTime = Spring.GetTimer()
 
             if STATE.tracking.prevMode == 'fps' then
-                Util.debugEcho("Target selection canceled, returning to unit view")
+                Log.debug("Target selection canceled, returning to unit view")
             end
         end
     end
@@ -257,12 +258,12 @@ function FPSCamera.setFixedLookPoint(cmdParams)
 
     -- Only works if we're tracking a unit in FPS mode
     if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
-        Util.debugEcho("Fixed point tracking only works when in FPS mode")
+        Log.debug("Fixed point tracking only works when in FPS mode")
         return false
     end
 
     if not STATE.tracking.unitID then
-        Util.debugEcho("No unit being tracked for fixed point camera")
+        Log.debug("No unit being tracked for fixed point camera")
         return false
     end
 
@@ -279,7 +280,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
                 -- Store the target unit ID for continuous tracking
                 STATE.tracking.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
-                Util.debugEcho("Camera will follow current unit but look at unit " .. unitID)
+                Log.debug("Camera will follow current unit but look at unit " .. unitID)
             end
         elseif #cmdParams == 3 then
             -- Clicked on ground/feature
@@ -294,7 +295,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     if not x or not y or not z then
-        Util.debugEcho("Could not find a valid position")
+        Log.debug("Could not find a valid position")
         return false
     end
 
@@ -320,7 +321,7 @@ function FPSCamera.toggleFreeCam()
 
     -- Only works if we're tracking a unit in FPS mode
     if (STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point') or not STATE.tracking.unitID then
-        Util.debugEcho("Free camera only works when tracking a unit in FPS mode")
+        Log.debug("Free camera only works when tracking a unit in FPS mode")
         return
     end
 

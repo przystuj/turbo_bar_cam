@@ -1,67 +1,57 @@
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type Log
+local Log = VFS.Include("LuaUI/TURBOBARCAM/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
----@class HistoryEntry
----@field frame number The frame number when this call was made
----@field source string The source of the call
----@field time number The timestamp when the call was made
----@field forced boolean|nil Whether this was a forced refresh (for get calls)
----@field smoothing number|nil The smoothing factor used (for set calls)
+local STATE = WidgetContext.WidgetState.STATE
 
----@class CallHistory
----@field get HistoryEntry[] History of get calls
----@field set HistoryEntry[] History of set calls
+-- Initialize the call history in WG to persist across module reloads
+if not WG.TURBOBARCAM then
+    WG.TURBOBARCAM = {}
+end
 
----@class CameraCache
----@field currentState table|nil The cached camera state
----@field currentFrame number The current frame number
----@field dirtyFlag boolean Whether the cache needs refreshing
----@field callHistory CallHistory History of camera calls
-
----@class CameraManager
-local CameraManager = {}
-
--- Simple internal state storage
----@type CameraCache
-local cache = {
-    -- Camera state caching
-    currentState = nil,
-    currentFrame = 0,
-    dirtyFlag = false,
-
-    -- Call history for debugging
-    callHistory = {
+if not WG.TURBOBARCAM.CALL_HISTORY then
+    WG.TURBOBARCAM.CALL_HISTORY = {
         GetCameraState = {},
         SetCameraState = {}
     }
+end
+
+---@class CameraManager
+local CameraManager = {
+    cache = {
+        -- Camera state caching
+        currentState = nil,
+        currentFrame = 0,
+        dirtyFlag = false
+    }
 }
 
----@class CameraOptions
 ---@field historyLimit number Maximum number of calls to track in history
-
--- Configuration - read from global CONFIG
----@type CameraOptions
 local options = {
     -- Maximum number of calls to track in history
-    historyLimit = 100,
+    historyLimit = 50,
 }
 
--- Add an entry to history, respecting the limit
----@param historyType "GetCameraState"|"SetCameraState" "GetCameraState" or "SetCameraState"
----@param entry HistoryEntry The history entry to add
 local function addToHistory(historyType, entry)
-    local history = cache.callHistory[historyType]
-    table.insert(history, 1, entry)
-    if #history > options.historyLimit then
-        table.remove(history)
+    -- Skip UpdateManager calls for cleaner history
+    if entry.source == "UpdateManager.processCycle" and historyType == "GetCameraState" then
+        return
+    end
+
+    table.insert(WG.TURBOBARCAM.CALL_HISTORY[historyType], 1, entry)
+    if #WG.TURBOBARCAM.CALL_HISTORY[historyType] > options.historyLimit then
+        table.remove(WG.TURBOBARCAM.CALL_HISTORY[historyType])
     end
 end
 
 --- Begin a new frame in the camera manager
 ---@param frameNum number The current frame number
 function CameraManager.beginFrame(frameNum)
-    if frameNum ~= cache.currentFrame then
-        cache.currentFrame = frameNum
+    if frameNum ~= CameraManager.cache.currentFrame then
+        CameraManager.cache.currentFrame = frameNum
     end
 end
 
@@ -72,30 +62,26 @@ function CameraManager.getCameraState(source)
     assert(source, "Source parameter is required for getCameraState")
 
     addToHistory("GetCameraState", {
-        frame = cache.currentFrame,
+        frame = CameraManager.cache.currentFrame,
         source = source,
-        time = os.clock()
+        time = os.clock(),
+        mode = STATE.mode or "none"
     })
 
     -- Check if we need to refresh the cached state
-    if cache.dirtyFlag or not cache.currentState then
-        cache.currentState = Spring.GetCameraState()
-        cache.dirtyFlag = false
+    if CameraManager.cache.dirtyFlag or not CameraManager.cache.currentState then
+        CameraManager.cache.currentState = Spring.GetCameraState()
+        CameraManager.cache.dirtyFlag = false
 
         -- Verify that we're in FPS mode
-        if cache.currentState.mode ~= 0 then
-            Util.debugEcho("Warning: Camera is not in FPS mode, current mode: " .. (cache.currentState.mode or "nil"))
-            cache.currentState.mode = 0
-            cache.currentState.name = "fps"
+        if CameraManager.cache.currentState.mode ~= 0 then
+            Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
+            CameraManager.cache.currentState.mode = 0
+            CameraManager.cache.currentState.name = "fps"
         end
     end
 
-    return cache.currentState
-end
-
---- Mark the state as dirty (needs refreshing)
-function CameraManager.markDirty()
-    cache.dirtyFlag = true
+    return CameraManager.cache.currentState
 end
 
 -- Detect and fix large rotation changes that might cause camera spinning
@@ -112,7 +98,7 @@ local function applyRotationFix(currentState, newState, smoothing, source)
     -- Check for large rx changes
     if currentState.rx ~= newState.rx and currentState.rx and newState.rx and
             math.abs(currentState.rx - newState.rx) > 1 then
-        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.rx=%.3f newState.rx=%.3f",
+        Log.debug(string.format("[%s] Rotation fix detected: currentState.rx=%.3f newState.rx=%.3f",
                 source, currentState.rx or 0, newState.rx or 0))
         fixRequired = true
         fixRotationPatch.rx = newState.rx
@@ -121,7 +107,7 @@ local function applyRotationFix(currentState, newState, smoothing, source)
     -- Check for large ry changes
     if currentState.ry ~= newState.ry and currentState.ry and newState.ry and
             math.abs(currentState.ry - newState.ry) > 1 then
-        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.ry=%.3f newState.ry=%.3f",
+        Log.debug(string.format("[%s] Rotation fix detected: currentState.ry=%.3f newState.ry=%.3f",
                 source, currentState.ry or 0, newState.ry or 0))
         fixRequired = true
         fixRotationPatch.ry = newState.ry
@@ -178,10 +164,11 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
 
     -- Add to history for debugging
     addToHistory("SetCameraState", {
-        frame = cache.currentFrame,
+        frame = CameraManager.cache.currentFrame,
         source = source,
         time = os.clock(),
-        smoothing = smoothing
+        smoothing = smoothing,
+        mode = STATE.mode or "none"
     })
 
     -- Normal path - direct camera state setting
@@ -195,97 +182,66 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
     Spring.SetCameraState(normalizedState, smoothing)
 
     -- Mark state as dirty since we've changed it
-    cache.dirtyFlag = true
-
-    -- If no smoothing is applied, we can update our cached state directly
-    if smoothing == 0 then
-        cache.currentState = Util.deepCopy(cameraState)
-    end
-end
-
---- Create a partial state update (only specified fields)
----@param fields table List of field names to include in the partial state
----@param source string Source of the call for tracking
----@return table partialState The partial camera state
-function CameraManager.createPartialState(fields, source)
-    assert(source, "Source parameter is required for createPartialState")
-
-    local partialState = {}
-    local currentState = CameraManager.getCameraState(source)
-
-    -- Copy only the fields we want to update
-    for _, field in ipairs(fields) do
-        partialState[field] = currentState[field]
-    end
-
-    return partialState
+    CameraManager.cache.dirtyFlag = true
 end
 
 ---@class CallHistoryReturn
 ---@field frame number Current frame number
----@field getCalls table Get calls history
----@field setCalls table Set calls history
+---@field GetCameraState table Get calls history
+---@field SetCameraState table Set calls history
 
 --- Get call history for debugging
 ---@return CallHistoryReturn Call history for debugging
 function CameraManager.getCallHistory()
     return {
-        frame = cache.currentFrame,
-        getCalls = {
-            history = cache.callHistory.get
+        frame = CameraManager.cache.currentFrame,
+        GetCameraState = {
+            history = WG.TURBOBARCAM.CALL_HISTORY.GetCameraState
         },
-        setCalls = {
-            history = cache.callHistory.set
+        SetCameraState = {
+            history = WG.TURBOBARCAM.CALL_HISTORY.SetCameraState
         }
     }
 end
 
 --- Print camera call history in a formatted way
----@param maxEntries number|nil Maximum number of entries to print (optional)
-function CameraManager.printCallHistory(maxEntries)
+function CameraManager.printCallHistory()
     local history = CameraManager.getCallHistory()
-    local getCalls = history.getCalls.history
-    local setCalls = history.setCalls.history
+    local getCalls = history.GetCameraState.history
+    local setCalls = history.SetCameraState.history
 
-    -- Default to 20 entries if not specified
-    maxEntries = maxEntries or 20
-
-    Util.echo("=== Camera Call History (Frame " .. history.frame .. ") ===")
-    Util.echo("GetCameraState calls: " .. #getCalls)
-
+    Log.info("=== Camera Call History (Frame " .. history.frame .. ") ===")
+    Log.info("GetCameraState calls: " .. #getCalls)
     -- Print GetCameraState calls
-    for i = 1, math.min(#getCalls, maxEntries) do
+    for i = 1, #getCalls do
         local call = getCalls[i]
-        local forceFlag = call.forced and " (FORCED)" or ""
-        Util.echo(string.format("%d. GET  | Frame: %d | Source: %s%s",
-                i, call.frame, call.source, forceFlag))
+        Log.info(string.format("%d. GET  | Mode: %s | Frame: %d. | Source: %s",
+                i, call.mode, call.frame, call.source))
     end
 
-    Util.echo("\nSetCameraState calls: " .. #setCalls)
+    Log.info("SetCameraState calls: " .. #setCalls)
 
     -- Print SetCameraState calls
-    for i = 1, math.min(#setCalls, maxEntries) do
+    for i = 1, #setCalls do
         local call = setCalls[i]
         local smoothingStr = call.smoothing > 0 and "SMOOTH" or "INSTANT"
-        Util.echo(string.format("%d. SET  | Frame: %d | Source: %s | %s",
-                i, call.frame, call.source, smoothingStr))
+        Log.info(string.format("%d. SET  | Mode: %s | Frame: %d. | Source: %s | %s",
+                i, call.mode, call.frame, call.source, smoothingStr))
     end
 
-    Util.echo("======================================")
+    Log.info("======================================")
 end
 
 -- Clean up resources when the manager is no longer needed
 function CameraManager.shutdown()
-    -- Clear all internal state
-    cache = {
+    CameraManager.cache = {
         currentState = nil,
         currentFrame = 0,
-        dirtyFlag = false,
-        callHistory = {
-            get = {},
-            set = {}
-        }
+        dirtyFlag = false
     }
+
+    WG.TURBOBARCAM.CALL_HISTORY = {}
+
 end
 
 return {

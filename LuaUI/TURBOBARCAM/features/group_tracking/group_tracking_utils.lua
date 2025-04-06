@@ -5,6 +5,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 
 ---@class GroupTrackingUtils
 local GroupTrackingUtils = {}
@@ -75,7 +76,7 @@ function GroupTrackingUtils.resetGroupTrackingSettings()
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_POSITION
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_ROTATION
 
-    Util.debugEcho("Group tracking camera settings reset to defaults")
+    Log.debug("Group tracking camera settings reset to defaults")
     return true
 end
 

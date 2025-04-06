@@ -6,6 +6,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 
 ---@class OverviewCameraUtils
 local OverviewCameraUtils = {}
@@ -156,7 +157,7 @@ function OverviewCameraUtils.updateTargetMovement()
 
         -- Exit movement mode if button is released
         STATE.turboOverview.isMovingToTarget = false
-        Util.debugEcho("Exiting target movement mode")
+        Log.debug("Exiting target movement mode")
         return true
     end
 
@@ -210,7 +211,7 @@ function OverviewCameraUtils.updateTargetMovement()
     if STATE.turboOverview.distanceToTarget <= STATE.turboOverview.minDistanceToTarget + 1 then
         STATE.turboOverview.isMovingToTarget = false
         STATE.turboOverview.movingToTarget = false
-        Util.debugEcho("Reached target position")
+        Log.debug("Reached target position")
         return true
     end
 

@@ -8,6 +8,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 
 ---@class OrbitCameraUtils
@@ -36,7 +37,7 @@ function OrbitCameraUtils.handleAutoOrbit()
     end
 
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Util.debugEcho("[handleAutoOrbit] Unit no longer exists")
+        Log.debug("[handleAutoOrbit] Unit no longer exists")
         TrackingManager.disableTracking()
         return
     end
@@ -163,7 +164,7 @@ function OrbitCameraUtils.adjustParams(params)
     end
     -- Make sure we have a unit to orbit around
     if not STATE.tracking.unitID then
-        Util.debugEcho("No unit is being orbited")
+        Log.debug("No unit is being orbited")
         return
     end
 
@@ -199,10 +200,10 @@ function OrbitCameraUtils.resetSettings()
         end
         STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
 
-        Util.debugEcho("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
+        Log.debug("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
         return true
     else
-        Util.debugEcho("No unit being orbited")
+        Log.debug("No unit being orbited")
         return false
     end
 

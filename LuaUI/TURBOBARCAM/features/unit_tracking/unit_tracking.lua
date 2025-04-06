@@ -8,6 +8,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
@@ -27,9 +28,9 @@ function UnitTrackingCamera.toggle()
         -- If no unit is selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'unit_tracking' then
             TrackingManager.disableTracking()
-            Util.debugEcho("Tracking Camera disabled")
+            Log.debug("Tracking Camera disabled")
         else
-            Util.debugEcho("No unit selected for Tracking Camera")
+            Log.debug("No unit selected for Tracking Camera")
         end
         return
     end
@@ -39,13 +40,13 @@ function UnitTrackingCamera.toggle()
     -- If we're already tracking this exact unit in tracking camera mode, turn it off
     if STATE.tracking.mode == 'unit_tracking' and STATE.tracking.unitID == selectedUnitID then
         TrackingManager.disableTracking()
-        Util.debugEcho("Tracking Camera disabled")
+        Log.debug("Tracking Camera disabled")
         return
     end
 
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
-        Util.debugEcho("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
+        Log.debug("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
     end
 end
 
@@ -57,7 +58,7 @@ function UnitTrackingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Util.debugEcho("Tracked unit no longer exists, disabling Tracking Camera")
+        Log.debug("Tracked unit no longer exists, disabling Tracking Camera")
         TrackingManager.disableTracking()
         return
     end
@@ -127,7 +128,7 @@ function UnitTrackingCamera.adjustParams(params)
     end
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
-        Util.debugEcho("No unit is tracked")
+        Log.debug("No unit is tracked")
         return
     end
 

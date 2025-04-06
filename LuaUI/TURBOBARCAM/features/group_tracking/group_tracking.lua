@@ -12,6 +12,7 @@ local DBSCAN = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/dbscan.lua
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 local CameraCommons = CommonModules.CameraCommons
 
@@ -31,9 +32,9 @@ function GroupTrackingCamera.toggle()
         -- If no units are selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'group_tracking' then
             TrackingManager.disableTracking()
-            Util.debugEcho("Group Tracking Camera disabled")
+            Log.debug("Group Tracking Camera disabled")
         else
-            Util.debugEcho("No units selected for Group Tracking Camera")
+            Log.debug("No units selected for Group Tracking Camera")
         end
         return true
     end
@@ -41,7 +42,7 @@ function GroupTrackingCamera.toggle()
     -- If we're already in group tracking mode, turn it off
     if STATE.tracking.mode == 'group_tracking' then
         TrackingManager.disableTracking()
-        Util.debugEcho("Group Tracking Camera disabled")
+        Log.debug("Group Tracking Camera disabled")
         return true
     end
 
@@ -89,7 +90,7 @@ function GroupTrackingCamera.toggle()
         -- Initialize camera position based on center of mass
         GroupTrackingCamera.initializeCameraPosition()
 
-        Util.debugEcho(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.tracking.group.unitIDs))
+        Log.debug(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.tracking.group.unitIDs))
     end
 
     return true
@@ -239,7 +240,7 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- Check if we're dealing with aircraft units
-    Util.debugEcho({ "units", units })
+    Log.debug({ "units", units })
     local hasAircraft = TrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units

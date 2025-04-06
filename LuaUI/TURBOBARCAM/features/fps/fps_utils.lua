@@ -6,6 +6,7 @@ local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 local CameraCommons = CommonModules.CameraCommons
 
@@ -21,7 +22,7 @@ function FPSCameraUtils.shouldUpdateFPSCamera()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Util.debugEcho("Unit no longer exists")
+        Log.debug("Unit no longer exists")
         TrackingManager.disableTracking()
         return false
     end
@@ -104,7 +105,7 @@ function FPSCameraUtils.adjustParams(params)
 
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
-        Util.debugEcho("No unit being tracked")
+        Log.debug("No unit being tracked")
         return
     end
 
@@ -153,13 +154,13 @@ function FPSCameraUtils.resetOffsets()
             rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
         }
 
-        Util.debugEcho("Reset camera offsets for unit " .. STATE.tracking.unitID .. " to defaults")
+        Log.debug("Reset camera offsets for unit " .. STATE.tracking.unitID .. " to defaults")
     else
         CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
         CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
         CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
         CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-        Util.debugEcho("FPS camera offsets reset to defaults")
+        Log.debug("FPS camera offsets reset to defaults")
     end
 
     return true
@@ -176,12 +177,12 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
 
     -- Only works if we're tracking a unit in FPS mode
     if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
-        Util.debugEcho("Fixed point tracking only works when in FPS mode")
+        Log.debug("Fixed point tracking only works when in FPS mode")
         return false
     end
 
     if not STATE.tracking.unitID then
-        Util.debugEcho("No unit being tracked for fixed point camera")
+        Log.debug("No unit being tracked for fixed point camera")
         return false
     end
 
@@ -207,9 +208,9 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     end
 
     if not STATE.tracking.targetUnitID then
-        Util.debugEcho("Camera will follow unit but look at fixed point")
+        Log.debug("Camera will follow unit but look at fixed point")
     else
-        Util.debugEcho("Camera will follow unit but look at unit " .. STATE.tracking.targetUnitID)
+        Log.debug("Camera will follow unit but look at unit " .. STATE.tracking.targetUnitID)
     end
 
     return true
@@ -234,9 +235,9 @@ function FPSCameraUtils.clearFixedLookPoint()
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
         if STATE.tracking.inFreeCameraMode then
-            Util.debugEcho("Fixed point tracking disabled, maintaining free camera mode")
+            Log.debug("Fixed point tracking disabled, maintaining free camera mode")
         else
-            Util.debugEcho("Fixed point tracking disabled, returning to FPS mode")
+            Log.debug("Fixed point tracking disabled, returning to FPS mode")
         end
     end
 end

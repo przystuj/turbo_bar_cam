@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type Log
+local Log = VFS.Include("LuaUI/TURBOBARCAM/common/log.lua").Log
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
@@ -36,18 +38,28 @@ function Util.tableCount(t)
     return count
 end
 
+--- Throttles function execution to occur at most once per specified interval
+--- The first call initializes the timer without executing the function.
+---
+--- Usage example:
+---   Util.throttleExecution(function() print("Heavy calculation") end, 1, "calculation")
+---
+--- @param fn function The function to throttle
+--- @param interval number Minimum time in seconds between executions
+--- @param id string|nil Optional identifier for the throttle (allows different throttles for different functions)
+--- @return nil
 function Util.throttleExecution(fn, interval, id)
     -- Default to a generic ID if none provided
-    local functionId = id or "throttleExecution"
+    local functionId = id or "throttledExecution"
 
-    -- Initialize lastLogTime for this ID if it doesn't exist yet
     if not lastThrottledExecutionTimes[functionId] then
-        lastThrottledExecutionTimes[functionId] = 0
+        lastThrottledExecutionTimes[functionId] = Spring.GetGameSeconds()
+        return
     end
 
     local currentTime = Spring.GetGameSeconds()
     if currentTime - lastThrottledExecutionTimes[functionId] >= interval then
-        Util.log(string.format("[%s] Executing..."))
+        Log.info(string.format("[%s] Executing...", functionId))
         fn()
         lastThrottledExecutionTimes[functionId] = currentTime
     end
@@ -55,7 +67,7 @@ end
 
 function Util.isTurboBarCamDisabled()
     if not STATE.enabled then
-        Util.traceEcho("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
+        Log.trace("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
         return true
     end
 end
@@ -63,7 +75,7 @@ end
 ---@param mode 'fps'|'unit_tracking'|'orbit'|'turbo_overview'
 function Util.isModeDisabled(mode)
     if STATE.tracking.mode ~= mode then
-        --Util.traceEcho(string.format("Mode %s must be enabled first. Current mode: %s", mode, tostring(STATE.tracking.mode)))
+        Log.trace(string.format("Mode %s must be enabled first. Current mode: %s", mode, tostring(STATE.tracking.mode)))
         return true
     end
 end
@@ -101,7 +113,7 @@ local function parseParams(params, moduleName)
 
     -- Handle reset command
     if command == "reset" then
-        table.insert(modifiedParams, { name = "reset"}) -- the value doesn't matter here
+        table.insert(modifiedParams, { name = "reset" }) -- the value doesn't matter here
         return modifiedParams
     end
 
@@ -232,7 +244,7 @@ local function adjustParam(command, module)
 
     -- Check if value has changed
     if newValue == currentValue then
-        Util.debugEcho("Value has not changed.")
+        Log.debug("Value has not changed.")
         return
     end
 
@@ -246,7 +258,7 @@ local function adjustParam(command, module)
         displayValue = math.floor(newValue * 180 / math.pi)
     end
 
-    Util.debugEcho(string.format("%s.%s = %s", module, command.param, displayValue))
+    Log.debug(string.format("%s.%s = %s", module, command.param, displayValue))
 end
 
 ---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
@@ -257,14 +269,14 @@ end
 ---example params: add;HEIGHT,100;DISTANCE,-50
 ---@see ModifiableParams
 function Util.adjustParams(params, module, resetFunction)
-    Util.debugEcho("Adjusting module: " .. module)
+    Log.debug("Adjusting module: " .. module)
     local adjustments = parseParams(params, module)
 
     ---@param adjustment CommandData
     for _, adjustment in ipairs(adjustments) do
         if adjustment.name == "reset" then
             if resetFunction then
-                Util.debugEcho("Resetting params for module " .. module)
+                Log.debug("Resetting params for module " .. module)
                 resetFunction()
                 return
             else
@@ -275,30 +287,6 @@ function Util.adjustParams(params, module, resetFunction)
             adjustParam(adjustment, module)
         end
     end
-end
-
---- Converts a value to a string representation for debugging
----@param o any Value to dump
----@return string representation
-function Util.dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k, v in pairs(o) do
-            if type(k) ~= 'number' then
-                k = '"' .. k .. '"'
-            end
-            s = s .. '[' .. k .. '] = ' .. Util.dump(v) .. ','
-        end
-        return s .. '} '
-    else
-        return tostring(o)
-    end
-end
-
---- Logs a value to console
----@param o any Value to log
-function Util.log(o)
-    Util.debugEcho(Util.dump(o))
 end
 
 --- Creates a deep copy of a table
@@ -474,33 +462,6 @@ function Util.calculateLookAtPoint(camPos, targetPos)
         ry = ry,
         rz = 0
     }
-end
-
-function Util.traceEcho(message)
-    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
-        if type(message) ~= "string" then
-            message = Util.dump(message)
-        end
-        Util.echo("[TRACE] " .. message)
-    end
-end
-
-function Util.debugEcho(message)
-    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" or CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
-        if type(message) ~= "string" then
-            message = Util.dump(message)
-        end
-        Util.echo("[DEBUG] " .. message)
-    end
-end
-
---- Regular echo function that always prints regardless of debug mode
----@param message string|any Message to print to console
-function Util.echo(message)
-    if type(message) ~= "string" then
-        message = Util.dump(message)
-    end
-    Spring.Echo("[TURBOBARCAM] " .. message)
 end
 
 -- Export to global scope

@@ -6,6 +6,7 @@ local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.l
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local Util = CommonModules.Util
+local Log = CommonModules.Log
 local STATE = WidgetContext.WidgetState.STATE
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 
@@ -160,7 +161,7 @@ function FreeCam.toggle(state, modeType)
             state.freeCam.lastUnitHeading = Spring.GetUnitHeading(state.unitID, true)
         end
         
-        Util.debugEcho("Free camera mode enabled - use mouse to rotate view")
+        Log.debug("Free camera mode enabled - use mouse to rotate view")
     else
         -- Clear tracking data when disabling
         state.freeCam.lastMouseX = nil
@@ -169,7 +170,7 @@ function FreeCam.toggle(state, modeType)
         state.freeCam.targetRy = nil
         state.freeCam.lastUnitHeading = nil
 
-        Util.debugEcho("Free camera mode disabled - view follows " .. modeType .. " orientation")
+        Log.debug("Free camera mode disabled - view follows " .. modeType .. " orientation")
     end
     
     -- Start a transition for smooth change

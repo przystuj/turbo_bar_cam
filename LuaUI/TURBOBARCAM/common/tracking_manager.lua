@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
+---@type Log
+local Log = VFS.Include("LuaUI/TURBOBARCAM/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
@@ -24,7 +26,7 @@ function TrackingManager.initializeTracking(mode, unitID)
     if not unitID then
         local selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits == 0 then
-            Util.debugEcho("No unit selected for " .. mode .. " view")
+            Log.debug("No unit selected for " .. mode .. " view")
             return false
         end
         unitID = selectedUnits[1]
@@ -32,7 +34,7 @@ function TrackingManager.initializeTracking(mode, unitID)
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Util.debugEcho("Invalid unit ID for " .. mode .. " view")
+        Log.debug("Invalid unit ID for " .. mode .. " view")
         return false
     end
 
@@ -41,7 +43,7 @@ function TrackingManager.initializeTracking(mode, unitID)
         -- Save current settings before disabling
         TrackingManager.saveUnitSettings(mode, unitID)
         TrackingManager.disableTracking()
-        Util.debugEcho(mode .. " camera detached")
+        Log.debug(mode .. " camera detached")
         return false
     end
 
@@ -95,7 +97,7 @@ function TrackingManager.loadUnitSettings(mode, unitID)
             CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.unitOffsets[unitID].forward
             CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.unitOffsets[unitID].side
             CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.unitOffsets[unitID].rotation or 0
-            Util.debugEcho("Using previous camera offsets for unit " .. unitID)
+            Log.debug("Using previous camera offsets for unit " .. unitID)
         else
             -- Get unit height for the default offset
             local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(unitID)
@@ -112,13 +114,13 @@ function TrackingManager.loadUnitSettings(mode, unitID)
                 side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
                 rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
             }
-            Util.debugEcho("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
+            Log.debug("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
         end
     elseif mode == 'orbit' then
         -- Load orbit camera settings
         if STATE.orbit.unitOffsets[unitID] then
             CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
-            Util.debugEcho("Using previous orbit speed for unit " .. unitID)
+            Log.debug("Using previous orbit speed for unit " .. unitID)
         else
             CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
             STATE.orbit.unitOffsets[unitID] = {
