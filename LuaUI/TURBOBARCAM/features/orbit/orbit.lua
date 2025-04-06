@@ -7,7 +7,7 @@ local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
 ---@type {OrbitCameraUtils: OrbitCameraUtils}
-local OrbitUtils = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/utils.lua")
+local OrbitUtils = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit_utils.lua")
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 local OrbitCameraUtils = OrbitUtils.OrbitCameraUtils

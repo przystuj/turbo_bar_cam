@@ -1,5 +1,3 @@
--- Orbiting Camera utils for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules

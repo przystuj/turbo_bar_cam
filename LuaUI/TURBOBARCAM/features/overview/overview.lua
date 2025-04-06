@@ -10,7 +10,7 @@ local TrackingManager = CommonModules.TrackingManager
 local CameraCommons = CommonModules.CameraCommons
 
 ---@type {OverviewCameraUtils: OverviewCameraUtils}
-local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/utils.lua")
+local OverviewUtils = VFS.Include("LuaUI/TURBOBARCAM/features/overview/overview_utils.lua")
 local OverviewCameraUtils = OverviewUtils.OverviewCameraUtils
 
 ---@class TurboOverviewCamera

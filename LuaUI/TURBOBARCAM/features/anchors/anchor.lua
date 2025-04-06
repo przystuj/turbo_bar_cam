@@ -1,11 +1,9 @@
--- Camera Anchor module for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type CameraAnchorUtils
-local CameraAnchorUtils = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/utils.lua").CameraAnchorUtils
+local CameraAnchorUtils = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/anchor_utils.lua").CameraAnchorUtils
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE

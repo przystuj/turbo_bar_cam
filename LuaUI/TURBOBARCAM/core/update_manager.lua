@@ -1,5 +1,3 @@
--- Update module for TURBOBARCAM
--- Handles camera system updates and callbacks
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules

@@ -7,7 +7,7 @@ local TrackingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/unit_tracki
 ---@type {OrbitingCamera: OrbitingCamera}
 local OrbitingCameraModule = VFS.Include("LuaUI/TURBOBARCAM/features/orbit/orbit.lua")
 ---@type {CameraAnchor: CameraAnchor}
-local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/anchors.lua")
+local CameraAnchorModule = VFS.Include("LuaUI/TURBOBARCAM/features/anchors/anchor.lua")
 ---@type {SpecGroups: SpecGroups}
 local SpecGroupsModule = VFS.Include("LuaUI/TURBOBARCAM/features/spec_groups/spec_groups.lua")
 ---@type {TurboOverviewCamera: TurboOverviewCamera}

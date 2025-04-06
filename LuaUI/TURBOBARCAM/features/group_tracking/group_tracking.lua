@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type GroupTrackingUtils
-local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/utils.lua").TrackingUtils
+local TrackingUtils = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/group_tracking_utils.lua").TrackingUtils
 ---@type DBSCAN
 local DBSCAN = VFS.Include("LuaUI/TURBOBARCAM/features/group_tracking/dbscan.lua").DBSCAN
 

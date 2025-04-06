@@ -1,7 +1,3 @@
---------------------------------------------------------------------------------
--- CONFIGURATION MANAGEMENT
---------------------------------------------------------------------------------
-
 -- Initialize the global widget table for TURBOBARCAM if it doesn't exist
 WG.TURBOBARCAM = WG.TURBOBARCAM or {}
 

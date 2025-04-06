@@ -4,9 +4,9 @@
 ---@type {WidgetControl: WidgetControl}
 local WidgetControlModule = VFS.Include("LuaUI/TURBOBARCAM/core/widget_control.lua")
 ---@type {UpdateManager: UpdateManager}
-local UpdateManager = VFS.Include("LuaUI/TURBOBARCAM/core/update.lua")
+local UpdateManager = VFS.Include("LuaUI/TURBOBARCAM/core/update_manager.lua")
 ---@type {SelectionManager: SelectionManager}
-local SelectionManager = VFS.Include("LuaUI/TURBOBARCAM/core/selection.lua")
+local SelectionManager = VFS.Include("LuaUI/TURBOBARCAM/core/selection_manager.lua")
 
 -- Export all core modules
 ---@return CoreModules

@@ -1,5 +1,3 @@
--- FPS Camera module for TURBOBARCAM
--- Load modules
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
@@ -10,9 +8,9 @@ local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
 
 ---@type FreeCam
-local FreeCam = VFS.Include("LuaUI/TURBOBARCAM/features/fps/freecam.lua").FreeCam
+local FreeCam = VFS.Include("LuaUI/TURBOBARCAM/features/fps/fps_free_camera.lua").FreeCam
 ---@type FPSCameraUtils
-local FPSCameraUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/utils.lua").FPSCameraUtils
+local FPSCameraUtils = VFS.Include("LuaUI/TURBOBARCAM/features/fps/fps_utils.lua").FPSCameraUtils
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
