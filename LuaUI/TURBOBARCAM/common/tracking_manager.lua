@@ -1,6 +1,8 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type UtilsModule
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
+---@type Util
 local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
@@ -200,12 +202,10 @@ function TrackingManager.startModeTransition(newMode)
 
     -- Set up transition state
     STATE.tracking.modeTransition = true
-    STATE.tracking.transitionStartState = Spring.GetCameraState()
+    STATE.tracking.transitionStartState = CameraManager.getCameraState("TrackingManager.startModeTransition")
     STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-    -- Store current camera position as last position to smooth from
-    local camState = Spring.GetCameraState()
-    TrackingManager.updateTrackingState(camState)
+    TrackingManager.updateTrackingState(STATE.tracking.transitionStartState)
     return true
 end
 

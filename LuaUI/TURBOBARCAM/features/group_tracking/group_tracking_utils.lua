@@ -1,6 +1,3 @@
--- Tracking utility functions for TURBOBARCAM
--- This module provides reusable utility functions for camera tracking
-
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type CommonModules
@@ -43,7 +40,7 @@ function GroupTrackingUtils.applyCameraAdjustments(center, baseDirection, distan
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function GroupTrackingUtils.adjustGroupTrackingParams(params)
     if Util.isTurboBarCamDisabled() then
         return

@@ -241,7 +241,7 @@ function OverviewCameraUtils.calculateMovementAngle(targetPoint, position)
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function OverviewCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

@@ -4,6 +4,7 @@ local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
 local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local Util = CommonModules.Util
 local TrackingManager = CommonModules.TrackingManager
 
@@ -18,12 +19,13 @@ function WidgetControl.enable()
     end
 
     -- Save current camera state before enabling
+    -- using direct Spring call as camera manager isn't active yet
     STATE.originalCameraState = Spring.GetCameraState()
 
     -- Set required configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
-    WidgetControl.switchToFpsCamera()
     STATE.enabled = true
+    WidgetControl.switchToFpsCamera()
     Util.debugEcho("Enabled")
 end
 
@@ -43,7 +45,8 @@ function WidgetControl.disable()
 
     -- Restore original camera state
     if STATE.originalCameraState then
-        Util.setCameraState(STATE.originalCameraState, true, "WidgetControl.disable")
+        -- using direct Spring call to ensure it happens
+        Spring.SetCameraState(STATE.originalCameraState, 1)
         STATE.originalCameraState = nil
     end
 
@@ -91,12 +94,12 @@ function WidgetControl.switchToFpsCamera()
         newState.mode = 0
         newState.name = "fps"
         newState.fov = 45
-        Util.setCameraState(springState, true, "WidgetControl.switchToFpsCamera")
+        Spring.SetCameraState(springState, 1)
         return
     end
 
     -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
-    Util.setCameraState({ rx = math.pi, dx = 0, dy = -1, dz = 0 }, true, "WidgetControl.switchToFpsCamera")
+    Spring.SetCameraState({ rx = math.pi, dx = 0, dy = -1, dz = 0 }, 1)
 
     -- Create a new state for FPS camera
     local fpsState = {
@@ -139,7 +142,18 @@ function WidgetControl.switchToFpsCamera()
         fpsState.pz = springState.pz + springState.dist * 0.0014 -- Slight forward adjustment
     end
 
-    Util.setCameraState(fpsState, true, "WidgetControl.switchToFpsCamera")
+    Spring.SetCameraState(fpsState, 1)
+end
+
+function WidgetControl.toggleDebug()
+    local logLevelCycle = {
+        INFO = "DEBUG",
+        DEBUG = "TRACE",
+        TRACE = "INFO"
+    }
+    CONFIG.DEBUG.LOG_LEVEL = logLevelCycle[CONFIG.DEBUG.LOG_LEVEL] or "INFO"
+    Util.echo("Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    return true
 end
 
 return {

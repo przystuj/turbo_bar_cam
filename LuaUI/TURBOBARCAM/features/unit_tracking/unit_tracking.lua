@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -61,12 +63,12 @@ function UnitTrackingCamera.update()
     end
 
     -- Check if we're still in FPS mode
-    local currentState = Spring.GetCameraState()
+    local currentState = CameraManager.getCameraState("UnitTrackingCamera.update")
     if currentState.mode ~= 0 then
         -- Force back to FPS mode
         currentState.mode = 0
         currentState.name = "fps"
-        Util.setCameraState(currentState, false, "UnitTrackingCamera.update")
+        CameraManager.setCameraState(currentState, 0, "UnitTrackingCamera.update")
     end
 
     -- Get unit position
@@ -111,11 +113,11 @@ function UnitTrackingCamera.update()
     TrackingManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state - only updating direction and rotation
-    Util.setCameraState(camStatePatch, true, "UnitTrackingCamera.update")
+    CameraManager.setCameraState(camStatePatch, 1, "UnitTrackingCamera.update")
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function UnitTrackingCamera.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

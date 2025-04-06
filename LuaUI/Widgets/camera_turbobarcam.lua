@@ -19,6 +19,8 @@ function widget:GetInfo()
     }
 end
 
+---@class Main just for navigation in IDE
+
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
 ---@type FeatureModules
@@ -28,15 +30,7 @@ local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type Actions
-local Actions = VFS.Include("LuaUI/TURBOBARCAM/actions.lua").Actions
-
----@type AllModules
-local AllModules = {
-    Context = WidgetContext,
-    Features = TurboFeatures,
-    Core = TurboCore,
-    Common = CommonModules,
-}
+local Actions = VFS.Include("LuaUI/TURBOBARCAM/standalone/actions.lua").Actions
 
 -- Initialize shorthand references
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
@@ -56,16 +50,15 @@ function widget:SelectionChanged(selectedUnits)
     SelectionManager.handleSelectionChanged(selectedUnits)
 end
 
-function widget:Update()
-    UpdateManager.processCycle()
+function widget:Update(frame)
+    UpdateManager.processCycle(frame)
 end
 
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
-    WG.TURBOBARCAM.Util = AllModules.Common.Util
     Actions.registerAllActions()
-    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. STATE.logLevel)
+    Util.echo("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
 function widget:Shutdown()

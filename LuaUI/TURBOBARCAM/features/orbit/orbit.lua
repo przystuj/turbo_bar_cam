@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -79,7 +81,7 @@ function OrbitingCamera.toggle(unitID)
 
         -- Initialize orbit angle based on current camera position
         local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
-        local camState = Spring.GetCameraState()
+        local camState = CameraManager.getCameraState("OrbitingCamera.toggle")
 
         -- Calculate current angle based on camera position relative to unit
         STATE.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
@@ -143,7 +145,7 @@ function OrbitingCamera.update()
     TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Util.setCameraState(camState, false, "OrbitingCamera.update")
+    CameraManager.setCameraState(camState, 0, "OrbitingCamera.update")
 end
 
 --- Updates the auto-orbit camera
@@ -178,11 +180,11 @@ function OrbitingCamera.updateAutoOrbit()
     TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state
-    Util.setCameraState(camState, false, "OrbitingCamera.updateAutoOrbit")
+    CameraManager.setCameraState(camState, 0, "OrbitingCamera.updateAutoOrbit")
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
 end

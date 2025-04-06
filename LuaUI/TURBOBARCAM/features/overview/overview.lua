@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -82,7 +84,7 @@ function TurboOverviewCamera.toggle()
     Util.debugEcho("Current camera height: " .. currentHeight)
 
     -- Get current camera position to improve the transition
-    local currentCamState = Spring.GetCameraState()
+    local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.toggle")
 
     -- Initialize fixed camera position to current position
     STATE.turboOverview.fixedCamPos = {
@@ -129,7 +131,7 @@ function TurboOverviewCamera.toggle()
     }
 
     -- Apply the camera state with a longer transition time to avoid initial fast movement
-    Util.setCameraState(camStatePatch, true, "TurboOverviewCamera.toggle")
+    CameraManager.setCameraState(camStatePatch, 1, "TurboOverviewCamera.toggle")
 
     Util.debugEcho("Turbo Overview camera enabled (Zoom: x" ..
             CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
@@ -145,7 +147,7 @@ function TurboOverviewCamera.update()
     end
 
     -- Get current camera state
-    local camState = Spring.GetCameraState()
+    local camState = CameraManager.getCameraState("TurboOverviewCamera.update")
 
     -- Ensure we're in FPS mode
     if camState.mode ~= 0 then
@@ -234,7 +236,7 @@ function TurboOverviewCamera.update()
         TrackingManager.updateTrackingState(camStatePatch)
 
         -- Apply camera state
-        Util.setCameraState(camStatePatch, false, "TurboOverviewCamera.update")
+        CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.update")
         return
     end
 
@@ -287,7 +289,7 @@ function TurboOverviewCamera.update()
     STATE.tracking.lastRotation.rz = camStatePatch.rz
 
     -- Apply camera state
-    Util.setCameraState(camStatePatch, false, "TurboOverviewCamera.update")
+    CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.update")
 end
 
 --- Toggles between available zoom levels
@@ -343,7 +345,7 @@ function TurboOverviewCamera.setZoomLevel(level)
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function TurboOverviewCamera.adjustParams(params)
     OverviewCameraUtils.adjustParams(params)
 end
@@ -366,7 +368,7 @@ function TurboOverviewCamera.moveToTarget()
         STATE.turboOverview.targetPoint = OverviewCameraUtils.getCursorWorldPosition()
 
         -- Get current camera state
-        local currentCamState = Spring.GetCameraState()
+        local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.moveToTarget")
 
         -- Begin mode transition explicitly
         STATE.tracking.modeTransition = true

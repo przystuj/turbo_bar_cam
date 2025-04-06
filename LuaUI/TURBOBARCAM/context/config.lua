@@ -19,6 +19,15 @@ local MODES = {
 if not WG.TURBOBARCAM.CONFIG then
     ---@class WidgetConfig
     WG.TURBOBARCAM.CONFIG = {
+        -- Debug and performance settings
+        DEBUG = {
+            LOG_LEVEL = "DEBUG", -- INFO, DEBUG, TRACE
+        },
+
+        -- Performance settings
+        PERFORMANCE = {
+            ANCHOR_STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
+        },
 
         -- Camera mode settings
         CAMERA_MODES = {
@@ -184,7 +193,7 @@ WidgetConfig.CONFIG = WG.TURBOBARCAM.CONFIG
 
 --- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
         PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.FPS.OFFSETS,

@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type GroupTrackingUtils
@@ -391,7 +393,7 @@ end
 --- Initializes camera position for group tracking
 function GroupTrackingCamera.initializeCameraPosition()
     local center = STATE.tracking.group.centerOfMass
-    local currentState = Spring.GetCameraState()
+    local currentState = CameraManager.getCameraState("GroupTrackingCamera.initializeCameraPosition")
 
     -- Calculate a good initial position more to the side than directly behind the group
     -- Try to position camera between current pos and center for a smooth transition
@@ -455,7 +457,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.targetHeight = targetHeight
 
     -- Apply camera state with a slower initial transition
-    Util.setCameraState(camState, true, "GroupTrackingCamera.initializeCameraPosition")
+    CameraManager.setCameraState(camState, 1, "GroupTrackingCamera.initializeCameraPosition")
 end
 
 --- Calculates required camera distance to see all units
@@ -586,11 +588,11 @@ function GroupTrackingCamera.update()
     local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
 
     -- Check if we're still in FPS mode
-    local currentState = Spring.GetCameraState()
+    local currentState = CameraManager.getCameraState("GroupTrackingCamera.update")
     if currentState.mode ~= 0 then
         currentState.mode = 0
         currentState.name = "fps"
-        Util.setCameraState(currentState, false, "GroupTrackingCamera.update")
+        CameraManager.setCameraState(currentState, 0, "GroupTrackingCamera.update")
     end
 
     -- Determine camera height
@@ -710,11 +712,11 @@ function GroupTrackingCamera.update()
     STATE.tracking.group.lastCameraDir = newCameraDir
 
     -- Apply camera state
-    Util.setCameraState(camStatePatch, false, "GroupTrackingCamera.update")
+    CameraManager.setCameraState(camStatePatch, 0, "GroupTrackingCamera.update")
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function GroupTrackingCamera.adjustParams(params)
     TrackingUtils.adjustGroupTrackingParams(params)
 end

@@ -1,10 +1,13 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type FeatureModules
 local Features = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
 local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local Util = CommonModules.Util
 local TrackingManager = CommonModules.TrackingManager
 
@@ -12,8 +15,19 @@ local TrackingManager = CommonModules.TrackingManager
 local UpdateManager = {}
 
 --- Processes the main update cycle
-function UpdateManager.processCycle()
+---@param currentFrame number current frame
+function UpdateManager.processCycle(currentFrame)
     if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    CameraManager.beginFrame(currentFrame)
+
+    -- Cache camera state and verify it's in FPS mode
+    local camState = CameraManager.getCameraState("UpdateManager.processCycle")
+    if camState.mode ~= 0 then
+        Util.debugEcho("Wrong camera mode. Disabling widget.")
+        STATE.enabled = false
         return
     end
 
@@ -23,10 +37,20 @@ function UpdateManager.processCycle()
     -- Handle mode transitions
     UpdateManager.handleModeTransitions()
 
+    -- Handle fixed point command activation
     Features.FPSCamera.checkFixedPointCommandActivation()
 
-    -- Handle camera updates
+    -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
+
+    -- For debugging, if needed
+    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
+        local callHistory = CameraManager.getCallHistory()
+        Util.traceEcho("Camera operations this frame: " ..
+                callHistory.getCalls.count .. " gets, " ..
+                callHistory.setCalls.count .. " sets")
+    end
+
 end
 
 --- Handles tracking grace period

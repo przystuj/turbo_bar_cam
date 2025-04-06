@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type CameraAnchorUtils
@@ -23,11 +25,7 @@ function CameraAnchor.set(index)
 
     index = tonumber(index)
     if index and index >= 0 and index <= 9 then
-        local currentState = Spring.GetCameraState()
-        -- Ensure the anchor is in FPS mode
-        currentState.mode = 0
-        currentState.name = "fps"
-        STATE.anchors[index] = currentState
+        STATE.anchors[index] = CameraManager.getCameraState("CameraAnchor.set")
         Util.echo("Saved camera anchor: " .. index)
     end
     return
@@ -71,7 +69,7 @@ function CameraAnchor.focus(index)
         -- Ensure the target state is in FPS mode
         targetState.mode = 0
         targetState.name = "fps"
-        Util.setCameraState(targetState, false, "CameraAnchor.focus")
+        CameraManager.setCameraState(targetState, 0, "CameraAnchor.focus")
         Util.debugEcho("Instantly jumped to camera anchor: " .. index)
         return true
     end
@@ -135,7 +133,7 @@ function CameraAnchor.focusAndTrack(index)
     end
 
     -- Create a specialized transition that maintains focus on the unit
-    local startState = Spring.GetCameraState()
+    local startState = CameraManager.getCameraState("CameraAnchor.focusAndTrack")
     local endState = Util.deepCopy(STATE.anchors[index])
 
     -- Ensure both states are in FPS mode
@@ -187,7 +185,7 @@ function CameraAnchor.update()
         local state = STATE.transition.steps[STATE.transition.currentStepIndex]
 
         -- Apply the base camera state (position)
-        Util.setCameraState(state, true, "CameraTransition.update")
+        CameraManager.setCameraState(state, 1, "CameraTransition.update")
 
         -- Check if we've reached the end
         if STATE.transition.currentStepIndex >= totalSteps then
@@ -195,7 +193,7 @@ function CameraAnchor.update()
             STATE.transition.currentAnchorIndex = nil
             Util.debugEcho("transition complete")
 
-            local currentState = Spring.GetCameraState()
+            local currentState = CameraManager.getCameraState("CameraAnchor.update")
             Util.debugEcho(string.format("currentState.rx=%.3f currentState.ry=%.3f",
                     currentState.rx or 0, currentState.rx or 0))
         end
@@ -203,7 +201,7 @@ function CameraAnchor.update()
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function CameraAnchor.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

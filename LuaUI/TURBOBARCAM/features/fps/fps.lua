@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -98,10 +100,6 @@ function FPSCamera.update()
         return
     end
 
-    -- Get current camera state and ensure it's in FPS mode
-    local camState = Spring.GetCameraState()
-    camState = CameraCommons.ensureFPSMode(camState)
-
     -- Get unit position and vectors
     local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(STATE.tracking.unitID)
 
@@ -169,7 +167,7 @@ function FPSCamera.update()
 
     -- Apply camera state and update tracking for next frame
     local camStatePatch = CameraCommons.createCameraState(smoothedPos, directionState)
-    Util.setCameraState(camStatePatch, false, "FPSCamera.update")
+    CameraManager.setCameraState(camStatePatch, 0, "FPSCamera.update")
     TrackingManager.updateTrackingState(camStatePatch)
 end
 
@@ -203,7 +201,7 @@ function FPSCamera.checkFixedPointCommandActivation()
                 end
 
                 -- Initialize free camera for target selection
-                local camState = Spring.GetCameraState()
+                local camState = CameraManager.getCameraState("FPSCamera.checkFixedPointCommandActivation")
                 STATE.tracking.freeCam.targetRx = camState.rx
                 STATE.tracking.freeCam.targetRy = camState.ry
                 STATE.tracking.freeCam.lastMouseX, STATE.tracking.freeCam.lastMouseY = Spring.GetMouseState()
@@ -336,7 +334,7 @@ function FPSCamera.toggleFreeCam()
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
 end

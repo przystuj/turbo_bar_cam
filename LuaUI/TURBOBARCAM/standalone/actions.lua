@@ -1,14 +1,7 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 ---@type CoreModules
 local CoreModules = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
 ---@type FeatureModules
 local FeatureModules = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
-
-local STATE = WidgetContext.WidgetState.STATE
-local Util = CommonModules.Util
 
 ---@class Actions
 local Actions = {}
@@ -27,34 +20,18 @@ function Actions.registerAllActions()
     Actions.I18N()
 end
 
---- Helper function to register an action handler
----@param actionName string Action name
----@param flags string Action flags
----@param handler function Action handler function
-function Actions.registerAction(actionName, flags, handler)
-    w.widgetHandler.actionHandler:AddAction(w, actionName, handler, nil, flags)
-end
-
 function Actions.coreActions()
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
                 CoreModules.WidgetControl.toggle()
                 return true
             end)
+
     Actions.registerAction("turbobarcam_debug", 'tp',
             function()
-                local logLevelCycle = {
-                    INFO = "DEBUG",
-                    DEBUG = "TRACE",
-                    TRACE = "INFO"
-                }
-                STATE.logLevel = logLevelCycle[STATE.logLevel] or "INFO"
-                Util.echo("Log level: " .. STATE.logLevel)
-                return true
+                return CoreModules.WidgetControl.toggleDebug()
             end)
 end
-
-
 
 
 function Actions.fpsActions()
@@ -86,8 +63,6 @@ function Actions.fpsActions()
 end
 
 
-
-
 function Actions.anchorActions()
     Actions.registerAction("turbobarcam_anchor_set", 'tp',
             function(_, index)
@@ -115,8 +90,6 @@ function Actions.anchorActions()
 end
 
 
-
-
 function Actions.trackingCameraActions()
     Actions.registerAction("turbobarcam_toggle_tracking_camera", 'tp',
             function()
@@ -132,8 +105,6 @@ function Actions.trackingCameraActions()
 end
 
 
-
-
 function Actions.specGroupsActions()
     Actions.registerAction("turbobarcam_spec_unit_group", 'tp',
             function(_, params)
@@ -141,8 +112,6 @@ function Actions.specGroupsActions()
                 return true
             end)
 end
-
-
 
 
 function Actions.orbitActions()
@@ -158,8 +127,6 @@ function Actions.orbitActions()
                 return false
             end)
 end
-
-
 
 
 function Actions.overviewActions()
@@ -190,8 +157,6 @@ function Actions.overviewActions()
 end
 
 
-
-
 function Actions.groupTrackingActions()
     Actions.registerAction("turbobarcam_toggle_group_tracking_camera", 'tp',
             function()
@@ -206,9 +171,6 @@ function Actions.groupTrackingActions()
             end)
 end
 
-
-
-
 function Actions.I18N()
     Spring.I18N.load({
         en = {
@@ -216,6 +178,14 @@ function Actions.I18N()
             ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point_tooltip"] = "Click on a location to focus camera on while following unit.",
         }
     })
+end
+
+--- Helper function to register an action handler
+---@param actionName string Action name
+---@param flags string Action flags
+---@param handler function Action handler function
+function Actions.registerAction(actionName, flags, handler)
+    w.widgetHandler.actionHandler:AddAction(w, actionName, handler, nil, flags)
 end
 
 return {

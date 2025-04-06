@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -44,7 +46,7 @@ function OrbitCameraUtils.handleAutoOrbit()
     local currentPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Get current camera state
-    local camState = Spring.GetCameraState()
+    local camState = CameraManager.getCameraState("OrbitCameraUtils.handleAutoOrbit")
     local currentCamPos = { x = camState.px, y = camState.py, z = camState.pz }
     local currentCamRot = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
 
@@ -151,7 +153,7 @@ function OrbitCameraUtils.handleAutoOrbit()
 end
 
 ---@see ModifiableParams
----@see UtilsModule#adjustParams
+---@see Util#adjustParams
 function OrbitCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return

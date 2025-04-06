@@ -7,7 +7,7 @@ local STATE = WidgetContext.WidgetState.STATE
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
 --------------------------------------------------------------------------------
----@class UtilsModule
+---@class Util
 local Util = {}
 
 local lastThrottledExecutionTimes = {}
@@ -38,7 +38,7 @@ end
 
 function Util.throttleExecution(fn, interval, id)
     -- Default to a generic ID if none provided
-    local functionId = id or "default"
+    local functionId = id or "throttleExecution"
 
     -- Initialize lastLogTime for this ID if it doesn't exist yet
     if not lastThrottledExecutionTimes[functionId] then
@@ -47,6 +47,7 @@ function Util.throttleExecution(fn, interval, id)
 
     local currentTime = Spring.GetGameSeconds()
     if currentTime - lastThrottledExecutionTimes[functionId] >= interval then
+        Util.log(string.format("[%s] Executing..."))
         fn()
         lastThrottledExecutionTimes[functionId] = currentTime
     end
@@ -476,7 +477,7 @@ function Util.calculateLookAtPoint(camPos, targetPos)
 end
 
 function Util.traceEcho(message)
-    if STATE.logLevel == "TRACE" then
+    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end
@@ -485,7 +486,7 @@ function Util.traceEcho(message)
 end
 
 function Util.debugEcho(message)
-    if STATE.logLevel == "TRACE" or STATE.logLevel == "DEBUG" then
+    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" or CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
         if type(message) ~= "string" then
             message = Util.dump(message)
         end
@@ -500,72 +501,6 @@ function Util.echo(message)
         message = Util.dump(message)
     end
     Spring.Echo("[TURBOBARCAM] " .. message)
-end
-
----@param camState CameraState
----@param withSmoothing boolean if ture, Spring smoothing will be applied
-function Util.setCameraState(camState, withSmoothing, source)
-    -- Make a copy to avoid modifying the original
-    local normalizedState = Util.deepCopy(camState)
-
-    -- Normalize rotation values for Spring engine
-    if normalizedState.rx ~= nil then
-        -- Ensure rx is properly normalized for Spring
-        -- Spring expects rx in range [0, pi]
-        normalizedState.rx = normalizedState.rx % (2 * math.pi)
-        if normalizedState.rx > math.pi then
-            normalizedState.rx = 2 * math.pi - normalizedState.rx
-        end
-    end
-
-    if normalizedState.ry ~= nil then
-        -- Ensure ry is properly normalized for Spring
-        -- Spring expects ry in range [-pi, pi]
-        normalizedState.ry = normalizedState.ry % (2 * math.pi)
-        if normalizedState.ry > math.pi then
-            normalizedState.ry = normalizedState.ry - 2 * math.pi
-        end
-    end
-
-    if normalizedState.rz ~= nil then
-        -- Ensure rz is properly normalized for Spring
-        -- Spring expects rz in range [-pi, pi]
-        normalizedState.rz = normalizedState.rz % (2 * math.pi)
-        if normalizedState.rz > math.pi then
-            normalizedState.rz = normalizedState.rz - 2 * math.pi
-        end
-    end
-
-    -- Convert withSmoothing to 0 or 1 for Spring
-    local smoothing = 0
-    if withSmoothing then
-        smoothing = 1
-    end
-
-    local currentState = Spring.GetCameraState()
-
-    local fixRotationPatch = {}
-    local fixRequired = false
-    if currentState.rx ~= normalizedState.rx and currentState.rx and normalizedState.rx and math.abs(currentState.rx - normalizedState.rx) > 1 then
-        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.rx=%.3f normalizedState.rx=%.3f", source,
-                currentState.rx or 0, normalizedState.rx or 0))
-        fixRequired = true
-        fixRotationPatch.rx = normalizedState.rx
-    end
-    if currentState.ry ~= normalizedState.ry and currentState.ry and normalizedState.ry and math.abs(currentState.ry - normalizedState.ry) > 1 then
-        Util.debugEcho(string.format("[%s] Rotation fix detected: currentState.ry=%.3f normalizedState.ry=%.3f", source,
-                currentState.ry or 0, normalizedState.ry or 0))
-        fixRequired = true
-        fixRotationPatch.ry = normalizedState.ry
-    end
-
-    -- fix rotation without smoothing to avoid camera spinning
-    if fixRequired and withSmoothing then
-        Spring.SetCameraState(fixRotationPatch, 0)
-    end
-
-    Util.traceEcho(string.format("[%s] Change camera state. Smoothing=%s.", source, smoothing))
-    Spring.SetCameraState(normalizedState, smoothing)
 end
 
 -- Export to global scope

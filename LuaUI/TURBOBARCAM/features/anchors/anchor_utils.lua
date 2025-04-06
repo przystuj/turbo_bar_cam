@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -80,8 +82,8 @@ end
 ---@param duration number Transition duration in seconds
 function CameraAnchorUtils.start(endState, duration)
     -- Generate transition steps for smooth transition
-    local startState = Spring.GetCameraState()
-    local numSteps = math.max(2, math.floor(duration * CONFIG.CAMERA_MODES.ANCHOR.STEPS_PER_SECOND))
+    local startState = CameraManager.getCameraState("CameraAnchorUtils.start")
+    local numSteps = math.max(2, math.floor(duration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
 
     -- Ensure the target state is in FPS mode
     endState.mode = 0
@@ -100,7 +102,7 @@ end
 ---@param targetPoint table|nil Point to keep looking at during transition
 ---@return table transitionSteps Array of transition steps
 function CameraAnchorUtils.createPositionTransition(startPos, endPos, duration, targetPoint)
-    local numSteps = math.max(2, math.floor(duration * CONFIG.CAMERA_MODES.ANCHOR.STEPS_PER_SECOND))
+    local numSteps = math.max(2, math.floor(duration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
     local steps = {}
 
     for i = 1, numSteps do

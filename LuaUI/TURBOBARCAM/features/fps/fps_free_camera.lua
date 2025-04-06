@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
 
@@ -147,7 +149,7 @@ function FreeCam.toggle(state, modeType)
     -- Initialize or clear free camera state
     if state.inFreeCameraMode then
         -- Initialize with current camera state
-        local camState = Spring.GetCameraState()
+        local camState = CameraManager.getCameraState("GroupTrackingCamera.initializeCameraPosition")
         state.freeCam = state.freeCam or {}
         state.freeCam.targetRx = camState.rx
         state.freeCam.targetRy = camState.ry

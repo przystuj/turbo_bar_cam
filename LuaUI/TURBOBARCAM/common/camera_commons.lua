@@ -1,8 +1,10 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TURBOBARCAM/standalone/camera_manager.lua").CameraManager
 ---@type TrackingManager
 local TrackingManager = VFS.Include("LuaUI/TURBOBARCAM/common/tracking_manager.lua").TrackingManager
----@type UtilsModule
+---@type Util
 local Util = VFS.Include("LuaUI/TURBOBARCAM/common/utils.lua").Util
 
 local STATE = WidgetContext.WidgetState.STATE
@@ -127,24 +129,13 @@ function CameraCommons.beginModeTransition(newMode)
     -- Only start a transition if we're switching between different modes
     if STATE.tracking.prevMode ~= newMode then
         STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartState = Spring.GetCameraState()
+        STATE.tracking.transitionStartState = CameraManager.getCameraState("CameraCommons.beginModeTransition")
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
         -- Store current camera position as last position to smooth from
-        local camState = Spring.GetCameraState()
+        local camState = CameraManager.getCameraState("CameraCommons.beginModeTransition")
         TrackingManager.updateTrackingState(camState)
     end
-end
-
---- Ensures camera state is in FPS mode
----@param camState table Camera state to check and modify
----@return table fixedState Camera state with FPS mode set
-function CameraCommons.ensureFPSMode(camState)
-    if camState.mode ~= 0 then
-        camState.mode = 0
-        camState.name = "fps"
-    end
-    return camState
 end
 
 return {
