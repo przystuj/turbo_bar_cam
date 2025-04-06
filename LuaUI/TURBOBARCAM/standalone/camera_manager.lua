@@ -24,7 +24,6 @@ local CameraManager = {
     cache = {
         -- Camera state caching
         currentState = nil,
-        currentFrame = 0,
         dirtyFlag = false
     }
 }
@@ -41,17 +40,26 @@ local function addToHistory(historyType, entry)
         return
     end
 
-    table.insert(WG.TURBOBARCAM.CALL_HISTORY[historyType], 1, entry)
-    if #WG.TURBOBARCAM.CALL_HISTORY[historyType] > options.historyLimit then
-        table.remove(WG.TURBOBARCAM.CALL_HISTORY[historyType])
-    end
-end
+    local history = WG.TURBOBARCAM.CALL_HISTORY[historyType]
 
---- Begin a new frame in the camera manager
----@param frameNum number The current frame number
-function CameraManager.beginFrame(frameNum)
-    if frameNum ~= CameraManager.cache.currentFrame then
-        CameraManager.cache.currentFrame = frameNum
+    -- Check if this is a repeated call (same source and mode)
+    if #history > 0 then
+        local lastEntry = history[1]
+        if lastEntry.source == entry.source and lastEntry.mode == entry.mode and
+                (historyType ~= "SetCameraState" or lastEntry.smoothing == entry.smoothing) then
+            -- This is a repeat call, just increment the count
+            lastEntry.count = (lastEntry.count or 1) + 1
+            return
+        end
+    end
+
+    -- New unique entry
+    entry.count = 1
+    table.insert(history, 1, entry)
+
+    -- Keep the history within size limit
+    if #history > options.historyLimit then
+        table.remove(history)
     end
 end
 
@@ -62,10 +70,9 @@ function CameraManager.getCameraState(source)
     assert(source, "Source parameter is required for getCameraState")
 
     addToHistory("GetCameraState", {
-        frame = CameraManager.cache.currentFrame,
         source = source,
         time = os.clock(),
-        mode = STATE.mode or "none"
+        mode = STATE.tracking.mode or "none"
     })
 
     -- Check if we need to refresh the cached state
@@ -164,11 +171,10 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
 
     -- Add to history for debugging
     addToHistory("SetCameraState", {
-        frame = CameraManager.cache.currentFrame,
         source = source,
         time = os.clock(),
         smoothing = smoothing,
-        mode = STATE.mode or "none"
+        mode = STATE.tracking.mode or "none"
     })
 
     -- Normal path - direct camera state setting
@@ -186,7 +192,6 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
 end
 
 ---@class CallHistoryReturn
----@field frame number Current frame number
 ---@field GetCameraState table Get calls history
 ---@field SetCameraState table Set calls history
 
@@ -194,7 +199,6 @@ end
 ---@return CallHistoryReturn Call history for debugging
 function CameraManager.getCallHistory()
     return {
-        frame = CameraManager.cache.currentFrame,
         GetCameraState = {
             history = WG.TURBOBARCAM.CALL_HISTORY.GetCameraState
         },
@@ -210,23 +214,24 @@ function CameraManager.printCallHistory()
     local getCalls = history.GetCameraState.history
     local setCalls = history.SetCameraState.history
 
-    Log.info("=== Camera Call History (Frame " .. history.frame .. ") ===")
-    Log.info("GetCameraState calls: " .. #getCalls)
+    Log.info("=== Camera Call History ===")
+    Log.info("GetCameraState calls:")
     -- Print GetCameraState calls
     for i = 1, #getCalls do
         local call = getCalls[i]
-        Log.info(string.format("%d. GET  | Mode: %s | Frame: %d. | Source: %s",
-                i, call.mode, call.frame, call.source))
+        local countStr = call.count > 1 and " [" .. call.count .. "x]" or ""
+        Log.info(string.format("%d. GET  | Mode: %s | Source: %s%s",
+                i, call.mode, call.source, countStr))
     end
 
-    Log.info("SetCameraState calls: " .. #setCalls)
-
+    Log.info("SetCameraState calls:")
     -- Print SetCameraState calls
     for i = 1, #setCalls do
         local call = setCalls[i]
         local smoothingStr = call.smoothing > 0 and "SMOOTH" or "INSTANT"
-        Log.info(string.format("%d. SET  | Mode: %s | Frame: %d. | Source: %s | %s",
-                i, call.mode, call.frame, call.source, smoothingStr))
+        local countStr = call.count > 1 and " [" .. call.count .. "x]" or ""
+        Log.info(string.format("%d. SET  | Mode: %s | Source: %s | %s%s",
+                i, call.mode, call.source, smoothingStr, countStr))
     end
 
     Log.info("======================================")
@@ -236,12 +241,13 @@ end
 function CameraManager.shutdown()
     CameraManager.cache = {
         currentState = nil,
-        currentFrame = 0,
         dirtyFlag = false
     }
 
-    WG.TURBOBARCAM.CALL_HISTORY = {}
-
+    WG.TURBOBARCAM.CALL_HISTORY = {
+        GetCameraState = {},
+        SetCameraState = {}
+    }
 end
 
 return {

@@ -50,8 +50,8 @@ function widget:SelectionChanged(selectedUnits)
     SelectionManager.handleSelectionChanged(selectedUnits)
 end
 
-function widget:Update(frame)
-    UpdateManager.processCycle(frame)
+function widget:Update()
+    UpdateManager.processCycle()
 end
 
 function widget:Initialize()

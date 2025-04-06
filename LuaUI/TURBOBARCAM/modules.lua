@@ -23,6 +23,7 @@
 ---@class CommonModules
 ---@field CameraCommons CameraCommons
 ---@field Util Util
+---@field Log Log
 ---@field Tracking TrackingManager
 
 ---@class AllModules

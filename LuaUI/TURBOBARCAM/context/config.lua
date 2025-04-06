@@ -26,7 +26,7 @@ if not WG.TURBOBARCAM.CONFIG then
 
         -- Performance settings
         PERFORMANCE = {
-            ANCHOR_STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
+            ANCHOR_STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
         },
 
         -- Camera mode settings

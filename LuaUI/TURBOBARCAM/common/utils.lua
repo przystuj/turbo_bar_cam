@@ -59,7 +59,7 @@ function Util.throttleExecution(fn, interval, id)
 
     local currentTime = Spring.GetGameSeconds()
     if currentTime - lastThrottledExecutionTimes[functionId] >= interval then
-        Log.info(string.format("[%s] Executing...", functionId))
+        Log.info(string.format("[%s] [%ss] Executing...", functionId, interval))
         fn()
         lastThrottledExecutionTimes[functionId] = currentTime
     end

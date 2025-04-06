@@ -10,19 +10,15 @@ local Features = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
 local STATE = WidgetContext.WidgetState.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local TrackingManager = CommonModules.TrackingManager
 
 ---@class UpdateManager
 local UpdateManager = {}
 
 --- Processes the main update cycle
----@param currentFrame number current frame
-function UpdateManager.processCycle(currentFrame)
+function UpdateManager.processCycle()
     if Util.isTurboBarCamDisabled() then
         return
     end
-
-    CameraManager.beginFrame(currentFrame)
 
     -- Cache camera state and verify it's in FPS mode
     local camState = CameraManager.getCameraState("UpdateManager.processCycle")
@@ -44,7 +40,7 @@ function UpdateManager.processCycle(currentFrame)
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
 
-    Util.throttleExecution(function() CameraManager.printCallHistory() end, 2)
+    --Util.throttleExecution(function() CameraManager.printCallHistory() end, 2)
 end
 
 --- Handles tracking grace period
