@@ -35,6 +35,10 @@ local options = {
 }
 
 local function addToHistory(historyType, entry)
+    if WidgetContext.WidgetConfig.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
+        return
+    end
+
     -- Skip UpdateManager calls for cleaner history
     if entry.source == "UpdateManager.processCycle" and historyType == "GetCameraState" then
         return
@@ -210,6 +214,11 @@ end
 
 --- Print camera call history in a formatted way
 function CameraManager.printCallHistory()
+    if WidgetContext.WidgetConfig.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
+        Log.info("Call history is gathered only when LOG_LEVEL=TRACE")
+        return
+    end
+
     local history = CameraManager.getCallHistory()
     local getCalls = history.GetCameraState.history
     local setCalls = history.SetCameraState.history

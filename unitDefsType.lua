@@ -1,0 +1,154 @@
+---@type table<number, UnitDef>
+UnitDefs = UnitDefs
+
+---@class UnitDef
+---@field id number @ The unitDefID
+---@field name string @ The unit name
+---@field humanName string @ The human-readable name
+---@field tooltip string @ The tooltip
+---@field wreckName string @ The name of the wreck
+---@field buildPic string @ The build picture
+---@field buildTime number @ The build time
+---@field buildCostMetal number @ The metal cost
+---@field buildCostEnergy number @ The energy cost
+---@field extractsMetal number @ The metal extraction rate
+---@field extractRange number @ The metal extraction range
+---@field metalMake number @ The metal making rate
+---@field metalUse number @ The metal usage rate
+---@field energyMake number @ The energy making rate
+---@field energyUse number @ The energy usage rate
+---@field metalStorage number @ The metal storage
+---@field energyStorage number @ The energy storage
+---@field tidalGenerator number @ Whether the unit is a tidal generator
+---@field windGenerator number @ Whether the unit is a wind generator
+---@field builder boolean @ Whether the unit is a builder
+---@field buildRange3D boolean @ Whether the unit has 3D build range
+---@field buildDistance number @ The build distance
+---@field canAssist boolean @ Whether the unit can assist
+---@field canBeAssisted boolean @ Whether the unit can be assisted
+---@field canReclaim boolean @ Whether the unit can reclaim
+---@field canRepair boolean @ Whether the unit can repair
+---@field canSelfRepair boolean @ Whether the unit can self repair
+---@field canGuard boolean @ Whether the unit can guard
+---@field canAttack boolean @ Whether the unit can attack
+---@field canPatrol boolean @ Whether the unit can patrol
+---@field canFight boolean @ Whether the unit can fight
+---@field canCapture boolean @ Whether the unit can capture
+---@field canResurrect boolean @ Whether the unit can resurrect
+---@field canDGun boolean @ Whether the unit can dgun
+---@field canCloak boolean @ Whether the unit can cloak
+---@field canBuildBa boolean @ Whether the unit can build BA
+---@field canFly boolean @ Whether the unit can fly
+---@field canHover boolean @ Whether the unit can hover
+---@field canMove boolean @ Whether the unit can move
+---@field isAirUnit boolean @ Whether the unit is an air unit
+---@field activateWhenBuilt boolean @ Whether the unit activates when built
+---@field onoffable boolean @ Whether the unit can be toggled
+---@field floater boolean @ Whether the unit floats
+---@field isBuilding boolean @ Whether the unit is a building
+---@field isFactory boolean @ Whether the unit is a factory
+---@field isTransport boolean @ Whether the unit is a transport
+---@field transportCapacity number @ The transport capacity
+---@field transportSize number @ The transport size
+---@field isMobileBuilder boolean @ Whether the unit is a mobile builder
+---@field needGeo boolean @ Whether the unit needs a geo
+---@field isFeature boolean @ Whether the unit is a feature
+---@field hideDamage boolean @ Whether the unit hides damage
+---@field showPlayerName boolean @ Whether the unit shows player name
+---@field canRestore boolean @ Whether the unit can restore
+---@field canFireControl boolean @ Whether the unit can fire control
+---@field fireState number @ The fire state
+---@field moveState number @ The move state
+---@field health number @ The health
+---@field maxDamage number @ The maximum damage (health)
+---@field armor number @ The armor value
+---@field armorType string @ The armor type
+---@field speed number @ The speed
+---@field turnRate number @ The turn rate
+---@field upright boolean @ Whether the unit stands upright
+---@field collisionVolumeType string @ The collision volume type
+---@field collisionVolumeScales table @ The collision volume scales
+---@field collisionVolumeOffsets table @ The collision volume offsets
+---@field collisionVolumeTest number @ The collision volume test setting
+---@field category string @ The unit category
+---@field sightDistance number @ The sight distance
+---@field radarDistance number @ The radar distance
+---@field sonarDistance number @ The sonar distance
+---@field jammerRadius number @ The jammer radius
+---@field sonarJamRadius number @ The sonar jam radius
+---@field stealth boolean @ Whether the unit has stealth
+---@field buildSpeed number @ The build speed
+---@field terraformSpeed number @ The terraform speed
+---@field reclaimSpeed number @ The reclaim speed
+---@field captureSpeed number @ The capture speed
+---@field repairSpeed number @ The repair speed
+---@field maxThrust number @ The maximum thrust
+---@field minAirBasePower number @ The minimum air base power
+---@field maxAirBasePower number @ The maximum air base power
+---@field airHoverFactor number @ The air hover factor
+---@field airStrafe boolean @ Whether the unit can strafe in air
+---@field hoverAttack boolean @ Whether the unit can attack while hovering
+---@field upDirSmoothing number @ The up direction smoothing
+---@field maxAcceleration number @ The maximum acceleration
+---@field maxDeceleration number @ The maximum deceleration
+---@field maxAileron number @ The maximum aileron
+---@field maxElevator number @ The maximum elevator
+---@field maxRudder number @ The maximum rudder
+---@field maxFuel number @ The maximum fuel
+---@field refuelTime number @ The refuel time
+---@field minWaterDepth number @ The minimum water depth
+---@field maxWaterDepth number @ The maximum water depth
+---@field waterline number @ The waterline height
+---@field cruiseAlt number @ The cruise altitude
+---@field canLoopbackAttack boolean @ Whether the unit can attack from behind
+---@field canFireControl boolean @ Whether the unit can control firing
+---@field canKamikaze boolean @ Whether the unit can kamikaze
+---@field kamikazeDist number @ The kamikaze distance
+---@field weapons table @ Table of weapon data
+---@field weaponCount number @ The number of weapons
+---@field buildOptions table @ Table of build options
+---@field sounds table @ Table of sound data
+---@field moveData table @ Movement data for the unit
+---@field scriptName string @ The name of the unit script
+---@field highTrajectoryType number @ High trajectory type
+---@field losHeight number @ Height for line of sight calculations
+---@field flankingBonusMode number @ Flanking bonus mode
+---@field flankingBonusDir table @ Flanking bonus direction vector
+---@field flankingBonusMax number @ Maximum flanking bonus
+---@field flankingBonusMobileDir boolean @ Whether the flanking bonus direction is mobile
+---@field canSubmerge boolean @ Whether the unit can submerge
+---@field seismicSignature number @ Seismic signature strength
+---@field customParams table @ Table of custom parameters
+---@field canFight boolean @ Whether the unit can fight
+---@field canCapture boolean @ Whether the unit can capture
+---@field canResurrect boolean @ Whether the unit can resurrect
+---@field canDGun boolean @ Whether the unit can dgun
+---@field canCloak boolean @ Whether the unit can cloak
+---@field canBuildBa boolean @ Whether the unit can build BA
+---@field canFly boolean @ Whether the unit can fly
+---@field canHover boolean @ Whether the unit can hover
+---@field isAirUnit boolean @ Whether the unit is an air unit
+---@field activateWhenBuilt boolean @ Whether the unit activates when built
+---@field onoffable boolean @ Whether the unit can be toggled
+---@field floater boolean @ Whether the unit floats
+---@field isBuilding boolean @ Whether the unit is a building
+---@field isFactory boolean @ Whether the unit is a factory
+---@field isTransport boolean @ Whether the unit is a transport
+---@field transportCapacity number @ The transport capacity
+---@field transportSize number @ The transport size
+---@field isMobileBuilder boolean @ Whether the unit is a mobile builder
+---@field needGeo boolean @ Whether the unit needs a geo
+---@field isFeature boolean @ Whether the unit is a feature
+---@field hideDamage boolean @ Whether the unit hides damage
+---@field showPlayerName boolean @ Whether the unit shows player name
+---@field canRestore boolean @ Whether the unit can restore
+---@field canFireControl boolean @ Whether the unit can fire control
+---@field fireState number @ The fire state
+---@field moveState number @ The move state
+---@field health number @ The health
+---@field speed number @ The speed
+---@field turnRate number @ The turn rate
+---@field weapons table @ Table of weapon data
+---@field buildOptions table @ Table of build options
+---@field sounds table @ Table of sound data
+---@field customParams table @ Table of custom parameters
