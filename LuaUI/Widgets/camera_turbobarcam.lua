@@ -1,14 +1,7 @@
----@type Spring
-Spring = Spring
----@type Widget
-widget = widget
----@type WeaponDefs
-WeaponDefs = WeaponDefs
-
 function widget:GetInfo()
     return {
         name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
-        desc = "Advanced camera control suite with smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and more.",
+        desc = "Smooths the view, so you don’t have to.",
         author = "SuperKitowiec",
         date = "Mar 2025",
         license = "GNU GPL, v2 or later",

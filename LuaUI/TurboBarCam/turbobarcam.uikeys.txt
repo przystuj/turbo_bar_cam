@@ -1,0 +1,74 @@
+//---------------
+// TurboBarCam  |
+//---------------
+bind            numpad.  turbobarcam_toggle
+// Just in case kek
+bind       	Ctrl+numpad.  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
+
+// Anchors
+unbindkeyset 	Ctrl+F1
+unbindkeyset 	Ctrl+F2
+unbindkeyset 	Ctrl+F3
+unbindkeyset 	Ctrl+F4
+
+// todo, set_camera_anchor not working
+bind			Ctrl+F1				chain force set_camera_anchor 1 | turbobarcam_anchor_set 1
+bind			Ctrl+F2				chain force turbobarcam_anchor_set 2 | set_camera_anchor 2
+bind			Ctrl+F3				chain force set_camera_anchor 3 | turbobarcam_anchor_set 3
+bind			Ctrl+F4				chain force turbobarcam_anchor_set 4 | set_camera_anchor 4
+bind			Shift+F1			turbobarcam_anchor_focus_while_tracking 1
+bind			Shift+F2			turbobarcam_anchor_focus_while_tracking 2
+bind			Shift+F3			turbobarcam_anchor_focus_while_tracking 3
+bind			Shift+F4			turbobarcam_anchor_focus_while_tracking 4
+bind			Ctrl+Shift+numpad-	turbobarcam_anchor_adjust_params add;DURATION,-1
+bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
+
+// Single Unit Tracking
+bind		numpad3  		turbobarcam_toggle_tracking_camera
+bind		Ctrl+numpad3  	turbobarcam_tracking_camera_adjust_params reset
+bind		numpad8			turbobarcam_tracking_camera_adjust_params add;HEIGHT,20
+bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-20
+
+// Orbit
+bind		numpad2  		turbobarcam_toggle_orbiting_camera
+bind		numpad5			turbobarcam_orbit_adjust_params add;HEIGHT,5;DISTANCE,10
+bind		numpad8			turbobarcam_orbit_adjust_params add;HEIGHT,-5;DISTANCE,-10
+bind		numpad9			turbobarcam_orbit_adjust_params add;SPEED,0.0002
+bind		numpad7			turbobarcam_orbit_adjust_params add;SPEED,-0.0002
+
+// FPS
+bind		numpad1			turbobarcam_toggle_fps_camera
+bind		numpad8         turbobarcam_fps_adjust_params add;FORWARD,15;HEIGHT,-3
+bind		numpad5			turbobarcam_fps_adjust_params add;FORWARD,-15;HEIGHT,3
+bind		Ctrl+numpad8	turbobarcam_fps_adjust_params add;HEIGHT,5
+bind		Ctrl+numpad5	turbobarcam_fps_adjust_params add;HEIGHT,-5
+bind		numpad6			turbobarcam_fps_adjust_params add;SIDE,5
+bind		numpad4			turbobarcam_fps_adjust_params add;SIDE,-5
+bind		numpad7			turbobarcam_fps_adjust_params add;ROTATION,-0.1
+bind		numpad9			turbobarcam_fps_adjust_params add;ROTATION,0.1
+bind		Ctrl+numpad1  	turbobarcam_fps_adjust_params reset
+bind		numpad*  	    turbobarcam_fps_clear_fixed_look_point
+bind		numpad/  		turbobarcam_fps_set_fixed_look_point
+
+// Spec groups (unit groups which work when spectating)
+bind		Ctrl+Insert		turbobarcam_spec_unit_group set 1
+bind		Insert			turbobarcam_spec_unit_group select 1
+bind		Ctrl+Home		turbobarcam_spec_unit_group set 2
+bind		Home			turbobarcam_spec_unit_group select 2
+bind		Ctrl+PageUp		turbobarcam_spec_unit_group set 3
+bind		PageUp			turbobarcam_spec_unit_group select 3
+
+// Overview
+bind		End				turbobarcam_overview_toggle
+bind		PageDown		turbobarcam_overview_move_camera
+bind		Delete			turbobarcam_overview_change_zoom
+
+// Group Unit Tracking
+bind		numpad0  		turbobarcam_toggle_group_tracking_camera
+bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15;EXTRA_HEIGHT,5
+bind		numpad8			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,-15;EXTRA_HEIGHT,-5
+bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.1
+bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
+bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.ROTATION,-0.002;SMOOTHING.STABLE_POSITION,-0.002;SMOOTHING.STABLE_ROTATION,-0.002
+bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.ROTATION,0.002;SMOOTHING.STABLE_POSITION,0.002;SMOOTHING.STABLE_ROTATION,0.002
+bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset
