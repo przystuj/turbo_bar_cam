@@ -198,8 +198,12 @@ function TurboOverviewCamera.toggle()
     local lookDir = Util.calculateLookAtPoint(targetCamPos, targetPoint)
 
     -- Initialize rotation targets with calculated values for looking at focal point
-    STATE.turboOverview.targetRx = lookDir.rx
     STATE.turboOverview.targetRy = lookDir.ry
+
+    -- only move camera up if we are looking kinda down
+    if currentCamState.rx > 2.5 then
+        STATE.turboOverview.targetRx = lookDir.rx
+    end
 
     -- Get current mouse position for initialization
     STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
@@ -540,77 +544,102 @@ function TurboOverviewCamera.adjustParams(params)
     OverviewCameraUtils.adjustParams(params)
 end
 
---- Moves the camera toward a target point with steering capability
---- Enables a mode where the camera moves toward the cursor position,
---- with the ability to steer using the mouse position.
----@return boolean success Whether the camera started moving successfully
 function TurboOverviewCamera.moveToTarget()
     if Util.isModeDisabled("turbo_overview") then
         return false
     end
 
-    -- Toggle target movement mode on/off
-    if STATE.turboOverview.movingToTarget then
-        STATE.turboOverview.movingToTarget = false
-        Log.debug("Target movement mode exited")
-    else
-        -- Get cursor position and set it as target point
-        STATE.turboOverview.targetPoint = OverviewCameraUtils.getCursorWorldPosition()
+    -- Get map dimensions (needed for boundary checks)
+    local mapX = Game.mapSizeX
+    local mapZ = Game.mapSizeZ
 
-        -- Get current camera state
-        local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.moveToTarget")
+    -- Get cursor position to determine where to move
+    local targetPoint = OverviewCameraUtils.getCursorWorldPosition()
+    Log.debug("Moving to target at: " .. targetPoint.x .. ", " .. targetPoint.z)
 
-        -- Begin mode transition explicitly
-        STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
+    -- Get current camera state and height
+    local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.moveToTarget")
+    local currentHeight = OverviewCameraUtils.calculateCurrentHeight()
 
-        -- Start movement mode
-        STATE.turboOverview.isMovingToTarget = true
+    -- Calculate an appropriate position to view the target from
+    -- Similar to how we calculate position for looking at a unit
+    local offsetDistance = currentHeight * 0.8
 
-        -- Store the screen center coordinates for relative cursor position calculations
-        local screenWidth, screenHeight = Spring.GetViewGeometry()
-        STATE.turboOverview.screenCenterX = screenWidth / 2
-        STATE.turboOverview.screenCenterY = screenHeight / 2
+    -- Calculate default position (southwest of target)
+    local offsetX = -offsetDistance
+    local offsetZ = -offsetDistance
 
-        -- Initialize movement parameters
-        local camPos = STATE.turboOverview.fixedCamPos
+    -- Check map boundaries
+    local margin = 200
+    local newX = targetPoint.x + offsetX
+    local newZ = targetPoint.z + offsetZ
 
-        -- Set initial target rotation to match current view direction
-        -- This ensures smooth transition from current view to target
-        STATE.turboOverview.targetRx = currentCamState.rx
-        STATE.turboOverview.targetRy = currentCamState.ry
+    -- If position would be outside map, try different quadrants
+    if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+        -- Try northeast position
+        offsetX = offsetDistance
+        offsetZ = -offsetDistance
+        newX = targetPoint.x + offsetX
+        newZ = targetPoint.z + offsetZ
 
-        -- Calculate the movement angle based on camera position
-        STATE.turboOverview.movementAngle = OverviewCameraUtils.calculateMovementAngle(
-                STATE.turboOverview.targetPoint, camPos)
-        STATE.turboOverview.targetMovementAngle = STATE.turboOverview.movementAngle
+        -- If still outside, try northwest
+        if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+            offsetX = -offsetDistance
+            offsetZ = offsetDistance
+            newX = targetPoint.x + offsetX
+            newZ = targetPoint.z + offsetZ
 
-        -- Calculate initial distance
-        local dx = camPos.x - STATE.turboOverview.targetPoint.x
-        local dz = camPos.z - STATE.turboOverview.targetPoint.z
-        STATE.turboOverview.distanceToTarget = math.sqrt(dx * dx + dz * dz)
+            -- If still outside, try southeast
+            if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                offsetX = offsetDistance
+                offsetZ = offsetDistance
+                newX = targetPoint.x + offsetX
+                newZ = targetPoint.z + offsetZ
 
-        -- Set the angular velocity to 0 initially
-        STATE.turboOverview.angularVelocity = 0
-
-        -- Set the forward velocity constant from CONFIG
-        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
-
-        -- Turn on active movement
-        STATE.turboOverview.movingToTarget = true
-
-        -- Enable movement transition mode (for smooth entry)
-        STATE.turboOverview.inMovementTransition = true
-
-        -- Record the start time for gradual acceleration
-        STATE.turboOverview.moveStartTime = Spring.GetTimer()
-
-        -- Get current mouse position
-        STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
-
-        Log.debug("Target movement mode started")
+                -- Last resort, just position directly above
+                if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                    newX = targetPoint.x
+                    newZ = targetPoint.z
+                end
+            end
+        end
     end
 
+    -- Store the target position for smooth transition
+    local targetCamPos = {
+        x = newX,
+        y = currentHeight,
+        z = newZ
+    }
+
+    -- Calculate look direction to the target point
+    local lookDir = Util.calculateLookAtPoint(targetCamPos, targetPoint)
+
+    -- Store current camera position as starting point for transition
+    STATE.turboOverview.fixedCamPos = {
+        x = currentCamState.px,
+        y = currentCamState.py,
+        z = currentCamState.pz
+    }
+
+    -- Store target position for smooth transition in update
+    STATE.turboOverview.targetCamPos = targetCamPos
+
+    -- Store the target point (what we're looking at)
+    STATE.turboOverview.targetPoint = targetPoint
+
+    -- Set rotation targets with calculated values
+    STATE.turboOverview.targetRx = lookDir.rx
+    STATE.turboOverview.targetRy = lookDir.ry
+
+    -- Begin mode transition for smooth movement
+    STATE.tracking.modeTransition = true
+    STATE.tracking.transitionStartTime = Spring.GetTimer()
+
+    -- Update tracking state for smooth transition
+    TrackingManager.updateTrackingState(currentCamState)
+
+    Log.debug("Moving camera to position: " .. newX .. ", " .. newZ .. " looking at target")
     return true
 end
 
