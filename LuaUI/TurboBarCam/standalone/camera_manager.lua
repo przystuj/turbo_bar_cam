@@ -37,6 +37,22 @@ local options = {
     historyLimit = 50,
 }
 
+function CameraManager.toggleZoom()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    local cycle = {
+        [45] = 24,
+        [24] = 12,
+        [12] = 45
+    }
+    local camState = CameraManager.getCameraState("WidgetControl.toggleZoom")
+    local fov = cycle[camState.fov]
+    Spring.SetCameraState({fov = fov}, 1)
+    --CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.toggleZoom")
+end
+
 local function addToHistory(historyType, entry)
     if WidgetContext.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
         return
@@ -76,14 +92,13 @@ end
 function CameraManager.getCameraState(source)
     if CONFIG.PERFORMANCE.CAMERA_CACHE == false then
         return Spring.GetCameraState()
-
     end
     assert(source, "Source parameter is required for getCameraState")
 
     addToHistory("GetCameraState", {
-    source = source,
-    time = os.clock(),
-    mode = STATE.tracking.mode or "none"
+        source = source,
+        time = os.clock(),
+        mode = STATE.tracking.mode or "none"
     })
 
     local currentTime = os.clock()
@@ -91,23 +106,23 @@ function CameraManager.getCameraState(source)
 
     -- Check if we need to refresh the cached state
     if CameraManager.cache.dirtyFlag or
-    not CameraManager.cache.currentState or
-    timeSinceLastRefresh > CameraManager.cache.refreshInterval then
+            not CameraManager.cache.currentState or
+            timeSinceLastRefresh > CameraManager.cache.refreshInterval then
 
-    CameraManager.cache.currentState = Spring.GetCameraState()
-    CameraManager.cache.dirtyFlag = false
-    CameraManager.cache.lastRefreshTime = currentTime
+        CameraManager.cache.currentState = Spring.GetCameraState()
+        CameraManager.cache.dirtyFlag = false
+        CameraManager.cache.lastRefreshTime = currentTime
 
-    -- Verify that we're in FPS mode
-    if CameraManager.cache.currentState.mode ~= 0 then
-    Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
-    CameraManager.cache.currentState.mode = 0
-    CameraManager.cache.currentState.name = "fps"
-    end
+        -- Verify that we're in FPS mode
+        if CameraManager.cache.currentState.mode ~= 0 then
+            Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
+            CameraManager.cache.currentState.mode = 0
+            CameraManager.cache.currentState.name = "fps"
+        end
     end
 
     return CameraManager.cache.currentState
-    end
+end
 
 -- Detect and fix large rotation changes that might cause camera spinning
 ---@param currentState table Current camera state

@@ -2,6 +2,8 @@
 local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 ---@type FeatureModules
 local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 ---@class Actions
 local Actions = {}
@@ -35,6 +37,12 @@ function Actions.coreActions()
     Actions.registerAction("turbobarcam_toggle_playercam_selection", 'tp',
             function()
                 return CoreModules.WidgetControl.toggleLockUnitSelection()
+            end)
+
+    Actions.registerAction("turbobarcam_toggle_fov", 'p',
+            function()
+                CameraManager.toggleZoom()
+                return true
             end)
 end
 

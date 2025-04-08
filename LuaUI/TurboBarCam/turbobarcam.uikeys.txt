@@ -61,6 +61,7 @@ bind		Insert			turbobarcam_spec_unit_group select 1
 bind		Home			turbobarcam_overview_toggle
 bind		PageDown		turbobarcam_overview_move_camera
 bind		Delete			turbobarcam_overview_change_zoom
+bind		PageUp  		turbobarcam_toggle_fov
 
 // Group Unit Tracking
 bind		numpad0  		turbobarcam_toggle_group_tracking_camera

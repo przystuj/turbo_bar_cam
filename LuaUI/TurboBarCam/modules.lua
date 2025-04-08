@@ -5,7 +5,6 @@
 ---@field WidgetControl WidgetControl
 ---@field UpdateManager UpdateManager
 ---@field SelectionManager SelectionManager
----@field CameraManager CameraManager
 
 ---@class FeatureModules
 ---@field FPSCamera FPSCamera
