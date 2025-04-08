@@ -24,7 +24,9 @@ local CameraManager = {
     cache = {
         -- Camera state caching
         currentState = nil,
-        dirtyFlag = false
+        dirtyFlag = false,
+        lastRefreshTime = 0,
+        refreshInterval = 0.1 -- Refresh cache every 100ms
     }
 }
 
@@ -67,8 +69,9 @@ local function addToHistory(historyType, entry)
     end
 end
 
---- Get the current camera state (cached per frame)
+--- Get the current camera state (with time-based cache)
 ---@param source string Source of the getCameraState call for tracking
+---@param forceRefresh boolean|nil If true, always refresh the cache
 ---@return table cameraState The current camera state
 function CameraManager.getCameraState(source)
     assert(source, "Source parameter is required for getCameraState")
@@ -79,10 +82,17 @@ function CameraManager.getCameraState(source)
         mode = STATE.tracking.mode or "none"
     })
 
+    local currentTime = os.clock()
+    local timeSinceLastRefresh = currentTime - CameraManager.cache.lastRefreshTime
+
     -- Check if we need to refresh the cached state
-    if CameraManager.cache.dirtyFlag or not CameraManager.cache.currentState then
+    if CameraManager.cache.dirtyFlag or
+            not CameraManager.cache.currentState or
+            timeSinceLastRefresh > CameraManager.cache.refreshInterval then
+
         CameraManager.cache.currentState = Spring.GetCameraState()
         CameraManager.cache.dirtyFlag = false
+        CameraManager.cache.lastRefreshTime = currentTime
 
         -- Verify that we're in FPS mode
         if CameraManager.cache.currentState.mode ~= 0 then
@@ -126,7 +136,7 @@ local function applyRotationFix(currentState, newState, smoothing, source)
 
     -- Apply fix only if needed and when smoothing is enabled
     if fixRequired and smoothing > 0 then
-        Spring.SetCameraState(fixRotationPatch, 0)
+        CameraManager.setCameraState(fixRotationPatch, 0, "CameraManager.applyRotationFix")
     end
 
     return fixRequired
@@ -172,6 +182,8 @@ end
 ---@param source string Source of the setCameraState call for tracking
 function CameraManager.setCameraState(cameraState, smoothing, source)
     assert(source, "Source parameter is required for setCameraState")
+    local currentState = CameraManager.getCameraState("CameraManager.setCameraState")
+    --CameraManager.printCameraStateDiff(currentState, cameraState, source) -- debugging camera changes
 
     -- Add to history for debugging
     addToHistory("SetCameraState", {
@@ -181,9 +193,7 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
         mode = STATE.tracking.mode or "none"
     })
 
-    -- Normal path - direct camera state setting
     local normalizedState = normalizeRotation(cameraState)
-    local currentState = Spring.GetCameraState()
 
     -- Fix potential rotation issues
     applyRotationFix(currentState, normalizedState, smoothing, source)
@@ -244,6 +254,112 @@ function CameraManager.printCallHistory()
     end
 
     Log.info("======================================")
+end
+
+--- Compare two camera states and print their differences
+---@param oldState table First camera state
+---@param newState table Second camera state
+---@param source string Source of the newState for tracking
+function CameraManager.printCameraStateDiff(oldState, newState, source)
+    local threshold = 0.001
+
+    local hasChanges = false
+    local cameraStateKeys = {
+        -- Position
+        "px", "py", "pz",
+        -- Rotation
+        "rx", "ry", "rz",
+        -- Direction vectors
+        "dx", "dy", "dz",
+        -- Up vectors
+        "ux", "uy", "uz",
+        -- Camera mode and name
+        "mode", "name",
+        -- Rotation and zoom related
+        "flipped", "fov", "height", "zscale", "zoom",
+        -- Other camera properties
+        "dist", "gndOffset", "relDist", "tiltSpeed", "time",
+    }
+
+    -- Print header
+    Log.debug("===== Camera State Diff [" .. source .. "] =====")
+
+    -- Function to format values for display
+    local function formatValue(value)
+        if type(value) == "number" then
+            return string.format("%.6f", value)
+        elseif value == nil then
+            return "nil"
+        else
+            return tostring(value)
+        end
+    end
+
+    -- Check each camera state property
+    for _, key in ipairs(cameraStateKeys) do
+        local val1 = oldState[key]
+        local val2 = newState[key]
+
+        -- Skip if newState value is nil (indicating no change) or both are nil
+        if not (val2 == nil or (val1 == nil and val2 == nil)) then
+            -- Check if values are different
+            local isDifferent = false
+            if type(val1) == "number" and type(val2) == "number" then
+                -- For numbers, use threshold comparison
+                isDifferent = math.abs(val1 - val2) > threshold
+            else
+                -- For other types, direct comparison
+                isDifferent = val1 ~= val2
+            end
+
+            -- Print difference if found
+            if isDifferent then
+                hasChanges = true
+                Log.debug(string.format("  %s: %s -> %s",
+                        key,
+                        formatValue(val1),
+                        formatValue(val2)))
+            end
+        end
+    end
+
+    -- Check for any keys in one state but not in the known list
+    local extraKeys = {}
+    for key, _ in pairs(oldState) do
+        if not Util.tableContains(cameraStateKeys, key) and newState[key] ~= nil and oldState[key] ~= newState[key] then
+            table.insert(extraKeys, key)
+        end
+    end
+
+    for key, _ in pairs(newState) do
+        if not Util.tableContains(cameraStateKeys, key) and
+                not Util.tableContains(extraKeys, key) and
+                newState[key] ~= nil and
+                oldState[key] ~= newState[key] then
+            table.insert(extraKeys, key)
+        end
+    end
+
+    -- Print extra keys if any
+    if #extraKeys > 0 then
+        hasChanges = true
+        Log.debug("  Extra properties with differences:")
+        for _, key in ipairs(extraKeys) do
+            Log.debug(string.format("  %s: %s -> %s",
+                    key,
+                    formatValue(oldState[key]),
+                    formatValue(newState[key])))
+        end
+    end
+
+    -- If no changes were found
+    if not hasChanges then
+        Log.debug("  No significant differences found (threshold: " .. threshold .. ")")
+    end
+
+    Log.debug("=============================================")
+
+    return hasChanges
 end
 
 -- Clean up resources when the manager is no longer needed
