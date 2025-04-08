@@ -4,6 +4,8 @@ if not WG.TurboBarCam.STATE then
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
+        -- toggle required for spectating with player cam. By default TurboBarCam prevents Plater Camera from changing selected units.
+        allowPlayerCamUnitSelection = true,
 
         -- Camera anchors
         anchors = {},

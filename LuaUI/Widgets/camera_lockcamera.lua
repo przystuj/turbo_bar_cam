@@ -105,7 +105,7 @@ end
 
 
 function CameraBroadcastEvent(playerID, cameraState)
-    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.isInControl() -- TurboBarCam is controlling the camera now
+    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.isInControl and WG.TurboBarCam.isInControl() -- TurboBarCam is controlling the camera now
 
     -- if cameraState is empty then transmission has stopped
     if not cameraState then

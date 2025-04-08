@@ -52,9 +52,15 @@ function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
     Actions.registerAllActions()
+
+    -- external hooks
     WG.TurboBarCam.isInControl = function()
         return STATE.enabled and STATE.tracking.mode ~= nil
     end
+    WG.TurboBarCam.isUnitSelectionAllowed = function()
+        return STATE.allowPlayerCamUnitSelection
+    end
+
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 

@@ -31,6 +31,11 @@ function Actions.coreActions()
             function()
                 return CoreModules.WidgetControl.toggleDebug()
             end)
+
+    Actions.registerAction("turbobarcam_toggle_playercam_selection", 'tp',
+            function()
+                return CoreModules.WidgetControl.toggleLockUnitSelection()
+            end)
 end
 
 

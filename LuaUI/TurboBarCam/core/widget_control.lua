@@ -160,6 +160,12 @@ function WidgetControl.toggleDebug()
     return true
 end
 
+function WidgetControl.toggleLockUnitSelection()
+    STATE.allowPlayerCamUnitSelection = not STATE.allowPlayerCamUnitSelection
+    Log.info("Unit selection is " .. (STATE.allowPlayerCamUnitSelection and "unlocked" or "locked"))
+    return true
+end
+
 return {
     WidgetControl = WidgetControl
 }
