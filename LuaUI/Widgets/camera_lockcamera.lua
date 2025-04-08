@@ -1,5 +1,3 @@
-local widget = widget ---@type Widget
-
 function widget:GetInfo()
     return {
         name = "Lockcamera",
@@ -107,6 +105,8 @@ end
 
 
 function CameraBroadcastEvent(playerID, cameraState)
+    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.isInControl() -- TurboBarCam is controlling the camera now
+
     -- if cameraState is empty then transmission has stopped
     if not cameraState then
         if lastBroadcasts[playerID] then
@@ -125,7 +125,7 @@ function CameraBroadcastEvent(playerID, cameraState)
 
     lastBroadcasts[playerID] = { totalTime, cameraState }
 
-    if playerID == lockPlayerID then
+    if playerID == lockPlayerID and not skipCameraUpdate then
         Spring.SetCameraState(cameraState, transitionTime)
     end
 end
@@ -173,6 +173,9 @@ end
 
 function widget:Initialize()
 	WG.lockcamera = {}
+    WG.lockcamera.overrideSelection = false  -- Skip selection mirroring
+    WG.lockcamera.overrideCamera = false     -- Skip camera updates
+
 	WG.lockcamera.GetPlayerID = function()
 		return lockPlayerID
 	end

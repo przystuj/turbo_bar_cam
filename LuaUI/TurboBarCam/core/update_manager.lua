@@ -20,13 +20,12 @@ function UpdateManager.processCycle()
         return
     end
 
-    -- Cache camera state and verify it's in FPS mode
-    local camState = CameraManager.getCameraState("UpdateManager.processCycle")
-    if camState.mode ~= 0 then
-        Log.debug("Wrong camera mode. Disabling widget.")
-        STATE.enabled = false
-        return
-    end
+    --local camState = CameraManager.getCameraState("UpdateManager.processCycle")
+    --if camState.mode ~= 0 then
+    --    Log.debug("Wrong camera mode. Disabling widget.")
+    --    STATE.enabled = false
+    --    return
+    --end
 
     -- Handle tracking grace period
     UpdateManager.handleTrackingGracePeriod()

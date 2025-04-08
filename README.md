@@ -1,10 +1,10 @@
-# TURBOBARCAM - Tactical Ultra-Responsive Brilliant Optics for BAR Camera
+# TurboBarCam - Tactical Ultra-Responsive Brilliant Optics for BAR Camera
 
 An advanced camera control suite for Beyond All Reason, featuring smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and fixed point tracking.
 
 ## Overview
 
-TURBOBARCAM provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
+TurboBarCam provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
 
 [![Video Overview](https://img.youtube.com/vi/PzaNwzRsMoY/0.jpg)](https://www.youtube.com/watch?v=PzaNwzRsMoY)
 
@@ -28,38 +28,38 @@ BAR install folder/
 └── data/
     └── LuaUI/
         ├── Widgets/
-        └── TURBOBARCAM/
+        └── TurboBarCam/
 ```
 - Enable "Tactical Ultra-Responsive Brilliant Optics for BAR Camera" in-game
 
 ## Getting Started
 
-By default, TURBOBARCAM is loaded but disabled. To enable it:
+By default, TurboBarCam is loaded but disabled. To enable it:
 
 ```
 /turbobarcam_toggle
 ```
 
-When you enable TURBOBARCAM:
+When you enable TurboBarCam:
 - If you have a unit selected, the camera will automatically zoom in on that unit in FPS mode
 - If no unit is selected, it will switch to FPS mode without moving the camera position
 
 ## Default Keybindings
 
-TURBOBARCAM comes with a default set of keybindings. To use them, add the following line to the end of your `uikeys.txt` file (located in your Spring directory):
+TurboBarCam comes with a default set of keybindings. To use them, add the following line to the end of your `uikeys.txt` file (located in your Spring directory):
 
 ```
-keyload     luaui/TURBOBARCAM/turbobarcam.uikeys.txt
+keyload     luaui/TurboBarCam/turbobarcam.uikeys.txt
 ```
 
 ## Commands and Keybindings
 
 ### Default Keybinds
 
-TURBOBARCAM comes with a default set of keybindings. To use them, add the following line to the end of your `uikeys.txt` file:
+TurboBarCam comes with a default set of keybindings. To use them, add the following line to the end of your `uikeys.txt` file:
 
 ```
-keyload     luaui/TURBOBARCAM/turbobarcam.uikeys.txt
+keyload     luaui/TurboBarCam/turbobarcam.uikeys.txt
 ```
 
 Here's a summary of the default keybinds:
@@ -67,7 +67,7 @@ Here's a summary of the default keybinds:
 | Key                       | Action | Description |
 |---------------------------|--------|-------------|
 | **General Controls**      |
-| Numpad .                  | Toggle TURBOBARCAM | Enable/disable the camera suite |
+| Numpad .                  | Toggle TurboBarCam | Enable/disable the camera suite |
 | Ctrl+Numpad .             | Toggle widget | Alternative way to toggle the widget |
 | **Camera Anchors**        |
 | Ctrl+F1 to F4             | Set anchor 1-4 | Save current camera position as anchors 1-4 |
@@ -126,7 +126,7 @@ Here's a summary of the default keybinds:
 
 | Command | Description |
 |---------|-------------|
-| `/turbobarcam_toggle` | Enable or disable the TURBOBARCAM widget |
+| `/turbobarcam_toggle` | Enable or disable the TurboBarCam widget |
 | `/turbobarcam_debug` | Toggle debug mode for troubleshooting |
 
 ### Camera Anchors
@@ -188,7 +188,7 @@ Here's a summary of the default keybinds:
 
 ## Parameter Adjustment System
 
-TURBOBARCAM includes a powerful parameter adjustment system that allows you to fine-tune camera behaviors. You can adjust these parameters using keybinds or commands.
+TurboBarCam includes a powerful parameter adjustment system that allows you to fine-tune camera behaviors. You can adjust these parameters using keybinds or commands.
 
 ### Adjustment Format
 
@@ -357,7 +357,7 @@ When enabled in the CONFIG settings, auto-orbit automatically transitions from F
 
 ## Spectator Features
 
-TURBOBARCAM includes special features for spectators, including the ability to create and manage unit groups. While spectators cannot directly control units, this feature allows for quickly switching between tracked units without having to find them on the map again.
+TurboBarCam includes special features for spectators, including the ability to create and manage unit groups. While spectators cannot directly control units, this feature allows for quickly switching between tracked units without having to find them on the map again.
 
 **Usage Example**:
 1. When spectating, select units you want to track frequently
@@ -390,7 +390,7 @@ The widget comes with sensible defaults, but you can modify many settings in the
 
 ## Acknowledgments
 
-TURBOBARCAM was created by [SuperKitowiec](https://www.youtube.com/@superkitowiec2) for the Beyond All Reason community.
+TurboBarCam was created by [SuperKitowiec](https://www.youtube.com/@superkitowiec2) for the Beyond All Reason community.
 
 ---
 

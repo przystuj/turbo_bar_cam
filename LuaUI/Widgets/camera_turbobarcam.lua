@@ -15,15 +15,15 @@ end
 ---@class Main just for navigation in IDE
 
 ---@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TURBOBARCAM/context.lua")
+local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type FeatureModules
-local TurboFeatures = VFS.Include("LuaUI/TURBOBARCAM/features.lua")
+local TurboFeatures = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TURBOBARCAM/core.lua")
+local TurboCore = VFS.Include("LuaUI/TurboBarCam/core.lua")
 ---@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TURBOBARCAM/common.lua")
+local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
-local Actions = VFS.Include("LuaUI/TURBOBARCAM/standalone/actions.lua").Actions
+local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
 
 local CONFIG = WidgetContext.WidgetConfig.CONFIG
 local STATE = WidgetContext.WidgetState.STATE
@@ -51,7 +51,10 @@ function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
     Actions.registerAllActions()
-    Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TURBOBARCAM] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    WG.TurboBarCam.isInControl = function()
+        return STATE.enabled and STATE.tracking.mode ~= nil
+    end
+    Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
 function widget:Shutdown()
@@ -59,7 +62,7 @@ function widget:Shutdown()
     if STATE.enabled then
         WidgetControl.disable()
     end
-    WG.TURBOBARCAM = nil
+    WG.TurboBarCam = nil
     -- refresh units command bar to remove custom command
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then

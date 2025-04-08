@@ -155,6 +155,10 @@ local function removeUnit(unitID)
 end
 
 local function selectPlayerSelectedUnits(playerID)
+	if WG.TurboBarCam and WG.TurboBarCam.isInControl() then
+		return
+	end
+
 	local units = {}
 	local count = 0
 	local teamID = select(4, spGetPlayerInfo(playerID))
