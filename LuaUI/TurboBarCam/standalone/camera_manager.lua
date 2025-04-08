@@ -6,6 +6,7 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 
 local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.WidgetConfig.CONFIG
 
 -- Initialize the call history in WG to persist across module reloads
 if not WG.TurboBarCam then
@@ -71,15 +72,18 @@ end
 
 --- Get the current camera state (with time-based cache)
 ---@param source string Source of the getCameraState call for tracking
----@param forceRefresh boolean|nil If true, always refresh the cache
 ---@return table cameraState The current camera state
 function CameraManager.getCameraState(source)
+    if CONFIG.PERFORMANCE.CAMERA_CACHE == false then
+        return Spring.GetCameraState()
+
+    end
     assert(source, "Source parameter is required for getCameraState")
 
     addToHistory("GetCameraState", {
-        source = source,
-        time = os.clock(),
-        mode = STATE.tracking.mode or "none"
+    source = source,
+    time = os.clock(),
+    mode = STATE.tracking.mode or "none"
     })
 
     local currentTime = os.clock()
@@ -87,23 +91,23 @@ function CameraManager.getCameraState(source)
 
     -- Check if we need to refresh the cached state
     if CameraManager.cache.dirtyFlag or
-            not CameraManager.cache.currentState or
-            timeSinceLastRefresh > CameraManager.cache.refreshInterval then
+    not CameraManager.cache.currentState or
+    timeSinceLastRefresh > CameraManager.cache.refreshInterval then
 
-        CameraManager.cache.currentState = Spring.GetCameraState()
-        CameraManager.cache.dirtyFlag = false
-        CameraManager.cache.lastRefreshTime = currentTime
+    CameraManager.cache.currentState = Spring.GetCameraState()
+    CameraManager.cache.dirtyFlag = false
+    CameraManager.cache.lastRefreshTime = currentTime
 
-        -- Verify that we're in FPS mode
-        if CameraManager.cache.currentState.mode ~= 0 then
-            Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
-            CameraManager.cache.currentState.mode = 0
-            CameraManager.cache.currentState.name = "fps"
-        end
+    -- Verify that we're in FPS mode
+    if CameraManager.cache.currentState.mode ~= 0 then
+    Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
+    CameraManager.cache.currentState.mode = 0
+    CameraManager.cache.currentState.name = "fps"
+    end
     end
 
     return CameraManager.cache.currentState
-end
+    end
 
 -- Detect and fix large rotation changes that might cause camera spinning
 ---@param currentState table Current camera state
@@ -181,6 +185,9 @@ end
 ---@param smoothing number Smoothing factor (0 for no smoothing, 1 for full smoothing)
 ---@param source string Source of the setCameraState call for tracking
 function CameraManager.setCameraState(cameraState, smoothing, source)
+    if CONFIG.PERFORMANCE.CAMERA_CACHE == false then
+        Spring.SetCameraState(cameraState, smoothing)
+    end
     assert(source, "Source parameter is required for setCameraState")
     local currentState = CameraManager.getCameraState("CameraManager.setCameraState")
     --CameraManager.printCameraStateDiff(currentState, cameraState, source) -- debugging camera changes

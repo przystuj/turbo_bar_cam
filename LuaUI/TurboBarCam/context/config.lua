@@ -27,6 +27,7 @@ if not WG.TurboBarCam.CONFIG then
         -- Performance settings
         PERFORMANCE = {
             ANCHOR_STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
+            CAMERA_CACHE = false, -- if true, it will cache camera state to improve performance.
         },
 
         -- Camera mode settings
