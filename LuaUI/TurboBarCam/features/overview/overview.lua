@@ -201,9 +201,9 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.targetRy = lookDir.ry
 
     -- only move camera up if we are looking kinda down
-    if currentCamState.rx > 2.5 then
-        STATE.turboOverview.targetRx = lookDir.rx
-    end
+    --if currentCamState.rx and currentCamState.rx > 2.5 then
+    STATE.turboOverview.targetRx = lookDir.rx
+    --end
 
     -- Get current mouse position for initialization
     STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
