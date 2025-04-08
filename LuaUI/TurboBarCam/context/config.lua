@@ -1,11 +1,3 @@
--- Initialize the global widget table for TurboBarCam if it doesn't exist
-WG.TurboBarCam = WG.TurboBarCam or {}
-
--- Create a module to export
----@class WidgetConfigModule
----@field CONFIG WidgetConfig
-local WidgetConfig = {}
-
 local MODES = {
     FPS = "fps",
     FIXED_POINT = "fps.fixed_point",
@@ -15,7 +7,6 @@ local MODES = {
     GROUP_TRACKING = "group_tracking",
 }
 
--- Only initialize CONFIG if it doesn't exist in WG already
 if not WG.TurboBarCam.CONFIG then
     ---@class WidgetConfig
     WG.TurboBarCam.CONFIG = {
@@ -129,17 +120,17 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Smoothing settings
                 SMOOTHING = {
-                    POSITION = 0.03, -- Position smoothing factor (lower = smoother but more lag)
-                    ROTATION = 0.01, -- Rotation smoothing factor
-                    STABLE_POSITION = 0.01, -- Stable mode position smoothing
+                    POSITION = 0.05, -- Position smoothing factor (lower = smoother but more lag)
+                    ROTATION = 0.005, -- Rotation smoothing factor
+                    STABLE_POSITION = 0.005, -- Stable mode position smoothing
                     STABLE_ROTATION = 0.005, -- Stable mode rotation smoothing
                 },
 
                 -- Default smoothing values (for reset)
                 DEFAULT_SMOOTHING = {
-                    POSITION = 0.03,
-                    ROTATION = 0.01,
-                    STABLE_POSITION = 0.01,
+                    POSITION = 0.05,
+                    ROTATION = 0.005,
+                    STABLE_POSITION = 0.05,
                     STABLE_ROTATION = 0.005,
                 },
 
@@ -188,16 +179,12 @@ if not WG.TurboBarCam.CONFIG then
     }
 end
 
--- Link CONFIG to the module
----@type WidgetConfig
-WidgetConfig.CONFIG = WG.TurboBarCam.CONFIG
-
 --- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
 ---@see Util#adjustParams
-WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
+WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.FPS.OFFSETS,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.FPS.OFFSETS,
         PARAM_NAMES = {
             HEIGHT = { 0, nil },
             FORWARD = { nil, nil },
@@ -207,7 +194,7 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     ORBIT = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.ORBIT,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.ORBIT,
         PARAM_NAMES = {
             HEIGHT = { 100, nil },
             DISTANCE = { 100, nil },
@@ -215,13 +202,13 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     ANCHOR = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.ANCHOR,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.ANCHOR,
         PARAM_NAMES = {
             DURATION = { 0, nil },
         }
     },
     TURBO_OVERVIEW = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.TURBO_OVERVIEW,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.TURBO_OVERVIEW,
         PARAM_NAMES = {
             DEFAULT_SMOOTHING = { 0.001, 0.5 },
             FORWARD_VELOCITY = { 1, 20 },
@@ -230,13 +217,13 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     UNIT_TRACKING = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.UNIT_TRACKING,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.UNIT_TRACKING,
         PARAM_NAMES = {
             HEIGHT = { -2000, 2000 },
         }
     },
     GROUP_TRACKING = {
-        PARAMS_ROOT = WidgetConfig.CONFIG.CAMERA_MODES.GROUP_TRACKING,
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.GROUP_TRACKING,
         PARAM_NAMES = {
             -- Camera adjustments
             EXTRA_DISTANCE = { -1000, 3000 }, -- Extra distance beyond calculated value
@@ -244,13 +231,10 @@ WidgetConfig.CONFIG.MODIFIABLE_PARAMS = {
             ORBIT_OFFSET = { -3.14, 3.14, "rad" }, -- Orbit offset angle in radians
 
             -- Smoothing factors
-            ["SMOOTHING.POSITION"] = { 0.001, 0.2 }, -- Min/max for position smoothing
+            ["SMOOTHING.POSITION"] = { 0.006, 0.2 }, -- Min/max for position smoothing
             ["SMOOTHING.ROTATION"] = { 0.001, 0.2 }, -- Min/max for rotation smoothing
-            ["SMOOTHING.STABLE_POSITION"] = { 0.001, 0.2 }, -- Min/max for stable position smoothing
+            ["SMOOTHING.STABLE_POSITION"] = { 0.006, 0.2 }, -- Min/max for stable position smoothing
             ["SMOOTHING.STABLE_ROTATION"] = { 0.001, 0.2 }, -- Min/max for stable rotation smoothing
         }
     }
 }
-
--- Export the module (both CONFIG and STATE are shared via WG)
-return WidgetConfig

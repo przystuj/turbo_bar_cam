@@ -25,14 +25,15 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
 local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local WidgetControl = TurboCore.WidgetControl
 local FPSCamera = TurboFeatures.FPSCamera
 local UpdateManager = TurboCore.UpdateManager
 local SelectionManager = TurboCore.SelectionManager
+local cameraStateOnInit = Spring.GetCameraState()
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -68,6 +69,8 @@ function widget:Shutdown()
     if #selectedUnits > 0 then
         Spring.SelectUnitArray(selectedUnits)
     end
+    --make sure that camera mode is restored
+    Spring.SetCameraState({ mode = cameraStateOnInit.mode, name = cameraStateOnInit.name })
 end
 
 ---@param cmdID number Command ID

@@ -17,8 +17,8 @@
 ---@field GroupTrackingCamera GroupTrackingCamera
 
 ---@class WidgetContext
----@field WidgetState WidgetStateModule
----@field WidgetConfig WidgetConfigModule
+---@field CONFIG WidgetConfig
+---@field STATE WidgetState
 
 ---@class CommonModules
 ---@field CameraCommons CameraCommons

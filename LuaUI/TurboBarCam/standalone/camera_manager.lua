@@ -5,8 +5,8 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 
-local STATE = WidgetContext.WidgetState.STATE
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.STATE
+local CONFIG = WidgetContext.CONFIG
 
 -- Initialize the call history in WG to persist across module reloads
 if not WG.TurboBarCam then
@@ -38,7 +38,7 @@ local options = {
 }
 
 local function addToHistory(historyType, entry)
-    if WidgetContext.WidgetConfig.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
+    if WidgetContext.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
         return
     end
 
@@ -231,7 +231,7 @@ end
 
 --- Print camera call history in a formatted way
 function CameraManager.printCallHistory()
-    if WidgetContext.WidgetConfig.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
+    if WidgetContext.CONFIG.DEBUG.LOG_LEVEL ~= "TRACE" then
         Log.info("Call history is gathered only when LOG_LEVEL=TRACE")
         return
     end

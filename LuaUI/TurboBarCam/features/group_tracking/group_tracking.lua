@@ -9,8 +9,8 @@ local TrackingUtils = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/gro
 ---@type DBSCAN
 local DBSCAN = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/dbscan.lua").DBSCAN
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
@@ -240,7 +240,6 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- Check if we're dealing with aircraft units
-    Log.debug({ "units", units })
     local hasAircraft = TrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units

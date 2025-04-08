@@ -7,8 +7,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraAnchorUtils
 local CameraAnchorUtils = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_utils.lua").CameraAnchorUtils
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager

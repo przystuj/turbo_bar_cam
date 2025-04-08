@@ -7,8 +7,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local STATE = WidgetContext.WidgetState.STATE
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
+local STATE = WidgetContext.STATE
+local CONFIG = WidgetContext.CONFIG
 
 ---@class FreeCam
 local FreeCam = {}

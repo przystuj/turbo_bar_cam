@@ -3,8 +3,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS

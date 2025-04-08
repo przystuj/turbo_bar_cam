@@ -7,8 +7,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type {OrbitCameraUtils: OrbitCameraUtils}
 local OrbitUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_utils.lua")
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons

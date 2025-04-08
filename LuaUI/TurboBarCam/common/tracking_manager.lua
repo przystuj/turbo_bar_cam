@@ -7,8 +7,8 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 
-local CONFIG = WidgetContext.WidgetConfig.CONFIG
-local STATE = WidgetContext.WidgetState.STATE
+local CONFIG = WidgetContext.CONFIG
+local STATE = WidgetContext.STATE
 
 ---@class TrackingManager
 local TrackingManager = {}

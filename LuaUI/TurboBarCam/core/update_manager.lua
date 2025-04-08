@@ -7,9 +7,10 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type FeatureModules
 local Features = VFS.Include("LuaUI/TurboBarCam/features.lua")
 
-local STATE = WidgetContext.WidgetState.STATE
+local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local TrackingManager = CommonModules.TrackingManager
 
 ---@class UpdateManager
 local UpdateManager = {}

@@ -7,7 +7,7 @@ local TrackingManager = VFS.Include("LuaUI/TurboBarCam/common/tracking_manager.l
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 
-local STATE = WidgetContext.WidgetState.STATE
+local STATE = WidgetContext.STATE
 
 ---@class CameraCommons
 local CameraCommons = {}

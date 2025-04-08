@@ -1,13 +1,3 @@
--- Initialize the global widget table for TurboBarCam if it doesn't exist
-WG.TurboBarCam = WG.TurboBarCam or {}
-
--- Create a module to export
-
----@class WidgetStateModule
----@field STATE WidgetState
-local WidgetState = {}
-
--- Only initialize STATE if it doesn't exist in WG already
 if not WG.TurboBarCam.STATE then
     ---@class WidgetState
     WG.TurboBarCam.STATE = {
@@ -146,9 +136,3 @@ if not WG.TurboBarCam.STATE then
         },
     }
 end
-
--- Link STATE to the module
-WidgetState.STATE = WG.TurboBarCam.STATE
-
--- Export the module
-return WidgetState
