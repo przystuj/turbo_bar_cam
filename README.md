@@ -6,6 +6,8 @@ An advanced camera control suite for Beyond All Reason, featuring smooth transit
 
 TURBOBARCAM provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
 
+[![Video Overview](https://img.youtube.com/vi/PzaNwzRsMoY/0.jpg)](https://www.youtube.com/watch?v=PzaNwzRsMoY)
+
 ## Features
 
 - **Camera Anchors**: Save and recall camera positions with smooth transitions
