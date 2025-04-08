@@ -189,7 +189,6 @@ function TrackingManager.disableTracking()
 end
 
 --- Starts a mode transition
----@param prevMode string Previous camera mode
 ---@param newMode string New camera mode
 ---@return boolean success Whether transition started successfully
 function TrackingManager.startModeTransition(newMode)

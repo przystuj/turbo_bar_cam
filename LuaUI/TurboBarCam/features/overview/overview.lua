@@ -63,10 +63,6 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.targetHeight = nil
     STATE.turboOverview.inZoomTransition = false
 
-    -- Initialize camera position
-    STATE.turboOverview.fixedCamPos = { x = 0, y = 0, z = 0 }
-    STATE.turboOverview.targetPoint = nil
-
     -- Reset movement states
     STATE.turboOverview.isMovingToTarget = false
     STATE.turboOverview.movingToTarget = false
@@ -75,7 +71,7 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.movementAngle = 0
     STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
 
-    -- Set a good default height based on map size
+    -- Set a good default height based on map size and zoom level
     STATE.turboOverview.height = math.max(mapDiagonal * CONFIG.CAMERA_MODES.TURBO_OVERVIEW.HEIGHT_FACTOR, 500)
     Log.debug("Base camera height: " .. STATE.turboOverview.height)
 
@@ -84,28 +80,142 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.targetHeight = currentHeight -- Initialize target height
     Log.debug("Current camera height: " .. currentHeight)
 
-    -- Get current camera position to improve the transition
+    -- Get current camera state
     local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.toggle")
 
-    -- Initialize fixed camera position to current position
+    -- Check if we have selected units
+    local selectedUnits = Spring.GetSelectedUnits()
+    local targetPoint = nil
+    local targetCamPos = nil
+
+    if #selectedUnits > 0 then
+        -- Unit-focused mode: position camera to look at the selected unit
+        local unitID = selectedUnits[1]
+        local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
+
+        if unitX and unitZ then
+            targetPoint = { x = unitX, y = unitY, z = unitZ }
+
+            -- Calculate an appropriate position based on unit
+            -- We want to be positioned at an angle (around 45 degrees) above the unit
+            local offsetDistance = currentHeight * 0.8 -- Position the camera at offset based on height
+
+            -- Calculate an appropriate angle (avoid positioning outside map)
+            -- Start with default position (45 degrees to the south)
+            local offsetX = -offsetDistance
+            local offsetZ = -offsetDistance
+
+            -- Check map boundaries
+            local margin = 200
+            local newX = targetPoint.x + offsetX
+            local newZ = targetPoint.z + offsetZ
+
+            -- If position would be outside map, try different quadrants
+            if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                -- Try northeast position
+                offsetX = offsetDistance
+                offsetZ = -offsetDistance
+                newX = targetPoint.x + offsetX
+                newZ = targetPoint.z + offsetZ
+
+                -- If still outside, try northwest
+                if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                    offsetX = -offsetDistance
+                    offsetZ = offsetDistance
+                    newX = targetPoint.x + offsetX
+                    newZ = targetPoint.z + offsetZ
+
+                    -- If still outside, try southeast
+                    if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                        offsetX = offsetDistance
+                        offsetZ = offsetDistance
+                        newX = targetPoint.x + offsetX
+                        newZ = targetPoint.z + offsetZ
+
+                        -- Last resort, just position directly above
+                        if newX < margin or newX > mapX - margin or newZ < margin or newZ > mapZ - margin then
+                            newX = targetPoint.x
+                            newZ = targetPoint.z
+                        end
+                    end
+                end
+            end
+
+            -- Store the target camera position but don't set it directly
+            targetCamPos = {
+                x = newX,
+                y = currentHeight,
+                z = newZ
+            }
+
+            Log.debug("Setting target position to look at selected unit " .. unitID)
+        else
+            -- Fallback if unit position can't be determined
+            Log.debug("Could not get selected unit position, using default positioning")
+            targetCamPos = {
+                x = currentCamState.px,
+                y = currentHeight,
+                z = currentCamState.pz
+            }
+        end
+    else
+        -- No unit selected, use trace ray approach from the current paste
+        -- Calculate the position where the camera is currently looking
+        local viewDistance = 1000 -- Default distance to look ahead
+        targetPoint = {
+            x = currentCamState.px + currentCamState.dx * viewDistance,
+            y = currentCamState.py + currentCamState.dy * viewDistance,
+            z = currentCamState.pz + currentCamState.dz * viewDistance
+        }
+
+        -- Trace a ray to find where the camera is actually looking
+        local success, groundPos = Spring.TraceScreenRay(Spring.GetViewGeometry() / 2, Spring.GetViewGeometry() / 2, true)
+        if success and groundPos then
+            targetPoint = { x = groundPos[1], y = groundPos[2], z = groundPos[3] }
+        end
+
+        -- Use current position as target position
+        targetCamPos = {
+            x = currentCamState.px,
+            y = currentHeight,
+            z = currentCamState.pz
+        }
+    end
+
+    -- For smooth transitions, we want to start from the current position
+    -- but gradually move toward the target position during the transition
     STATE.turboOverview.fixedCamPos = {
         x = currentCamState.px,
-        y = currentHeight,
+        y = currentCamState.py, -- Will be smoothly adjusted to target height
         z = currentCamState.pz
     }
 
-    -- Initialize rotation targets with current camera rotation
-    STATE.turboOverview.targetRx = currentCamState.rx or 0.3
-    STATE.turboOverview.targetRy = currentCamState.ry or 0
+    -- Store the target position for smooth transition in update
+    -- This is what makes the transition smooth instead of snapping
+    STATE.turboOverview.targetCamPos = targetCamPos
+
+    -- Calculate initial rotation to look at target point
+    local lookDir = Util.calculateLookAtPoint(targetCamPos, targetPoint)
+
+    -- Initialize rotation targets with calculated values for looking at focal point
+    STATE.turboOverview.targetRx = lookDir.rx
+    STATE.turboOverview.targetRy = lookDir.ry
 
     -- Get current mouse position for initialization
     STATE.turboOverview.lastMouseX, STATE.turboOverview.lastMouseY = Spring.GetMouseState()
 
-    -- Set up initial camera state before transition
+    -- Set up initial tracking state values using current camera position
     STATE.tracking.lastCamPos = {
         x = currentCamState.px,
         y = currentCamState.py,
         z = currentCamState.pz
+    }
+
+    -- Initialize last camera direction
+    STATE.tracking.lastCamDir = {
+        x = currentCamState.dx or 0,
+        y = currentCamState.dy or -1,
+        z = currentCamState.dz or 0
     }
 
     -- Initialize last rotation for smooth transitions
@@ -115,24 +225,11 @@ function TurboOverviewCamera.toggle()
         rz = 0
     }
 
+    -- Setup initial tracking state
+    TrackingManager.updateTrackingState(currentCamState)
+
     -- Begin mode transition from previous mode to turbo overview mode
-    -- This must be called after initializing lastCamPos for smooth transition
-    CameraCommons.beginModeTransition('turbo_overview')
-
-    -- Create camera state at current position
-    local camStatePatch = {
-        name = "fps",
-        mode = 0, -- FPS camera mode
-        px = STATE.turboOverview.fixedCamPos.x,
-        py = currentHeight,
-        pz = STATE.turboOverview.fixedCamPos.z,
-        rx = STATE.tracking.lastRotation.rx,
-        ry = STATE.tracking.lastRotation.ry,
-        rz = 0
-    }
-
-    -- Apply the camera state with a longer transition time to avoid initial fast movement
-    CameraManager.setCameraState(camStatePatch, 1, "TurboOverviewCamera.toggle")
+    TrackingManager.startModeTransition('turbo_overview')
 
     Log.debug("Turbo Overview camera enabled (Zoom: x" ..
             CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
@@ -156,6 +253,9 @@ function TurboOverviewCamera.update()
         camState.name = "fps"
     end
 
+    -- Track if transition is ending this frame
+    local transitionEndingThisFrame = false
+
     -- Determine smoothing factor based on whether we're in a mode transition
     local smoothFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING
     local rotFactor = CONFIG.SMOOTHING.FREE_CAMERA_FACTOR * 0.5
@@ -164,9 +264,78 @@ function TurboOverviewCamera.update()
         -- Use a gentler transition factor during mode changes to avoid fast movement
         smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR * 0.5
 
+        -- If we have a target camera position, smoothly move toward it during the transition
+        if STATE.turboOverview.targetCamPos then
+            STATE.turboOverview.fixedCamPos.x = Util.smoothStep(STATE.turboOverview.fixedCamPos.x,
+                    STATE.turboOverview.targetCamPos.x,
+                    smoothFactor)
+            STATE.turboOverview.fixedCamPos.z = Util.smoothStep(STATE.turboOverview.fixedCamPos.z,
+                    STATE.turboOverview.targetCamPos.z,
+                    smoothFactor)
+        end
+
+        -- Allow cursor tracking during transition - this enables free look
+        OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
+
         -- Check if we should end the transition
         if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
+            -- Mark that transition is ending this frame
+            transitionEndingThisFrame = true
+
+            -- Record current camera state for a smooth handoff
+            local handoffState = {
+                position = {
+                    x = camState.px,
+                    y = camState.py,
+                    z = camState.pz
+                },
+                rotation = {
+                    rx = camState.rx,
+                    ry = camState.ry
+                },
+                direction = {
+                    x = camState.dx,
+                    y = camState.dy,
+                    z = camState.dz
+                }
+            }
+
+            -- End the transition
             STATE.tracking.modeTransition = false
+
+            -- Save the current target rotation values to prevent any jump
+            STATE.turboOverview.targetRx = camState.rx
+            STATE.turboOverview.targetRy = camState.ry
+
+            -- Fix the camera position to the current actual position
+            STATE.turboOverview.fixedCamPos = {
+                x = camState.px,
+                z = camState.pz
+            }
+
+            -- Clear the target position since we're done with it
+            STATE.turboOverview.targetCamPos = nil
+
+            -- Update tracking state to exactly match current camera
+            STATE.tracking.lastCamPos = {
+                x = camState.px,
+                y = camState.py,
+                z = camState.pz
+            }
+
+            STATE.tracking.lastCamDir = {
+                x = camState.dx,
+                y = camState.dy,
+                z = camState.dz
+            }
+
+            STATE.tracking.lastRotation = {
+                rx = camState.rx,
+                ry = camState.ry,
+                rz = camState.rz
+            }
+
+            Log.debug("Overview camera transition complete - continuing with current view")
         end
     end
 
@@ -242,24 +411,39 @@ function TurboOverviewCamera.update()
     end
 
     -- Use continuous rotation based on cursor position
-    OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
+    -- Only run normal cursor tracking if we're not in transition
+    -- (because we're already updating cursor tracking during transition above)
+    if not STATE.tracking.modeTransition and not transitionEndingThisFrame then
+        OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
+    end
 
-    -- Get camera position
+    -- Get camera position - ensure we're using exactly the stored position
     local camPos = {
         x = STATE.turboOverview.fixedCamPos.x,
         y = currentHeight,
         z = STATE.turboOverview.fixedCamPos.z
     }
 
-    -- Smoothly interpolate current camera rotation toward target rotation
-    local rx = Util.smoothStep(STATE.tracking.lastRotation.rx, STATE.turboOverview.targetRx, rotFactor)
-    local ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, STATE.turboOverview.targetRy, rotFactor)
+    -- Special case for transition ending frame - use exact current state
+    local rx, ry, dx, dy, dz
+    if transitionEndingThisFrame then
+        -- On the transition ending frame, preserve the exact camera state
+        rx = camState.rx
+        ry = camState.ry
+        dx = camState.dx
+        dy = camState.dy
+        dz = camState.dz
+    else
+        -- Normal rotation interpolation
+        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, STATE.turboOverview.targetRx, rotFactor)
+        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, STATE.turboOverview.targetRy, rotFactor)
 
-    -- Calculate direction vector from rotation angles
-    local cosRx = math.cos(rx)
-    local dx = math.sin(ry) * cosRx
-    local dz = math.cos(ry) * cosRx
-    local dy = math.sin(rx)
+        -- Calculate direction vector from rotation angles
+        local cosRx = math.cos(rx)
+        dx = math.sin(ry) * cosRx
+        dz = math.cos(ry) * cosRx
+        dy = math.sin(rx)
+    end
 
     -- Prepare camera state patch
     local camStatePatch = {
@@ -269,11 +453,11 @@ function TurboOverviewCamera.update()
         px = camPos.x,
         py = camPos.y,
         pz = camPos.z,
-        -- Direction vector calculated from rotation angles
+        -- Direction vector
         dx = dx,
         dy = dy,
         dz = dz,
-        -- Smoothed rotation angles
+        -- Rotation angles
         rx = rx,
         ry = ry,
         rz = 0
@@ -288,6 +472,11 @@ function TurboOverviewCamera.update()
     STATE.tracking.lastRotation.rx = camStatePatch.rx
     STATE.tracking.lastRotation.ry = camStatePatch.ry
     STATE.tracking.lastRotation.rz = camStatePatch.rz
+
+    -- Also update last camera direction
+    STATE.tracking.lastCamDir.x = camStatePatch.dx
+    STATE.tracking.lastCamDir.y = camStatePatch.dy
+    STATE.tracking.lastCamDir.z = camStatePatch.dz
 
     -- Apply camera state
     CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.update")

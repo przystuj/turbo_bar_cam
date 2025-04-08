@@ -27,7 +27,7 @@ if not WG.TurboBarCam.CONFIG then
         -- Performance settings
         PERFORMANCE = {
             ANCHOR_STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
-            CAMERA_CACHE = false, -- if true, it will cache camera state to improve performance.
+            CAMERA_CACHE = true, -- if true, it will cache camera state to improve performance.
         },
 
         -- Camera mode settings
@@ -90,8 +90,8 @@ if not WG.TurboBarCam.CONFIG then
                 ANGULAR_DAMPING = 0.70, -- Rate at which steering angular velocity decreases (0-1). Lower values create sharper stops.
 
                 -- Zoom Settings
-                DEFAULT_ZOOM_LEVEL = 1, -- Default zoom level index (1-based).
-                ZOOM_LEVELS = { 1, 2, 4 }, -- Available zoom levels (multipliers). More levels = more granular zoom options.
+                DEFAULT_ZOOM_LEVEL = 2, -- Default zoom level index (1-based).
+                ZOOM_LEVELS = { 1, 2, 3, 4 }, -- Available zoom levels (multipliers). More levels = more granular zoom options.
 
                 -- Smoothing and Transition Settings
                 MOVEMENT_SMOOTHING = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
