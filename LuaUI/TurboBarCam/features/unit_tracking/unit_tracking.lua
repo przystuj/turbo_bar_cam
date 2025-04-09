@@ -89,20 +89,20 @@ function UnitTrackingCamera.update()
     local dirFactor = CONFIG.SMOOTHING.TRACKING_FACTOR
     local rotFactor = CONFIG.SMOOTHING.ROTATION_FACTOR
 
-    if STATE.tracking.modeTransition then
+    if STATE.tracking.isModeTransitionInProgress then
         -- Use a special transition factor during mode changes
         dirFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
         rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
 
         -- Check if we should end the transition
-        if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
-            STATE.tracking.modeTransition = false
+        if CameraCommons.isTransitionComplete() then
+            STATE.tracking.isModeTransitionInProgress = false
         end
     end
 
     -- Initialize last values if needed
     if STATE.tracking.lastCamDir.x == 0 and STATE.tracking.lastCamDir.y == 0 and STATE.tracking.lastCamDir.z == 0 then
-        local initialLookDir = Util.calculateLookAtPoint(camPos, targetPos)
+        local initialLookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
         STATE.tracking.lastCamDir = { x = initialLookDir.dx, y = initialLookDir.dy, z = initialLookDir.dz }
         STATE.tracking.lastRotation = { rx = initialLookDir.rx, ry = initialLookDir.ry, rz = 0 }
     end

@@ -7,6 +7,7 @@ local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local CameraCommons = CommonModules.CameraCommons
 
 ---@class OverviewCameraUtils
 local OverviewCameraUtils = {}
@@ -35,9 +36,8 @@ end
 
 --- Updates camera rotation based on cursor position
 --- Provides gradual rotation speed based on cursor distance from screen center
----@param state table State object with cursor tracking properties
 ---@return boolean updated Whether rotation was updated
-function OverviewCameraUtils.updateCursorTracking(state)
+function OverviewCameraUtils.updateCursorTracking()
     -- Get current mouse position
     local mouseX, mouseY = Spring.GetMouseState()
     local screenWidth, screenHeight = Spring.GetViewGeometry()
@@ -77,22 +77,22 @@ function OverviewCameraUtils.updateCursorTracking(state)
     -- Apply edge multiplier on top of gradual multiplier if at the edge
     local finalMultiplier = gradualMultiplier
     if isAtEdge then
-        finalMultiplier = gradualMultiplier * state.edgeRotationMultiplier
+        finalMultiplier = gradualMultiplier * STATE.turboOverview.edgeRotationMultiplier
     end
 
     -- Calculate rotation speeds based on cursor position and gradual multiplier
-    local rySpeed = normalizedX * state.maxRotationSpeed * finalMultiplier
-    local rxSpeed = -normalizedY * state.maxRotationSpeed * finalMultiplier
+    local rySpeed = normalizedX * STATE.turboOverview.maxRotationSpeed * finalMultiplier
+    local rxSpeed = -normalizedY * STATE.turboOverview.maxRotationSpeed * finalMultiplier
 
     -- Update target rotations
-    state.targetRy = state.targetRy + rySpeed
-    state.targetRx = state.targetRx + rxSpeed
+    STATE.turboOverview.targetRy = STATE.turboOverview.targetRy + rySpeed
+    STATE.turboOverview.targetRx = STATE.turboOverview.targetRx + rxSpeed
 
     -- Normalize angles
-    state.targetRy = Util.normalizeAngle(state.targetRy)
+    STATE.turboOverview.targetRy = CameraCommons.normalizeAngle(STATE.turboOverview.targetRy)
 
     -- Vertical rotation constraint
-    state.targetRx = math.max(math.pi / 2, math.min(math.pi, state.targetRx))
+    STATE.turboOverview.targetRx = math.max(math.pi / 2, math.min(math.pi, STATE.turboOverview.targetRx))
 
     return true
 end
@@ -109,10 +109,9 @@ function OverviewCameraUtils.updateTargetMovement()
     local mouseX, mouseY = Spring.GetMouseState()
 
     -- Initialize screen center if needed
-    if not STATE.turboOverview.screenCenterX or not STATE.turboOverview.screenCenterY then
-        local screenWidth, screenHeight = Spring.GetViewGeometry()
+    if not STATE.turboOverview.screenCenterX  then
+        local screenWidth, _ = Spring.GetViewGeometry()
         STATE.turboOverview.screenCenterX = screenWidth / 2
-        STATE.turboOverview.screenCenterY = screenHeight / 2
     end
 
     -- Initialize last mouse position if needed
@@ -182,17 +181,17 @@ function OverviewCameraUtils.updateTargetMovement()
     if STATE.turboOverview.inMovementTransition then
         -- During transition, smoothly move from current position to new position
         STATE.turboOverview.fixedCamPos = {
-            x = Util.smoothStep(STATE.turboOverview.fixedCamPos.x, newPos.x, STATE.turboOverview.movementTransitionFactor),
-            y = Util.smoothStep(STATE.turboOverview.fixedCamPos.y, newPos.y, STATE.turboOverview.movementTransitionFactor),
-            z = Util.smoothStep(STATE.turboOverview.fixedCamPos.z, newPos.z, STATE.turboOverview.movementTransitionFactor)
+            x = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.x, newPos.x, STATE.turboOverview.movementTransitionFactor),
+            y = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.y, newPos.y, STATE.turboOverview.movementTransitionFactor),
+            z = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.z, newPos.z, STATE.turboOverview.movementTransitionFactor)
         }
 
         -- Calculate look direction to target
-        local targetLookDir = Util.calculateLookAtPoint(STATE.turboOverview.fixedCamPos, STATE.turboOverview.targetPoint)
+        local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(STATE.turboOverview.fixedCamPos, STATE.turboOverview.targetPoint)
 
         -- Smoothly transition rotation to point to target
-        STATE.turboOverview.targetRx = Util.smoothStep(STATE.turboOverview.targetRx, targetLookDir.rx, STATE.turboOverview.movementTransitionFactor)
-        STATE.turboOverview.targetRy = Util.smoothStepAngle(STATE.turboOverview.targetRy, targetLookDir.ry, STATE.turboOverview.movementTransitionFactor)
+        STATE.turboOverview.targetRx = CameraCommons.smoothStep(STATE.turboOverview.targetRx, targetLookDir.rx, STATE.turboOverview.movementTransitionFactor)
+        STATE.turboOverview.targetRy = CameraCommons.smoothStepAngle(STATE.turboOverview.targetRy, targetLookDir.ry, STATE.turboOverview.movementTransitionFactor)
 
         -- Check if we've reached the movement path (close enough)
         local dx = STATE.turboOverview.fixedCamPos.x - newPos.x

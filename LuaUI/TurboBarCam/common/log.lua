@@ -50,6 +50,19 @@ function Log.info(message)
     Spring.Echo("[TurboBarCam] " .. message)
 end
 
+---@param message string error message
+function Log.error(message)
+    error("[TurboBarCam] Error: " .. message)
+end
+
+---@param message string error message
+function Log.warn(message)
+    if type(message) ~= "string" then
+        message = dump(message)
+    end
+    Log.info("[WARN] " .. message)
+end
+
 return {
     Log = Log
 }

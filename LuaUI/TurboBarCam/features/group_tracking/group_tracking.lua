@@ -126,7 +126,6 @@ function GroupTrackingCamera.calculateCenterOfMass()
 
     -- Update state with new center
     STATE.tracking.group.centerOfMass = newCenter
-    STATE.tracking.group.totalWeight = totalWeight
 
     -- Calculate velocity for the group (for determining movement direction)
     local timeSinceLast = Spring.DiffTimers(
@@ -155,14 +154,11 @@ function GroupTrackingCamera.calculateCenterOfMass()
         else
             -- Smooth the velocity
             STATE.tracking.group.smoothedVelocity = {
-                x = Util.smoothStep(STATE.tracking.group.smoothedVelocity.x, rawVelocity.x, velocitySmoothingFactor),
-                y = Util.smoothStep(STATE.tracking.group.smoothedVelocity.y, rawVelocity.y, velocitySmoothingFactor),
-                z = Util.smoothStep(STATE.tracking.group.smoothedVelocity.z, rawVelocity.z, velocitySmoothingFactor)
+                x = CameraCommons.smoothStep(STATE.tracking.group.smoothedVelocity.x, rawVelocity.x, velocitySmoothingFactor),
+                y = CameraCommons.smoothStep(STATE.tracking.group.smoothedVelocity.y, rawVelocity.y, velocitySmoothingFactor),
+                z = CameraCommons.smoothStep(STATE.tracking.group.smoothedVelocity.z, rawVelocity.z, velocitySmoothingFactor)
             }
         end
-
-        -- Store raw velocity
-        STATE.tracking.group.velocity = rawVelocity
 
         -- Track direction history
         if STATE.tracking.group.directionHistory == nil then
@@ -479,7 +475,7 @@ function GroupTrackingCamera.calculateRequiredDistance()
             math.min(CONFIG.CAMERA_MODES.GROUP_TRACKING.MAX_DISTANCE, requiredDistance))
 
     -- Smoothly update target distance
-    STATE.tracking.group.targetDistance = Util.smoothStep(
+    STATE.tracking.group.targetDistance = CameraCommons.smoothStep(
             STATE.tracking.group.targetDistance,
             requiredDistance,
             0.03
@@ -692,9 +688,9 @@ function GroupTrackingCamera.update()
 
     -- Apply smoothing
     local smoothedPos = {
-        x = Util.smoothStep(camPos.x, newCamPos.x, posFactor),
-        y = Util.smoothStep(camPos.y, newCamPos.y, posFactor),
-        z = Util.smoothStep(camPos.z, newCamPos.z, posFactor)
+        x = CameraCommons.smoothStep(camPos.x, newCamPos.x, posFactor),
+        y = CameraCommons.smoothStep(camPos.y, newCamPos.y, posFactor),
+        z = CameraCommons.smoothStep(camPos.z, newCamPos.z, posFactor)
     }
 
     -- Calculate look direction to center using the smoothed position

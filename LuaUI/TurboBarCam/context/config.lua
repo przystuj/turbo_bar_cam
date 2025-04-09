@@ -10,6 +10,9 @@ local MODES = {
 if not WG.TurboBarCam.CONFIG then
     ---@class WidgetConfig
     WG.TurboBarCam.CONFIG = {
+        -- Should offset values be saved after changing/disabling mode
+        PERSISTENT_UNIT_SETTINGS = "MODE", -- NONE, UNIT, MODE
+
         -- Debug and performance settings
         DEBUG = {
             LOG_LEVEL = "INFO", -- INFO, DEBUG, TRACE
@@ -19,6 +22,10 @@ if not WG.TurboBarCam.CONFIG then
         PERFORMANCE = {
             ANCHOR_STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
             CAMERA_CACHE = true, -- if true, it will cache camera state to improve performance.
+        },
+
+        TRANSITION = {
+            MODE_TRANSITION_DURATION = 1, -- Duration of transition between modes in seconds
         },
 
         -- Camera mode settings
@@ -34,13 +41,13 @@ if not WG.TurboBarCam.CONFIG then
             -- FPS camera settings
             FPS = {
                 OFFSETS = {
-                    HEIGHT = 60, -- Default height, will be updated based on unit height
+                    HEIGHT = nil, -- It's calculated from unit height
                     FORWARD = -300,
                     SIDE = 0,
                     ROTATION = 0 -- Rotation offset (radians)
                 },
                 DEFAULT_OFFSETS = {
-                    HEIGHT = 60,
+                    HEIGHT = nil, -- It's calculated from unit height
                     FORWARD = -300,
                     SIDE = 0,
                     ROTATION = 0
@@ -52,8 +59,11 @@ if not WG.TurboBarCam.CONFIG then
             ORBIT = {
                 HEIGHT_FACTOR = 8, -- Height is 8x unit height
                 DISTANCE = 800, -- Distance from unit
-                SPEED = 0.01, -- Orbit speed in radians per frame
+                SPEED = 0.0005, -- Orbit speed in radians per frame
+                HEIGHT = nil, -- It's calculated from unit height
                 DEFAULT_SPEED = 0.0005,
+                DEFAULT_DISTANCE = 800,
+                DEFAULT_HEIGHT = nil, -- It's calculated from unit height
                 AUTO_ORBIT = {
                     ENABLED = true,
                     DELAY = 10, -- Seconds of no movement to trigger auto orbit

@@ -1,141 +1,139 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
----@type TrackingManager
-local TrackingManager = VFS.Include("LuaUI/TurboBarCam/common/tracking_manager.lua").TrackingManager
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 
 local STATE = WidgetContext.STATE
+local CONFIG = WidgetContext.CONFIG
 
 ---@class CameraCommons
 local CameraCommons = {}
 
 --- Checks if a transition has completed
----@param startTime number Timer when transition started
 ---@return boolean hasCompleted True if transition is complete
-function CameraCommons.isTransitionComplete(startTime)
+function CameraCommons.isTransitionComplete()
     local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, startTime)
-    return elapsed > 1.0
+    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+    return elapsed > CONFIG.TRANSITION.MODE_TRANSITION_DURATION
 end
 
 --- Focuses camera on a point with appropriate smoothing
 ---@param camPos table Camera position {x, y, z}
 ---@param targetPos table Target position {x, y, z}
----@param lastCamDir table Last camera direction {x, y, z}
----@param lastRotation table Last camera rotation {rx, ry, rz}
 ---@param smoothFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
 function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
     -- Calculate look direction to the target point
-    local lookDir = Util.calculateLookAtPoint(camPos, targetPos)
+    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
         -- Smooth camera position
-        px = Util.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
-        py = Util.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
-        pz = Util.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
+        px = CameraCommons.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
+        py = CameraCommons.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
+        pz = CameraCommons.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
 
         -- Smooth direction vector
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
+        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
+        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
+        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
 
         -- Smooth rotations
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
         rz = 0
     }
 
     return cameraDirectionState
 end
 
---- Applies camera offsets to a base position based on unit vectors
----@param unitPos table Unit position {x, y, z}
----@param front table Front vector {x, y, z}
----@param up table Up vector {x, y, z}
----@param right table Right vector {x, y, z}
----@param offsets table Offset values {height, forward, side}
----@return table adjustedPos Adjusted camera position
-function CameraCommons.applyOffsets(unitPos, front, up, right, offsets)
-    local x, y, z = unitPos.x, unitPos.y, unitPos.z
+--- Calculates camera direction and rotation to look at a point
+---@param camPos table Camera position {x, y, z}
+---@param targetPos table Target position {x, y, z}
+---@return table direction and rotation values
+function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
+    -- Calculate direction vector from camera to target
+    local dirX = targetPos.x - camPos.x
+    local dirY = targetPos.y - camPos.y
+    local dirZ = targetPos.z - camPos.z
 
-    -- Extract components from the vector tables
-    local frontX, frontY, frontZ = front[1], front[2], front[3]
-    local upX, upY, upZ = up[1], up[2], up[3]
-    local rightX, rightY, rightZ = right[1], right[2], right[3]
-
-    -- Apply height offset along the unit's up vector
-    if offsets.height ~= 0 then
-        x = x + upX * offsets.height
-        y = y + upY * offsets.height
-        z = z + upZ * offsets.height
+    -- Normalize the direction vector
+    local length = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
+    if length > 0 then
+        dirX = dirX / length
+        dirY = dirY / length
+        dirZ = dirZ / length
     end
 
-    -- Apply forward offset if needed
-    if offsets.forward ~= 0 then
-        x = x + frontX * offsets.forward
-        y = y + frontY * offsets.forward
-        z = z + frontZ * offsets.forward
-    end
+    -- Calculate appropriate rotation for FPS camera
+    local ry = -math.atan2(dirX, dirZ) - math.pi
 
-    -- Apply side offset if needed
-    if offsets.side ~= 0 then
-        x = x + rightX * offsets.side
-        y = y + rightY * offsets.side
-        z = z + rightZ * offsets.side
-    end
+    -- Calculate pitch (rx)
+    local horizontalLength = math.sqrt(dirX * dirX + dirZ * dirZ)
+    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / 1.8)
 
-    return { x = x, y = y, z = z }
-end
-
---- Creates a basic camera state object with the specified position and direction
----@param position table Camera position {x, y, z}
----@param direction table Camera direction {dx, dy, dz, rx, ry, rz}
----@return table cameraState Complete camera state object
-function CameraCommons.createCameraState(position, direction)
     return {
-        mode = 0, -- FPS camera mode
-        name = "fps",
-
-        -- Position
-        px = position.x,
-        py = position.y,
-        pz = position.z,
-
-        -- Direction
-        dx = direction.dx,
-        dy = direction.dy,
-        dz = direction.dz,
-
-        -- Rotation
-        rx = direction.rx,
-        ry = direction.ry,
-        rz = direction.rz
+        dx = dirX,
+        dy = dirY,
+        dz = dirZ,
+        rx = rx,
+        ry = ry,
+        rz = 0
     }
 end
 
---- Begins a transition between camera modes
----@param newMode string|nil New camera mode to transition to
-function CameraCommons.beginModeTransition(newMode)
-    -- Save the previous mode
-    STATE.tracking.prevMode = STATE.tracking.mode
-    STATE.tracking.mode = newMode
-
-    -- Only start a transition if we're switching between different modes
-    if STATE.tracking.prevMode ~= newMode then
-        STATE.tracking.modeTransition = true
-        STATE.tracking.transitionStartState = CameraManager.getCameraState("CameraCommons.beginModeTransition")
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
-
-        -- Store current camera position as last position to smooth from
-        local camState = CameraManager.getCameraState("CameraCommons.beginModeTransition")
-        TrackingManager.updateTrackingState(camState)
+--- Smoothly interpolates between current and target values
+---@param current number|nil Current value
+---@param target number|nil Target value
+---@param factor number Smoothing factor (0.0-1.0)
+---@return number smoothed value
+function CameraCommons.smoothStep(current, target, factor)
+    if current == nil or target == nil or factor == nil then
+        return current or target or 0
     end
+    return current + (target - current) * factor
+end
+
+--- Smoothly interpolates between angles
+---@param current number|nil Current angle (in radians)
+---@param target number|nil Target angle (in radians)
+---@param factor number Smoothing factor (0.0-1.0)
+---@return number smoothed angle
+function CameraCommons.smoothStepAngle(current, target, factor)
+    if current == nil or target == nil or factor == nil then
+        return current or target or 0 -- Return whichever is not nil, or 0 if both are nil
+    end
+
+    -- Normalize both angles to -pi to pi range
+    current = CameraCommons.normalizeAngle(current)
+    target = CameraCommons.normalizeAngle(target)
+
+    -- Find the shortest path
+    local diff = target - current
+
+    -- If the difference is greater than pi, we need to go the other way around
+    if diff > math.pi then
+        diff = diff - 2 * math.pi
+    elseif diff < -math.pi then
+        diff = diff + 2 * math.pi
+    end
+
+    return current + diff * factor
+end
+
+--- Normalizes an angle to be within -pi to pi range
+---@param angle number|nil Angle to normalize (in radians)
+---@return number normalized angle
+function CameraCommons.normalizeAngle(angle)
+    if angle == nil then
+        return 0 -- Default to 0 if angle is nil
+    end
+
+    local twoPi = 2 * math.pi
+    angle = angle % twoPi
+    if angle > math.pi then
+        angle = angle - twoPi
+    end
+    return angle
 end
 
 return {

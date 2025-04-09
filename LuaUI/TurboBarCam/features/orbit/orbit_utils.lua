@@ -16,15 +16,12 @@ local OrbitCameraUtils = {}
 
 --- Calculates camera position on orbit path
 ---@param unitPos table Unit position {x, y, z}
----@param angle number Current orbit angle
----@param height number Orbit height
----@param distance number Orbit distance
 ---@return table camPos Camera position {x, y, z}
-function OrbitCameraUtils.calculateOrbitPosition(unitPos, angle, height, distance)
+function OrbitCameraUtils.calculateOrbitPosition(unitPos)
     return {
-        x = unitPos.x + distance * math.sin(angle),
-        y = unitPos.y + height,
-        z = unitPos.z + distance * math.cos(angle)
+        x = unitPos.x + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.sin(STATE.tracking.orbit.angle),
+        y = unitPos.y + CONFIG.CAMERA_MODES.ORBIT.HEIGHT,
+        z = unitPos.z + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.cos(STATE.tracking.orbit.angle)
     }
 end
 
@@ -52,18 +49,18 @@ function OrbitCameraUtils.handleAutoOrbit()
     local currentCamRot = { rx = camState.rx, ry = camState.ry, rz = camState.rz }
 
     -- If this is the first check, just store the positions
-    if not STATE.orbit.lastPosition then
-        STATE.orbit.lastPosition = currentPos
-        STATE.orbit.lastCamPos = currentCamPos
-        STATE.orbit.lastCamRot = currentCamRot
+    if not STATE.tracking.orbit.lastPosition then
+        STATE.tracking.orbit.lastPosition = currentPos
+        STATE.tracking.orbit.lastCamPos = currentCamPos
+        STATE.tracking.orbit.lastCamRot = currentCamRot
         return false
     end
 
     -- Check if unit has moved
     local epsilon = 0.1  -- Small threshold to account for floating point precision
-    local hasMoved = math.abs(currentPos.x - STATE.orbit.lastPosition.x) > epsilon or
-            math.abs(currentPos.y - STATE.orbit.lastPosition.y) > epsilon or
-            math.abs(currentPos.z - STATE.orbit.lastPosition.z) > epsilon
+    local hasMoved = math.abs(currentPos.x - STATE.tracking.orbit.lastPosition.x) > epsilon or
+            math.abs(currentPos.y - STATE.tracking.orbit.lastPosition.y) > epsilon or
+            math.abs(currentPos.z - STATE.tracking.orbit.lastPosition.z) > epsilon
 
     -- Check if camera has moved (user interaction)
     local camEpsilon = 0.5  -- Slightly larger threshold for camera movement
@@ -71,14 +68,14 @@ function OrbitCameraUtils.handleAutoOrbit()
 
     -- Only check camera position/rotation if we have previous values
     local hasCamMoved = false
-    if STATE.orbit.autoOrbitActive then
+    if STATE.tracking.orbit.autoOrbitActive then
         hasCamMoved = false
-    elseif STATE.orbit.lastCamPos and STATE.orbit.lastCamRot then
-        hasCamMoved = math.abs(currentCamPos.x - STATE.orbit.lastCamPos.x) > camEpsilon or
-                math.abs(currentCamPos.y - STATE.orbit.lastCamPos.y) > camEpsilon or
-                math.abs(currentCamPos.z - STATE.orbit.lastCamPos.z) > camEpsilon or
-                math.abs(currentCamRot.rx - STATE.orbit.lastCamRot.rx) > rotEpsilon or
-                math.abs(currentCamRot.ry - STATE.orbit.lastCamRot.ry) > rotEpsilon
+    elseif STATE.tracking.orbit.lastCamPos and STATE.tracking.orbit.lastCamRot then
+        hasCamMoved = math.abs(currentCamPos.x - STATE.tracking.orbit.lastCamPos.x) > camEpsilon or
+                math.abs(currentCamPos.y - STATE.tracking.orbit.lastCamPos.y) > camEpsilon or
+                math.abs(currentCamPos.z - STATE.tracking.orbit.lastCamPos.z) > camEpsilon or
+                math.abs(currentCamRot.rx - STATE.tracking.orbit.lastCamRot.rx) > rotEpsilon or
+                math.abs(currentCamRot.ry - STATE.tracking.orbit.lastCamRot.ry) > rotEpsilon
     end
 
     local stateChanged = false
@@ -86,22 +83,22 @@ function OrbitCameraUtils.handleAutoOrbit()
     -- Consider either unit movement or camera movement as activity
     if hasMoved or hasCamMoved then
         -- Unit or camera is moving, reset timer
-        STATE.orbit.stationaryTimer = nil
+        STATE.tracking.orbit.stationaryTimer = nil
 
         -- If auto-orbit is active, transition back to FPS
-        if STATE.orbit.autoOrbitActive then
-            STATE.orbit.autoOrbitActive = false
+        if STATE.tracking.orbit.autoOrbitActive then
+            STATE.tracking.orbit.autoOrbitActive = false
             stateChanged = true
 
             -- Begin transition from orbit back to FPS mode
             -- We need to do this manually as we're already in "fps" tracking mode
-            STATE.tracking.modeTransition = true
+            STATE.tracking.isModeTransitionInProgress = true
             STATE.tracking.transitionStartTime = Spring.GetTimer()
 
             -- Restore original transition factor
-            if STATE.orbit.originalTransitionFactor then
-                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.orbit.originalTransitionFactor
-                STATE.orbit.originalTransitionFactor = nil
+            if STATE.tracking.orbit.originalTransitionFactor then
+                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.tracking.orbit.originalTransitionFactor
+                STATE.tracking.orbit.originalTransitionFactor = nil
             end
 
             -- Store current camera position as last position to smooth from
@@ -109,48 +106,55 @@ function OrbitCameraUtils.handleAutoOrbit()
         end
     else
         -- Unit and camera are stationary
-        if not STATE.orbit.stationaryTimer then
+        if not STATE.tracking.orbit.stationaryTimer then
             -- Start timer
-            STATE.orbit.stationaryTimer = Spring.GetTimer()
+            STATE.tracking.orbit.stationaryTimer = Spring.GetTimer()
         else
             -- Check if we've been stationary long enough
             local now = Spring.GetTimer()
-            local elapsed = Spring.DiffTimers(now, STATE.orbit.stationaryTimer)
+            local elapsed = Spring.DiffTimers(now, STATE.tracking.orbit.stationaryTimer)
 
-            if elapsed > CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.DELAY and not STATE.orbit.autoOrbitActive then
+            if elapsed > CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.DELAY and not STATE.tracking.orbit.autoOrbitActive then
                 -- Transition to auto-orbit
-                STATE.orbit.autoOrbitActive = true
+                STATE.tracking.orbit.autoOrbitActive = true
                 stateChanged = true
 
                 -- Initialize orbit settings with default values
-                local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
-                CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
-                CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+                TrackingManager.loadModeSettings("orbit", STATE.tracking.unitID)
+                OrbitCameraUtils.ensureHeightIsSet()
 
                 -- Initialize orbit angle based on current camera position
-                STATE.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
+                STATE.tracking.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 
                 -- Begin transition from FPS to orbit
                 -- We need to do this manually as we're already in "fps" tracking mode
-                STATE.tracking.modeTransition = true
+                STATE.tracking.isModeTransitionInProgress = true
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
                 -- Store current camera position as last position to smooth from
                 TrackingManager.updateTrackingState(camState)
 
                 -- Store original transition factor and use a more delayed transition
-                STATE.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
+                STATE.tracking.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
                 CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
             end
         end
     end
 
     -- Update last positions
-    STATE.orbit.lastPosition = currentPos
-    STATE.orbit.lastCamPos = currentCamPos
-    STATE.orbit.lastCamRot = currentCamRot
+    STATE.tracking.orbit.lastPosition = currentPos
+    STATE.tracking.orbit.lastCamPos = currentCamPos
+    STATE.tracking.orbit.lastCamRot = currentCamRot
 
     return stateChanged
+end
+
+function OrbitCameraUtils.ensureHeightIsSet()
+    if CONFIG.CAMERA_MODES.ORBIT.HEIGHT then
+        return
+    end
+    local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
+    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
 end
 
 ---@see ModifiableParams
@@ -169,44 +173,16 @@ function OrbitCameraUtils.adjustParams(params)
     end
 
     Util.adjustParams(params, "ORBIT", function() OrbitCameraUtils.resetSettings() end)
-
-    -- Update stored settings for the current unit
-    if STATE.tracking.unitID then
-        if not STATE.orbit.unitOffsets[STATE.tracking.unitID] then
-            STATE.orbit.unitOffsets[STATE.tracking.unitID] = {}
-        end
-
-        STATE.orbit.unitOffsets[STATE.tracking.unitID] = CONFIG.CAMERA_MODES.ORBIT
-    end
+    TrackingManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 end
 
 --- Resets orbit settings to defaults
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.resetSettings()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-    if Util.isModeDisabled("orbit") then
-        return
-    end
-
-    -- If we have a tracked unit, reset its orbit speed
-    if STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-
-        -- Update stored settings for this unit
-        if not STATE.orbit.unitOffsets[STATE.tracking.unitID] then
-            STATE.orbit.unitOffsets[STATE.tracking.unitID] = {}
-        end
-        STATE.orbit.unitOffsets[STATE.tracking.unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
-
-        Log.debug("Reset orbit speed for unit " .. STATE.tracking.unitID .. " to default")
-        return true
-    else
-        Log.debug("No unit being orbited")
-        return false
-    end
-
+    CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+    CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+    Log.debug("Restored orbit camera settings to defaults")
 end
 
 return {

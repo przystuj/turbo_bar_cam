@@ -47,7 +47,10 @@ function CameraAnchor.focus(index)
 
     -- Store the anchor we're moving to
     STATE.lastUsedAnchor = index
-    TrackingManager.disableTracking()
+
+    if STATE.tracking.mode then
+        TrackingManager.disableTracking()
+    end
 
     -- Cancel transition if we click the same anchor we're currently moving to
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
@@ -129,7 +132,7 @@ function CameraAnchor.focusAndTrack(index)
     end
 
     -- Disable any existing tracking modes to avoid conflicts
-    if not STATE.tracking.mode then
+    if STATE.tracking.mode then
         TrackingManager.disableTracking()
     end
 
@@ -183,10 +186,10 @@ function CameraAnchor.update()
         STATE.transition.currentStepIndex = targetStep
 
         -- Apply the camera state for this step
-        local state = STATE.transition.steps[STATE.transition.currentStepIndex]
+        local camState = STATE.transition.steps[STATE.transition.currentStepIndex]
 
         -- Apply the base camera state (position)
-        CameraManager.setCameraState(state, 1, "CameraTransition.update")
+        CameraManager.setCameraState(camState, 1, "CameraTransition.update")
 
         -- Check if we've reached the end
         if STATE.transition.currentStepIndex >= totalSteps then

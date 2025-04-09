@@ -56,12 +56,10 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
     STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
     STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TRANSITION_FACTOR
-    STATE.turboOverview.modeTransitionTime = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MODE_TRANSITION_TIME
     STATE.turboOverview.mouseMoveSensitivity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOUSE_MOVE_SENSITIVITY / 10
 
     -- For tracking zoom transitions
     STATE.turboOverview.targetHeight = nil
-    STATE.turboOverview.inZoomTransition = false
 
     -- Reset movement states
     STATE.turboOverview.isMovingToTarget = false
@@ -195,7 +193,7 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.targetCamPos = targetCamPos
 
     -- Calculate initial rotation to look at target point
-    local lookDir = Util.calculateLookAtPoint(targetCamPos, targetPoint)
+    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
 
     -- Initialize rotation targets with calculated values for looking at focal point
     STATE.turboOverview.targetRy = lookDir.ry
@@ -264,25 +262,25 @@ function TurboOverviewCamera.update()
     local smoothFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING
     local rotFactor = CONFIG.SMOOTHING.FREE_CAMERA_FACTOR * 0.5
 
-    if STATE.tracking.modeTransition then
+    if STATE.tracking.isModeTransitionInProgress then
         -- Use a gentler transition factor during mode changes to avoid fast movement
         smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR * 0.5
 
         -- If we have a target camera position, smoothly move toward it during the transition
         if STATE.turboOverview.targetCamPos then
-            STATE.turboOverview.fixedCamPos.x = Util.smoothStep(STATE.turboOverview.fixedCamPos.x,
+            STATE.turboOverview.fixedCamPos.x = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.x,
                     STATE.turboOverview.targetCamPos.x,
                     smoothFactor)
-            STATE.turboOverview.fixedCamPos.z = Util.smoothStep(STATE.turboOverview.fixedCamPos.z,
+            STATE.turboOverview.fixedCamPos.z = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.z,
                     STATE.turboOverview.targetCamPos.z,
                     smoothFactor)
         end
 
         -- Allow cursor tracking during transition - this enables free look
-        OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
+        OverviewCameraUtils.updateCursorTracking()
 
         -- Check if we should end the transition
-        if CameraCommons.isTransitionComplete(STATE.tracking.transitionStartTime) then
+        if CameraCommons.isTransitionComplete() then
             -- Mark that transition is ending this frame
             transitionEndingThisFrame = true
 
@@ -305,7 +303,7 @@ function TurboOverviewCamera.update()
             }
 
             -- End the transition
-            STATE.tracking.modeTransition = false
+            STATE.tracking.isModeTransitionInProgress = false
 
             -- Save the current target rotation values to prevent any jump
             STATE.turboOverview.targetRx = camState.rx
@@ -358,10 +356,8 @@ function TurboOverviewCamera.update()
 
     if math.abs(currentHeight - targetHeight) > 1 then
         -- We're in a zoom transition
-        STATE.turboOverview.inZoomTransition = true
-        currentHeight = Util.smoothStep(currentHeight, targetHeight, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR)
+        currentHeight = CameraCommons.smoothStep(currentHeight, targetHeight, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR)
     else
-        STATE.turboOverview.inZoomTransition = false
         currentHeight = targetHeight
     end
 
@@ -377,13 +373,13 @@ function TurboOverviewCamera.update()
         }
 
         -- Calculate look direction to the target point
-        local lookDir = Util.calculateLookAtPoint(camPos, STATE.turboOverview.targetPoint)
+        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, STATE.turboOverview.targetPoint)
 
         -- During movement transition, smoothly interpolate between current rotation and target rotation
         local rx, ry
         if STATE.turboOverview.inMovementTransition then
-            rx = Util.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, STATE.turboOverview.movementTransitionFactor)
-            ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, STATE.turboOverview.movementTransitionFactor)
+            rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, STATE.turboOverview.movementTransitionFactor)
+            ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, STATE.turboOverview.movementTransitionFactor)
         else
             rx = lookDir.rx
             ry = lookDir.ry
@@ -417,8 +413,8 @@ function TurboOverviewCamera.update()
     -- Use continuous rotation based on cursor position
     -- Only run normal cursor tracking if we're not in transition
     -- (because we're already updating cursor tracking during transition above)
-    if not STATE.tracking.modeTransition and not transitionEndingThisFrame then
-        OverviewCameraUtils.updateCursorTracking(STATE.turboOverview)
+    if not STATE.tracking.isModeTransitionInProgress and not transitionEndingThisFrame then
+        OverviewCameraUtils.updateCursorTracking()
     end
 
     -- Get camera position - ensure we're using exactly the stored position
@@ -439,8 +435,8 @@ function TurboOverviewCamera.update()
         dz = camState.dz
     else
         -- Normal rotation interpolation
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, STATE.turboOverview.targetRx, rotFactor)
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, STATE.turboOverview.targetRy, rotFactor)
+        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, STATE.turboOverview.targetRx, rotFactor)
+        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, STATE.turboOverview.targetRy, rotFactor)
 
         -- Calculate direction vector from rotation angles
         local cosRx = math.cos(rx)
@@ -613,7 +609,7 @@ function TurboOverviewCamera.moveToTarget()
     }
 
     -- Calculate look direction to the target point
-    local lookDir = Util.calculateLookAtPoint(targetCamPos, targetPoint)
+    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
 
     -- Store current camera position as starting point for transition
     STATE.turboOverview.fixedCamPos = {
@@ -633,7 +629,7 @@ function TurboOverviewCamera.moveToTarget()
     STATE.turboOverview.targetRy = lookDir.ry
 
     -- Begin mode transition for smooth movement
-    STATE.tracking.modeTransition = true
+    STATE.tracking.isModeTransitionInProgress = true
     STATE.tracking.transitionStartTime = Spring.GetTimer()
 
     -- Update tracking state for smooth transition

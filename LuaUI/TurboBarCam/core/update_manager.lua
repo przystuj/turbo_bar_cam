@@ -74,13 +74,13 @@ end
 function UpdateManager.handleModeTransitions()
     -- If we're in a mode transition but not tracking any unit,
     -- then we're transitioning back to normal camera from a tracking mode
-    if STATE.tracking.modeTransition and not STATE.tracking.mode then
+    if STATE.tracking.isModeTransitionInProgress and not STATE.tracking.mode then
         -- We're transitioning to free camera
         -- Just let the transition time out
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
         if elapsed > 1.0 then
-            STATE.tracking.modeTransition = false
+            STATE.tracking.isModeTransitionInProgress = false
         end
     end
 end
@@ -96,7 +96,7 @@ function UpdateManager.updateCameraMode()
             -- Check for auto-orbit
             Features.OrbitingCamera.handleAutoOrbit()
 
-            if STATE.orbit.autoOrbitActive then
+            if STATE.tracking.orbit.autoOrbitActive then
                 -- Handle auto-orbit camera update
                 Features.OrbitingCamera.updateAutoOrbit()
             else

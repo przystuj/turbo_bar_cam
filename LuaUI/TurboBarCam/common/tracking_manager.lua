@@ -41,7 +41,7 @@ function TrackingManager.initializeTracking(mode, unitID)
     -- If we're already tracking this exact unit in the same mode, turn it off
     if STATE.tracking.mode == mode and STATE.tracking.unitID == unitID then
         -- Save current settings before disabling
-        TrackingManager.saveUnitSettings(mode, unitID)
+        TrackingManager.saveModeSettings(mode, unitID)
         TrackingManager.disableTracking()
         Log.debug(mode .. " camera detached")
         return false
@@ -50,84 +50,105 @@ function TrackingManager.initializeTracking(mode, unitID)
     -- Begin mode transition from previous mode
     TrackingManager.startModeTransition(mode)
     STATE.tracking.unitID = unitID
+    TrackingManager.loadModeSettings(mode, unitID)
 
     -- refresh unit command bar to add custom command
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
 end
 
---- Saves unit-specific settings
+-- TODO each module should implement own saveModeSettings
+--- Saves custom settings
 ---@param mode string Camera mode
 ---@param unitID number Unit ID
-function TrackingManager.saveUnitSettings(mode, unitID)
-    if not unitID then return end
+function TrackingManager.saveModeSettings(mode, unitID)
+    local identifier
+    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
+        identifier = unitID
+        Log.debug("Saving settings for unit " .. tostring(identifier))
+    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
+        identifier = mode
+        if identifier == "fixed_point" then
+            -- TODO get rid of fixed_point mode
+            identifier = "fps"
+        end
+        Log.debug("Saving settings for mode " .. tostring(identifier))
+    else
+        return
+    end
+
+    if not identifier then
+        return
+    end
 
     if mode == 'fps' or mode == 'fixed_point' then
-        -- Save FPS camera offsets
-        STATE.tracking.unitOffsets[unitID] = {
+        STATE.tracking.offsets.fps[identifier] = {
             height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
             forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
             side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
             rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
         }
     elseif mode == 'orbit' then
-        -- Save orbit camera settings
-        if not STATE.orbit.unitOffsets[unitID] then
-            STATE.orbit.unitOffsets[unitID] = {}
-        end
-        STATE.orbit.unitOffsets[unitID].speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
+        STATE.tracking.offsets.orbit[identifier] = {
+            speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
+            distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
+            height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+        }
     end
 end
 
-
-function TrackingManager.getDefaultHeightForUnitTracking(unitID)
-    return math.max(Util.getUnitHeight(unitID) + 30, 100)
-end
-
---- Loads unit-specific settings
+--- Loads custom settings
 ---@param mode string Camera mode
 ---@param unitID number Unit ID
-function TrackingManager.loadUnitSettings(mode, unitID)
-    if not unitID then return end
+-- TODO each module should implement it's own loadModeSettings and this one should just reference it
+function TrackingManager.loadModeSettings(mode, unitID)
+    local identifier
+    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
+        identifier = unitID
+        Log.debug("Loading settings for unit " .. tostring(identifier))
+    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
+        identifier = mode
+        -- TODO get rid of fixed_point mode
+        if identifier == "fixed_point" then
+            identifier = "fps"
+        end
+        Log.debug("Loading settings for mode " .. tostring(identifier))
+    else
+        return
+    end
 
     if mode == 'fps' or mode == 'fixed_point' then
-        -- Load FPS camera offsets
-        if STATE.tracking.unitOffsets[unitID] then
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.unitOffsets[unitID].height
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.unitOffsets[unitID].forward
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.unitOffsets[unitID].side
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.unitOffsets[unitID].rotation or 0
-            Log.debug("Using previous camera offsets for unit " .. unitID)
+        if STATE.tracking.offsets.fps[identifier] then
+            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
+            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
+            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
+            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
+            Log.debug("Using previous settings")
         else
-            -- Get unit height for the default offset
-            local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(unitID)
-            CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
+            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
             CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
             CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
             CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-
-            -- Initialize storage for this unit
-            STATE.tracking.unitOffsets[unitID] = {
-                height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-                forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-                side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-                rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-            }
-            Log.debug("Using new camera offsets for unit " .. unitID .. " with height: " .. unitHeight)
+            Log.debug("Using default settings")
         end
     elseif mode == 'orbit' then
         -- Load orbit camera settings
-        if STATE.orbit.unitOffsets[unitID] then
-            CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.orbit.unitOffsets[unitID].speed
-            Log.debug("Using previous orbit speed for unit " .. unitID)
+        if STATE.tracking.offsets.orbit[identifier] then
+            CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
+            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
+            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
+            Log.debug("Using previous settings")
         else
             CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-            STATE.orbit.unitOffsets[unitID] = {
-                speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
-            }
+            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+            Log.debug("Using default settings")
         end
     end
+end
+
+function TrackingManager.getDefaultHeightForUnitTracking(unitID)
+    return math.max(Util.getUnitHeight(unitID), 100)
 end
 
 --- Updates tracking state values after applying camera state
@@ -151,40 +172,41 @@ end
 
 --- Disables tracking and resets tracking state
 function TrackingManager.disableTracking()
-    -- Restore original transition factor if needed
-    if STATE.orbit and STATE.orbit.originalTransitionFactor then
-        CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.orbit.originalTransitionFactor
-        STATE.orbit.originalTransitionFactor = nil
+    TrackingManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+
+    if STATE.tracking.orbit and STATE.tracking.orbit.originalTransitionFactor then
+        CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.tracking.orbit.originalTransitionFactor
+        STATE.tracking.orbit.originalTransitionFactor = nil
     end
 
     STATE.tracking.unitID = nil
-    STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
-    STATE.tracking.inFreeCameraMode = false
+    STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
+    STATE.tracking.fps.inFreeCameraMode = false
     STATE.tracking.graceTimer = nil
     STATE.tracking.lastUnitID = nil
-    STATE.tracking.fixedPoint = nil
+   STATE.tracking.fps.fixedPoint = nil
     STATE.tracking.mode = nil
 
     -- Clear target selection state
-    STATE.tracking.inTargetSelectionMode = false
-    STATE.tracking.prevFreeCamState = false
-    STATE.tracking.prevMode = nil
-    STATE.tracking.prevFixedPoint = nil
+    STATE.tracking.fps.inTargetSelectionMode = false
+    STATE.tracking.fps.prevFreeCamState = false
+    STATE.tracking.fps.prevMode = nil
+    STATE.tracking.fps.prevFixedPoint = nil
 
     -- Reset orbit-specific states
-    if STATE.orbit then
-        STATE.orbit.autoOrbitActive = false
-        STATE.orbit.stationaryTimer = nil
-        STATE.orbit.lastPosition = nil
+    if STATE.tracking.orbit then
+        STATE.tracking.orbit.autoOrbitActive = false
+        STATE.tracking.orbit.stationaryTimer = nil
+        STATE.tracking.orbit.lastPosition = nil
     end
 
     -- Clear freeCam state to prevent null pointer exceptions
     if STATE.tracking.freeCam then
-        STATE.tracking.freeCam.lastMouseX = nil
-        STATE.tracking.freeCam.lastMouseY = nil
-        STATE.tracking.freeCam.targetRx = nil
-        STATE.tracking.freeCam.targetRy = nil
-        STATE.tracking.freeCam.lastUnitHeading = nil
+        STATE.tracking.fps.freeCam.lastMouseX = nil
+        STATE.tracking.fps.freeCam.lastMouseY = nil
+        STATE.tracking.fps.freeCam.targetRx = nil
+        STATE.tracking.fps.freeCam.targetRy = nil
+        STATE.tracking.fps.freeCam.lastUnitHeading = nil
     end
 end
 
@@ -198,11 +220,11 @@ function TrackingManager.startModeTransition(newMode)
     end
 
     -- Store modes
-    STATE.tracking.prevMode = STATE.tracking.mode
+    STATE.tracking.fps.prevMode = STATE.tracking.mode
     STATE.tracking.mode = newMode
 
     -- Set up transition state
-    STATE.tracking.modeTransition = true
+    STATE.tracking.isModeTransitionInProgress = true
     STATE.tracking.transitionStartState = CameraManager.getCameraState("TrackingManager.startModeTransition")
     STATE.tracking.transitionStartTime = Spring.GetTimer()
 

@@ -40,10 +40,16 @@ function FPSCameraUtils.getUnitVectors(unitID)
     local x, y, z = Spring.GetUnitPosition(unitID)
     local front, up, right = Spring.GetUnitVectors(unitID)
 
-    -- Store unit position for smoothing calculations
-    STATE.tracking.lastUnitPos = { x = x, y = y, z = z }
-
     return { x = x, y = y, z = z }, front, up, right
+end
+
+--- Calculate the height if it's not set
+function FPSCameraUtils.ensureHeightIsSet()
+    if CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT then
+        return
+    end
+    local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID) + 30
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
 end
 
 --- Applies FPS camera offsets to unit position
@@ -53,11 +59,67 @@ end
 ---@param right table Right vector
 ---@return table camPos Camera position with offsets applied
 function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
-    return CameraCommons.applyOffsets(unitPos, front, up, right, {
+    local x, y, z = unitPos.x, unitPos.y, unitPos.z
+
+    local offsets = {
         height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
         forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
         side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE
-    })
+    }
+
+    -- Extract components from the vector tables
+    local frontX, frontY, frontZ = front[1], front[2], front[3]
+    local upX, upY, upZ = up[1], up[2], up[3]
+    local rightX, rightY, rightZ = right[1], right[2], right[3]
+
+    -- Apply height offset along the unit's up vector
+    if offsets.height ~= 0 then
+        x = x + upX * offsets.height
+        y = y + upY * offsets.height
+        z = z + upZ * offsets.height
+    end
+
+    -- Apply forward offset if needed
+    if offsets.forward ~= 0 then
+        x = x + frontX * offsets.forward
+        y = y + frontY * offsets.forward
+        z = z + frontZ * offsets.forward
+    end
+
+    -- Apply side offset if needed
+    if offsets.side ~= 0 then
+        x = x + rightX * offsets.side
+        y = y + rightY * offsets.side
+        z = z + rightZ * offsets.side
+    end
+
+    return { x = x, y = y, z = z }
+end
+
+--- Creates a basic camera state object with the specified position and direction
+---@param position table Camera position {x, y, z}
+---@param direction table Camera direction {dx, dy, dz, rx, ry, rz}
+---@return table cameraState Complete camera state object
+function FPSCameraUtils.createCameraState(position, direction)
+    return {
+        mode = 0, -- FPS camera mode
+        name = "fps",
+
+        -- Position
+        px = position.x,
+        py = position.y,
+        pz = position.z,
+
+        -- Direction
+        dx = direction.dx,
+        dy = direction.dy,
+        dz = direction.dz,
+
+        -- Rotation
+        rx = direction.rx,
+        ry = direction.ry,
+        rz = direction.rz
+    }
 end
 
 --- Handles normal FPS mode camera orientation
@@ -82,12 +144,12 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
 
     -- Create camera direction state with smoothed values
     local directionState = {
-        dx = Util.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
-        dy = Util.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
-        dz = Util.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
-        rx = Util.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
-        ry = Util.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
-        rz = Util.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
+        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
     }
 
     return directionState
@@ -113,57 +175,18 @@ function FPSCameraUtils.adjustParams(params)
         FPSCameraUtils.resetOffsets()
     end)
 
-    -- Update stored offsets for the current unit
-    if STATE.tracking.unitID then
-        if not STATE.tracking.unitOffsets[STATE.tracking.unitID] then
-            STATE.tracking.unitOffsets[STATE.tracking.unitID] = {}
-        end
-
-        STATE.tracking.unitOffsets[STATE.tracking.unitID] = {
-            height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
-    end
+    TrackingManager.saveModeSettings("fps", STATE.tracking.unitID)
     return
 end
 
 --- Resets camera offsets to default values
 ---@return boolean success Whether offsets were reset successfully
 function FPSCameraUtils.resetOffsets()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
-    -- If we have a tracked unit, get its height for the default height offset
-    if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and
-            STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
-        CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT = unitHeight
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-
-        -- Update stored offsets for this unit
-        STATE.tracking.unitOffsets[STATE.tracking.unitID] = {
-            height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
-
-        Log.debug("Reset camera offsets for unit " .. STATE.tracking.unitID .. " to defaults")
-    else
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-        Log.debug("FPS camera offsets reset to defaults")
-    end
-
-    return true
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+    Log.debug("Restored fps camera settings to defaults")
 end
 
 --- Sets a fixed look point for the camera
@@ -172,45 +195,43 @@ end
 ---@return boolean success Whether fixed point was set successfully
 function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     if Util.isTurboBarCamDisabled() then
-        return
+        return false
     end
-
     -- Only works if we're tracking a unit in FPS mode
     if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
         Log.debug("Fixed point tracking only works when in FPS mode")
         return false
     end
-
     if not STATE.tracking.unitID then
         Log.debug("No unit being tracked for fixed point camera")
         return false
     end
 
     -- Set the fixed point
-    STATE.tracking.fixedPoint = fixedPoint
-    STATE.tracking.targetUnitID = targetUnitID
+   STATE.tracking.fps.fixedPoint = fixedPoint
+    STATE.tracking.fps.targetUnitID = targetUnitID
 
     -- We're no longer in target selection mode
-    STATE.tracking.inTargetSelectionMode = false
-    STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
+    STATE.tracking.fps.inTargetSelectionMode = false
+    STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
 
     -- Switch to fixed point mode
     STATE.tracking.mode = 'fixed_point'
 
     -- Use the previous free camera state for normal operation
-    STATE.tracking.inFreeCameraMode = STATE.tracking.prevFreeCamState or false
+    STATE.tracking.fps.inFreeCameraMode = STATE.tracking.fps.prevFreeCamState or false
 
     -- If not in free camera mode, enable a transition to the fixed point
-    if not STATE.tracking.inFreeCameraMode then
+    if not STATE.tracking.fps.inFreeCameraMode then
         -- Trigger a transition to smoothly move to the new view
-        STATE.tracking.modeTransition = true
+        STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
     end
 
-    if not STATE.tracking.targetUnitID then
+    if not STATE.tracking.fps.targetUnitID then
         Log.debug("Camera will follow unit but look at fixed point")
     else
-        Log.debug("Camera will follow unit but look at unit " .. STATE.tracking.targetUnitID)
+        Log.debug("Camera will follow unit but look at unit " .. STATE.tracking.fps.targetUnitID)
     end
 
     return true
@@ -225,16 +246,16 @@ function FPSCameraUtils.clearFixedLookPoint()
     if STATE.tracking.mode == 'fixed_point' and STATE.tracking.unitID then
         -- Switch back to FPS mode
         STATE.tracking.mode = 'fps'
-        STATE.tracking.fixedPoint = nil
-        STATE.tracking.targetUnitID = nil  -- Clear the target unit ID
-        STATE.tracking.inTargetSelectionMode = false
-        STATE.tracking.prevFixedPoint = nil -- Clear saved previous fixed point
+       STATE.tracking.fps.fixedPoint = nil
+        STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
+        STATE.tracking.fps.inTargetSelectionMode = false
+        STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
 
         -- Start a transition when changing modes
-        STATE.tracking.modeTransition = true
+        STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-        if STATE.tracking.inFreeCameraMode then
+        if STATE.tracking.fps.inFreeCameraMode then
             Log.debug("Fixed point tracking disabled, maintaining free camera mode")
         else
             Log.debug("Fixed point tracking disabled, returning to FPS mode")
@@ -245,18 +266,18 @@ end
 --- Updates the fixed point if tracking a unit
 ---@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
 function FPSCameraUtils.updateFixedPointTarget()
-    if not STATE.tracking.targetUnitID or not Spring.ValidUnitID(STATE.tracking.targetUnitID) then
-        return STATE.tracking.fixedPoint
+    if not STATE.tracking.fps.targetUnitID or not Spring.ValidUnitID(STATE.tracking.fps.targetUnitID) then
+        return STATE.tracking.fps.fixedPoint
     end
 
     -- Get the current position of the target unit
-    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.tracking.targetUnitID)
-    STATE.tracking.fixedPoint = {
+    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.tracking.fps.targetUnitID)
+   STATE.tracking.fps.fixedPoint = {
         x = targetX,
         y = targetY,
         z = targetZ
     }
-    return STATE.tracking.fixedPoint
+    return STATE.tracking.fps.fixedPoint
 end
 
 --- Determines appropriate smoothing factors based on current state
