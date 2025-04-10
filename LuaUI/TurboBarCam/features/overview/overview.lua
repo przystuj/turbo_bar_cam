@@ -44,19 +44,19 @@ function TurboOverviewCamera.toggle()
     Log.debug("Map diagonal: " .. mapDiagonal)
 
     -- Initialize turbo overview state with config values
-    STATE.turboOverview.zoomLevel = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEFAULT_ZOOM_LEVEL
+    STATE.turboOverview.zoomLevel = CONFIG.CAMERA_MODES.OVERVIEW.DEFAULT_ZOOM_LEVEL
 
     -- Camera rotation parameters
-    STATE.turboOverview.maxRotationSpeed = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ROTATION_SPEED
-    STATE.turboOverview.edgeRotationMultiplier = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.EDGE_ROTATION_MULTIPLIER
+    STATE.turboOverview.maxRotationSpeed = CONFIG.CAMERA_MODES.OVERVIEW.MAX_ROTATION_SPEED
+    STATE.turboOverview.edgeRotationMultiplier = CONFIG.CAMERA_MODES.OVERVIEW.EDGE_ROTATION_MULTIPLIER
 
     -- Movement parameters
-    STATE.turboOverview.maxAngularVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MAX_ANGULAR_VELOCITY
-    STATE.turboOverview.angularDamping = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ANGULAR_DAMPING
-    STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
-    STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
-    STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.TRANSITION_FACTOR
-    STATE.turboOverview.mouseMoveSensitivity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOUSE_MOVE_SENSITIVITY / 10
+    STATE.turboOverview.maxAngularVelocity = CONFIG.CAMERA_MODES.OVERVIEW.MAX_ANGULAR_VELOCITY
+    STATE.turboOverview.angularDamping = CONFIG.CAMERA_MODES.OVERVIEW.ANGULAR_DAMPING
+    STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.OVERVIEW.FORWARD_VELOCITY
+    STATE.turboOverview.minDistanceToTarget = CONFIG.CAMERA_MODES.OVERVIEW.MIN_DISTANCE
+    STATE.turboOverview.movementTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR
+    STATE.turboOverview.mouseMoveSensitivity = CONFIG.CAMERA_MODES.OVERVIEW.MOUSE_MOVE_SENSITIVITY / 10
 
     -- For tracking zoom transitions
     STATE.turboOverview.targetHeight = nil
@@ -67,10 +67,10 @@ function TurboOverviewCamera.toggle()
     STATE.turboOverview.inMovementTransition = false
     STATE.turboOverview.angularVelocity = 0
     STATE.turboOverview.movementAngle = 0
-    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MIN_DISTANCE
+    STATE.turboOverview.distanceToTarget = CONFIG.CAMERA_MODES.OVERVIEW.MIN_DISTANCE
 
     -- Set a good default height based on map size and zoom level
-    STATE.turboOverview.height = math.max(mapDiagonal * CONFIG.CAMERA_MODES.TURBO_OVERVIEW.HEIGHT_FACTOR, 500)
+    STATE.turboOverview.height = math.max(mapDiagonal * CONFIG.CAMERA_MODES.OVERVIEW.HEIGHT_FACTOR, 500)
     Log.debug("Base camera height: " .. STATE.turboOverview.height)
 
     -- Calculate current height based on zoom level
@@ -234,7 +234,7 @@ function TurboOverviewCamera.toggle()
     TrackingManager.startModeTransition('turbo_overview')
 
     Log.debug("Turbo Overview camera enabled (Zoom: x" ..
-            CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
+            CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
 end
 
 --- Updates the turbo overview camera's position and orientation
@@ -259,12 +259,12 @@ function TurboOverviewCamera.update()
     local transitionEndingThisFrame = false
 
     -- Determine smoothing factor based on whether we're in a mode transition
-    local smoothFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING
-    local rotFactor = CONFIG.SMOOTHING.FREE_CAMERA_FACTOR * 0.5
+    local smoothFactor = CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT
+    local rotFactor = CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.FREE_CAMERA_FACTOR * 0.5
 
     if STATE.tracking.isModeTransitionInProgress then
         -- Use a gentler transition factor during mode changes to avoid fast movement
-        smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR * 0.5
+        smoothFactor = CONFIG.MODE_TRANSITION_SMOOTHING * 0.5
 
         -- If we have a target camera position, smoothly move toward it during the transition
         if STATE.turboOverview.targetCamPos then
@@ -356,7 +356,7 @@ function TurboOverviewCamera.update()
 
     if math.abs(currentHeight - targetHeight) > 1 then
         -- We're in a zoom transition
-        currentHeight = CameraCommons.smoothStep(currentHeight, targetHeight, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_TRANSITION_FACTOR)
+        currentHeight = CameraCommons.smoothStep(currentHeight, targetHeight, CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_TRANSITION_FACTOR)
     else
         currentHeight = targetHeight
     end
@@ -492,14 +492,14 @@ function TurboOverviewCamera.toggleZoom()
 
     -- Cycle to the next zoom level
     STATE.turboOverview.zoomLevel = STATE.turboOverview.zoomLevel + 1
-    if STATE.turboOverview.zoomLevel > #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS then
+    if STATE.turboOverview.zoomLevel > #CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS then
         STATE.turboOverview.zoomLevel = 1
     end
 
     -- Update target height for smooth transition
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
-    local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
+    local newZoom = CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     Log.debug("Turbo Overview camera zoom: x" .. newZoom)
 
     -- Force an update to start the transition
@@ -516,8 +516,8 @@ function TurboOverviewCamera.setZoomLevel(level)
     end
 
     level = tonumber(level)
-    if not level or level < 1 or level > #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS then
-        Log.debug("Invalid zoom level. Available levels: 1-" .. #CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS)
+    if not level or level < 1 or level > #CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS then
+        Log.debug("Invalid zoom level. Available levels: 1-" .. #CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS)
         return
     end
 
@@ -527,7 +527,7 @@ function TurboOverviewCamera.setZoomLevel(level)
     -- Update target height for smooth transition
     STATE.turboOverview.targetHeight = OverviewCameraUtils.calculateCurrentHeight()
 
-    local newZoom = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
+    local newZoom = CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     Log.debug("Turbo Overview camera zoom set to: x" .. newZoom)
 
     -- Force an update to start the transition

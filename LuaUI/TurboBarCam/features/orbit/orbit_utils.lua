@@ -68,8 +68,10 @@ function OrbitCameraUtils.handleAutoOrbit()
 
     -- Only check camera position/rotation if we have previous values
     local hasCamMoved = false
-    if STATE.tracking.orbit.autoOrbitActive or STATE.tracking.fps.isAttacking or STATE.tracking.fps.inFreeCameraMode or STATE.tracking.fps.inTargetSelectionMode then
+    if STATE.tracking.orbit.autoOrbitActive then
         hasCamMoved = false
+    elseif STATE.tracking.fps.isAttacking or STATE.tracking.fps.inFreeCameraMode or STATE.tracking.fps.inTargetSelectionMode then
+        hasCamMoved = true
     elseif STATE.tracking.orbit.lastCamPos and STATE.tracking.orbit.lastCamRot then
         hasCamMoved = math.abs(currentCamPos.x - STATE.tracking.orbit.lastCamPos.x) > camEpsilon or
                 math.abs(currentCamPos.y - STATE.tracking.orbit.lastCamPos.y) > camEpsilon or
@@ -97,7 +99,7 @@ function OrbitCameraUtils.handleAutoOrbit()
 
             -- Restore original transition factor
             if STATE.tracking.orbit.originalTransitionFactor then
-                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.tracking.orbit.originalTransitionFactor
+                CONFIG.MODE_TRANSITION_SMOOTHING = STATE.tracking.orbit.originalTransitionFactor
                 STATE.tracking.orbit.originalTransitionFactor = nil
             end
 
@@ -135,8 +137,8 @@ function OrbitCameraUtils.handleAutoOrbit()
                 TrackingManager.updateTrackingState(camState)
 
                 -- Store original transition factor and use a more delayed transition
-                STATE.tracking.orbit.originalTransitionFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-                CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
+                STATE.tracking.orbit.originalTransitionFactor = CONFIG.MODE_TRANSITION_SMOOTHING
+                CONFIG.MODE_TRANSITION_SMOOTHING = CONFIG.MODE_TRANSITION_SMOOTHING / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
             end
         end
     end

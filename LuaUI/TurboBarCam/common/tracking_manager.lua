@@ -175,7 +175,7 @@ function TrackingManager.disableTracking()
     TrackingManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
     if STATE.tracking.orbit and STATE.tracking.orbit.originalTransitionFactor then
-        CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR = STATE.tracking.orbit.originalTransitionFactor
+        CONFIG.MODE_TRANSITION_SMOOTHING = STATE.tracking.orbit.originalTransitionFactor
         STATE.tracking.orbit.originalTransitionFactor = nil
     end
 

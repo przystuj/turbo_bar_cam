@@ -381,17 +381,17 @@ end
 ---@return number smoothingFactor The smoothing factor to use
 function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
     if isTransitioning then
-        return CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
+        return CONFIG.MODE_TRANSITION_SMOOTHING
     end
 
     if smoothType == 'position' then
-        return CONFIG.SMOOTHING.POSITION_FACTOR
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR
     elseif smoothType == 'rotation' then
-        return CONFIG.SMOOTHING.ROTATION_FACTOR
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.ROTATION_FACTOR
     end
 
     -- Default
-    return CONFIG.SMOOTHING.POSITION_FACTOR
+    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR
 end
 
 ---@see ModifiableParams

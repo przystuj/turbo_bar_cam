@@ -443,7 +443,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.lastCameraDir = { x = dx, z = dz }
 
     -- Calculate look direction to center
-    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.SMOOTHING.TRACKING_FACTOR, CONFIG.SMOOTHING.ROTATION_FACTOR)
+    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.TRACKING_FACTOR, CONFIG.SMOOTHING.ROTATION_FACTOR)
 
     -- Initialize tracking state with this position
 

@@ -96,13 +96,13 @@ function OrbitingCamera.update()
     local targetPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Determine smoothing factor based on whether we're in a mode transition
-    local smoothFactor = CONFIG.SMOOTHING.POSITION_FACTOR
-    local rotFactor = CONFIG.SMOOTHING.ROTATION_FACTOR
+    local smoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
+    local rotFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR
 
     if STATE.tracking.isModeTransitionInProgress then
         -- Use a special transition factor during mode changes
-        smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-        rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
+        smoothFactor = CONFIG.MODE_TRANSITION_SMOOTHING
+        rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING
 
         -- Check if we should end the transition
         if CameraCommons.isTransitionComplete() then
@@ -138,8 +138,8 @@ function OrbitingCamera.updateAutoOrbit()
     local targetPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Determine smoothing factor - use a very smooth transition for auto-orbit
-    local smoothFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
-    local rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
+    local smoothFactor = CONFIG.MODE_TRANSITION_SMOOTHING / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
+    local rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
 
     local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
     TrackingManager.updateTrackingState(camState)

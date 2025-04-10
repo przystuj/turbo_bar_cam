@@ -13,6 +13,8 @@ if not WG.TurboBarCam.CONFIG then
         -- Should offset values be saved after changing/disabling mode
         PERSISTENT_UNIT_SETTINGS = "MODE", -- NONE, UNIT, MODE
 
+        MODE_TRANSITION_SMOOTHING = 0.04, -- For smoothing between camera modes
+
         -- Debug and performance settings
         DEBUG = {
             LOG_LEVEL = "DEBUG", -- INFO, DEBUG, TRACE
@@ -35,11 +37,12 @@ if not WG.TurboBarCam.CONFIG then
                 COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "fixed_point" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
-                STEPS_PER_SECOND = 60 -- Steps per second for smooth transitions
+                STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
             },
 
             -- FPS camera settings
             FPS = {
+                MOUSE_SENSITIVITY = 0.004,
                 OFFSETS = {
                     HEIGHT = nil, -- It's calculated from unit height
                     FORWARD = -300,
@@ -52,7 +55,14 @@ if not WG.TurboBarCam.CONFIG then
                     SIDE = 0,
                     ROTATION = 0
                 },
-                MOUSE_SENSITIVITY = 0.004,
+                SMOOTHING = {
+                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                },
+                DEFAULT_SMOOTHING = {
+                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                }
             },
 
             -- Orbit camera settings
@@ -68,11 +78,19 @@ if not WG.TurboBarCam.CONFIG then
                     ENABLED = true,
                     DELAY = 10, -- Seconds of no movement to trigger auto orbit
                     SMOOTHING_FACTOR = 5 -- Higher means smoother transition
-                }
+                },
+                SMOOTHING = {
+                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                },
+                DEFAULT_SMOOTHING = {
+                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                },
             },
 
             -- Turbo overview camera settings
-            TURBO_OVERVIEW = {
+            OVERVIEW = {
                 -- Height and Distance Settings
                 HEIGHT_FACTOR = 0.33, -- Default height as a factor of map diagonal. Affects how high the camera sits above the map. Higher values = higher camera position.
                 DEADZONE = 0, -- Deadzone for mouse steering (0-1 range). Higher values require more mouse movement to begin steering.
@@ -95,15 +113,30 @@ if not WG.TurboBarCam.CONFIG then
                 ZOOM_LEVELS = { 1, 2, 3, 4 }, -- Available zoom levels (multipliers). More levels = more granular zoom options.
 
                 -- Smoothing and Transition Settings
-                MOVEMENT_SMOOTHING = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
-                INITIAL_SMOOTHING = 0.01, -- Initial smoothing factor for movement acceleration. Lower values give slower initial movement.
                 ZOOM_TRANSITION_FACTOR = 0.04, -- How fast zoom transitions occur (0-1). Higher values = quicker zoom changes.
                 TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions (0-1). Higher values = quicker transitions.
                 MODE_TRANSITION_TIME = 0.5, -- Duration of mode transition in seconds. Lower values = faster mode switching.
+
+                SMOOTHING = {
+                    FREE_CAMERA_FACTOR = 0.05,  -- Smoothing factor for free camera mouse movement
+                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
+                },
+                DEFAULT_SMOOTHING = {
+                    FREE_CAMERA_FACTOR = 0.05,  -- Smoothing factor for free camera mouse movement
+                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
+                },
             },
 
             UNIT_TRACKING = {
                 HEIGHT = 0, -- Height offset for look-at point in world units
+                SMOOTHING = {
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
+                },
+                DEFAULT_SMOOTHING = {
+                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
+                },
             },
 
             -- Group tracking camera settings
@@ -134,14 +167,16 @@ if not WG.TurboBarCam.CONFIG then
                     ROTATION = 0.005, -- Rotation smoothing factor
                     STABLE_POSITION = 0.005, -- Stable mode position smoothing
                     STABLE_ROTATION = 0.005, -- Stable mode rotation smoothing
+                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
                 },
 
                 -- Default smoothing values (for reset)
                 DEFAULT_SMOOTHING = {
                     POSITION = 0.05,
                     ROTATION = 0.005,
-                    STABLE_POSITION = 0.05,
+                    STABLE_POSITION = 0.005,
                     STABLE_ROTATION = 0.005,
+                    TRACKING_FACTOR = 0.1,
                 },
 
                 -- Aircraft handling
@@ -165,15 +200,6 @@ if not WG.TurboBarCam.CONFIG then
                     -- Add all your other air units here
                 }
             },
-        },
-
-        -- Smoothing factors
-        SMOOTHING = {
-            POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-            ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-            TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
-            MODE_TRANSITION_FACTOR = 0.04, -- For smoothing between camera modes
-            FREE_CAMERA_FACTOR = 0.05  -- Smoothing factor for free camera mouse movement
         },
 
         -- Command IDs

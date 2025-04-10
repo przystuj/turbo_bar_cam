@@ -15,7 +15,7 @@ local OverviewCameraUtils = {}
 --- Uses the current zoom level to determine the appropriate height above ground
 ---@return number height The camera height in world units
 function OverviewCameraUtils.calculateCurrentHeight()
-    local zoomFactor = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
+    local zoomFactor = CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
     -- Enforce minimum height to prevent getting too close to ground
     return math.max(STATE.turboOverview.height / zoomFactor, 500)
 end
@@ -50,15 +50,15 @@ function OverviewCameraUtils.updateCursorTracking()
     local distanceFromCenter = math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY)
 
     -- Buffer zone in screen center - no rotation in this area
-    if distanceFromCenter < CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE then
+    if distanceFromCenter < CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE then
         -- Inside buffer zone, no rotation adjustment needed
         return false
     end
 
     -- Calculate gradual rotation multiplier based on distance from buffer zone
     -- This creates a smooth ramp-up from buffer edge to screen edge
-    local availableRange = 1.0 - CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE
-    local distanceBeyondBuffer = distanceFromCenter - CONFIG.CAMERA_MODES.TURBO_OVERVIEW.BUFFER_ZONE
+    local availableRange = 1.0 - CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE
+    local distanceBeyondBuffer = distanceFromCenter - CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE
 
     -- Apply quadratic/cubic easing for smoother acceleration
     -- This gives a more natural feel with gradual start and stronger finish
@@ -128,7 +128,7 @@ function OverviewCameraUtils.updateTargetMovement()
     local normalizedDistFromCenter = distFromCenterX / (screenWidth * 0.5)
 
     -- Apply a deadzone in the center for stability
-    local DEADZONE = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.DEADZONE
+    local DEADZONE = CONFIG.CAMERA_MODES.OVERVIEW.DEADZONE
     if math.abs(normalizedDistFromCenter) < DEADZONE then
         normalizedDistFromCenter = 0
     else
@@ -146,11 +146,11 @@ function OverviewCameraUtils.updateTargetMovement()
 
     -- Forward velocity is constant when the button is pressed
     if STATE.turboOverview.movingToTarget then
-        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.TURBO_OVERVIEW.FORWARD_VELOCITY
+        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.OVERVIEW.FORWARD_VELOCITY
     else
         -- Apply damping to angular velocity to smoothly stop turning
         STATE.turboOverview.angularVelocity = STATE.turboOverview.angularVelocity * STATE.turboOverview.angularDamping
-        if CONFIG.CAMERA_MODES.TURBO_OVERVIEW.INVERT_SIDE_MOVEMENT then
+        if CONFIG.CAMERA_MODES.OVERVIEW.INVERT_SIDE_MOVEMENT then
             STATE.turboOverview.angularVelocity = STATE.turboOverview.angularVelocity * -1
         end
 
@@ -254,7 +254,7 @@ function OverviewCameraUtils.adjustParams(params)
     Util.
 
     -- Adjust smoothing factor (keep between 0.001 and 0.5)
-    CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING + amount))
+    CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT + amount))
 
     return true
 end

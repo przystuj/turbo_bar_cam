@@ -86,13 +86,13 @@ function UnitTrackingCamera.update()
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
     -- Determine smoothing factor based on whether we're in a mode transition
-    local dirFactor = CONFIG.SMOOTHING.TRACKING_FACTOR
-    local rotFactor = CONFIG.SMOOTHING.ROTATION_FACTOR
+    local dirFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.TRACKING_FACTOR
+    local rotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
 
     if STATE.tracking.isModeTransitionInProgress then
         -- Use a special transition factor during mode changes
-        dirFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
-        rotFactor = CONFIG.SMOOTHING.MODE_TRANSITION_FACTOR
+        dirFactor = CONFIG.MODE_TRANSITION_SMOOTHING
+        rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING
 
         -- Check if we should end the transition
         if CameraCommons.isTransitionComplete() then
