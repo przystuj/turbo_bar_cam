@@ -85,6 +85,12 @@ function Actions.fpsActions()
                 FeatureModules.FPSCamera.nextWeapon()
                 return true
             end)
+
+    Actions.registerAction("turbobarcam_fps_print_offsets", 'tp',
+            function()
+                FeatureModules.FPSCamera.dumpWeaponOffsets()
+                return true
+            end)
 end
 
 

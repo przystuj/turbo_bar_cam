@@ -60,8 +60,8 @@ if not WG.TurboBarCam.CONFIG then
                     SIDE = 0,
                     ROTATION = 0,
 
-                    WEAPON_HEIGHT = 0, -- It's calculated from unit height
-                    WEAPON_FORWARD = 0,
+                    WEAPON_HEIGHT = 35,
+                    WEAPON_FORWARD = -75,
                     WEAPON_SIDE = 0,
                     WEAPON_ROTATION = 0, -- Rotation offset (radians)
                 },

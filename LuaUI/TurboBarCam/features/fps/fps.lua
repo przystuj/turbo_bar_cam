@@ -363,6 +363,15 @@ function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
 end
 
+function FPSCamera.dumpWeaponOffsets()
+    local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.tracking.unitID)]
+    Log.info("Weapon offsets for " .. unitDef.name)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
+end
+
 return {
     FPSCamera = FPSCamera
 }
