@@ -44,6 +44,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
         -- Switch tracking to the new unit
         STATE.tracking.unitID = unitID
+        STATE.tracking.group.unitIDs = selectedUnits
 
         TrackingManager.loadModeSettings(STATE.tracking.mode, unitID)
         Log.debug("Tracking switched to unit " .. unitID)
