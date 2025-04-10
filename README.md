@@ -394,4 +394,4 @@ TurboBarCam was created by [SuperKitowiec](https://www.youtube.com/@superkitowie
 
 ---
 
-*Note: This widget is under active development. Features and commands may change in future updates. v1.2.1*
+*Note: This widget is under active development. Features and commands may change in future updates. v1.3*
