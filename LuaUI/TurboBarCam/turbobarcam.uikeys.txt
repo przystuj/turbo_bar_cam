@@ -52,7 +52,6 @@ bind		numpad9			turbobarcam_fps_adjust_params add;ROTATION,0.1
 bind		Ctrl+numpad1  	turbobarcam_fps_adjust_params reset
 bind		numpad*  	    turbobarcam_fps_clear_fixed_look_point
 bind		numpad/  		turbobarcam_fps_set_fixed_look_point
-bind		Delete  		turbobarcam_fps_adjust_params set;FORWARD,0;HEIGHT,0;ROTATION,0
 bind		numpad8         turbobarcam_fps_adjust_params add;WEAPON_FORWARD,5
 bind		numpad5			turbobarcam_fps_adjust_params add;WEAPON_FORWARD,-5
 bind		numpad9	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,5
