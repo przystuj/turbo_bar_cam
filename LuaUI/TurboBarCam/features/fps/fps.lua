@@ -91,7 +91,6 @@ function FPSCamera.update()
     if not FPSCameraUtils.shouldUpdateFPSCamera() then
         return
     end
-    FPSCameraUtils.ensureHeightIsSet() -- TODO loadModeSettings should be per model and then this should go there
 
     -- Get unit position and vectors
     local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(STATE.tracking.unitID)
@@ -373,6 +372,41 @@ function FPSCamera.dumpWeaponOffsets()
     Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
     Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
     Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
+end
+
+function FPSCamera.saveSettings(identifier)
+    STATE.tracking.offsets.fps[identifier] = {
+        height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+        forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+        side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+        rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+    }
+end
+
+function FPSCamera.saveWeaponSettings(unitId)
+    local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
+    Log.info("Weapon offsets for " .. unitDef.name)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
+    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
+end
+
+function FPSCamera.loadSettings(identifier)
+    if STATE.tracking.offsets.fps[identifier] then
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
+        Log.debug("[FPS] Using previous settings")
+    else
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+        Log.debug("[FPS] Using default settings")
+    end
+    FPSCameraUtils.ensureHeightIsSet()
 end
 
 return {

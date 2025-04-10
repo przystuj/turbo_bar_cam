@@ -17,22 +17,24 @@ end
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type FeatureModules
-local TurboFeatures = VFS.Include("LuaUI/TurboBarCam/features.lua")
+local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type CoreModules
-local TurboCore = VFS.Include("LuaUI/TurboBarCam/core.lua")
+local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
 local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
+---@type SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local WidgetControl = TurboCore.WidgetControl
-local FPSCamera = TurboFeatures.FPSCamera
-local UpdateManager = TurboCore.UpdateManager
-local SelectionManager = TurboCore.SelectionManager
+local WidgetControl = CoreModules.WidgetControl
+local FPSCamera = FeatureModules.FPSCamera
+local UpdateManager = CoreModules.UpdateManager
+local SelectionManager = CoreModules.SelectionManager
 local cameraStateOnInit = Spring.GetCameraState()
 
 --------------------------------------------------------------------------------
@@ -51,6 +53,9 @@ end
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
+
+    -- it's required in settings_manager unfortunately
+    WG.TurboBarCam.FeatureModules = FeatureModules
     Actions.registerAllActions()
 
     -- external hooks

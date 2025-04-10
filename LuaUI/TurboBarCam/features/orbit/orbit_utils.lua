@@ -4,6 +4,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -122,7 +124,7 @@ function OrbitCameraUtils.handleAutoOrbit()
                 stateChanged = true
 
                 -- Initialize orbit settings with default values
-                TrackingManager.loadModeSettings("orbit", STATE.tracking.unitID)
+                SettingsManager.loadModeSettings("orbit", STATE.tracking.unitID)
                 OrbitCameraUtils.ensureHeightIsSet()
 
                 -- Initialize orbit angle based on current camera position
@@ -175,7 +177,7 @@ function OrbitCameraUtils.adjustParams(params)
     end
 
     Util.adjustParams(params, "ORBIT", function() OrbitCameraUtils.resetSettings() end)
-    TrackingManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+    SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 end
 
 --- Resets orbit settings to defaults

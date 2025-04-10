@@ -6,6 +6,8 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
+---@type SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -41,7 +43,7 @@ function TrackingManager.initializeTracking(mode, unitID)
     -- If we're already tracking this exact unit in the same mode, turn it off
     if STATE.tracking.mode == mode and STATE.tracking.unitID == unitID then
         -- Save current settings before disabling
-        TrackingManager.saveModeSettings(mode, unitID)
+        SettingsManager.saveModeSettings(mode, unitID)
         TrackingManager.disableTracking()
         Log.debug(mode .. " camera detached")
         return false
@@ -50,93 +52,11 @@ function TrackingManager.initializeTracking(mode, unitID)
     -- Begin mode transition from previous mode
     TrackingManager.startModeTransition(mode)
     STATE.tracking.unitID = unitID
-    TrackingManager.loadModeSettings(mode, unitID)
+    SettingsManager.loadModeSettings(mode, unitID)
 
     -- refresh unit command bar to add custom command
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
-end
-
--- TODO each module should implement own saveModeSettings
---- Saves custom settings
----@param mode string Camera mode
----@param unitID number Unit ID
-function TrackingManager.saveModeSettings(mode, unitID)
-    local identifier
-    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
-        identifier = unitID
-        Log.debug("Saving settings for unit " .. tostring(identifier))
-    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
-        identifier = mode
-        Log.debug("Saving settings for mode " .. tostring(identifier))
-    else
-        return
-    end
-
-    if not identifier then
-        return
-    end
-
-    if mode == 'fps' then
-        STATE.tracking.offsets.fps[identifier] = {
-            height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
-    elseif mode == 'orbit' then
-        STATE.tracking.offsets.orbit[identifier] = {
-            speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
-            distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
-            height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
-        }
-    end
-end
-
---- Loads custom settings
----@param mode string Camera mode
----@param unitID number Unit ID
--- TODO each module should implement it's own loadModeSettings and this one should just reference it
-function TrackingManager.loadModeSettings(mode, unitID)
-    local identifier
-    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
-        identifier = unitID
-        Log.debug("Loading settings for unit " .. tostring(identifier))
-    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
-        identifier = mode
-        Log.debug("Loading settings for mode " .. tostring(identifier))
-    else
-        return
-    end
-
-    if mode == 'fps' then
-        if STATE.tracking.offsets.fps[identifier] then
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
-            Log.debug("Using previous settings")
-        else
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-            Log.debug("Using default settings")
-        end
-    elseif mode == 'orbit' then
-        -- Load orbit camera settings
-        if STATE.tracking.offsets.orbit[identifier] then
-            CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
-            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
-            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
-            Log.debug("Using previous settings")
-        else
-            CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
-            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-            Log.debug("Using default settings")
-        end
-    end
 end
 
 function TrackingManager.getDefaultHeightForUnitTracking(unitID)
@@ -164,7 +84,7 @@ end
 
 --- Disables tracking and resets tracking state
 function TrackingManager.disableTracking()
-    TrackingManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+    SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
     if STATE.tracking.orbit and STATE.tracking.orbit.originalTransitionFactor then
         CONFIG.MODE_TRANSITION_SMOOTHING = STATE.tracking.orbit.originalTransitionFactor

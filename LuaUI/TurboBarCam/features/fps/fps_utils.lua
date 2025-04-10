@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -149,7 +151,7 @@ function FPSCameraUtils.clearAttackingState()
     STATE.tracking.fps.weaponDir = nil
     STATE.tracking.fps.activeWeaponNum = nil
     STATE.tracking.fps.forcedWeaponNumber = nil
-    TrackingManager.loadModeSettings("fps", STATE.tracking.unitID)
+    SettingsManager.loadModeSettings("fps", STATE.tracking.unitID)
 end
 
 function FPSCameraUtils.nextWeapon()
@@ -529,7 +531,7 @@ function FPSCameraUtils.adjustParams(params)
         FPSCameraUtils.resetOffsets()
     end)
 
-    TrackingManager.saveModeSettings("fps", STATE.tracking.unitID)
+    SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
     return
 
 end

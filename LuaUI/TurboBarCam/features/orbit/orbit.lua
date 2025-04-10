@@ -74,7 +74,6 @@ function OrbitingCamera.update()
     if STATE.tracking.mode ~= 'orbit' or not STATE.tracking.unitID then
         return
     end
-    OrbitCameraUtils.ensureHeightIsSet()  -- TODO loadModeSettings should be per model and then this should go there
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
@@ -122,7 +121,6 @@ function OrbitingCamera.updateAutoOrbit()
     if not STATE.tracking.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
         return
     end
-    OrbitCameraUtils.ensureHeightIsSet()  -- TODO loadModeSettings should be per model and then this should go there
 
     -- Auto-orbit uses the same update logic as manual orbit, but without changing tracking.mode
     -- Get unit position
@@ -156,9 +154,30 @@ end
 
 --- Checks for unit movement and handles auto-orbit functionality
 function OrbitingCamera.handleAutoOrbit()
-    if OrbitCameraUtils.handleAutoOrbit() then
-        -- State was changed, may need to update UI or other state
+    OrbitCameraUtils.handleAutoOrbit()
+end
+
+function OrbitingCamera.saveSettings(identifier)
+    STATE.tracking.offsets.orbit[identifier] = {
+        speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
+        distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
+        height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+    }
+end
+
+function OrbitingCamera.loadSettings(identifier)
+    if STATE.tracking.offsets.orbit[identifier] then
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
+        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
+        Log.debug("[ORBIT] Using previous settings")
+    else
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+        Log.debug("[ORBIT] Using default settings")
     end
+    OrbitCameraUtils.ensureHeightIsSet()
 end
 
 return {

@@ -4,6 +4,9 @@ if not WG.TurboBarCam.CONFIG then
         -- Should offset values be saved after changing/disabling mode
         PERSISTENT_UNIT_SETTINGS = "MODE", -- NONE, UNIT, MODE
 
+        -- Whether weapon offsets should be saved to the config file
+        PERSISTENT_WEAPON_SETTINGS = true,
+
         MODE_TRANSITION_SMOOTHING = 0.04, -- For smoothing between camera modes
 
         -- Debug and performance settings
