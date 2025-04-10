@@ -68,7 +68,7 @@ function OrbitCameraUtils.handleAutoOrbit()
 
     -- Only check camera position/rotation if we have previous values
     local hasCamMoved = false
-    if STATE.tracking.orbit.autoOrbitActive then
+    if STATE.tracking.orbit.autoOrbitActive or STATE.tracking.fps.isAttacking or STATE.tracking.fps.inFreeCameraMode or STATE.tracking.fps.inTargetSelectionMode then
         hasCamMoved = false
     elseif STATE.tracking.orbit.lastCamPos and STATE.tracking.orbit.lastCamRot then
         hasCamMoved = math.abs(currentCamPos.x - STATE.tracking.orbit.lastCamPos.x) > camEpsilon or

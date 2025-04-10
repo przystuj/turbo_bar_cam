@@ -49,6 +49,9 @@ if not WG.TurboBarCam.STATE then
                 inFreeCameraMode = false, -- Whether free camera is active
                 targetUnitID = nil, -- Unit being looked at (for fixed point)
                 fixedPoint = nil, -- Fixed point to look at {x, y, z}
+                isAttacking = false, -- Whether unit's weapons are targeting something
+                weaponPos = nil, -- Tracked weapon position - set only when isAttacking
+                weaponDir = nil, -- Tracked weapon aim direction - set only when isAttacking
 
                 -- Free camera state
                 freeCam = {

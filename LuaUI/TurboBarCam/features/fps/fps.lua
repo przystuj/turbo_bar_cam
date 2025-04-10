@@ -94,6 +94,12 @@ function FPSCamera.update()
     -- Get unit position and vectors
     local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(STATE.tracking.unitID)
 
+    -- If unit is attacking (based on state set in getCameraPositionForUnit), use weapon position
+    if STATE.tracking.fps.isAttacking then
+        unitPos = STATE.tracking.fps.weaponPos
+        front = STATE.tracking.fps.weaponDir
+    end
+
     -- Apply offsets to get camera position
     local camPos = FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
 

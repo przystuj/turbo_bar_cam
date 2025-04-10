@@ -119,7 +119,7 @@ end
 
 --- Updates the auto-orbit camera
 function OrbitingCamera.updateAutoOrbit()
-    if not STATE.tracking.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID or STATE.tracking.fps.inTargetSelectionMode or STATE.tracking.fps.inFreeCameraMode then
+    if not STATE.tracking.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
         return
     end
     OrbitCameraUtils.ensureHeightIsSet()  -- TODO loadModeSettings should be per model and then this should go there

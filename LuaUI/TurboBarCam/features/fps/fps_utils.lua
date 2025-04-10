@@ -122,23 +122,152 @@ function FPSCameraUtils.createCameraState(position, direction)
     }
 end
 
+function FPSCameraUtils.clearAttackingState()
+    STATE.tracking.fps.isAttacking = false
+    STATE.tracking.fps.weaponPos = nil
+    STATE.tracking.fps.weaponDir = nil
+end
+
+function FPSCameraUtils.chooseWeapon(unitID, unitDef)
+    local bestTarget, bestWeaponNum
+    -- Process each weapon
+    for weaponNum, weaponData in pairs(unitDef.weapons) do
+        if type(weaponNum) == "number" then
+            -- Get weapon target
+            local targetType, _, target = Spring.GetUnitWeaponTarget(unitID, weaponNum)
+
+            -- Check if weapon has a proper target
+            if targetType and targetType > 0 and target then
+                local targetPos
+
+                -- Unit target
+                if targetType == 1 then
+                    if Spring.ValidUnitID(target) then
+                        local x, y, z = Spring.GetUnitPosition(target)
+                        targetPos = { x = x, y = y, z = z }
+                    end
+                    -- Ground target
+                elseif targetType == 2 then
+                    targetPos = { x = target[1], y = target[2], z = target[3] }
+                end
+
+                if targetPos then
+                    bestTarget = targetPos
+                    bestWeaponNum = weaponNum
+                    -- Found a valid target, no need to check more weapons
+                    break
+                end
+            end
+        end
+    end
+    return bestTarget, bestWeaponNum
+end
+
+--- Checks if unit is currently attacking a target (even without explicit command)
+--- @param unitID number Unit ID to check
+--- @return table|nil targetPos Position of the current attack target or nil
+--- @return number|nil weaponNum The weapon number that is firing at the target
+function FPSCameraUtils.getCurrentAttackTarget(unitID)
+    if not Spring.ValidUnitID(unitID) then
+        -- Reset attacking state when unit is invalid
+        FPSCameraUtils.clearAttackingState()
+        return nil, nil
+    end
+
+    local unitDefID = Spring.GetUnitDefID(unitID)
+    local unitDef = UnitDefs[unitDefID]
+
+    if not unitDef or not unitDef.weapons then
+        -- Reset attacking state when unit has no weapons
+        FPSCameraUtils.clearAttackingState()
+        return nil, nil
+    end
+
+    local targetPos, weaponNum = FPSCameraUtils.chooseWeapon(unitID, unitDef)
+
+    -- If no target was found, reset attacking state
+    if not targetPos then
+        FPSCameraUtils.clearAttackingState()
+    end
+
+    return targetPos, weaponNum
+end
+
+--- Checks if unit has a target (from any source) and returns target position if valid
+--- @param unitID number Unit ID to check
+--- @return table|nil targetPos Position of the target or nil if no valid target
+--- @return number|nil weaponNum The weapon number that is firing at the target (if applicable)
+function FPSCameraUtils.getTargetPosition(unitID)
+    if not Spring.ValidUnitID(unitID) then
+        return nil, nil
+    end
+
+    -- Finally check for current attack target (autonomous attack)
+    local autoTarget, weaponNum = FPSCameraUtils.getCurrentAttackTarget(unitID)
+    if autoTarget then
+        return autoTarget, weaponNum
+    end
+
+    return nil, nil
+end
+
+--- Gets camera position for a unit, optionally using weapon position
+--- @param unitID number Unit ID
+--- @param weaponNum number|nil The weapon number to use for positioning (if applicable)
+--- @return table camPos Camera position with offsets applied
+function FPSCameraUtils.getCameraPositionForUnit(unitID, weaponNum)
+    local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(unitID)
+
+    -- If a specific weapon is provided, use its position
+    if weaponNum then
+        local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+
+        if posX and destX then
+            -- Use weapon position instead of unit center
+            unitPos = { x = posX, y = posY, z = posZ }
+            front = { destX, destY, destZ }
+
+            -- Update state for tracking
+            STATE.tracking.fps.isAttacking = true
+            STATE.tracking.fps.weaponPos = unitPos
+            STATE.tracking.fps.weaponDir = front
+        else
+            -- If weapon vectors couldn't be retrieved, reset state
+            STATE.tracking.fps.isAttacking = false
+            STATE.tracking.fps.weaponPos = nil
+            STATE.tracking.fps.weaponDir = nil
+        end
+    else
+        -- No weapon specified, reset state
+        STATE.tracking.fps.isAttacking = false
+        STATE.tracking.fps.weaponPos = nil
+        STATE.tracking.fps.weaponDir = nil
+    end
+
+    -- Apply offsets to the position
+    return FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
+end
+
 --- Handles normal FPS mode camera orientation
----@param unitID number Unit ID
----@param rotFactor number Rotation smoothing factor
----@return table directionState Camera direction and rotation state
+--- @param unitID number Unit ID
+--- @param rotFactor number Rotation smoothing factor
+--- @return table directionState Camera direction and rotation state
 function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
-    -- Get unit vectors
+    -- First check if there's a target to focus on
+    local targetPos, firingWeaponNum = FPSCameraUtils.getTargetPosition(unitID)
+
+    if targetPos then
+        -- Get camera position using weapon position for active weapons
+        local camPos = FPSCameraUtils.getCameraPositionForUnit(unitID, firingWeaponNum)
+
+        -- Focus on target using existing code
+        return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
+    end
+
+    -- Fall back to unit hull direction if no weapon direction available
     local front, _, _ = Spring.GetUnitVectors(unitID)
-
-    -- Extract components from the vector tables
     local frontX, frontY, frontZ = front[1], front[2], front[3]
-
-    -- Calculate target rotations
-    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi)
-
-    -- Apply rotation offset
-    targetRy = targetRy + CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-
+    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
     local targetRx = 1.8
     local targetRz = 0
 
@@ -153,40 +282,6 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     }
 
     return directionState
-end
-
----@see ModifiableParams
----@see Util#adjustParams
-function FPSCameraUtils.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-    if Util.isModeDisabled("fps") then
-        return
-    end
-
-    -- Make sure we have a unit to track
-    if not STATE.tracking.unitID then
-        Log.debug("No unit being tracked")
-        return
-    end
-
-    Util.adjustParams(params, "FPS", function()
-        FPSCameraUtils.resetOffsets()
-    end)
-
-    TrackingManager.saveModeSettings("fps", STATE.tracking.unitID)
-    return
-end
-
---- Resets camera offsets to default values
----@return boolean success Whether offsets were reset successfully
-function FPSCameraUtils.resetOffsets()
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-    Log.debug("Restored fps camera settings to defaults")
 end
 
 --- Sets a fixed look point for the camera
@@ -208,7 +303,7 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     end
 
     -- Set the fixed point
-   STATE.tracking.fps.fixedPoint = fixedPoint
+    STATE.tracking.fps.fixedPoint = fixedPoint
     STATE.tracking.fps.targetUnitID = targetUnitID
 
     -- We're no longer in target selection mode
@@ -246,7 +341,7 @@ function FPSCameraUtils.clearFixedLookPoint()
     if STATE.tracking.mode == 'fixed_point' and STATE.tracking.unitID then
         -- Switch back to FPS mode
         STATE.tracking.mode = 'fps'
-       STATE.tracking.fps.fixedPoint = nil
+        STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
         STATE.tracking.fps.inTargetSelectionMode = false
         STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
@@ -272,7 +367,7 @@ function FPSCameraUtils.updateFixedPointTarget()
 
     -- Get the current position of the target unit
     local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.tracking.fps.targetUnitID)
-   STATE.tracking.fps.fixedPoint = {
+    STATE.tracking.fps.fixedPoint = {
         x = targetX,
         y = targetY,
         z = targetZ
@@ -297,6 +392,40 @@ function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
 
     -- Default
     return CONFIG.SMOOTHING.POSITION_FACTOR
+end
+
+---@see ModifiableParams
+---@see Util#adjustParams
+function FPSCameraUtils.adjustParams(params)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled("fps") then
+        return
+    end
+
+    -- Make sure we have a unit to track
+    if not STATE.tracking.unitID then
+        Log.debug("No unit being tracked")
+        return
+    end
+
+    Util.adjustParams(params, "FPS", function()
+        FPSCameraUtils.resetOffsets()
+    end)
+
+    TrackingManager.saveModeSettings("fps", STATE.tracking.unitID)
+    return
+end
+
+--- Resets camera offsets to default values
+---@return boolean success Whether offsets were reset successfully
+function FPSCameraUtils.resetOffsets()
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+    Log.debug("Restored fps camera settings to defaults")
 end
 
 return {

@@ -15,7 +15,7 @@ if not WG.TurboBarCam.CONFIG then
 
         -- Debug and performance settings
         DEBUG = {
-            LOG_LEVEL = "INFO", -- INFO, DEBUG, TRACE
+            LOG_LEVEL = "DEBUG", -- INFO, DEBUG, TRACE
         },
 
         -- Performance settings
