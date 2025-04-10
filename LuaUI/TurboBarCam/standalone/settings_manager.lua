@@ -1,0 +1,108 @@
+-----@type WidgetContext
+--local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
+-----@type CameraManager
+--local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+-----@type Log
+--local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+-----@type Util
+--local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
+--
+--local CONFIG = WidgetContext.CONFIG
+--local STATE = WidgetContext.STATE
+--
+-----@class SettingsManager
+--local SettingsManager = {}
+--
+---- TODO each module should implement own saveModeSettings
+----- Saves custom settings
+-----@param mode string Camera mode
+-----@param unitID number Unit ID
+--function SettingsManager.saveModeSettings(mode, unitID)
+--    local identifier
+--    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
+--        identifier = unitID
+--        Log.debug("Saving settings for unit " .. tostring(identifier))
+--    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
+--        identifier = mode
+--        if identifier == "fixed_point" then
+--            -- TODO get rid of fixed_point mode
+--            identifier = "fps"
+--        end
+--        Log.debug("Saving settings for mode " .. tostring(identifier))
+--    else
+--        return
+--    end
+--
+--    if not identifier then
+--        return
+--    end
+--
+--    if mode == 'fps' or mode == 'fixed_point' then
+--        STATE.tracking.offsets.fps[identifier] = {
+--            height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+--            forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+--            side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+--            rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+--        }
+--    elseif mode == 'orbit' then
+--        STATE.tracking.offsets.orbit[identifier] = {
+--            speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
+--            distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
+--            height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+--        }
+--    end
+--end
+--
+----- Loads custom settings
+-----@param mode string Camera mode
+-----@param unitID number Unit ID
+---- TODO each module should implement it's own loadModeSettings and this one should just reference it
+--function SettingsManager.loadModeSettings(mode, unitID)
+--    local identifier
+--    if CONFIG.PERSISTENT_UNIT_SETTINGS == "UNIT" then
+--        identifier = unitID
+--        Log.debug("Loading settings for unit " .. tostring(identifier))
+--    elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
+--        identifier = mode
+--        -- TODO get rid of fixed_point mode
+--        if identifier == "fixed_point" then
+--            identifier = "fps"
+--        end
+--        Log.debug("Loading settings for mode " .. tostring(identifier))
+--    else
+--        return
+--    end
+--
+--    if mode == 'fps' or mode == 'fixed_point' then
+--        if STATE.tracking.offsets.fps[identifier] then
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
+--            Log.debug("Using previous settings")
+--        else
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
+--            CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+--            Log.debug("Using default settings")
+--        end
+--    elseif mode == 'orbit' then
+--        -- Load orbit camera settings
+--        if STATE.tracking.offsets.orbit[identifier] then
+--            CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
+--            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
+--            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
+--            Log.debug("Using previous settings")
+--        else
+--            CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+--            CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+--            CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+--            Log.debug("Using default settings")
+--        end
+--    end
+--end
+--
+--return {
+--    SettingsManager = SettingsManager
+--}

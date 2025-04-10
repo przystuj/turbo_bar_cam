@@ -16,7 +16,7 @@ local FPSCameraUtils = {}
 --- Checks if FPS camera should be updated
 ---@return boolean shouldUpdate Whether FPS camera should be updated
 function FPSCameraUtils.shouldUpdateFPSCamera()
-    if (STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point') or not STATE.tracking.unitID then
+    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
         return false
     end
 
@@ -405,7 +405,7 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
         return false
     end
     -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
+    if STATE.tracking.mode ~= 'fps' then
         Log.debug("Fixed point tracking only works when in FPS mode")
         return false
     end
@@ -417,13 +417,11 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     -- Set the fixed point
     STATE.tracking.fps.fixedPoint = fixedPoint
     STATE.tracking.fps.targetUnitID = targetUnitID
+    STATE.tracking.fps.isFixedPointActive = true
 
     -- We're no longer in target selection mode
     STATE.tracking.fps.inTargetSelectionMode = false
     STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
-
-    -- Switch to fixed point mode
-    STATE.tracking.mode = 'fixed_point'
 
     -- Use the previous free camera state for normal operation
     STATE.tracking.fps.inFreeCameraMode = STATE.tracking.fps.prevFreeCamState or false
@@ -450,9 +448,9 @@ function FPSCameraUtils.clearFixedLookPoint()
         return
     end
 
-    if STATE.tracking.mode == 'fixed_point' and STATE.tracking.unitID then
-        -- Switch back to FPS mode
-        STATE.tracking.mode = 'fps'
+    if STATE.tracking.fps.isFixedPointActive and STATE.tracking.unitID then
+        -- Disable fixed point tracking
+        STATE.tracking.fps.isFixedPointActive = false
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
         STATE.tracking.fps.inTargetSelectionMode = false

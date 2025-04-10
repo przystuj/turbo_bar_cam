@@ -55,11 +55,12 @@ function FPSCamera.toggle()
         return
     end
 
-    -- If we're already tracking this exact unit in FPS mode or fixed point mode, turn it off
-    if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID == unitID then
+    -- If we're already tracking this exact unit in FPS mode, turn it off
+    if STATE.tracking.mode == 'fps' and STATE.tracking.unitID == unitID then
         -- Make sure fixed point tracking is cleared when turning off FPS camera
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil
+        STATE.tracking.fps.isFixedPointActive = false
 
         TrackingManager.disableTracking()
         Log.debug("FPS camera detached")
@@ -78,6 +79,7 @@ function FPSCamera.toggle()
         -- Clear any existing fixed point tracking when starting a new FPS camera
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil
+        STATE.tracking.fps.isFixedPointActive = false
 
         Log.debug("FPS camera attached to unit " .. unitID)
     end
@@ -133,7 +135,7 @@ function FPSCamera.update()
     -- Handle different camera orientation modes
     local directionState
 
-    if STATE.tracking.mode == 'fixed_point' then
+    if STATE.tracking.fps.isFixedPointActive then
         -- Update fixed point if tracking a unit
         FPSCameraUtils.updateFixedPointTarget()
 
@@ -181,19 +183,20 @@ function FPSCamera.checkFixedPointCommandActivation()
     if activeCmd ~= prevActiveCmd then
         -- Case 1: Command activated - entering target selection mode
         if activeCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
-            -- Only proceed if we're in FPS or fixed_point mode and have a unit to track
-            if (STATE.tracking.mode == 'fps' or STATE.tracking.mode == 'fixed_point') and STATE.tracking.unitID then
+            -- Only proceed if we're in FPS mode and have a unit to track
+            if STATE.tracking.mode == 'fps' and STATE.tracking.unitID then
                 -- Store current state before switching to target selection mode
                 STATE.tracking.fps.inTargetSelectionMode = true
                 STATE.tracking.fps.prevFreeCamState = STATE.tracking.fps.inFreeCameraMode
 
-                -- Save the previous mode and fixed point for later restoration if canceled
+                -- Save the previous fixed point state for later restoration if canceled
                 STATE.tracking.fps.prevMode = STATE.tracking.mode
                 STATE.tracking.fps.prevFixedPoint = STATE.tracking.fps.fixedPoint
+                STATE.tracking.fps.prevFixedPointActive = STATE.tracking.fps.isFixedPointActive
 
-                -- Temporarily switch to FPS mode during selection
-                if STATE.tracking.mode == 'fixed_point' then
-                    STATE.tracking.mode = 'fps'
+                -- Temporarily disable fixed point during selection
+                if STATE.tracking.fps.isFixedPointActive then
+                    STATE.tracking.fps.isFixedPointActive = false
                     STATE.tracking.fps.fixedPoint = nil
                 end
 
@@ -220,9 +223,9 @@ function FPSCamera.checkFixedPointCommandActivation()
             -- User canceled target selection, restore previous state
             STATE.tracking.fps.inTargetSelectionMode = false
 
-            -- Restore the previous mode and fixed point
-            if STATE.tracking.fps.prevMode == 'fixed_point' and STATE.tracking.fps.prevFixedPoint then
-                STATE.tracking.mode = 'fixed_point'
+            -- Restore the previous fixed point state
+            if STATE.tracking.fps.prevFixedPointActive and STATE.tracking.fps.prevFixedPoint then
+                STATE.tracking.fps.isFixedPointActive = true
                 STATE.tracking.fps.fixedPoint = STATE.tracking.fps.prevFixedPoint
                 Log.debug("Target selection canceled, returning to fixed point view")
             end
@@ -234,7 +237,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             STATE.tracking.isModeTransitionInProgress = true
             STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-            if STATE.tracking.fps.prevMode == 'fps' then
+            if not STATE.tracking.fps.prevFixedPointActive then
                 Log.debug("Target selection canceled, returning to unit view")
             end
         end
@@ -253,7 +256,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point' then
+    if STATE.tracking.mode ~= 'fps' then
         Log.debug("Fixed point tracking only works when in FPS mode")
         return false
     end
@@ -316,16 +319,16 @@ function FPSCamera.toggleFreeCam()
     end
 
     -- Only works if we're tracking a unit in FPS mode
-    if (STATE.tracking.mode ~= 'fps' and STATE.tracking.mode ~= 'fixed_point') or not STATE.tracking.unitID then
+    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
         Log.debug("Free camera only works when tracking a unit in FPS mode")
         return
     end
 
     -- Toggle free camera mode
-    FreeCam.toggle("unit")
+    FreeCam.toggle()
 
     -- If we have a fixed point active, we need to explicitly clear it when disabling free cam
-    if not STATE.tracking.fps.inFreeCameraMode and STATE.tracking.mode == 'fixed_point' then
+    if not STATE.tracking.fps.inFreeCameraMode and STATE.tracking.fps.isFixedPointActive then
         FPSCameraUtils.clearFixedLookPoint()
     end
 end

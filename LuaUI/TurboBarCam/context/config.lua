@@ -1,12 +1,3 @@
-local MODES = {
-    FPS = "fps",
-    FIXED_POINT = "fps.fixed_point",
-    UNIT_TRACKING = "unit_tracking",
-    ORBIT = "orbit",
-    OVERVIEW = "overview",
-    GROUP_TRACKING = "group_tracking",
-}
-
 if not WG.TurboBarCam.CONFIG then
     ---@class WidgetConfig
     WG.TurboBarCam.CONFIG = {
@@ -34,7 +25,7 @@ if not WG.TurboBarCam.CONFIG then
         CAMERA_MODES = {
             ANCHOR = {
                 -- modes which will trigger focus_while_tracking effect
-                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "fixed_point" },
+                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
                 STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions

@@ -68,10 +68,6 @@ function TrackingManager.saveModeSettings(mode, unitID)
         Log.debug("Saving settings for unit " .. tostring(identifier))
     elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
         identifier = mode
-        if identifier == "fixed_point" then
-            -- TODO get rid of fixed_point mode
-            identifier = "fps"
-        end
         Log.debug("Saving settings for mode " .. tostring(identifier))
     else
         return
@@ -81,7 +77,7 @@ function TrackingManager.saveModeSettings(mode, unitID)
         return
     end
 
-    if mode == 'fps' or mode == 'fixed_point' then
+    if mode == 'fps' then
         STATE.tracking.offsets.fps[identifier] = {
             height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
             forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
@@ -108,16 +104,12 @@ function TrackingManager.loadModeSettings(mode, unitID)
         Log.debug("Loading settings for unit " .. tostring(identifier))
     elseif CONFIG.PERSISTENT_UNIT_SETTINGS == "MODE" then
         identifier = mode
-        -- TODO get rid of fixed_point mode
-        if identifier == "fixed_point" then
-            identifier = "fps"
-        end
         Log.debug("Loading settings for mode " .. tostring(identifier))
     else
         return
     end
 
-    if mode == 'fps' or mode == 'fixed_point' then
+    if mode == 'fps' then
         if STATE.tracking.offsets.fps[identifier] then
             CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
             CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
@@ -184,7 +176,8 @@ function TrackingManager.disableTracking()
     STATE.tracking.fps.inFreeCameraMode = false
     STATE.tracking.graceTimer = nil
     STATE.tracking.lastUnitID = nil
-   STATE.tracking.fps.fixedPoint = nil
+    STATE.tracking.fps.fixedPoint = nil
+    STATE.tracking.fps.isFixedPointActive = false
     STATE.tracking.mode = nil
 
     -- Clear target selection state
@@ -192,6 +185,7 @@ function TrackingManager.disableTracking()
     STATE.tracking.fps.prevFreeCamState = false
     STATE.tracking.fps.prevMode = nil
     STATE.tracking.fps.prevFixedPoint = nil
+    STATE.tracking.fps.prevFixedPointActive = nil
 
     -- Reset orbit-specific states
     if STATE.tracking.orbit then

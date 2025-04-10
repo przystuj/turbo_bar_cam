@@ -136,9 +136,8 @@ function FreeCam.createCameraState(position, rotation, lastCamDir, lastRotation,
 end
 
 --- Toggles free camera mode
----@param modeType string Camera mode type
 ---@return boolean success Whether mode was toggled successfully
-function FreeCam.toggle(modeType)
+function FreeCam.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -169,7 +168,7 @@ function FreeCam.toggle(modeType)
         STATE.tracking.fps.freeCam.targetRy = nil
         STATE.tracking.fps.freeCam.lastUnitHeading = nil
 
-        Log.debug("Free camera mode disabled - view follows " .. modeType .. " orientation")
+        Log.debug("Free camera mode disabled - view follows unit orientation")
     end
 
     -- Start a transition for smooth change
