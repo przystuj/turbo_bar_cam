@@ -52,6 +52,27 @@ function FPSCameraUtils.ensureHeightIsSet()
     CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
 end
 
+--- Gets appropriate offsets based on whether the unit is attacking and which weapon is active
+---@return table offsets The offsets to apply
+function FPSCameraUtils.getAppropriateOffsets()
+    if STATE.tracking.fps.isAttacking then
+        return {
+            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
+            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
+            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
+            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
+        }
+    else
+        return {
+            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+        }
+    end
+
+end
+
 --- Applies FPS camera offsets to unit position
 ---@param unitPos table Unit position {x, y, z}
 ---@param front table Front vector
@@ -61,11 +82,8 @@ end
 function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
     local x, y, z = unitPos.x, unitPos.y, unitPos.z
 
-    local offsets = {
-        height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-        forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-        side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE
-    }
+    -- Get appropriate offsets for the current state
+    local offsets = FPSCameraUtils.getAppropriateOffsets()
 
     -- Extract components from the vector tables
     local frontX, frontY, frontZ = front[1], front[2], front[3]
@@ -73,24 +91,24 @@ function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
     local rightX, rightY, rightZ = right[1], right[2], right[3]
 
     -- Apply height offset along the unit's up vector
-    if offsets.height ~= 0 then
-        x = x + upX * offsets.height
-        y = y + upY * offsets.height
-        z = z + upZ * offsets.height
+    if offsets.HEIGHT ~= 0 then
+        x = x + upX * offsets.HEIGHT
+        y = y + upY * offsets.HEIGHT
+        z = z + upZ * offsets.HEIGHT
     end
 
     -- Apply forward offset if needed
-    if offsets.forward ~= 0 then
-        x = x + frontX * offsets.forward
-        y = y + frontY * offsets.forward
-        z = z + frontZ * offsets.forward
+    if offsets.FORWARD ~= 0 then
+        x = x + frontX * offsets.FORWARD
+        y = y + frontY * offsets.FORWARD
+        z = z + frontZ * offsets.FORWARD
     end
 
     -- Apply side offset if needed
-    if offsets.side ~= 0 then
-        x = x + rightX * offsets.side
-        y = y + rightY * offsets.side
-        z = z + rightZ * offsets.side
+    if offsets.SIDE ~= 0 then
+        x = x + rightX * offsets.SIDE
+        y = y + rightY * offsets.SIDE
+        z = z + rightZ * offsets.SIDE
     end
 
     return { x = x, y = y, z = z }
@@ -126,40 +144,121 @@ function FPSCameraUtils.clearAttackingState()
     STATE.tracking.fps.isAttacking = false
     STATE.tracking.fps.weaponPos = nil
     STATE.tracking.fps.weaponDir = nil
+    STATE.tracking.fps.activeWeaponNum = nil
+    STATE.tracking.fps.forcedWeaponNumber = nil
+    TrackingManager.loadModeSettings("fps", STATE.tracking.unitID)
+end
+
+function FPSCameraUtils.nextWeapon()
+    local unitDefID = Spring.GetUnitDefID(STATE.tracking.unitID)
+    local unitDef = UnitDefs[unitDefID]
+
+    if not unitDef or not unitDef.weapons then
+        Log.info("Unit has no weapons")
+        return
+    end
+
+    -- Collect all valid weapon numbers in order
+    local weaponNumbers = {}
+    for weaponNum, weaponData in pairs(unitDef.weapons) do
+        -- ignoring low range weapons because they probably aren't real weapons
+        if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
+            table.insert(weaponNumbers, weaponNum)
+        end
+    end
+
+    -- Sort them (since pairs() iteration order is not guaranteed)
+    table.sort(weaponNumbers)
+
+    if #weaponNumbers == 0 then
+        Log.info("Unit has no usable weapons")
+        return
+    end
+
+    local currentWeapon = STATE.tracking.fps.forcedWeaponNumber or weaponNumbers[1]
+
+    -- Find the index of the current weapon in our ordered list
+    local currentIndex = 1
+    for i, num in ipairs(weaponNumbers) do
+        if num == currentWeapon then
+            currentIndex = i
+            break
+        end
+    end
+
+    -- Move to the next weapon or wrap around to the first
+    local nextIndex = currentIndex % #weaponNumbers + 1
+    STATE.tracking.fps.forcedWeaponNumber = weaponNumbers[nextIndex]
+
+    Log.info("Current weapon: " .. tostring(STATE.tracking.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.tracking.fps.forcedWeaponNumber].name .. ")")
+end
+
+--- Extracts target position from a weapon target
+---@param unitID number The unit ID
+---@param weaponNum number The weapon number
+---@return table|nil targetPos The target position or nil if no valid target
+function FPSCameraUtils.getWeaponTargetPosition(unitID, weaponNum)
+    -- Get weapon target
+    local targetType, _, target = Spring.GetUnitWeaponTarget(unitID, weaponNum)
+
+    -- Check if weapon has a proper target
+    if not (targetType and targetType > 0 and target) then
+        return nil
+    end
+
+    local targetPos
+
+    -- Unit target
+    if targetType == 1 then
+        if Spring.ValidUnitID(target) then
+            local x, y, z = Spring.GetUnitPosition(target)
+            targetPos = { x = x, y = y, z = z }
+        end
+        -- Ground target
+    elseif targetType == 2 then
+        targetPos = { x = target[1], y = target[2], z = target[3] }
+    end
+
+    return targetPos
 end
 
 function FPSCameraUtils.chooseWeapon(unitID, unitDef)
     local bestTarget, bestWeaponNum
-    -- Process each weapon
+
+    -- If we have a forced weapon number, only check that specific weapon
+    if STATE.tracking.fps.forcedWeaponNumber then
+        local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+
+        -- Verify that this weapon exists for the unit
+        if unitDef.weapons[weaponNum] then
+            -- Get target for forced weapon
+            local targetPos = FPSCameraUtils.getWeaponTargetPosition(unitID, weaponNum)
+
+            if targetPos then
+                return targetPos, weaponNum
+            end
+
+            -- If we get here with a forced weapon but no target, we still return the forced weapon number
+            -- This allows the camera to stay on the forced weapon even when not targeting
+            return nil, weaponNum
+        end
+    end
+
+    -- If no forced weapon, or forced weapon had no valid target, process all weapons
     for weaponNum, weaponData in pairs(unitDef.weapons) do
-        if type(weaponNum) == "number" then
-            -- Get weapon target
-            local targetType, _, target = Spring.GetUnitWeaponTarget(unitID, weaponNum)
+        -- ignoring low range weapons because they probably aren't real weapons
+        if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
+            local targetPos = FPSCameraUtils.getWeaponTargetPosition(unitID, weaponNum)
 
-            -- Check if weapon has a proper target
-            if targetType and targetType > 0 and target then
-                local targetPos
-
-                -- Unit target
-                if targetType == 1 then
-                    if Spring.ValidUnitID(target) then
-                        local x, y, z = Spring.GetUnitPosition(target)
-                        targetPos = { x = x, y = y, z = z }
-                    end
-                    -- Ground target
-                elseif targetType == 2 then
-                    targetPos = { x = target[1], y = target[2], z = target[3] }
-                end
-
-                if targetPos then
-                    bestTarget = targetPos
-                    bestWeaponNum = weaponNum
-                    -- Found a valid target, no need to check more weapons
-                    break
-                end
+            if targetPos then
+                bestTarget = targetPos
+                bestWeaponNum = weaponNum
+                -- Found a valid target, no need to check more weapons
+                break
             end
         end
     end
+
     return bestTarget, bestWeaponNum
 end
 
@@ -188,6 +287,9 @@ function FPSCameraUtils.getCurrentAttackTarget(unitID)
     -- If no target was found, reset attacking state
     if not targetPos then
         FPSCameraUtils.clearAttackingState()
+    else
+        -- Store the active weapon number for later use
+        STATE.tracking.fps.activeWeaponNum = weaponNum
     end
 
     return targetPos, weaponNum
@@ -202,7 +304,7 @@ function FPSCameraUtils.getTargetPosition(unitID)
         return nil, nil
     end
 
-    -- Finally check for current attack target (autonomous attack)
+    -- Check for current attack target (autonomous attack)
     local autoTarget, weaponNum = FPSCameraUtils.getCurrentAttackTarget(unitID)
     if autoTarget then
         return autoTarget, weaponNum
@@ -213,10 +315,10 @@ end
 
 --- Gets camera position for a unit, optionally using weapon position
 --- @param unitID number Unit ID
---- @param weaponNum number|nil The weapon number to use for positioning (if applicable)
 --- @return table camPos Camera position with offsets applied
-function FPSCameraUtils.getCameraPositionForUnit(unitID, weaponNum)
+function FPSCameraUtils.getCameraPositionForUnit(unitID)
     local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(unitID)
+    local weaponNum = STATE.tracking.fps.activeWeaponNum
 
     -- If a specific weapon is provided, use its position
     if weaponNum then
@@ -231,17 +333,20 @@ function FPSCameraUtils.getCameraPositionForUnit(unitID, weaponNum)
             STATE.tracking.fps.isAttacking = true
             STATE.tracking.fps.weaponPos = unitPos
             STATE.tracking.fps.weaponDir = front
+            STATE.tracking.fps.activeWeaponNum = weaponNum
         else
             -- If weapon vectors couldn't be retrieved, reset state
             STATE.tracking.fps.isAttacking = false
             STATE.tracking.fps.weaponPos = nil
             STATE.tracking.fps.weaponDir = nil
+            STATE.tracking.fps.activeWeaponNum = nil
         end
     else
         -- No weapon specified, reset state
         STATE.tracking.fps.isAttacking = false
         STATE.tracking.fps.weaponPos = nil
         STATE.tracking.fps.weaponDir = nil
+        STATE.tracking.fps.activeWeaponNum = nil
     end
 
     -- Apply offsets to the position
@@ -267,7 +372,11 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     -- Fall back to unit hull direction if no weapon direction available
     local front, _, _ = Spring.GetUnitVectors(unitID)
     local frontX, frontY, frontZ = front[1], front[2], front[3]
-    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+
+    -- Get appropriate offsets
+    local offsets = FPSCameraUtils.getAppropriateOffsets()
+
+    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
     local targetRx = 1.8
     local targetRz = 0
 
@@ -384,14 +493,19 @@ function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
         return CONFIG.MODE_TRANSITION_SMOOTHING
     end
 
+    local multiplier = 1
+    if STATE.tracking.fps.isAttacking then
+        multiplier = 5
+    end
+
     if smoothType == 'position' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
     elseif smoothType == 'rotation' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.ROTATION_FACTOR
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.ROTATION_FACTOR * multiplier
     end
 
     -- Default
-    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR
+    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
 end
 
 ---@see ModifiableParams
@@ -416,6 +530,7 @@ function FPSCameraUtils.adjustParams(params)
 
     TrackingManager.saveModeSettings("fps", STATE.tracking.unitID)
     return
+
 end
 
 --- Resets camera offsets to default values
@@ -425,7 +540,14 @@ function FPSCameraUtils.resetOffsets()
     CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
     CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
     CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.WEAPON_HEIGHT
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.WEAPON_FORWARD
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.WEAPON_SIDE
+    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.WEAPON_ROTATION
     Log.debug("Restored fps camera settings to defaults")
+    return true
+
 end
 
 return {

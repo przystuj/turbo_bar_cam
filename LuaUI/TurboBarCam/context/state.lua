@@ -52,6 +52,8 @@ if not WG.TurboBarCam.STATE then
                 isAttacking = false, -- Whether unit's weapons are targeting something
                 weaponPos = nil, -- Tracked weapon position - set only when isAttacking
                 weaponDir = nil, -- Tracked weapon aim direction - set only when isAttacking
+                activeWeaponNum = nil, -- Currently active weapon number
+                forcedWeaponNumber = nil, -- Forced weapon number
 
                 -- Free camera state
                 freeCam = {

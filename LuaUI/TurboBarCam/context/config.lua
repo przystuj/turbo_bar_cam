@@ -47,13 +47,23 @@ if not WG.TurboBarCam.CONFIG then
                     HEIGHT = nil, -- It's calculated from unit height
                     FORWARD = -300,
                     SIDE = 0,
-                    ROTATION = 0 -- Rotation offset (radians)
+                    ROTATION = 0, -- Rotation offset (radians)
+
+                    WEAPON_HEIGHT = 0, -- It's calculated from unit height
+                    WEAPON_FORWARD = 0,
+                    WEAPON_SIDE = 0,
+                    WEAPON_ROTATION = 0, -- Rotation offset (radians)
                 },
                 DEFAULT_OFFSETS = {
                     HEIGHT = nil, -- It's calculated from unit height
                     FORWARD = -300,
                     SIDE = 0,
-                    ROTATION = 0
+                    ROTATION = 0,
+
+                    WEAPON_HEIGHT = 0, -- It's calculated from unit height
+                    WEAPON_FORWARD = 0,
+                    WEAPON_SIDE = 0,
+                    WEAPON_ROTATION = 0, -- Rotation offset (radians)
                 },
                 SMOOTHING = {
                     POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
@@ -226,7 +236,12 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
             FORWARD = { nil, nil },
             SIDE = { nil, nil },
             ROTATION = { nil, nil, "rad" },
-            MOUSE_SENSITIVITY = { 0.0001, 0.01 }
+            MOUSE_SENSITIVITY = { 0.0001, 0.01 },
+
+            WEAPON_HEIGHT = { nil, nil },
+            WEAPON_FORWARD = { nil, nil },
+            WEAPON_SIDE = { nil, nil },
+            WEAPON_ROTATION = { nil, nil, "rad" },
         }
     },
     ORBIT = {

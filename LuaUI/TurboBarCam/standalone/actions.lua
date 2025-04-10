@@ -73,6 +73,18 @@ function Actions.fpsActions()
                 FeatureModules.FPSCamera.clearFixedLookPoint()
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_fps_clear_weapon_selection", 'tp',
+            function()
+                FeatureModules.FPSCamera.clearWeaponSelection()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_fps_next_weapon", 'tp',
+            function()
+                FeatureModules.FPSCamera.nextWeapon()
+                return true
+            end)
 end
 
 

@@ -330,6 +330,33 @@ function FPSCamera.toggleFreeCam()
     end
 end
 
+--- Cycles through unit's weapons
+function FPSCamera.nextWeapon()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled('fps') then
+        return
+    end
+    if not STATE.tracking.unitID or not Spring.ValidUnitID(STATE.tracking.unitID) then
+        Log.debug("No unit selected.")
+        return
+    end
+    FPSCameraUtils.nextWeapon()
+end
+
+--- Clear forced weapon
+function FPSCamera.clearWeaponSelection()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled('fps') then
+        return
+    end
+    STATE.tracking.fps.forcedWeaponNumber = nil
+    Log.debug("Cleared weapon selection.")
+end
+
 ---@see ModifiableParams
 ---@see Util#adjustParams
 function FPSCamera.adjustParams(params)
