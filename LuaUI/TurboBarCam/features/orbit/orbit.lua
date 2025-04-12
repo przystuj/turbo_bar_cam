@@ -59,11 +59,6 @@ function OrbitingCamera.toggle(unitID)
         -- Calculate current angle based on camera position relative to unit
         STATE.tracking.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 
-        -- Initialize the last position for auto-orbit feature
-        STATE.tracking.orbit.lastPosition = { x = unitX, y = unitY, z = unitZ }
-        STATE.tracking.orbit.stationaryTimer = nil
-        STATE.tracking.orbit.autoOrbitActive = false
-
         Log.debug("Orbiting camera attached to unit " .. unitID)
     end
 
@@ -116,45 +111,10 @@ function OrbitingCamera.update()
     CameraManager.setCameraState(camState, 0, "OrbitingCamera.update")
 end
 
---- Updates the auto-orbit camera
-function OrbitingCamera.updateAutoOrbit()
-    if not STATE.tracking.orbit.autoOrbitActive or STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
-        return
-    end
-
-    -- Auto-orbit uses the same update logic as manual orbit, but without changing tracking.mode
-    -- Get unit position
-    local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
-
-    -- Update orbit angle
-    STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED
-
-    -- Calculate camera position on the orbit circle
-    local camPos = OrbitCameraUtils.calculateOrbitPosition({ x = unitX, y = unitY, z = unitZ })
-
-    -- Create camera state looking at the unit
-    local targetPos = { x = unitX, y = unitY, z = unitZ }
-
-    -- Determine smoothing factor - use a very smooth transition for auto-orbit
-    local smoothFactor = CONFIG.MODE_TRANSITION_SMOOTHING / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
-    local rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING / CONFIG.CAMERA_MODES.ORBIT.AUTO_ORBIT.SMOOTHING_FACTOR
-
-    local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
-    TrackingManager.updateTrackingState(camState)
-
-    -- Apply camera state
-    CameraManager.setCameraState(camState, 0, "OrbitingCamera.updateAutoOrbit")
-end
-
 ---@see ModifiableParams
 ---@see Util#adjustParams
 function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
-end
-
---- Checks for unit movement and handles auto-orbit functionality
-function OrbitingCamera.handleAutoOrbit()
-    OrbitCameraUtils.handleAutoOrbit()
 end
 
 function OrbitingCamera.saveSettings(identifier)

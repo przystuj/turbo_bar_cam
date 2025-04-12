@@ -82,9 +82,6 @@ if not WG.TurboBarCam.STATE then
                 lastPosition = nil, -- Last unit position to detect movement
                 lastCamPos = nil, -- Last camera position to detect movement
                 lastCamRot = nil, -- Last camera rotation to detect movement
-                stationaryTimer = nil, -- Timer to track how long unit has been stationary
-                autoOrbitActive = false, -- Whether auto-orbit is currently active
-                originalTransitionFactor = nil, -- Store original transition factor
             },
         },
 

@@ -86,11 +86,6 @@ end
 function TrackingManager.disableTracking()
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
-    if STATE.tracking.orbit and STATE.tracking.orbit.originalTransitionFactor then
-        CONFIG.MODE_TRANSITION_SMOOTHING = STATE.tracking.orbit.originalTransitionFactor
-        STATE.tracking.orbit.originalTransitionFactor = nil
-    end
-
     STATE.tracking.unitID = nil
     STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
     STATE.tracking.fps.inFreeCameraMode = false
@@ -109,8 +104,6 @@ function TrackingManager.disableTracking()
 
     -- Reset orbit-specific states
     if STATE.tracking.orbit then
-        STATE.tracking.orbit.autoOrbitActive = false
-        STATE.tracking.orbit.stationaryTimer = nil
         STATE.tracking.orbit.lastPosition = nil
     end
 

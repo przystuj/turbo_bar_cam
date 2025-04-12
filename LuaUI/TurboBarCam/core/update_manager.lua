@@ -93,16 +93,7 @@ function UpdateManager.updateCameraMode()
     else
         -- Normal camera updates based on current mode
         if STATE.tracking.mode == 'fps' then
-            -- Check for auto-orbit
-            Features.OrbitingCamera.handleAutoOrbit()
-
-            if STATE.tracking.orbit.autoOrbitActive then
-                -- Handle auto-orbit camera update
-                Features.OrbitingCamera.updateAutoOrbit()
-            else
-                -- Normal FPS update
-                Features.FPSCamera.update()
-            end
+            Features.FPSCamera.update()
         elseif STATE.tracking.mode == 'unit_tracking' then
             Features.UnitTrackingCamera.update()
         elseif STATE.tracking.mode == 'orbit' then
