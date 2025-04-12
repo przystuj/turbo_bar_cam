@@ -72,7 +72,7 @@ function Util.isTurboBarCamDisabled()
     end
 end
 
----@param mode 'fps'|'unit_tracking'|'orbit'|'turbo_overview'
+---@param mode 'fps'|'unit_tracking'|'orbit'|'overview'
 function Util.isModeDisabled(mode)
     if STATE.tracking.mode ~= mode then
         Log.trace(string.format("Mode %s must be enabled first. Current mode: %s", mode, tostring(STATE.tracking.mode)))

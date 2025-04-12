@@ -212,10 +212,10 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
 
     -- Use the previous free camera state for normal operation
-    STATE.tracking.fps.inFreeCameraMode = STATE.tracking.fps.prevFreeCamState or false
+    STATE.tracking.fps.isFreeCameraActive = STATE.tracking.fps.prevFreeCamState or false
 
     -- If not in free camera mode, enable a transition to the fixed point
-    if not STATE.tracking.fps.inFreeCameraMode then
+    if not STATE.tracking.fps.isFreeCameraActive then
         -- Trigger a transition to smoothly move to the new view
         STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
@@ -248,7 +248,7 @@ function FPSCameraUtils.clearFixedLookPoint()
         STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-        if STATE.tracking.fps.inFreeCameraMode then
+        if STATE.tracking.fps.isFreeCameraActive then
             Log.debug("Fixed point tracking disabled, maintaining free camera mode")
         else
             Log.debug("Fixed point tracking disabled, returning to FPS mode")

@@ -23,7 +23,7 @@ if not WG.TurboBarCam.STATE then
         -- Camera tracking
         tracking = {
             -- Current mode
-            mode = nil, -- 'fps', 'unit_tracking', 'orbit', 'turbo_overview'
+            mode = nil, -- 'fps', 'unit_tracking', 'orbit', 'overview'
             unitID = nil, -- Current tracked unit
             offsets = { fps = {}, orbit = {} }, -- Store mode settings
 
@@ -46,7 +46,7 @@ if not WG.TurboBarCam.STATE then
                 prevFreeCamState = false, -- Free camera state before selection
                 prevMode = nil, -- Previous mode during selection
                 prevFixedPoint = nil, -- Previous fixed point during selection
-                inFreeCameraMode = false, -- Whether free camera is active
+                isFreeCameraActive = false, -- Whether free camera is active
                 targetUnitID = nil, -- Unit being looked at (for fixed point)
                 fixedPoint = nil, -- Fixed point to look at {x, y, z}
                 isFixedPointActive = false, -- Whether fixed point tracking is active

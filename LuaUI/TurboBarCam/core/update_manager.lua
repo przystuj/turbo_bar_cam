@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type FeatureModules
@@ -21,13 +19,6 @@ function UpdateManager.processCycle()
         return
     end
 
-    --local camState = CameraManager.getCameraState("UpdateManager.processCycle")
-    --if camState.mode ~= 0 then
-    --    Log.debug("Wrong camera mode. Disabling widget.")
-    --    STATE.enabled = false
-    --    return
-    --end
-
     -- Handle tracking grace period
     UpdateManager.handleTrackingGracePeriod()
 
@@ -39,14 +30,12 @@ function UpdateManager.processCycle()
 
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
-
-    --Util.throttleExecution(function() CameraManager.printCallHistory() end, 2)
 end
 
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
-    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "turbo_overview" then
+    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "overview" then
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
 
@@ -98,7 +87,7 @@ function UpdateManager.updateCameraMode()
             Features.UnitTrackingCamera.update()
         elseif STATE.tracking.mode == 'orbit' then
             Features.OrbitingCamera.update()
-        elseif STATE.tracking.mode == 'turbo_overview' then
+        elseif STATE.tracking.mode == 'overview' then
             Features.TurboOverviewCamera.update()
         elseif STATE.tracking.mode == 'group_tracking' then
             Features.GroupTrackingCamera.update()

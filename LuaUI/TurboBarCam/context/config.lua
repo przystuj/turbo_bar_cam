@@ -252,8 +252,8 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
             DURATION = { 0, nil },
         }
     },
-    TURBO_OVERVIEW = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.TURBO_OVERVIEW,
+    OVERVIEW = {
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.OVERVIEW,
         PARAM_NAMES = {
             DEFAULT_SMOOTHING = { 0.001, 0.5 },
             FORWARD_VELOCITY = { 1, 20 },

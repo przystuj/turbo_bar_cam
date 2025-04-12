@@ -147,10 +147,7 @@ function FPSCamera.update()
                 rotFactor,
                 rotFactor
         )
-    elseif not STATE.tracking.fps.inFreeCameraMode then
-        -- Normal FPS mode - follow unit orientation
-        directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
-    else
+    elseif STATE.tracking.fps.isFreeCameraActive then
         -- Free camera mode - controlled by mouse
         local rotation = FreeCam.updateMouseRotation(rotFactor)
         FreeCam.updateUnitHeadingTracking(STATE.tracking.freeCam, STATE.tracking.unitID)
@@ -163,6 +160,9 @@ function FPSCamera.update()
                 STATE.tracking.lastRotation,
                 rotFactor
         )
+    else
+        -- Normal FPS mode - follow unit orientation
+        directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
     end
 
     -- Apply camera state and update tracking for next frame
@@ -188,7 +188,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             if STATE.tracking.mode == 'fps' and STATE.tracking.unitID then
                 -- Store current state before switching to target selection mode
                 STATE.tracking.fps.inTargetSelectionMode = true
-                STATE.tracking.fps.prevFreeCamState = STATE.tracking.fps.inFreeCameraMode
+                STATE.tracking.fps.prevFreeCamState = STATE.tracking.fps.isFreeCameraActive
 
                 -- Save the previous fixed point state for later restoration if canceled
                 STATE.tracking.fps.prevMode = STATE.tracking.mode
@@ -213,7 +213,7 @@ function FPSCamera.checkFixedPointCommandActivation()
                 end
 
                 -- Always enable free camera mode during target selection
-                STATE.tracking.fps.inFreeCameraMode = true
+                STATE.tracking.fps.isFreeCameraActive = true
                 STATE.tracking.isModeTransitionInProgress = true
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
@@ -232,7 +232,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             end
 
             -- Restore previous free camera state
-            STATE.tracking.fps.inFreeCameraMode = STATE.tracking.fps.prevFreeCamState
+            STATE.tracking.fps.isFreeCameraActive = STATE.tracking.fps.prevFreeCamState
 
             -- Start a transition to smoothly return to the previous state
             STATE.tracking.isModeTransitionInProgress = true
@@ -329,7 +329,7 @@ function FPSCamera.toggleFreeCam()
     FreeCam.toggle()
 
     -- If we have a fixed point active, we need to explicitly clear it when disabling free cam
-    if not STATE.tracking.fps.inFreeCameraMode and STATE.tracking.fps.isFixedPointActive then
+    if not STATE.tracking.fps.isFreeCameraActive and STATE.tracking.fps.isFixedPointActive then
         FPSCameraUtils.clearFixedLookPoint()
     end
 end

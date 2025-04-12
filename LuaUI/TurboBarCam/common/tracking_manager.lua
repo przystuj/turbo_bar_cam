@@ -88,7 +88,7 @@ function TrackingManager.disableTracking()
 
     STATE.tracking.unitID = nil
     STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
-    STATE.tracking.fps.inFreeCameraMode = false
+    STATE.tracking.fps.isFreeCameraActive = false
     STATE.tracking.graceTimer = nil
     STATE.tracking.lastUnitID = nil
     STATE.tracking.fps.fixedPoint = nil

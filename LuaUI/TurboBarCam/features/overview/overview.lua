@@ -29,7 +29,7 @@ function TurboOverviewCamera.toggle()
     end
 
     -- If we're already in turbo overview mode, turn it off
-    if STATE.tracking.mode == 'turbo_overview' then
+    if STATE.tracking.mode == 'overview' then
         TrackingManager.disableTracking()
         Log.debug("Turbo Overview camera disabled")
         return
@@ -231,7 +231,7 @@ function TurboOverviewCamera.toggle()
     TrackingManager.updateTrackingState(currentCamState)
 
     -- Begin mode transition from previous mode to turbo overview mode
-    TrackingManager.startModeTransition('turbo_overview')
+    TrackingManager.startModeTransition('overview')
 
     Log.debug("Turbo Overview camera enabled (Zoom: x" ..
             CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel] .. ")")
@@ -242,7 +242,7 @@ end
 --- Handles smooth transitions, cursor tracking, zoom effects,
 --- and target movement behavior.
 function TurboOverviewCamera.update()
-    if STATE.tracking.mode ~= 'turbo_overview' then
+    if STATE.tracking.mode ~= 'overview' then
         return
     end
 
@@ -485,7 +485,7 @@ end
 --- Toggles between available zoom levels
 --- Cycles through the predefined zoom levels with smooth transitions.
 function TurboOverviewCamera.toggleZoom()
-    if STATE.tracking.mode ~= 'turbo_overview' then
+    if STATE.tracking.mode ~= 'overview' then
         Log.debug("Turbo Overview camera must be enabled first")
         return
     end
@@ -510,7 +510,7 @@ end
 --- Directly sets the camera to the specified zoom level with a smooth transition.
 ---@param level number Zoom level index (1-based index to zoomLevels array)
 function TurboOverviewCamera.setZoomLevel(level)
-    if STATE.tracking.mode ~= 'turbo_overview' then
+    if STATE.tracking.mode ~= 'overview' then
         Log.debug("Turbo Overview camera must be enabled first")
         return
     end
@@ -541,7 +541,7 @@ function TurboOverviewCamera.adjustParams(params)
 end
 
 function TurboOverviewCamera.moveToTarget()
-    if Util.isModeDisabled("turbo_overview") then
+    if Util.isModeDisabled("overview") then
         return false
     end
 

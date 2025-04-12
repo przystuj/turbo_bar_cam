@@ -247,14 +247,14 @@ function OverviewCameraUtils.adjustParams(params)
         return
     end
 
-    if Util.isModeDisabled("turbo_overview") then
+    if Util.isModeDisabled("overview") then
         return false
     end
 
     Util.
 
     -- Adjust smoothing factor (keep between 0.001 and 0.5)
-    CONFIG.CAMERA_MODES.TURBO_OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT + amount))
+    CONFIG.CAMERA_MODES.OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT + amount))
 
     return true
 end
