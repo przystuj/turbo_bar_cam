@@ -55,6 +55,9 @@ if not WG.TurboBarCam.STATE then
                 weaponDir = nil, -- Tracked weapon aim direction - set only when isAttacking
                 activeWeaponNum = nil, -- Currently active weapon number
                 forcedWeaponNumber = nil, -- Forced weapon number
+                projectileTrackingEnabled = false, -- Whether camera should follow a projectile
+                lastUnitProjectileID = nil,
+                lastProjectilePosition = nil,
 
                 -- Free camera state
                 freeCam = {

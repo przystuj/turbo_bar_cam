@@ -44,6 +44,13 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
     if STATE.tracking.mode and STATE.tracking.unitID ~= unitID then
         SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
+        -- Reset projectile tracking when switching to a different unit
+        if STATE.tracking.mode == 'fps' then
+            STATE.tracking.fps.lastUnitProjectileID = nil
+            STATE.tracking.fps.projectileTrackingEnabled = false
+            STATE.tracking.fps.lastProjectilePosition = nil
+        end
+
         -- Switch tracking to the new unit
         STATE.tracking.unitID = unitID
         STATE.tracking.group.unitIDs = selectedUnits

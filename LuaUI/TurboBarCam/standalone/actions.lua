@@ -86,9 +86,9 @@ function Actions.fpsActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_fps_print_offsets", 'tp',
+    Actions.registerAction("turbobarcam_fps_follow_projectile", 'tp',
             function()
-                FeatureModules.FPSCamera.dumpWeaponOffsets()
+                FeatureModules.FPSCamera.toggleFollowProjectile()
                 return true
             end)
 end

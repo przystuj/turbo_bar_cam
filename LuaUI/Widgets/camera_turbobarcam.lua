@@ -69,6 +69,10 @@ function widget:Initialize()
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
+function widget:GameFrame(frame)
+    FeatureModules.FPSCamera.handleProjectileTracking(frame)
+end
+
 function widget:Shutdown()
     -- Make sure we clean up
     if STATE.enabled then

@@ -4,6 +4,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type FPSCombatMode
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
 
@@ -155,8 +157,6 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     if targetPos then
         -- Get camera position using weapon position for active weapons
         local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
-
-        -- Focus on target using existing code
         return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
     end
 
