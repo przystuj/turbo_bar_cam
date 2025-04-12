@@ -138,7 +138,7 @@ local function applyRotationFix(currentState, newState, smoothing, source)
     -- Check for large rx changes
     if currentState.rx ~= newState.rx and currentState.rx and newState.rx and
             math.abs(currentState.rx - newState.rx) > 1 then
-        Log.debug(string.format("[%s] Rotation fix detected: currentState.rx=%.3f newState.rx=%.3f",
+        Log.trace(string.format("[%s] Rotation fix detected: currentState.rx=%.3f newState.rx=%.3f",
                 source, currentState.rx or 0, newState.rx or 0))
         fixRequired = true
         fixRotationPatch.rx = newState.rx
@@ -147,7 +147,7 @@ local function applyRotationFix(currentState, newState, smoothing, source)
     -- Check for large ry changes
     if currentState.ry ~= newState.ry and currentState.ry and newState.ry and
             math.abs(currentState.ry - newState.ry) > 1 then
-        Log.debug(string.format("[%s] Rotation fix detected: currentState.ry=%.3f newState.ry=%.3f",
+        Log.trace(string.format("[%s] Rotation fix detected: currentState.ry=%.3f newState.ry=%.3f",
                 source, currentState.ry or 0, newState.ry or 0))
         fixRequired = true
         fixRotationPatch.ry = newState.ry

@@ -14,6 +14,8 @@ local Log = CommonModules.Log
 local FreeCam = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_free_camera.lua").FreeCam
 ---@type FPSCameraUtils
 local FPSCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_utils.lua").FPSCameraUtils
+---@type FPSCombatMode
+local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
@@ -344,7 +346,7 @@ function FPSCamera.nextWeapon()
         Log.debug("No unit selected.")
         return
     end
-    FPSCameraUtils.nextWeapon()
+    FPSCombatMode.nextWeapon()
 end
 
 --- Clear forced weapon
@@ -355,23 +357,13 @@ function FPSCamera.clearWeaponSelection()
     if Util.isModeDisabled('fps') then
         return
     end
-    STATE.tracking.fps.forcedWeaponNumber = nil
-    Log.debug("Cleared weapon selection.")
+    FPSCombatMode.clearWeaponSelection()
 end
 
 ---@see ModifiableParams
 ---@see Util#adjustParams
 function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
-end
-
-function FPSCamera.dumpWeaponOffsets()
-    local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.tracking.unitID)]
-    Log.info("Weapon offsets for " .. unitDef.name)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
 end
 
 function FPSCamera.saveSettings(identifier)
@@ -384,12 +376,7 @@ function FPSCamera.saveSettings(identifier)
 end
 
 function FPSCamera.saveWeaponSettings(unitId)
-    local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
-    Log.info("Weapon offsets for " .. unitDef.name)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
+    FPSCombatMode.saveWeaponSettings(unitId)
 end
 
 function FPSCamera.loadSettings(identifier)
