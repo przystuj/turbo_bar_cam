@@ -335,6 +335,63 @@ function FPSCameraUtils.adjustParams(params)
         return
     end
 
+    -- Handle reset directly
+    if params == "reset" then
+        FPSCameraUtils.resetOffsets()
+        SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
+        return
+    end
+
+    -- Determine if we're in weapon mode (attacking) or normal mode
+    local isAttacking = STATE.tracking.fps.isAttacking
+
+    -- Parse the parameter string to check what's being modified
+    local commandParts = {}
+    for part in string.gmatch(params, "[^;]+") do
+        table.insert(commandParts, part)
+    end
+
+    -- Check if this is targeting weapon parameters or normal parameters
+    local hasWeaponParam = false
+    local hasNormalParam = false
+
+    for i = 2, #commandParts do
+        local paramPair = commandParts[i]
+        local paramName = string.match(paramPair, "([^,]+),")
+
+        if paramName then
+            if string.find(paramName, "^WEAPON_") then
+                hasWeaponParam = true
+            elseif paramName == "HEIGHT" or paramName == "FORWARD" or
+                    paramName == "SIDE" or paramName == "ROTATION" then
+                hasNormalParam = true
+            end
+        end
+    end
+
+    -- Filter out calls that don't match the current state
+    if isAttacking and hasNormalParam and not hasWeaponParam then
+        -- In attacking mode, trying to adjust normal parameters only
+        Log.trace("Ignoring normal parameter adjustment while in weapon (attacking) mode")
+        return
+    elseif not isAttacking and hasWeaponParam and not hasNormalParam then
+        -- In normal mode, trying to adjust weapon parameters only
+        Log.trace("Ignoring weapon parameter adjustment while in normal (non-attacking) mode")
+        return
+    end
+
+    -- If we get here, either:
+    -- 1. The parameter types match the current mode
+    -- 2. We're adjusting parameters that aren't mode-specific (like MOUSE_SENSITIVITY)
+    -- 3. We're adjusting both weapon and normal parameters (allow this to support hybrid adjustments)
+
+    if isAttacking then
+        Log.trace("Adjusting parameters in weapon (attacking) mode")
+    else
+        Log.trace("Adjusting parameters in normal (non-attacking) mode")
+    end
+
+    -- Call the original adjustParams function
     Util.adjustParams(params, "FPS", function()
         FPSCameraUtils.resetOffsets()
     end)

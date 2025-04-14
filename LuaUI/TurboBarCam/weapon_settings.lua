@@ -12,9 +12,9 @@ return {
     ROTATION = 0
   },
   ["armstump"] = {
-    FORWARD = -250,
+    FORWARD = -160,
     HEIGHT = 125,
-    SIDE = -25,
+    SIDE = -115,
     ROTATION = 0
   },
   ["cordemon"] = {
@@ -41,22 +41,10 @@ return {
     SIDE = 20,
     ROTATION = 0
   },
-  ["corsok"] = {
-    FORWARD = -150,
-    HEIGHT = 175,
-    SIDE = -25,
-    ROTATION = 0
-  },
-  ["armthund"] = {
-    FORWARD = 0,
-    HEIGHT = 0,
-    SIDE = 0,
-    ROTATION = 0
-  },
-  ["corcom"] = {
-    FORWARD = 0,
-    HEIGHT = 0,
-    SIDE = 80,
+  ["armcom"] = {
+    FORWARD = -175,
+    HEIGHT = 25,
+    SIDE = 20,
     ROTATION = 0
   },
   ["corcat"] = {
@@ -65,10 +53,22 @@ return {
     SIDE = 20,
     ROTATION = 0
   },
-  ["armcom"] = {
-    FORWARD = -175,
-    HEIGHT = 25,
-    SIDE = 20,
+  ["corcom"] = {
+    FORWARD = 0,
+    HEIGHT = 0,
+    SIDE = 80,
+    ROTATION = 0
+  },
+  ["armthund"] = {
+    FORWARD = 0,
+    HEIGHT = 0,
+    SIDE = 0,
+    ROTATION = 0
+  },
+  ["corsok"] = {
+    FORWARD = -150,
+    HEIGHT = 175,
+    SIDE = -25,
     ROTATION = 0
   },
 }
