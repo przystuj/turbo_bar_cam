@@ -89,14 +89,12 @@ local function calculateRightVector(front, up)
 end
 
 --- Applies FPS camera offsets to unit position
----@param unitPos table Unit position {x, y, z}
+---@param position table Unit position {x, y, z}
 ---@param front table Front vector
 ---@param up table Up vector
 ---@param right table Right vector
 ---@return table camPos Camera position with offsets applied
-function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
-    local x, y, z = unitPos.x, unitPos.y, unitPos.z
-
+function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     -- Get appropriate offsets for the current state
     local offsets = FPSCameraUtils.getAppropriateOffsets()
 
@@ -104,6 +102,9 @@ function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
     local frontVec, upVec, rightVec
 
     if STATE.tracking.fps.isAttacking and STATE.tracking.fps.weaponDir then
+        position = STATE.tracking.fps.weaponPos
+        front = STATE.tracking.fps.weaponDir
+
         -- Use weapon direction when attacking
         frontVec = STATE.tracking.fps.weaponDir
         upVec = up
@@ -116,9 +117,11 @@ function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
     end
 
     -- Extract components from the vector tables
+    local x, y, z = position.x, position.y, position.z
     local frontX, frontY, frontZ = frontVec[1], frontVec[2], frontVec[3]
     local upX, upY, upZ = upVec[1], upVec[2], upVec[3]
     local rightX, rightY, rightZ = rightVec[1], rightVec[2], rightVec[3]
+
 
     -- Apply offsets along all vectors
     if offsets.HEIGHT ~= 0 then

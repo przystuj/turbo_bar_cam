@@ -16,6 +16,9 @@ local CameraCommons = CommonModules.CameraCommons
 ---@class FPSCombatMode
 local FPSCombatMode = {}
 
+-- Store last valid projectile time to handle cleanup
+FPSCombatMode.lastValidProjectileTime = nil
+
 function FPSCombatMode.findNearbyProjectile()
     local unitID = STATE.tracking.unitID
     if not unitID then return nil end
@@ -46,6 +49,34 @@ function FPSCombatMode.findNearbyProjectile()
     return nil
 end
 
+-- Check if the tracked projectile is still valid
+function FPSCombatMode.isTrackedProjectileValid()
+    if not STATE.tracking.fps.lastUnitProjectileID then
+        return false
+    end
+
+    local px, py, pz = Spring.GetProjectilePosition(STATE.tracking.fps.lastUnitProjectileID)
+    return px ~= nil
+end
+
+-- Function to handle cleanup of projectile tracking after a delay
+function FPSCombatMode.checkProjectileTrackingTimeout()
+    -- If we're not tracking any projectile, no need to check for timeout
+    if not STATE.tracking.fps.projectileTrackingEnabled or
+            not STATE.tracking.fps.lastUnitProjectileID or
+            not FPSCombatMode.lastValidProjectileTime then
+        return
+    end
+
+    local currentTime = Spring.GetGameSeconds()
+    local timeoutDuration = 2.0  -- 2 seconds timeout
+
+    if currentTime - FPSCombatMode.lastValidProjectileTime >= timeoutDuration then
+        Log.debug("Projectile tracking timeout reached - disabling tracking")
+        FPSCombatMode.resetProjectileTracking()
+    end
+end
+
 -- Add new projectiles when they're created
 function FPSCombatMode.handleProjectileTracking(frameNum)
     if frameNum % 5 ~= 0 then return end
@@ -55,13 +86,14 @@ function FPSCombatMode.handleProjectileTracking(frameNum)
     end
 
     -- don't override if we are in the middle of tracking
-    if not STATE.tracking.fps.lastUnitProjectileID or not STATE.tracking.fps.projectileTrackingEnabled then
+    if not STATE.tracking.fps.lastUnitProjectileID and STATE.tracking.fps.projectileTrackingEnabled then
         local projectileId = FPSCombatMode.findNearbyProjectile()
-        -- dont override with nil
-        if STATE.tracking.fps.lastUnitProjectileID and not projectileId then
-            return
+        if projectileId then
+            STATE.tracking.fps.lastUnitProjectileID = projectileId
+            Log.debug("New projectile detected and tracking started")
+            -- Reset the timeout timer when we find a new projectile
+            FPSCombatMode.lastValidProjectileTime = nil
         end
-        STATE.tracking.fps.lastUnitProjectileID = projectileId
     end
 end
 
@@ -70,7 +102,16 @@ function FPSCombatMode.getTrackedProjectilePosition()
     if STATE.tracking.unitID and STATE.tracking.fps.lastUnitProjectileID then
         local px, py, pz = Spring.GetProjectilePosition(STATE.tracking.fps.lastUnitProjectileID)
         if px then
+            -- Update the last valid projectile time
+            FPSCombatMode.lastValidProjectileTime = Spring.GetGameSeconds()
             return px, py, pz
+        end
+
+        -- If position not found but we have stored position, use that
+        if STATE.tracking.fps.lastProjectilePosition then
+            return STATE.tracking.fps.lastProjectilePosition.x,
+            STATE.tracking.fps.lastProjectilePosition.y,
+            STATE.tracking.fps.lastProjectilePosition.z
         end
     end
     return nil, nil, nil
@@ -368,6 +409,21 @@ function FPSCombatMode.handleProjectileCamera()
             -- If we can't get the projectile position but we have a stored position,
             -- immediately switch to using the impact position without returning false
             if STATE.tracking.fps.lastProjectilePosition then
+                -- Record the time when we lost the projectile (for timeout)
+                if not FPSCombatMode.lastValidProjectileTime then
+                    FPSCombatMode.lastValidProjectileTime = Spring.GetGameSeconds()
+                    Log.debug("Projectile lost, starting 2s timeout")
+                end
+
+                -- Check if we've exceeded the 2 second timeout for showing impact
+                local currentTime = Spring.GetGameSeconds()
+                if FPSCombatMode.lastValidProjectileTime and
+                        (currentTime - FPSCombatMode.lastValidProjectileTime > 2.0) then
+                    Log.debug("Projectile tracking timeout reached - disabling tracking")
+                    FPSCombatMode.resetProjectileTracking()
+                    return false
+                end
+
                 px = STATE.tracking.fps.lastProjectilePosition.x
                 py = STATE.tracking.fps.lastProjectilePosition.y
                 pz = STATE.tracking.fps.lastProjectilePosition.z
@@ -382,11 +438,14 @@ function FPSCombatMode.handleProjectileCamera()
 
                 -- Clear projectile ID since it doesn't exist anymore
                 STATE.tracking.fps.lastUnitProjectileID = nil
-                Log.debug("Switching to impact position")
+                Log.debug("Showing impact position")
             else
                 return false
             end
         else
+            -- We have a valid projectile, reset timeout timer
+            FPSCombatMode.lastValidProjectileTime = nil
+
             -- Store current position for potential impact view
             STATE.tracking.fps.lastProjectilePosition = {
                 x = px,
@@ -410,8 +469,23 @@ function FPSCombatMode.handleProjectileCamera()
             end
         end
     else
-        -- Use the stored impact position
+        -- Use the stored impact position (no active projectile)
         if not STATE.tracking.fps.lastProjectilePosition then
+            return false
+        end
+
+        -- Check if we need to timeout impact position view
+        if not FPSCombatMode.lastValidProjectileTime then
+            FPSCombatMode.lastValidProjectileTime = Spring.GetGameSeconds()
+            Log.debug("No active projectile, starting 2s timeout")
+        end
+
+        -- Check for timeout
+        local currentTime = Spring.GetGameSeconds()
+        if FPSCombatMode.lastValidProjectileTime and
+                (currentTime - FPSCombatMode.lastValidProjectileTime > 2.0) then
+            Log.debug("Projectile tracking timeout reached - disabling tracking")
+            FPSCombatMode.resetProjectileTracking()
             return false
         end
 
@@ -500,6 +574,7 @@ function FPSCombatMode.resetProjectileTracking()
     STATE.tracking.fps.lastUnitProjectileID = nil
     STATE.tracking.fps.projectileTrackingEnabled = false
     STATE.tracking.fps.lastProjectilePosition = nil
+    FPSCombatMode.lastValidProjectileTime = nil
     Log.debug("Projectile tracking reset")
 end
 
