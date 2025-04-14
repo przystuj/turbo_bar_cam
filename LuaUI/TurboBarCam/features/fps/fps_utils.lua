@@ -76,7 +76,16 @@ function FPSCameraUtils.getAppropriateOffsets()
             ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
         }
     end
+end
 
+-- Calculate right vector from front and up vectors
+local function calculateRightVector(front, up)
+    -- Cross product of front and up gives the right vector
+    return {
+        front[2] * up[3] - front[3] * up[2], -- y*z' - z*y'
+        front[3] * up[1] - front[1] * up[3], -- z*x' - x*z'
+        front[1] * up[2] - front[2] * up[1]   -- x*y' - y*x'
+    }
 end
 
 --- Applies FPS camera offsets to unit position
@@ -91,26 +100,39 @@ function FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
     -- Get appropriate offsets for the current state
     local offsets = FPSCameraUtils.getAppropriateOffsets()
 
-    -- Extract components from the vector tables
-    local frontX, frontY, frontZ = front[1], front[2], front[3]
-    local upX, upY, upZ = up[1], up[2], up[3]
-    local rightX, rightY, rightZ = right[1], right[2], right[3]
+    -- Determine which vectors to use based on state
+    local frontVec, upVec, rightVec
 
-    -- Apply height offset along the unit's up vector
+    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.weaponDir then
+        -- Use weapon direction when attacking
+        frontVec = STATE.tracking.fps.weaponDir
+        upVec = up
+        rightVec = calculateRightVector(STATE.tracking.fps.weaponDir, up)
+    else
+        -- Use standard vectors otherwise
+        frontVec = front
+        upVec = up
+        rightVec = right
+    end
+
+    -- Extract components from the vector tables
+    local frontX, frontY, frontZ = frontVec[1], frontVec[2], frontVec[3]
+    local upX, upY, upZ = upVec[1], upVec[2], upVec[3]
+    local rightX, rightY, rightZ = rightVec[1], rightVec[2], rightVec[3]
+
+    -- Apply offsets along all vectors
     if offsets.HEIGHT ~= 0 then
         x = x + upX * offsets.HEIGHT
         y = y + upY * offsets.HEIGHT
         z = z + upZ * offsets.HEIGHT
     end
 
-    -- Apply forward offset if needed
     if offsets.FORWARD ~= 0 then
         x = x + frontX * offsets.FORWARD
         y = y + frontY * offsets.FORWARD
         z = z + frontZ * offsets.FORWARD
     end
 
-    -- Apply side offset if needed
     if offsets.SIDE ~= 0 then
         x = x + rightX * offsets.SIDE
         y = y + rightY * offsets.SIDE

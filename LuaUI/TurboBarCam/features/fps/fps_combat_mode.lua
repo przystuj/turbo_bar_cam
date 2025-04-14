@@ -62,9 +62,6 @@ function FPSCombatMode.handleProjectileTracking(frameNum)
             return
         end
         STATE.tracking.fps.lastUnitProjectileID = projectileId
-        if STATE.tracking.fps.lastUnitProjectileID then
-            Log.debug("Projectile found: " .. tostring(STATE.tracking.fps.lastUnitProjectileID))
-        end
     end
 end
 
@@ -314,12 +311,24 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
         if posX and destX then
             -- Use weapon position instead of unit center
             unitPos = { x = posX, y = posY, z = posZ }
-            front = { destX, destY, destZ }
+
+            -- Create normalized weapon direction vector
+            local magnitude = math.sqrt(destX*destX + destY*destY + destZ*destZ)
+            local normalizedDir
+            if magnitude > 0 then
+                normalizedDir = {
+                    destX / magnitude,
+                    destY / magnitude,
+                    destZ / magnitude
+                }
+            else
+                normalizedDir = { destX, destY, destZ }
+            end
 
             -- Update state for tracking
             STATE.tracking.fps.isAttacking = true
             STATE.tracking.fps.weaponPos = unitPos
-            STATE.tracking.fps.weaponDir = front
+            STATE.tracking.fps.weaponDir = normalizedDir
             STATE.tracking.fps.activeWeaponNum = weaponNum
         else
             -- If weapon vectors couldn't be retrieved, reset state

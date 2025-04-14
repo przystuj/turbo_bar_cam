@@ -1,7 +1,7 @@
 return {
   ["corkorg"] = {
-    FORWARD = -180,
-    HEIGHT = 25,
+    FORWARD = -150,
+    HEIGHT = 175,
     SIDE = -25,
     ROTATION = 0
   },
@@ -12,9 +12,15 @@ return {
     ROTATION = 0
   },
   ["armstump"] = {
-    FORWARD = 0,
-    HEIGHT = 0,
-    SIDE = 0,
+    FORWARD = -250,
+    HEIGHT = 125,
+    SIDE = -25,
+    ROTATION = 0
+  },
+  ["cordemon"] = {
+    FORWARD = -120,
+    HEIGHT = 110,
+    SIDE = -25,
     ROTATION = 0
   },
   ["armsilo"] = {
@@ -33,6 +39,18 @@ return {
     FORWARD = -55,
     HEIGHT = 25,
     SIDE = 20,
+    ROTATION = 0
+  },
+  ["corsok"] = {
+    FORWARD = -150,
+    HEIGHT = 175,
+    SIDE = -25,
+    ROTATION = 0
+  },
+  ["armthund"] = {
+    FORWARD = 0,
+    HEIGHT = 0,
+    SIDE = 0,
     ROTATION = 0
   },
   ["corcom"] = {

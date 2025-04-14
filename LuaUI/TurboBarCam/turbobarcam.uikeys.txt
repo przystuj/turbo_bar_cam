@@ -56,8 +56,8 @@ bind		numpad8         turbobarcam_fps_adjust_params add;WEAPON_FORWARD,5
 bind		numpad5			turbobarcam_fps_adjust_params add;WEAPON_FORWARD,-5
 bind		numpad9	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,5
 bind		numpad7	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,-5
-//bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON_SIDE,5
-//bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON_SIDE,-5
+bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON_SIDE,5
+bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON_SIDE,-5
 bind		Delete      	turbobarcam_fps_clear_weapon_selection
 bind		PageDown 		turbobarcam_fps_next_weapon
 bind		End      		turbobarcam_fps_follow_projectile
