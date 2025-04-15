@@ -27,7 +27,7 @@ ProjectileTracker.config = {
     maxProjectilesPerUnit = 30,
 
     -- Update frequency (frame modulo)
-    updateFrequency = 1
+    updateFrequency = 2
 }
 
 -- Initialize unit projectile tracking storage

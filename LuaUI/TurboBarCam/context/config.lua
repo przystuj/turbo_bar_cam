@@ -161,8 +161,9 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Smoothing settings
                 SMOOTHING = {
-                    POSITION_FACTOR = 0.3,
-                    ROTATION_FACTOR = 0.3
+                    POSITION_FACTOR = 0.2,
+                    ROTATION_FACTOR = 0.1,
+                    INTERPOLATION_FACTOR = 0.7
                 },
                 DEFAULT_SMOOTHING = {
                     POSITION_FACTOR = 0.3,

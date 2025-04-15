@@ -1,5 +1,3 @@
--- features/projectile_camera/projectile_camera.lua
-
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
@@ -54,6 +52,12 @@ function ProjectileCamera.toggle()
         STATE.projectileWatching.impactTimer = nil
         STATE.projectileWatching.impactPosition = nil
 
+        -- Clear the selected projectile ID
+        if STATE.tracking.projectile then
+            STATE.tracking.projectile.selectedProjectileID = nil
+            STATE.tracking.projectile.currentProjectileID = nil
+        end
+
         -- Return to previous mode if available
         if STATE.projectileWatching.previousMode and
                 STATE.projectileWatching.previousMode ~= 'projectile_camera' then
@@ -70,6 +74,13 @@ function ProjectileCamera.toggle()
         STATE.projectileWatching.watchedUnitID = nil
         STATE.projectileWatching.impactTimer = nil
         STATE.projectileWatching.impactPosition = nil
+
+        -- Clear the selected projectile ID
+        if STATE.tracking.projectile then
+            STATE.tracking.projectile.selectedProjectileID = nil
+            STATE.tracking.projectile.currentProjectileID = nil
+        end
+
         Log.debug("Projectile tracking disabled")
         return true
     end
@@ -82,6 +93,12 @@ function ProjectileCamera.toggle()
     STATE.projectileWatching.watchedUnitID = unitID
     STATE.projectileWatching.impactTimer = nil
     STATE.projectileWatching.impactPosition = nil
+
+    -- Reset projectile tracking state
+    if STATE.tracking.projectile then
+        STATE.tracking.projectile.selectedProjectileID = nil
+        STATE.tracking.projectile.currentProjectileID = nil
+    end
 
     -- Initialize projectile tracking for this unit
     ProjectileTracker.initUnitTracking(unitID)
@@ -129,6 +146,12 @@ function ProjectileCamera.checkAndActivate()
             -- Stop watching
             STATE.projectileWatching.enabled = false
             STATE.projectileWatching.watchedUnitID = nil
+
+            -- Clear the selected projectile ID to ensure we don't track it again
+            if STATE.tracking.projectile then
+                STATE.tracking.projectile.selectedProjectileID = nil
+                STATE.tracking.projectile.currentProjectileID = nil
+            end
         end
 
         return false
@@ -169,6 +192,13 @@ function ProjectileCamera.checkAndActivate()
     if TrackingManager.initializeTracking('projectile_camera', unitID) then
         -- Initialize projectile tracking state
         STATE.tracking.projectile = STATE.tracking.projectile or {}
+
+        -- Important: We don't set selectedProjectileID here
+        -- This will be done in the update function when it first runs
+        -- to select the oldest projectile
+        STATE.tracking.projectile.selectedProjectileID = nil
+        STATE.tracking.projectile.currentProjectileID = nil
+
         Log.debug("Projectile camera activated for unit " .. unitID)
         return true
     end
@@ -202,22 +232,17 @@ function ProjectileCamera.update()
     -- Make sure we have projectile state initialized
     STATE.tracking.projectile = STATE.tracking.projectile or {}
 
-    -- Get current tracked projectile
-    local currentProjectile = nil
-    if STATE.tracking.projectile.currentProjectileID then
-        -- Check if currently tracked projectile still exists
-        local projectiles = ProjectileTracker.getUnitProjectiles(unitID)
-        for _, proj in ipairs(projectiles) do
-            if proj.id == STATE.tracking.projectile.currentProjectileID then
-                currentProjectile = proj
-                break
-            end
-        end
+    -- Initialize smoothed positions if they don't exist
+    if not STATE.tracking.projectile.smoothedPositions then
+        STATE.tracking.projectile.smoothedPositions = {
+            camPos = nil,
+            targetPos = nil
+        }
     end
 
-    -- If no projectile is being tracked, get the oldest active projectile instead of newest
-    if not currentProjectile then
-        -- Get all projectiles and find the oldest one
+    -- Check if we have selected a projectile to track
+    if not STATE.tracking.projectile.selectedProjectileID then
+        -- We don't have a selected projectile yet, pick the oldest one
         local projectiles = ProjectileTracker.getUnitProjectiles(unitID)
         if #projectiles > 0 then
             -- Sort by creation time (oldest first)
@@ -225,13 +250,33 @@ function ProjectileCamera.update()
                 return a.creationTime < b.creationTime
             end)
 
-            -- Take the oldest one
-            currentProjectile = projectiles[1]
-            if currentProjectile then
-                STATE.tracking.projectile.currentProjectileID = currentProjectile.id
-                Log.debug("Tracking oldest projectile: " .. currentProjectile.id)
-                -- Clear any impact timer when we find a new projectile
-                STATE.projectileWatching.impactTimer = nil
+            -- Take the oldest one and mark it as our selected projectile
+            local selectedProjectile = projectiles[1]
+            STATE.tracking.projectile.selectedProjectileID = selectedProjectile.id
+            STATE.tracking.projectile.currentProjectileID = selectedProjectile.id
+            Log.debug("Selected projectile for tracking: " .. selectedProjectile.id)
+
+            -- Reset smoothed positions when tracking a new projectile
+            STATE.tracking.projectile.smoothedPositions = {
+                camPos = nil,
+                targetPos = nil
+            }
+
+            -- Clear any impact timer when we find a new projectile
+            STATE.projectileWatching.impactTimer = nil
+        end
+    end
+
+    -- Get current tracked projectile
+    local currentProjectile = nil
+    if STATE.tracking.projectile.selectedProjectileID then
+        -- Check if our selected projectile still exists
+        local projectiles = ProjectileTracker.getUnitProjectiles(unitID)
+        for _, proj in ipairs(projectiles) do
+            if proj.id == STATE.tracking.projectile.selectedProjectileID then
+                currentProjectile = proj
+                STATE.tracking.projectile.currentProjectileID = proj.id
+                break
             end
         end
     end
@@ -245,10 +290,10 @@ function ProjectileCamera.update()
         }
     end
 
-    -- If still no projectile, start impact timer if not already started
-    if not currentProjectile or not currentProjectile.lastPosition then
+    -- If our selected projectile no longer exists, start impact timer if not already started
+    if (not currentProjectile or not currentProjectile.lastPosition) and STATE.tracking.projectile.selectedProjectileID then
         if not STATE.projectileWatching.impactTimer then
-            Log.debug("No projectiles found, starting impact timeout timer")
+            Log.debug("Selected projectile no longer exists, starting impact timeout timer")
             STATE.projectileWatching.impactTimer = Spring.GetGameSeconds()
         end
 
@@ -280,7 +325,7 @@ function ProjectileCamera.update()
             )
 
             -- Apply camera state
-            CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.impact")
+            CameraManager.setCameraState(directionState, 0.2, "ProjectileCamera.update.impact")
             TrackingManager.updateTrackingState(directionState)
         else
             -- If no impact position is saved, fall back to looking at the unit
@@ -297,35 +342,77 @@ function ProjectileCamera.update()
                         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
                 )
 
-                CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.unit")
+                CameraManager.setCameraState(directionState, 0.2, "ProjectileCamera.update.unit")
                 TrackingManager.updateTrackingState(directionState)
             end
         end
         return
+
     end
+
+
+    -- If we don't have a selected projectile and no impact timer, just return
+    -- This prevents selecting a new projectile after the initial selection
+    if not STATE.tracking.projectile.selectedProjectileID and not STATE.projectileWatching.impactTimer then
+        return
+
+    end
+
 
     -- If we found a projectile and were in impact timer mode, clear the timer
     if STATE.projectileWatching.impactTimer then
         STATE.projectileWatching.impactTimer = nil
+
     end
+
 
     -- We have a valid projectile to track
     local projectilePos = currentProjectile.lastPosition
     local projectileVel = currentProjectile.lastVelocity
 
-    -- Determine camera position
-    local camPos = {
+    -- Calculate ideal camera position
+    local idealCamPos = {
         x = projectilePos.x - (projectileVel.x * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE),
         y = projectilePos.y - (projectileVel.y * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE) + CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT,
         z = projectilePos.z - (projectileVel.z * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE)
     }
 
-    -- Calculate target position (look ahead along trajectory)
-    local targetPos = {
+    -- Calculate ideal target position (look ahead along trajectory)
+    local idealTargetPos = {
         x = projectilePos.x + (projectileVel.x * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD),
         y = projectilePos.y + (projectileVel.y * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD),
         z = projectilePos.z + (projectileVel.z * CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD)
     }
+
+    -- Initialize smoothed positions if they don't exist
+    if not STATE.tracking.projectile.smoothedPositions.camPos then
+        STATE.tracking.projectile.smoothedPositions.camPos = idealCamPos
+    end
+
+    if not STATE.tracking.projectile.smoothedPositions.targetPos then
+        STATE.tracking.projectile.smoothedPositions.targetPos = idealTargetPos
+    end
+
+    -- Apply position smoothing (using your existing CameraCommons.smoothStep function)
+    local smoothPos = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.INTERPOLATION_FACTOR or 0.85
+
+    -- Calculate smooth camera position
+    local smoothedCamPos = {
+        x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.x, idealCamPos.x, smoothPos),
+        y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.y, idealCamPos.y, smoothPos),
+        z = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.z, idealCamPos.z, smoothPos)
+    }
+
+    -- Calculate smooth target position
+    local smoothedTargetPos = {
+        x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.x, idealTargetPos.x, smoothPos),
+        y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.y, idealTargetPos.y, smoothPos),
+        z = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.z, idealTargetPos.z, smoothPos)
+    }
+
+    -- Store the smoothed positions for next frame
+    STATE.tracking.projectile.smoothedPositions.camPos = smoothedCamPos
+    STATE.tracking.projectile.smoothedPositions.targetPos = smoothedTargetPos
 
     -- Determine smoothing factor based on whether we're in a mode transition
     local posFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.POSITION_FACTOR
@@ -344,14 +431,14 @@ function ProjectileCamera.update()
 
     -- Create camera state
     local directionState = CameraCommons.focusOnPoint(
-            camPos,
-            targetPos,
+            smoothedCamPos,
+            smoothedTargetPos,
             posFactor,
             rotFactor
     )
 
-    -- Apply camera state
-    CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.tracking")
+    -- Apply camera state with additional Spring engine smoothing for extra fluidity
+    CameraManager.setCameraState(directionState, 0.15, "ProjectileCamera.update.tracking")
     TrackingManager.updateTrackingState(directionState)
 end
 
