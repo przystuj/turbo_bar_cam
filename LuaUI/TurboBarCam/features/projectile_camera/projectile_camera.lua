@@ -169,8 +169,6 @@ function ProjectileCamera.checkAndActivate()
     if TrackingManager.initializeTracking('projectile_camera', unitID) then
         -- Initialize projectile tracking state
         STATE.tracking.projectile = STATE.tracking.projectile or {}
-        STATE.tracking.projectile.currentProjectileID = nil
-
         Log.debug("Projectile camera activated for unit " .. unitID)
         return true
     end
@@ -217,14 +215,24 @@ function ProjectileCamera.update()
         end
     end
 
-    -- If no projectile is being tracked, try to get the newest one
+    -- If no projectile is being tracked, get the oldest active projectile instead of newest
     if not currentProjectile then
-        currentProjectile = ProjectileTracker.getNewestProjectile(unitID)
-        if currentProjectile then
-            STATE.tracking.projectile.currentProjectileID = currentProjectile.id
-            Log.debug("Tracking new projectile: " .. currentProjectile.id)
-            -- Clear any impact timer when we find a new projectile
-            STATE.projectileWatching.impactTimer = nil
+        -- Get all projectiles and find the oldest one
+        local projectiles = ProjectileTracker.getUnitProjectiles(unitID)
+        if #projectiles > 0 then
+            -- Sort by creation time (oldest first)
+            table.sort(projectiles, function(a, b)
+                return a.creationTime < b.creationTime
+            end)
+
+            -- Take the oldest one
+            currentProjectile = projectiles[1]
+            if currentProjectile then
+                STATE.tracking.projectile.currentProjectileID = currentProjectile.id
+                Log.debug("Tracking oldest projectile: " .. currentProjectile.id)
+                -- Clear any impact timer when we find a new projectile
+                STATE.projectileWatching.impactTimer = nil
+            end
         end
     end
 
