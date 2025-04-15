@@ -78,7 +78,7 @@ function Actions.fpsActions()
     Actions.registerAction("turbobarcam_fps_clear_weapon_selection", 'tp',
             function()
                 FeatureModules.FPSCamera.clearWeaponSelection()
-                return true
+                return false
             end)
 
     Actions.registerAction("turbobarcam_fps_next_weapon", 'tp',
@@ -100,6 +100,12 @@ function Actions.projectileActions()
             function()
                 FeatureModules.ProjectileCamera.toggle()
                 return true
+            end)
+
+    Actions.registerAction("turbobarcam_projectile_adjust_params", 'pR',
+            function(_, params)
+                FeatureModules.ProjectileCamera.adjustParams(params)
+                return false
             end)
 end
 

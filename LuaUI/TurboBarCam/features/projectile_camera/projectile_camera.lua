@@ -22,7 +22,7 @@ if not STATE.projectileWatching then
         watchedUnitID = nil,
         previousMode = nil, -- Store previous mode to return to
         impactTimer = nil, -- Timer for impact timeout
-        impactTimeout = 2.0, -- Wait 2 seconds after impact
+        impactTimeout = 3.0, -- Wait x seconds after impact
         impactPosition = nil -- Last known position for impact view
     }
 end
@@ -347,24 +347,18 @@ function ProjectileCamera.update()
             end
         end
         return
-
     end
-
 
     -- If we don't have a selected projectile and no impact timer, just return
     -- This prevents selecting a new projectile after the initial selection
     if not STATE.tracking.projectile.selectedProjectileID and not STATE.projectileWatching.impactTimer then
         return
-
     end
-
 
     -- If we found a projectile and were in impact timer mode, clear the timer
     if STATE.projectileWatching.impactTimer then
         STATE.projectileWatching.impactTimer = nil
-
     end
-
 
     -- We have a valid projectile to track
     local projectilePos = currentProjectile.lastPosition
@@ -448,7 +442,7 @@ function ProjectileCamera.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
     end
-    if STATE.tracking.mode ~= 'projectile_camera' then
+    if Util.isModeDisabled('projectile_camera') then
         return
     end
 

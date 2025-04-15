@@ -67,7 +67,7 @@ bind		Insert			turbobarcam_spec_unit_group select 1
 
 // Overview
 bind		Home			turbobarcam_overview_toggle
-bind		PageDown		turbobarcam_overview_move_camera
+bind		Insert		    turbobarcam_overview_move_camera
 bind		Delete			turbobarcam_overview_change_zoom
 bind		PageUp  		turbobarcam_toggle_fov
 
@@ -83,3 +83,9 @@ bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset
 
 // Projectile tracking
 bind		End      		turbobarcam_toggle_projectile
+bind		numpad8         turbobarcam_projectile_adjust_params add;DISTANCE,-5
+bind		numpad5			turbobarcam_projectile_adjust_params add;DISTANCE,5
+bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,5
+bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-5
+bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
+bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5

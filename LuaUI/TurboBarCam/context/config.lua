@@ -313,8 +313,8 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     PROJECTILE_CAMERA = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
         PARAM_NAMES = {
-            DISTANCE = { 0, 500 },
-            HEIGHT = { 0, 300 },
+            DISTANCE = { 0, 1000 },
+            HEIGHT = { -1000, 1000 },
             LOOK_AHEAD = { 0, 1000 }
         }
     },
