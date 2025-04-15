@@ -19,6 +19,7 @@ function Actions.registerAllActions()
     Actions.orbitActions()
     Actions.overviewActions()
     Actions.groupTrackingActions()
+    Actions.projectileActions()
     Actions.I18N()
 end
 
@@ -89,6 +90,15 @@ function Actions.fpsActions()
     Actions.registerAction("turbobarcam_fps_follow_projectile", 'tp',
             function()
                 FeatureModules.FPSCamera.toggleFollowProjectile()
+                return true
+            end)
+end
+
+
+function Actions.projectileActions()
+    Actions.registerAction("turbobarcam_toggle_projectile", 'tp',
+            function()
+                FeatureModules.ProjectileCamera.toggle()
                 return true
             end)
 end

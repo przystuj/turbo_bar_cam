@@ -25,7 +25,7 @@ if not WG.TurboBarCam.STATE then
             -- Current mode
             mode = nil, -- 'fps', 'unit_tracking', 'orbit', 'overview'
             unitID = nil, -- Current tracked unit
-            offsets = { fps = {}, orbit = {} }, -- Store mode settings
+            offsets = { fps = {}, orbit = {}, projectile_camera = {} }, -- Store mode settings
 
             -- Grace period
             graceTimer = nil, -- Timer for grace period
@@ -67,6 +67,12 @@ if not WG.TurboBarCam.STATE then
                     targetRy = nil, -- Target rotation Y (yaw)
                     lastUnitHeading = nil -- Last unit heading for rotation tracking
                 },
+            },
+
+            projectile = {
+                currentProjectileID = nil,  -- Currently tracked projectile ID
+                lastSwitchTime = nil,       -- When we last switched projectiles
+                isWatchingForProjectiles = false,
             },
 
             -- Group tracking

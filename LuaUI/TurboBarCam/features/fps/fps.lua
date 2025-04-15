@@ -94,12 +94,6 @@ function FPSCamera.update()
         return
     end
 
-    -- Check if projectile camera should be used
-    if FPSCombatMode.handleProjectileCamera() then
-        -- Projectile camera was handled, no need for regular camera update
-        return
-    end
-
     -- Get unit position and vectors
     local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(STATE.tracking.unitID)
 
@@ -351,30 +345,6 @@ function FPSCamera.nextWeapon()
     FPSCombatMode.nextWeapon()
 end
 
-function FPSCamera.toggleFollowProjectile()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-    if Util.isModeDisabled('fps') then
-        return
-    end
-    if not STATE.tracking.unitID or not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Log.debug("No unit selected.")
-        return
-    end
-
-    -- Toggle projectile tracking
-    STATE.tracking.fps.projectileTrackingEnabled = not STATE.tracking.fps.projectileTrackingEnabled
-
-    -- Clear data when disabling tracking
-    if not STATE.tracking.fps.projectileTrackingEnabled then
-        -- Use the reset function to ensure we clear everything properly
-        FPSCombatMode.resetProjectileTracking()
-    else
-        Log.debug("Projectile tracking enabled")
-    end
-end
-
 --- Clear forced weapon
 function FPSCamera.clearWeaponSelection()
     if Util.isTurboBarCamDisabled() then
@@ -384,10 +354,6 @@ function FPSCamera.clearWeaponSelection()
         return
     end
     FPSCombatMode.clearWeaponSelection()
-end
-
-function FPSCamera.handleProjectileTracking(frameNum)
-    FPSCombatMode.handleProjectileTracking(frameNum)
 end
 
 ---@see ModifiableParams

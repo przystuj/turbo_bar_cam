@@ -14,6 +14,7 @@
 ---@field SpecGroups SpecGroups
 ---@field TurboOverviewCamera TurboOverviewCamera
 ---@field GroupTrackingCamera GroupTrackingCamera
+---@field ProjectileCamera ProjectileCamera
 
 ---@class WidgetContext
 ---@field CONFIG WidgetConfig

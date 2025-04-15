@@ -143,6 +143,33 @@ if not WG.TurboBarCam.CONFIG then
                 },
             },
 
+            PROJECTILE_CAMERA = {
+                -- Default distance behind projectile
+                DEFAULT_DISTANCE = 200,
+                DISTANCE = 200,
+
+                -- Default height above projectile
+                DEFAULT_HEIGHT = 100,
+                HEIGHT = 100,
+
+                -- Default look ahead distance
+                DEFAULT_LOOK_AHEAD = 500,
+                LOOK_AHEAD = 500,
+
+                -- Timeout for tracking lost projectiles (seconds)
+                TIMEOUT = 2.0,
+
+                -- Smoothing settings
+                SMOOTHING = {
+                    POSITION_FACTOR = 0.3,
+                    ROTATION_FACTOR = 0.3
+                },
+                DEFAULT_SMOOTHING = {
+                    POSITION_FACTOR = 0.3,
+                    ROTATION_FACTOR = 0.3
+                }
+            },
+
             -- Group tracking camera settings
             GROUP_TRACKING = {
                 -- Distance settings
@@ -281,5 +308,13 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
             ["SMOOTHING.STABLE_POSITION"] = { 0.006, 0.2 }, -- Min/max for stable position smoothing
             ["SMOOTHING.STABLE_ROTATION"] = { 0.001, 0.2 }, -- Min/max for stable rotation smoothing
         }
-    }
+    },
+    PROJECTILE_CAMERA = {
+        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
+        PARAM_NAMES = {
+            DISTANCE = { 0, 500 },
+            HEIGHT = { 0, 300 },
+            LOOK_AHEAD = { 0, 1000 }
+        }
+    },
 }

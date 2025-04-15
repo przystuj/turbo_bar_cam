@@ -28,6 +28,8 @@ function UpdateManager.processCycle()
     -- Handle fixed point command activation
     Features.FPSCamera.checkFixedPointCommandActivation()
 
+    Features.ProjectileCamera.checkAndActivate()
+
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
 end
@@ -91,6 +93,8 @@ function UpdateManager.updateCameraMode()
             Features.TurboOverviewCamera.update()
         elseif STATE.tracking.mode == 'group_tracking' then
             Features.GroupTrackingCamera.update()
+        elseif STATE.tracking.mode == 'projectile_camera' then
+            Features.ProjectileCamera.update()
         end
     end
 end

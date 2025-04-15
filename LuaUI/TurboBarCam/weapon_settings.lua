@@ -41,16 +41,22 @@ return {
     SIDE = 20,
     ROTATION = 0
   },
-  ["corsok"] = {
-    FORWARD = -150,
-    HEIGHT = 175,
-    SIDE = -25,
+  ["armfboy"] = {
+    FORWARD = -90,
+    HEIGHT = 55,
+    SIDE = 20,
     ROTATION = 0
   },
   ["armthund"] = {
     FORWARD = 0,
     HEIGHT = 0,
     SIDE = 0,
+    ROTATION = 0
+  },
+  ["corsok"] = {
+    FORWARD = -150,
+    HEIGHT = 175,
+    SIDE = -25,
     ROTATION = 0
   },
   ["corcom"] = {

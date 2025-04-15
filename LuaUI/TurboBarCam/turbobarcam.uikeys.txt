@@ -60,7 +60,6 @@ bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON_SIDE,5
 bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON_SIDE,-5
 bind		Delete      	turbobarcam_fps_clear_weapon_selection
 bind		PageDown 		turbobarcam_fps_next_weapon
-bind		End      		turbobarcam_fps_follow_projectile
 
 // Spec groups (unit groups which work when spectating)
 bind		Ctrl+Insert		turbobarcam_spec_unit_group set 1
@@ -81,3 +80,6 @@ bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
 bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.ROTATION,-0.001;SMOOTHING.STABLE_POSITION,-0.002;SMOOTHING.STABLE_ROTATION,-0.001
 bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.ROTATION,0.001;SMOOTHING.STABLE_POSITION,0.002;SMOOTHING.STABLE_ROTATION,0.001
 bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset
+
+// Projectile tracking
+bind		End      		turbobarcam_toggle_projectile

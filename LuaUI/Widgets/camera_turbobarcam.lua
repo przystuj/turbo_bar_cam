@@ -26,6 +26,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+---@type ProjectileTracker
+local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -40,15 +42,6 @@ local cameraStateOnInit = Spring.GetCameraState()
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
-
----@param selectedUnits number[] Array of selected unit IDs
-function widget:SelectionChanged(selectedUnits)
-    SelectionManager.handleSelectionChanged(selectedUnits)
-end
-
-function widget:Update()
-    UpdateManager.processCycle()
-end
 
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
@@ -69,8 +62,17 @@ function widget:Initialize()
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
+---@param selectedUnits number[] Array of selected unit IDs
+function widget:SelectionChanged(selectedUnits)
+    SelectionManager.handleSelectionChanged(selectedUnits)
+end
+
+function widget:Update()
+    UpdateManager.processCycle()
+end
+
 function widget:GameFrame(frame)
-    FeatureModules.FPSCamera.handleProjectileTracking(frame)
+    ProjectileTracker.update(frame)
 end
 
 function widget:Shutdown()
