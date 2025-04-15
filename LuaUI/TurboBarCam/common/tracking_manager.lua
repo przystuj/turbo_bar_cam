@@ -86,6 +86,24 @@ end
 function TrackingManager.disableTracking()
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
+    -- Clean up projectile camera state if active
+    if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching then
+        if STATE.projectileWatching then
+            STATE.projectileWatching.enabled = false
+            STATE.projectileWatching.watchedUnitID = nil
+            STATE.projectileWatching.impactTimer = nil
+            STATE.projectileWatching.impactPosition = nil
+        end
+
+        if STATE.tracking.projectile then
+            STATE.tracking.projectile.selectedProjectileID = nil
+            STATE.tracking.projectile.currentProjectileID = nil
+            STATE.tracking.projectile.smoothedPositions = nil
+        end
+
+        Log.debug("Projectile tracking disabled during tracking disablement")
+    end
+
     STATE.tracking.unitID = nil
     STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
     STATE.tracking.fps.isFreeCameraActive = false
@@ -124,6 +142,26 @@ function TrackingManager.startModeTransition(newMode)
     -- Only start a transition if we're switching between different modes
     if STATE.tracking.mode == newMode then
         return false
+    end
+
+    -- Disable projectile tracking when switching to a different mode
+    if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching then
+        -- Clean up projectile tracking state
+        if STATE.projectileWatching then
+            STATE.projectileWatching.enabled = false
+            STATE.projectileWatching.watchedUnitID = nil
+            STATE.projectileWatching.impactTimer = nil
+            STATE.projectileWatching.impactPosition = nil
+        end
+
+        -- Clear projectile tracking data
+        if STATE.tracking.projectile then
+            STATE.tracking.projectile.selectedProjectileID = nil
+            STATE.tracking.projectile.currentProjectileID = nil
+            STATE.tracking.projectile.smoothedPositions = nil
+        end
+
+        Log.debug("Projectile tracking disabled due to mode change to " .. newMode)
     end
 
     -- Store modes
