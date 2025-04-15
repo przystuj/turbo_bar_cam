@@ -280,7 +280,7 @@ function ProjectileCamera.update()
             )
 
             -- Apply camera state
-            CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update.impact")
+            CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.impact")
             TrackingManager.updateTrackingState(directionState)
         else
             -- If no impact position is saved, fall back to looking at the unit
@@ -297,7 +297,7 @@ function ProjectileCamera.update()
                         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
                 )
 
-                CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update.unit")
+                CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.unit")
                 TrackingManager.updateTrackingState(directionState)
             end
         end
@@ -351,7 +351,7 @@ function ProjectileCamera.update()
     )
 
     -- Apply camera state
-    CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update.tracking")
+    CameraManager.setCameraState(directionState, 1, "ProjectileCamera.update.tracking")
     TrackingManager.updateTrackingState(directionState)
 end
 
