@@ -52,9 +52,9 @@ end
 ---@return table direction and rotation values
 function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
     -- Calculate direction vector from camera to target
-    local dirX = targetPos.x - camPos.x
-    local dirY = targetPos.y - camPos.y
-    local dirZ = targetPos.z - camPos.z
+    local dirX = targetPos.x - (camPos.x or camPos.px)
+    local dirY = targetPos.y - (camPos.y or camPos.py)
+    local dirZ = targetPos.z - (camPos.z or camPos.pz)
 
     -- Normalize the direction vector
     local length = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
@@ -69,7 +69,7 @@ function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
 
     -- Calculate pitch (rx)
     local horizontalLength = math.sqrt(dirX * dirX + dirZ * dirZ)
-    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / 1.8)
+    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / 1.65)
 
     return {
         dx = dirX,

@@ -10,6 +10,9 @@ local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 
+---@type MouseManager
+local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
+
 ---@class UpdateManager
 local UpdateManager = {}
 
@@ -18,6 +21,8 @@ function UpdateManager.processCycle()
     if Util.isTurboBarCamDisabled() then
         return
     end
+
+    MouseManager.update()
 
     -- Handle tracking grace period
     UpdateManager.handleTrackingGracePeriod()

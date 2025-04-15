@@ -40,7 +40,7 @@ function Actions.coreActions()
                 return CoreModules.WidgetControl.toggleLockUnitSelection()
             end)
 
-    Actions.registerAction("turbobarcam_toggle_fov", 'p',
+    Actions.registerAction("turbobarcam_toggle_zoom", 'p',
             function()
                 CameraManager.toggleZoom()
                 return true
@@ -183,22 +183,16 @@ function Actions.overviewActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_overview_change_zoom", 'tp',
-            function()
-                FeatureModules.TurboOverviewCamera.toggleZoom()
+    Actions.registerAction("turbobarcam_overview_change_height", 'tp',
+            function(_, amount)
+                FeatureModules.TurboOverviewCamera.changeHeight(amount)
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_overview_move_camera", 'tp',
+    -- Move camera to target
+    Actions.registerAction("turbobarcam_overview_move_camera", 'pr',
             function()
                 FeatureModules.TurboOverviewCamera.moveToTarget()
-                return true
-            end)
-
-    -- Group Tracking camera actions
-    Actions.registerAction("turbobarcam_follow_camera_toggle", 'tp',
-            function()
-                FeatureModules.GroupTrackingCamera.toggle()
                 return true
             end)
 end

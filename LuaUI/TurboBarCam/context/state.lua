@@ -70,8 +70,8 @@ if not WG.TurboBarCam.STATE then
             },
 
             projectile = {
-                currentProjectileID = nil,  -- Currently tracked projectile ID
-                lastSwitchTime = nil,       -- When we last switched projectiles
+                currentProjectileID = nil, -- Currently tracked projectile ID
+                lastSwitchTime = nil, -- When we last switched projectiles
                 isWatchingForProjectiles = false,
             },
 
@@ -100,18 +100,16 @@ if not WG.TurboBarCam.STATE then
             isSpectator = false -- Tracks if we're currently spectating
         },
 
-        -- Turbo overview
-        turboOverview = {
+        overview = {
             height = nil, -- Current base height, calculated from map size
 
             -- Current state values
-            zoomLevel = nil, -- Current zoom level index
+            heightLevel = nil, -- Current height level index
             fixedCamPos = nil, -- Fixed camera position (changes when moving to target)
             targetRx = nil, -- Target pitch rotation
             targetRy = nil, -- Target yaw rotation
 
             -- Movement to target state
-            isMovingToTarget = false, -- Whether movement mode is active
             movingToTarget = false, -- Whether the movement button is pressed
             targetPoint = nil, -- Target point to move toward {x, y, z}
             distanceToTarget = nil, -- Current distance from target point
@@ -127,6 +125,21 @@ if not WG.TurboBarCam.STATE then
             lastMouseY = nil, -- Last mouse Y position
             screenCenterX = nil, -- Screen center X coordinate
 
+            -- Mouse tracking for rotation and movement
+            isMiddleMouseDown = false, -- Whether middle mouse button is currently pressed
+            lastMiddleClickTime = 0, -- Time of last middle mouse click for double-click detection
+            middleClickCount = 0, -- For tracking single vs double clicks
+            doubleClickThreshold = 0.3, -- Time threshold for double-clicks in seconds
+
+            -- Mouse drag tracking
+            lastDragX = nil, -- Last X position during drag
+            lastDragY = nil, -- Last Y position during drag
+
+            -- Left mouse button tracking
+            isLeftMouseDown = false,
+            lastLeftClickTime = 0,
+            leftClickCount = 0,
+
             maxRotationSpeed = nil, -- Maximum rotation speed from config
             edgeRotationMultiplier = nil, -- Edge rotation speed multiplier
             maxAngularVelocity = nil, -- Maximum angular velocity for steering
@@ -134,6 +147,95 @@ if not WG.TurboBarCam.STATE then
             forwardVelocity = nil, -- Current forward velocity toward target
             minDistanceToTarget = nil, -- Minimum distance to stop at
             movementTransitionFactor = nil, -- Transition smoothing factor
+
+            isRotationModeActive = false, -- Whether rotation mode is active
+            rotationTargetPoint = nil, -- The target point to rotate around
+            rotationAngle = nil, -- Current rotation angle in radians
+            rotationDistance = nil, -- Distance from camera to rotation center
+            rotationCenter = nil, -- Rotation center position {x, y, z}
+
+            -- Transition tracking fields
+            currentTransitionFactor = nil, -- Stores custom transition factor based on movement distance
+            lastTransitionDistance = nil, -- Last distance to target during transition
+            stuckFrameCount = 0, -- Count of frames with no significant movement
+            userLookedAround = false, -- Tracks whether user has manually looked around during transition
+
+            pendingRotationMode = false, -- Whether rotation mode is pending activation after transition
+            pendingRotationCenter = nil, -- Pending rotation center position {x, y, z}
+            pendingRotationDistance = nil, -- Pending distance from camera to rotation center
+            pendingRotationAngle = nil, -- Pending rotation angle in radians
+            enableRotationAfterToggle = nil, -- Flag to enable rotation mode after overview is enabled
         },
+
+        mouse = {
+            -- Registered modes
+            registeredModes = {},
+
+            -- General state
+            isLeftMouseDown = false,
+            isMiddleMouseDown = false,
+            isRightMouseDown = false,
+
+            -- Click tracking
+            leftClickCount = 0,
+            middleClickCount = 0,
+            rightClickCount = 0,
+
+            -- Timestamps for double-click detection
+            lastLeftClickTime = 0,
+            lastMiddleClickTime = 0,
+            lastRightClickTime = 0,
+
+            -- Dragging state
+            isDraggingLMB = false,
+            isDraggingMMB = false,
+            isDraggingRMB = false,
+
+            -- Mouse press start time (for distinguishing click from drag)
+            leftMousePressStartTime = 0,
+            middleMousePressStartTime = 0,
+            rightMousePressStartTime = 0,
+
+            -- Last mouse positions for drag detection and calculation
+            lastMouseX = 0,
+            lastMouseY = 0,
+
+            -- Initial press positions for each button (important for drag start position)
+            initialPressLMB = { x = 0, y = 0 },
+            initialPressMMB = { x = 0, y = 0 },
+            initialPressRMB = { x = 0, y = 0 },
+
+            -- Previous drag positions (for calculating deltas)
+            lastDragX = nil,
+            lastDragY = nil,
+
+            -- Configuration
+            doubleClickThreshold = 0.3,  -- seconds
+            dragThreshold = 3,           -- pixels
+            dragTimeThreshold = 0.15,    -- seconds
+
+            -- Callback storage
+            callbacks = {
+                onLMB = {},
+                onMMB = {},
+                onRMB = {},
+                onDoubleLMB = {},
+                onDoubleMMB = {},
+                onDoubleRMB = {},
+                onHoldLMB = {},
+                onHoldMMB = {},
+                onHoldRMB = {},
+                onReleaseLMB = {},
+                onReleaseMMB = {},
+                onReleaseRMB = {},
+                onDragLMB = {},
+                onDragMMB = {},
+                onDragRMB = {},
+                onDragStartLMB = {},
+                onDragStartMMB = {},
+                onDragStartRMB = {},
+                onScroll = {},
+            }
+        }
     }
 end

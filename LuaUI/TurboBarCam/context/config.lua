@@ -12,6 +12,7 @@ if not WG.TurboBarCam.CONFIG then
         -- Debug and performance settings
         DEBUG = {
             LOG_LEVEL = "DEBUG", -- INFO, DEBUG, TRACE
+            TRACE_BACK = true, -- print stacktraces of errors
         },
 
         -- Performance settings
@@ -93,41 +94,41 @@ if not WG.TurboBarCam.CONFIG then
                 },
             },
 
-            -- Turbo overview camera settings
+            -- Overview camera settings
             OVERVIEW = {
                 -- Height and Distance Settings
-                HEIGHT_FACTOR = 0.33, -- Default height as a factor of map diagonal. Affects how high the camera sits above the map. Higher values = higher camera position.
-                DEADZONE = 0, -- Deadzone for mouse steering (0-1 range). Higher values require more mouse movement to begin steering.
+                HEIGHT_FACTOR = 0.2, -- Default height as a factor of map diagonal
 
                 -- Movement Behavior Settings
-                MIN_DISTANCE = 150, -- Minimum distance to target. When reached, camera stops moving. Lower values allow closer inspection.
-                FORWARD_VELOCITY = 5, -- Base forward movement speed in map units per frame. Higher values = faster camera movement toward target.
-                MOUSE_MOVE_SENSITIVITY = 0.01, -- Mouse sensitivity for camera rotation. Higher values make camera rotate faster with mouse movement.
-                BUFFER_ZONE = 0.10, -- Area in the middle of the screen (0-1 range) where mouse does not cause camera rotation. Larger values create a larger "dead zone".
-                INVERT_SIDE_MOVEMENT = true, -- When true, camera moves opposite to the mouse side movement direction.
+                MIN_DISTANCE = 150, -- Minimum distance to target
+                MOUSE_MOVE_SENSITIVITY = 0.1, -- Mouse sensitivity for camera rotation
 
-                -- Rotation Settings
-                MAX_ROTATION_SPEED = 0.015, -- Maximum rotation speed (radians per frame). Higher values = faster max rotation.
-                EDGE_ROTATION_MULTIPLIER = 1.0, -- Multiplier for rotation speed when cursor is at screen edge. Higher values speed up edge rotation.
-                MAX_ANGULAR_VELOCITY = 0.008, -- Maximum steering angular velocity (radians per frame). Controls how fast the camera can turn while moving.
-                ANGULAR_DAMPING = 0.70, -- Rate at which steering angular velocity decreases (0-1). Lower values create sharper stops.
-
-                -- Zoom Settings
-                DEFAULT_ZOOM_LEVEL = 2, -- Default zoom level index (1-based).
-                ZOOM_LEVELS = { 1, 2, 3, 4 }, -- Available zoom levels (multipliers). More levels = more granular zoom options.
+                HEIGHT_CONTROL_GRANULARITY = 4, -- Number of height steps
+                DEFAULT_HEIGHT_LEVEL = 2, -- Default level (1 = highest, granularity = lowest)
+                DISTANCE_LEVELS = { 1.0, 0.5, 2.0 }, -- Base (1.0), Close (0.5), Far (2.0)
+                DEFAULT_DISTANCE_LEVEL = 1,
 
                 -- Smoothing and Transition Settings
-                ZOOM_TRANSITION_FACTOR = 0.04, -- How fast zoom transitions occur (0-1). Higher values = quicker zoom changes.
-                TRANSITION_FACTOR = 0.05, -- Smoothing factor for movement transitions (0-1). Higher values = quicker transitions.
-                MODE_TRANSITION_TIME = 0.5, -- Duration of mode transition in seconds. Lower values = faster mode switching.
+                ZOOM_TRANSITION_FACTOR = 0.04, -- How fast height transitions occur
+
+                -- Adjusted for smoother movement - reduced from original value
+                TRANSITION_FACTOR = 0.03, -- Base smoothing factor for movement transitions
 
                 SMOOTHING = {
-                    FREE_CAMERA_FACTOR = 0.05,  -- Smoothing factor for free camera mouse movement
-                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
+                    FREE_CAMERA_FACTOR = 0.05, -- Smoothing factor for rotation when using middle mouse
+                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement
                 },
                 DEFAULT_SMOOTHING = {
-                    FREE_CAMERA_FACTOR = 0.05,  -- Smoothing factor for free camera mouse movement
-                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement (0-1). Lower values = smoother but slower movement.
+                    FREE_CAMERA_FACTOR = 0.05,
+                    MOVEMENT = 0.05,
+                },
+
+                -- Rotation mode settings
+                ROTATION_MODE = {
+                    BUFFER_ZONE = 0.05,             -- Center buffer zone where no rotation occurs (0-1)
+                    BASE_ROTATION_SPEED = 0.05,     -- Base speed for rotation mode
+                    EDGE_ROTATION_MULTIPLIER = 1.5, -- Speed multiplier at screen edges
+                    EDGE_THRESHOLD = 0.05           -- How close to screen edge to trigger edge boost (0-1)
                 },
             },
 
@@ -283,10 +284,10 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     OVERVIEW = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.OVERVIEW,
         PARAM_NAMES = {
-            DEFAULT_SMOOTHING = { 0.001, 0.5 },
-            FORWARD_VELOCITY = { 1, 20 },
-            MAX_ROTATION_SPEED = { 0.001, 0.05 },
-            BUFFER_ZONE = { 0, 0.5 },
+            --DEFAULT_SMOOTHING = { 0.001, 0.5 },
+            --FORWARD_VELOCITY = { 1, 20 },
+            --MAX_ROTATION_SPEED = { 0.001, 0.05 },
+            --BUFFER_ZONE = { 0, 0.5 },
         }
     },
     UNIT_TRACKING = {

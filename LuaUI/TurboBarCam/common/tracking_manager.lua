@@ -104,6 +104,35 @@ function TrackingManager.disableTracking()
         Log.debug("Projectile tracking disabled during tracking disablement")
     end
 
+    -- Clean up overview-specific states if in overview mode
+    if STATE.tracking.mode == 'overview' then
+        STATE.overview.moveButtonPressed = false
+        STATE.overview.isRotationModeActive = false
+        STATE.overview.rotationCenter = nil
+        STATE.overview.rotationDistance = nil
+        STATE.overview.rotationAngle = nil
+        STATE.overview.lastTargetPoint = nil
+        STATE.overview.targetPoint = nil
+        STATE.overview.targetCamPos = nil
+        STATE.overview.fixedCamPos = nil
+        STATE.overview.targetRx = nil
+        STATE.overview.targetRy = nil
+        STATE.overview.heightLevel = nil
+        STATE.overview.targetHeight = nil
+        STATE.overview.currentTransitionFactor = nil
+        STATE.overview.lastTransitionDistance = nil
+        STATE.overview.initialMoveDistance = nil
+        STATE.overview.stuckFrameCount = 0
+        STATE.overview.userLookedAround = false
+        STATE.overview.pendingRotationMode = nil
+        STATE.overview.pendingRotationCenter = nil
+        STATE.overview.pendingRotationDistance = nil
+        STATE.overview.pendingRotationAngle = nil
+        STATE.overview.enableRotationAfterToggle = nil
+
+        Log.debug("Overview camera states reset during tracking disablement")
+    end
+
     STATE.tracking.unitID = nil
     STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
     STATE.tracking.fps.isFreeCameraActive = false

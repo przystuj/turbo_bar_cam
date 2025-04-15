@@ -115,3 +115,35 @@ function widget:CommandsChanged()
         customCommands[#customCommands + 1] = FPSCamera.COMMAND_DEFINITION
     end
 end
+
+if CONFIG and CONFIG.DEBUG and CONFIG.DEBUG.TRACE_BACK then
+    local function wrapWithTrace(func, name)
+        return function(...)
+            local args = {...}
+            local success, result = xpcall(
+                    function()
+                        return func(unpack(args))
+                    end,
+                    function(err)
+                        Log.warn("[TurboBar] Error in " .. name .. ": " .. tostring(err))
+                        Log.warn(debug.traceback("", 2))
+                        return nil
+                    end
+            )
+            if not success then
+                -- fallback return values for known callins that MUST return something
+                if name == "LayoutButtons" then
+                    return {}
+                end
+                return nil
+            end
+            return result
+        end
+    end
+
+    for name, func in pairs(widget) do
+        if type(func) == "function" and name ~= "GetInfo" then
+            widget[name] = wrapWithTrace(func, name)
+        end
+    end
+end

@@ -24,43 +24,43 @@ function Log.dump(o)
     end
 end
 
-function Log.trace(message)
+-- Helper function to concatenate multiple arguments into a single string
+-- with proper type conversion
+local function formatMessage(...)
+    local args = {...}
+    local parts = {}
+    for i = 1, #args do
+        if type(args[i]) ~= "string" then
+            parts[i] = Log.dump(args[i])
+        else
+            parts[i] = args[i]
+        end
+    end
+    return table.concat(parts, " ")
+end
+
+function Log.trace(...)
     if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
-        if type(message) ~= "string" then
-            message = Log.dump(message)
-        end
-        Log.info("[TRACE] " .. message)
+        Log.info("[TRACE] " .. formatMessage(...))
     end
 end
 
-function Log.debug(message)
+function Log.debug(...)
     if CONFIG.DEBUG.LOG_LEVEL == "TRACE" or CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
-        if type(message) ~= "string" then
-            message = Log.dump(message)
-        end
-        Log.info("[DEBUG] " .. message)
+        Log.info("[DEBUG] " .. formatMessage(...))
     end
 end
 
----@param message string|any Message to print to console
-function Log.info(message)
-    if type(message) ~= "string" then
-        message = Log.dump(message)
-    end
-    Spring.Echo("[TurboBarCam] " .. message)
+function Log.info(...)
+    Spring.Echo("[TurboBarCam] " .. formatMessage(...))
 end
 
----@param message string error message
-function Log.error(message)
-    error("[TurboBarCam] Error: " .. message)
+function Log.error(...)
+    error("[TurboBarCam] Error: " .. formatMessage(...))
 end
 
----@param message string error message
-function Log.warn(message)
-    if type(message) ~= "string" then
-        message = Log.dump(message)
-    end
-    Log.info("[WARN] " .. message)
+function Log.warn(...)
+    Log.info("[WARN] " .. formatMessage(...))
 end
 
 return {

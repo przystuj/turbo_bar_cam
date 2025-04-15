@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -12,232 +14,295 @@ local CameraCommons = CommonModules.CameraCommons
 ---@class OverviewCameraUtils
 local OverviewCameraUtils = {}
 
---- Uses the current zoom level to determine the appropriate height above ground
+--- Uses the current height level to determine the appropriate height above ground
+--- Now uses equal steps based on granularity setting
 ---@return number height The camera height in world units
 function OverviewCameraUtils.calculateCurrentHeight()
-    local zoomFactor = CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_LEVELS[STATE.turboOverview.zoomLevel]
+    -- Get granularity setting from config
+    local granularity = CONFIG.CAMERA_MODES.OVERVIEW.HEIGHT_CONTROL_GRANULARITY or 4
+
+    -- Current height level (1 is highest, granularity is lowest)
+    local heightLevel = STATE.overview.heightLevel or 1
+
+    -- Ensure level is valid
+    heightLevel = math.max(1, math.min(granularity, heightLevel))
+
+    -- Calculate the factor: ranges from 1.0 (level 1) to 0.25 (level 4) for granularity 4
+    local factor = 1.0 - ((heightLevel - 1) / granularity) * 0.95
+
     -- Enforce minimum height to prevent getting too close to ground
-    return math.max(STATE.turboOverview.height / zoomFactor, 500)
+    return math.max(STATE.overview.height * factor, 500)
 end
 
 --- Converts screen cursor position to 3D world coordinates
----@return table position Position {x, y, z}
+--- If cursor is outside the map, returns the nearest valid point on map edge
+---@return table position Position {x, y, z} or nil if should ignore
 function OverviewCameraUtils.getCursorWorldPosition()
     local mx, my = Spring.GetMouseState()
     local _, pos = Spring.TraceScreenRay(mx, my, true)
 
     if pos then
+        -- Valid cursor position on map
         return { x = pos[1], y = pos[2], z = pos[3] }
     else
-        -- Return center of map if cursor is not over the map
-        return { x = Game.mapSizeX / 2, y = 0, z = Game.mapSizeZ / 2 }
+        -- Cursor is outside the map
+        -- Trace ray to find direction where user was clicking
+        local traceType, tracePos = Spring.TraceScreenRay(mx, my, false, true, true, true)
+
+        -- If we can't even get a direction, ignore the click
+        if not traceType or traceType ~= "sky" then
+            return nil
+        end
+
+        -- Get the direction the ray is pointing
+        local dirX = tracePos[1]
+        local dirY = tracePos[2]
+        local dirZ = tracePos[3]
+
+        -- Get current camera position
+        local camState = CameraManager.getCameraState("getCursorWorldPosition")
+        local camX, camY, camZ = camState.px, camState.py, camState.pz
+
+        -- Get map dimensions
+        local mapX = Game.mapSizeX
+        local mapZ = Game.mapSizeZ
+
+        -- Normalize direction vector
+        local dirLen = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
+        dirX, dirY, dirZ = dirX / dirLen, dirY / dirLen, dirZ / dirLen
+
+        -- We need to find intersection with map boundaries
+        -- First check if we're looking down enough to hit the ground
+        if dirY < 0 then
+            -- Calculate distance to ground
+            local dist = -camY / dirY
+            -- Calculate ground intersection point
+            local hitX = camX + dirX * dist
+            local hitZ = camZ + dirZ * dist
+
+            -- Check if point is within map boundaries
+            if hitX >= 0 and hitX <= mapX and hitZ >= 0 and hitZ <= mapZ then
+                return { x = hitX, y = 0, z = hitZ }
+            end
+        end
+
+        -- If not hitting ground, find intersection with map edges
+        -- We'll find the closest valid intersection point
+
+        -- Variables to store closest hit
+        local closestDist = math.huge
+        local closestPoint
+
+        -- Check intersection with X=0 boundary
+        if dirX ~= 0 then
+            local dist = -camX / dirX
+            if dist > 0 then
+                local hitY = camY + dirY * dist
+                local hitZ = camZ + dirZ * dist
+                if hitZ >= 0 and hitZ <= mapZ and hitY >= 0 then
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestPoint = { x = 0, y = 0, z = hitZ }
+                    end
+                end
+            end
+        end
+
+        -- Check intersection with X=mapX boundary
+        if dirX ~= 0 then
+            local dist = (mapX - camX) / dirX
+            if dist > 0 then
+                local hitY = camY + dirY * dist
+                local hitZ = camZ + dirZ * dist
+                if hitZ >= 0 and hitZ <= mapZ and hitY >= 0 then
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestPoint = { x = mapX, y = 0, z = hitZ }
+                    end
+                end
+            end
+        end
+
+        -- Check intersection with Z=0 boundary
+        if dirZ ~= 0 then
+            local dist = -camZ / dirZ
+            if dist > 0 then
+                local hitX = camX + dirX * dist
+                local hitY = camY + dirY * dist
+                if hitX >= 0 and hitX <= mapX and hitY >= 0 then
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestPoint = { x = hitX, y = 0, z = 0 }
+                    end
+                end
+            end
+        end
+
+        -- Check intersection with Z=mapZ boundary
+        if dirZ ~= 0 then
+            local dist = (mapZ - camZ) / dirZ
+            if dist > 0 then
+                local hitX = camX + dirX * dist
+                local hitY = camY + dirY * dist
+                if hitX >= 0 and hitX <= mapX and hitY >= 0 then
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestPoint = { x = hitX, y = 0, z = mapZ }
+                    end
+                end
+            end
+        end
+
+        if closestPoint then
+            return closestPoint
+        end
+
+        -- If no valid intersection found, return nil to indicate we should ignore this click
+        return nil
     end
 end
 
 --- Updates camera rotation based on cursor position
---- Provides gradual rotation speed based on cursor distance from screen center
+--- Only rotates when middle mouse button is held
 ---@return boolean updated Whether rotation was updated
-function OverviewCameraUtils.updateCursorTracking()
+function OverviewCameraUtils.calculateCursorRotation()
     -- Get current mouse position
     local mouseX, mouseY = Spring.GetMouseState()
-    local screenWidth, screenHeight = Spring.GetViewGeometry()
 
-    -- Calculate normalized cursor position (-1 to 1) from screen center
-    local normalizedX = (mouseX - (screenWidth / 2)) / (screenWidth / 2)
-    local normalizedY = (mouseY - (screenHeight / 2)) / (screenHeight / 2)
-
-    -- Calculate distance from center (0-1 range)
-    local distanceFromCenter = math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY)
-
-    -- Buffer zone in screen center - no rotation in this area
-    if distanceFromCenter < CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE then
-        -- Inside buffer zone, no rotation adjustment needed
+    -- If this is the first update while dragging, just store position
+    if not STATE.overview.lastDragX or not STATE.overview.lastDragY then
+        STATE.overview.lastDragX = mouseX
+        STATE.overview.lastDragY = mouseY
         return false
     end
 
-    -- Calculate gradual rotation multiplier based on distance from buffer zone
-    -- This creates a smooth ramp-up from buffer edge to screen edge
-    local availableRange = 1.0 - CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE
-    local distanceBeyondBuffer = distanceFromCenter - CONFIG.CAMERA_MODES.OVERVIEW.BUFFER_ZONE
+    -- Calculate mouse movement since last frame
+    local deltaX = mouseX - STATE.overview.lastDragX
+    local deltaY = mouseY - STATE.overview.lastDragY
 
-    -- Apply quadratic/cubic easing for smoother acceleration
-    -- This gives a more natural feel with gradual start and stronger finish
-    local gradualMultiplier = (distanceBeyondBuffer / availableRange) ^ 2
+    -- Update last drag position
+    STATE.overview.lastDragX = mouseX
+    STATE.overview.lastDragY = mouseY
 
-    -- Check if cursor is at the very edge for maximum speed
-    local EDGE_THRESHOLD = 0.05
-    local thresholdPixelsX = screenWidth * EDGE_THRESHOLD
-    local thresholdPixelsY = screenHeight * EDGE_THRESHOLD
-
-    local isAtEdge = mouseX < thresholdPixelsX or
-            mouseX > screenWidth - thresholdPixelsX or
-            mouseY < thresholdPixelsY or
-            mouseY > screenHeight - thresholdPixelsY
-
-    -- Apply edge multiplier on top of gradual multiplier if at the edge
-    local finalMultiplier = gradualMultiplier
-    if isAtEdge then
-        finalMultiplier = gradualMultiplier * STATE.turboOverview.edgeRotationMultiplier
+    -- If no significant movement, exit
+    if math.abs(deltaX) < 1 and math.abs(deltaY) < 1 then
+        return false
     end
 
-    -- Calculate rotation speeds based on cursor position and gradual multiplier
-    local rySpeed = normalizedX * STATE.turboOverview.maxRotationSpeed * finalMultiplier
-    local rxSpeed = -normalizedY * STATE.turboOverview.maxRotationSpeed * finalMultiplier
+    -- Calculate rotation speed based on mouse movement
+    -- Increase sensitivity for more responsive rotation
+    local sensitivity = CONFIG.CAMERA_MODES.OVERVIEW.MOUSE_MOVE_SENSITIVITY * 2
+    local screenWidth, screenHeight = Spring.GetViewGeometry()
+    local rotationFactorX = sensitivity * (deltaX / screenWidth) * 15
+    local rotationFactorY = sensitivity * (deltaY / screenHeight) * 15
 
-    -- Update target rotations
-    STATE.turboOverview.targetRy = STATE.turboOverview.targetRy + rySpeed
-    STATE.turboOverview.targetRx = STATE.turboOverview.targetRx + rxSpeed
+    -- Update target rotations with INVERTED directions (for both X and Y axes)
+    STATE.overview.targetRy = STATE.overview.targetRy + rotationFactorX
+    STATE.overview.targetRx = STATE.overview.targetRx - rotationFactorY
 
     -- Normalize angles
-    STATE.turboOverview.targetRy = CameraCommons.normalizeAngle(STATE.turboOverview.targetRy)
+    STATE.overview.targetRy = CameraCommons.normalizeAngle(STATE.overview.targetRy)
 
-    -- Vertical rotation constraint
-    STATE.turboOverview.targetRx = math.max(math.pi / 2, math.min(math.pi, STATE.turboOverview.targetRx))
+    -- Vertical rotation constraint - allow looking more downward
+    STATE.overview.targetRx = math.max(math.pi / 3, math.min(math.pi, STATE.overview.targetRx))
 
     return true
 end
 
---- Handles moving the camera toward a target point with steering
----@param state table Overview camera state
----@return boolean stateChanged Whether state was updated
-function OverviewCameraUtils.updateTargetMovement()
-    if not STATE.turboOverview.isMovingToTarget then
-        return false
-    end
+--- Calculates a position for the camera to view a target point
+---@param targetPoint table The target point to look at {x, y, z}
+---@param currentHeight number The current camera height
+---@param mapX number Map X size
+---@param mapZ number Map Z size
+---@param currentCamState table|nil Current camera state (optional)
+---@param distanceFactor number|nil Distance factor to multiply the base offset (optional, default 1.0)
+---@return table targetCamPos The calculated camera position
+function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight, mapX, mapZ, currentCamState, distanceFactor)
+    -- Apply distance factor (default to 1.0 if not provided)
+    distanceFactor = distanceFactor or 1
 
-    -- Get current mouse position
-    local mouseX, mouseY = Spring.GetMouseState()
+    -- Scale distance based on height to maintain proper viewing angle
+    -- We're using distanceFactor to adjust this relationship
+    local offsetDistance = currentHeight * distanceFactor
 
-    -- Initialize screen center if needed
-    if not STATE.turboOverview.screenCenterX  then
-        local screenWidth, _ = Spring.GetViewGeometry()
-        STATE.turboOverview.screenCenterX = screenWidth / 2
-    end
+    -- Add a small margin for map boundaries
+    local margin = 200
 
-    -- Initialize last mouse position if needed
-    if not STATE.turboOverview.lastMouseX or not STATE.turboOverview.lastMouseY then
-        STATE.turboOverview.lastMouseX = mouseX
-        STATE.turboOverview.lastMouseY = mouseY
-        return false
-    end
+    -- Default direction if no current camera state
+    local dirX, dirZ = 1, 0
 
-    -- Calculate position-based steering
-    -- The further from center, the stronger the steering effect
-    local distFromCenterX = mouseX - STATE.turboOverview.screenCenterX
-    local screenWidth = STATE.turboOverview.screenCenterX * 2
-    local normalizedDistFromCenter = distFromCenterX / (screenWidth * 0.5)
+    if currentCamState then
+        -- Calculate direction from target to current camera position
+        dirX = currentCamState.px - targetPoint.x
+        dirZ = currentCamState.pz - targetPoint.z
 
-    -- Apply a deadzone in the center for stability
-    local DEADZONE = CONFIG.CAMERA_MODES.OVERVIEW.DEADZONE
-    if math.abs(normalizedDistFromCenter) < DEADZONE then
-        normalizedDistFromCenter = 0
-    else
-        -- Adjust for deadzone and rescale to 0-1 range
-        normalizedDistFromCenter = normalizedDistFromCenter * (1.0 / (1.0 - DEADZONE))
-        if normalizedDistFromCenter > 1.0 then
-            normalizedDistFromCenter = 1.0
-        elseif normalizedDistFromCenter < -1.0 then
-            normalizedDistFromCenter = -1.0
+        -- Normalize the direction vector
+        local length = math.sqrt(dirX * dirX + dirZ * dirZ)
+        if length > 0 then
+            dirX = dirX / length
+            dirZ = dirZ / length
+        else
+            -- Default to a direction if camera is directly above target
+            dirX, dirZ = 1, 0
         end
     end
 
-    -- Set angular velocity based on mouse position
-    STATE.turboOverview.angularVelocity = normalizedDistFromCenter * STATE.turboOverview.maxAngularVelocity
+    -- Calculate new position by moving in the same direction from target
+    local newX = targetPoint.x + dirX * offsetDistance
+    local newZ = targetPoint.z + dirZ * offsetDistance
 
-    -- Forward velocity is constant when the button is pressed
-    if STATE.turboOverview.movingToTarget then
-        STATE.turboOverview.forwardVelocity = CONFIG.CAMERA_MODES.OVERVIEW.FORWARD_VELOCITY
-    else
-        -- Apply damping to angular velocity to smoothly stop turning
-        STATE.turboOverview.angularVelocity = STATE.turboOverview.angularVelocity * STATE.turboOverview.angularDamping
-        if CONFIG.CAMERA_MODES.OVERVIEW.INVERT_SIDE_MOVEMENT then
-            STATE.turboOverview.angularVelocity = STATE.turboOverview.angularVelocity * -1
-        end
-
-        -- Exit movement mode if button is released
-        STATE.turboOverview.isMovingToTarget = false
-        Log.debug("Exiting target movement mode")
-        return true
-    end
-
-    -- Update movement angle based on angular velocity (steering)
-    STATE.turboOverview.movementAngle = STATE.turboOverview.movementAngle + STATE.turboOverview.angularVelocity
-
-    -- Update distance to target based on forward velocity
-    STATE.turboOverview.distanceToTarget = math.max(
-            STATE.turboOverview.minDistanceToTarget,
-            STATE.turboOverview.distanceToTarget - STATE.turboOverview.forwardVelocity
-    )
-
-    -- Calculate new position on movement path
-    local newPos = OverviewCameraUtils.calculateOrbitPosition(
-            STATE.turboOverview.targetPoint,
-            STATE.turboOverview.movementAngle,
-            STATE.turboOverview.distanceToTarget,
-            OverviewCameraUtils.calculateCurrentHeight()
-    )
-
-    -- Update fixed camera position with transitional smoothing during movement initialization
-    if STATE.turboOverview.inMovementTransition then
-        -- During transition, smoothly move from current position to new position
-        STATE.turboOverview.fixedCamPos = {
-            x = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.x, newPos.x, STATE.turboOverview.movementTransitionFactor),
-            y = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.y, newPos.y, STATE.turboOverview.movementTransitionFactor),
-            z = CameraCommons.smoothStep(STATE.turboOverview.fixedCamPos.z, newPos.z, STATE.turboOverview.movementTransitionFactor)
+    -- Check if position is within map boundaries
+    if newX >= margin and newX <= mapX - margin and
+            newZ >= margin and newZ <= mapZ - margin then
+        -- Position is valid
+        return {
+            x = newX,
+            y = currentHeight,
+            z = newZ
         }
+    end
 
-        -- Calculate look direction to target
-        local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(STATE.turboOverview.fixedCamPos, STATE.turboOverview.targetPoint)
+    -- If we hit a map boundary, try to find a valid position along the same angle
+    -- by reducing the distance
+    local validPosition = false
+    local reductionFactor = 0.8
+    local attempts = 0
+    local maxAttempts = 5
 
-        -- Smoothly transition rotation to point to target
-        STATE.turboOverview.targetRx = CameraCommons.smoothStep(STATE.turboOverview.targetRx, targetLookDir.rx, STATE.turboOverview.movementTransitionFactor)
-        STATE.turboOverview.targetRy = CameraCommons.smoothStepAngle(STATE.turboOverview.targetRy, targetLookDir.ry, STATE.turboOverview.movementTransitionFactor)
+    while not validPosition and attempts < maxAttempts do
+        -- Reduce distance
+        offsetDistance = offsetDistance * reductionFactor
 
-        -- Check if we've reached the movement path (close enough)
-        local dx = STATE.turboOverview.fixedCamPos.x - newPos.x
-        local dz = STATE.turboOverview.fixedCamPos.z - newPos.z
-        local distSquared = dx * dx + dz * dz
+        -- Try new position
+        newX = targetPoint.x + dirX * offsetDistance
+        newZ = targetPoint.z + dirZ * offsetDistance
 
-        if distSquared < 1 then
-            STATE.turboOverview.inMovementTransition = false
-            STATE.turboOverview.fixedCamPos = newPos
+        -- Check if in bounds
+        if newX >= margin and newX <= mapX - margin and
+                newZ >= margin and newZ <= mapZ - margin then
+            validPosition = true
         end
-    else
-        STATE.turboOverview.fixedCamPos = newPos
+
+        attempts = attempts + 1
     end
 
-    -- Check if we're very close to the target, and if so, stop moving
-    if STATE.turboOverview.distanceToTarget <= STATE.turboOverview.minDistanceToTarget + 1 then
-        STATE.turboOverview.isMovingToTarget = false
-        STATE.turboOverview.movingToTarget = false
-        Log.debug("Reached target position")
-        return true
+    -- If we still don't have a valid position, default to directly above target
+    if not validPosition then
+        Log.debug("Could not find valid position in same direction, positioning above target")
+        return {
+            x = targetPoint.x,
+            y = currentHeight,
+            z = targetPoint.z
+        }
     end
 
-    return false
-end
+    Log.debug(string.format("Camera positioned at straight line offset (%.1f, %.1f)", newX - targetPoint.x, newZ - targetPoint.z))
 
-
---- Calculates a position for orbit-style camera placement
----@param targetPoint table Target point {x, y, z}
----@param angle number Angle in radians
----@param distance number Distance from target
----@param height number Height above ground
----@return table position Position on orbit path {x, y, z}
-function OverviewCameraUtils.calculateOrbitPosition(targetPoint, angle, distance, height)
     return {
-        x = targetPoint.x + distance * math.sin(angle),
-        y = targetPoint.y + height,
-        z = targetPoint.z + distance * math.cos(angle)
+        x = newX,
+        y = currentHeight,
+        z = newZ
     }
-end
-
---- Calculates movement angle between two positions
----@param targetPoint table Target point {x, y, z}
----@param position table Position {x, y, z}
----@return number angle Angle in radians
-function OverviewCameraUtils.calculateMovementAngle(targetPoint, position)
-    return math.atan2(position.x - targetPoint.x, position.z - targetPoint.z)
 end
 
 ---@see ModifiableParams
@@ -251,12 +316,55 @@ function OverviewCameraUtils.adjustParams(params)
         return false
     end
 
-    Util.
-
-    -- Adjust smoothing factor (keep between 0.001 and 0.5)
-    CONFIG.CAMERA_MODES.OVERVIEW.MOVEMENT_SMOOTHING = math.max(0.001, math.min(0.5, CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT + amount))
+    -- Call Util.adjustParams with the parameters
+    Util.adjustParams(params, "OVERVIEW", OverviewCameraUtils.resetParams)
 
     return true
+end
+
+--- Reset overview camera parameters to defaults
+function OverviewCameraUtils.resetParams()
+    -- Reset smoothing settings
+    CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.MOVEMENT = CONFIG.CAMERA_MODES.OVERVIEW.DEFAULT_SMOOTHING.MOVEMENT
+    CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.FREE_CAMERA_FACTOR = CONFIG.CAMERA_MODES.OVERVIEW.DEFAULT_SMOOTHING.FREE_CAMERA_FACTOR
+
+    -- Reset mouse parameters
+    CONFIG.CAMERA_MODES.OVERVIEW.MOUSE_MOVE_SENSITIVITY = 0.3
+
+    Log.debug("Overview camera parameters reset to defaults")
+end
+
+-- Add this helper function to calculate camera position relative to a point
+function OverviewCameraUtils.calculateCameraPositionRelativeToPoint(targetPoint, minDistance, currentCamState)
+    -- Calculate the vector from target to current camera
+    local dx = currentCamState.px - targetPoint.x
+    local dz = currentCamState.pz - targetPoint.z
+
+    -- Calculate the distance
+    local distance = math.sqrt(dx * dx + dz * dz)
+
+    -- If we're too close, ensure minimum distance
+    if distance < minDistance then
+        -- Normalize the vector and scale to minimum distance
+        if distance > 0.001 then
+            -- Avoid division by near-zero
+            dx = dx * (minDistance / distance)
+            dz = dz * (minDistance / distance)
+        else
+            -- Default offset if too close to zero
+            dx = minDistance
+            dz = 0
+        end
+    end
+
+    -- Calculate the new camera position
+    local newPos = {
+        x = targetPoint.x + dx,
+        y = currentCamState.py, -- Maintain current height
+        z = targetPoint.z + dz
+    }
+
+    return newPos
 end
 
 return {
