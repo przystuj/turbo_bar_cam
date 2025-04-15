@@ -5,6 +5,7 @@ bind            numpad.             turbobarcam_toggle
 bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
 // Just in case kek
 bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
+bind		    PageUp  		    turbobarcam_toggle_fov
 
 // Anchors
 unbindkeyset 	Ctrl+F1
@@ -62,14 +63,13 @@ bind		Delete      	turbobarcam_fps_clear_weapon_selection
 bind		PageDown 		turbobarcam_fps_next_weapon
 
 // Spec groups (unit groups which work when spectating)
-bind		Ctrl+Insert		turbobarcam_spec_unit_group set 1
-bind		Insert			turbobarcam_spec_unit_group select 1
+//bind		Ctrl+Insert		turbobarcam_spec_unit_group set 1
+//bind		Insert			turbobarcam_spec_unit_group select 1
 
 // Overview
 bind		Home			turbobarcam_overview_toggle
 bind		Insert		    turbobarcam_overview_move_camera
 bind		Delete			turbobarcam_overview_change_zoom
-bind		PageUp  		turbobarcam_toggle_fov
 
 // Group Unit Tracking
 bind		numpad0  		turbobarcam_toggle_group_tracking_camera
