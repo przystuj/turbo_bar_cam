@@ -120,24 +120,23 @@ end
 function ProjectileCamera.checkAndActivate()
     -- Check if we're in impact timeout mode
     if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
+        Log.debug("watchedUnitID", STATE.projectileWatching.watchedUnitID)
         -- Check if timeout has elapsed
         local currentTime = Spring.GetGameSeconds()
         local elapsed = currentTime - STATE.projectileWatching.impactTimer
 
         if elapsed >= STATE.projectileWatching.impactTimeout then
-            Log.debug("Impact timeout elapsed, returning to previous mode")
-
-            -- Disable projectile camera
-            TrackingManager.disableTracking()
-
-            -- Clear impact timer and position
-            STATE.projectileWatching.impactTimer = nil
-            STATE.projectileWatching.impactPosition = nil
+            Log.debug("Impact timeout elapsed, returning to previous mode: " .. tostring(STATE.projectileWatching.previousMode))
 
             -- Return to previous mode if available
             local previousMode = STATE.projectileWatching.previousMode
             local unitID = STATE.projectileWatching.watchedUnitID
 
+
+            -- Disable projectile camera
+            TrackingManager.disableTracking()
+
+            Log.debug("XXXXXXX previous mode ", unitID, previousMode)
             if previousMode and previousMode ~= 'projectile_camera' and
                     unitID and Spring.ValidUnitID(unitID) then
                 TrackingManager.initializeTracking(previousMode, unitID)
@@ -198,7 +197,7 @@ function ProjectileCamera.checkAndActivate()
         -- to select the oldest projectile
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
-
+        STATE.projectileWatching.watchedUnitID = unitID
         Log.debug("Projectile camera activated for unit " .. unitID)
         return true
     end
