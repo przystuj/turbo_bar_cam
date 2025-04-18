@@ -129,6 +129,16 @@ end
 ---@param initialDistance number Initial distance to target position when move started.
 ---@return boolean isComplete Whether the transition should be completed.
 function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
+    -- If initial distance was extremely small, apply a minimum transition time
+    if initialDistance and initialDistance < 100 then
+        -- Ensure even small movements have a minimum transition duration
+        local now = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+        if elapsed < 0.25 then  -- Minimum 0.25 seconds for small movements
+            return false
+        end
+    end
+
     -- If we're very close to the target position, consider transition complete
     if currentDistance < 20 then
         -- Threshold for closeness

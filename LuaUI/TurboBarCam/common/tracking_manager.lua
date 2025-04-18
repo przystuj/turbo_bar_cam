@@ -129,6 +129,8 @@ function TrackingManager.disableTracking()
         STATE.overview.pendingRotationDistance = nil
         STATE.overview.pendingRotationAngle = nil
         STATE.overview.enableRotationAfterToggle = nil
+        STATE.overview.movementVelocity = nil
+        STATE.overview.velocityDecay = nil
 
         Log.debug("Overview camera states reset during tracking disablement")
     end

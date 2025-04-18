@@ -211,7 +211,7 @@ if not WG.TurboBarCam.STATE then
 
             -- Configuration
             doubleClickThreshold = 0.3,  -- seconds
-            dragThreshold = 3,           -- pixels
+            dragThreshold = 30,           -- pixels
             dragTimeThreshold = 0.15,    -- seconds
 
             -- Callback storage

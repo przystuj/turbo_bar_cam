@@ -28,9 +28,37 @@ local TurboOverviewCamera = {}
 ---@param finalCamState table The camera state at the moment the transition is completed.
 ---@param userControllingView boolean Whether the user was controlling view during transition.
 local function completeTransition(finalCamState, userControllingView)
+    -- Calculate any movement velocity at the time of transition completion
+    local movementVelocity = {
+        x = 0,
+        z = 0
+    }
+
+    -- If we have both position information, calculate velocity
+    if STATE.overview.targetCamPos and STATE.overview.lastTransitionDistance then
+        local moveVector = {
+            x = STATE.overview.targetCamPos.x - finalCamState.px,
+            z = STATE.overview.targetCamPos.z - finalCamState.pz
+        }
+
+        -- Normalize and scale based on current transition speed
+        local distance = math.sqrt(moveVector.x ^ 2 + moveVector.z ^ 2)
+        if distance > 0.001 then
+            -- Avoid division by very small numbers
+            -- Calculate velocity based on smoothing factor and remaining distance
+            local factor = STATE.overview.currentTransitionFactor or CONFIG.MODE_TRANSITION_SMOOTHING
+            movementVelocity = {
+                x = (moveVector.x / distance) * factor * STATE.overview.lastTransitionDistance * 0.5,
+                z = (moveVector.z / distance) * factor * STATE.overview.lastTransitionDistance * 0.5
+            }
+        end
+    end
+
+    -- Store velocity for continued motion
+    STATE.overview.movementVelocity = movementVelocity
+    STATE.overview.velocityDecay = 0.95 -- How quickly the velocity decays each frame
+
     -- Check if we should enable rotation after move completion
-    -- Check for both the moveButtonPressed flag (for backward compatibility)
-    -- and our new enableRotationAfterMove flag (for RMB moveAndRotate)
     if (STATE.overview.moveButtonPressed or STATE.overview.enableRotationAfterMove) and STATE.overview.lastTargetPoint then
         -- Automatically enable rotation
         Log.debug("Move transition complete - enabling rotation mode")
@@ -64,14 +92,10 @@ local function completeTransition(finalCamState, userControllingView)
                 targetPoint.x, targetPoint.z, distance))
     end
 
-    -- Store target rotation (which might have been adjusted by mouse movement or transition updates)
-    local finalTargetRx = finalCamState.rx
-    local finalTargetRy = finalCamState.ry
-
     -- End the transition flag
     STATE.tracking.isModeTransitionInProgress = false
 
-    -- Clear transition state variables
+    -- Clear transition state variables but preserve velocity
     STATE.overview.currentTransitionFactor = nil
     STATE.overview.userLookedAround = nil -- Reset user looked around flag after transition
     STATE.overview.initialMoveDistance = nil
@@ -80,9 +104,9 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.overview.targetPoint = nil -- Clear the look-at target point
     STATE.overview.enableRotationAfterMove = nil -- Clear the rotation flag
 
-    -- Set the final target rotation based on the state at completion
-    STATE.overview.targetRx = finalTargetRx
-    STATE.overview.targetRy = finalTargetRy
+    -- Use the final camera state's rotation values directly
+    STATE.overview.targetRx = finalCamState.rx
+    STATE.overview.targetRy = finalCamState.ry
 
     -- Set fixed camera position from the final state of the transition
     STATE.overview.fixedCamPos = {
@@ -97,7 +121,7 @@ local function completeTransition(finalCamState, userControllingView)
     -- Update tracking state one last time with the final state using the manager's function
     TrackingManager.updateTrackingState(finalCamState)
 
-    Log.trace("Overview camera transition complete.")
+    Log.trace("Overview camera transition complete with preserved momentum.")
 end
 
 --- Handles the camera update logic during a mode transition (e.g., movement).
@@ -226,6 +250,26 @@ end
 
 -- Update camera in normal overview mode (Assumed mostly correct, ensure it uses currentHeight)
 local function updateNormalMode(camState, currentHeight)
+    -- Apply any remaining movement velocity
+    if STATE.overview.movementVelocity and (
+            math.abs(STATE.overview.movementVelocity.x) > 0.01 or
+                    math.abs(STATE.overview.movementVelocity.z) > 0.01
+    ) then
+        -- Update position based on velocity
+        STATE.overview.fixedCamPos.x = STATE.overview.fixedCamPos.x + STATE.overview.movementVelocity.x
+        STATE.overview.fixedCamPos.z = STATE.overview.fixedCamPos.z + STATE.overview.movementVelocity.z
+
+        -- Decay velocity
+        STATE.overview.movementVelocity.x = STATE.overview.movementVelocity.x * STATE.overview.velocityDecay
+        STATE.overview.movementVelocity.z = STATE.overview.movementVelocity.z * STATE.overview.velocityDecay
+
+        -- If velocity becomes very small, clear it
+        if math.abs(STATE.overview.movementVelocity.x) < 0.01 and
+                math.abs(STATE.overview.movementVelocity.z) < 0.01 then
+            STATE.overview.movementVelocity = nil
+        end
+    end
+
     -- Get camera position - use the fixed position which only changes via moveToTarget transitions
     local camPos = {
         x = STATE.overview.fixedCamPos.x,
@@ -279,15 +323,8 @@ function TurboOverviewCamera.update()
 
     -- Ensure we're intended to be in FPS mode for overview camera control
     if camState.mode ~= 0 then
-        -- This might indicate an external change; log or handle if necessary
-        -- Forcing it back might cause conflicts if another system expects a different mode.
-        -- Consider if forcing is always correct or if overview should disable on mode change.
-        Log.debug("Camera mode changed externally to " .. camState.mode .. ". Forcing back to FPS (0).")
-        camState.mode = 0
-        camState.name = "fps"
-        -- It might be safer to disable overview mode if the mode changes unexpectedly.
-        -- TrackingManager.disableTracking()
-        -- return
+        TrackingManager.disableTracking()
+        return
     end
 
     -- Handle smooth zoom height transitions independently
@@ -376,6 +413,10 @@ function TurboOverviewCamera.toggle()
     STATE.overview.movementAngle = 0
     STATE.overview.distanceToTarget = CONFIG.CAMERA_MODES.OVERVIEW.MIN_DISTANCE
     STATE.overview.height = math.max(math.max(mapDiagonal * CONFIG.CAMERA_MODES.OVERVIEW.HEIGHT_FACTOR, 2500), 500)
+
+    -- Add new movement velocity tracking
+    STATE.overview.movementVelocity = nil
+    STATE.overview.velocityDecay = 0.95
 
     local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.toggle")
     local selectedUnits = Spring.GetSelectedUnits()
