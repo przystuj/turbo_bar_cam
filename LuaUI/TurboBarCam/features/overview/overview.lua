@@ -58,39 +58,28 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.overview.movementVelocity = movementVelocity
     STATE.overview.velocityDecay = 0.95 -- How quickly the velocity decays each frame
 
-    -- Check if we should enable rotation after move completion
-    if (STATE.overview.moveButtonPressed or STATE.overview.enableRotationAfterMove) and STATE.overview.lastTargetPoint then
-        -- Automatically enable rotation
-        Log.debug("Move transition complete - enabling rotation mode")
+    -- *** Special handling for rotation transition - SIMPLIFIED ***
+    if STATE.overview.enableRotationAfterToggle then
+        Log.debug("Transition complete - enabling rotation mode")
 
-        -- Calculate the rotation parameters using the last target point
-        local targetPoint = STATE.overview.lastTargetPoint
-
-        -- Calculate distance
-        local distance = math.sqrt(
-                (finalCamState.px - targetPoint.x) ^ 2 +
-                        (finalCamState.pz - targetPoint.z) ^ 2
-        )
-
-        -- Calculate angle
-        local angle = math.atan2(
-                finalCamState.px - targetPoint.x,
-                finalCamState.pz - targetPoint.z
-        )
-
-        -- Set up rotation state directly
+        -- Activate rotation mode after the camera has reached its position
         STATE.overview.isRotationModeActive = true
-        STATE.overview.rotationCenter = {
-            x = targetPoint.x,
-            y = targetPoint.y or Spring.GetGroundHeight(targetPoint.x, targetPoint.z) or 0,
-            z = targetPoint.z
+        STATE.overview.rotationParametersInitialized = true
+
+        -- CRITICAL: Make sure fixed camera position exactly matches finalCamState
+        -- This prevents any potential jump when switching modes
+        STATE.overview.fixedCamPos = {
+            x = finalCamState.px,
+            z = finalCamState.pz
         }
-        STATE.overview.rotationDistance = distance
-        STATE.overview.rotationAngle = angle
 
         Log.debug(string.format("Rotation activated around (%.1f, %.1f) at distance %.1f",
-                targetPoint.x, targetPoint.z, distance))
+                STATE.overview.rotationCenter.x, STATE.overview.rotationCenter.z,
+                STATE.overview.rotationDistance))
     end
+
+    -- Remove the legacy rotation code - we don't need it anymore
+    -- The moveButtonPressed and enableRotationAfterMove flags are no longer used
 
     -- End the transition flag
     STATE.tracking.isModeTransitionInProgress = false
@@ -103,6 +92,7 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.overview.stuckFrameCount = 0
     STATE.overview.targetPoint = nil -- Clear the look-at target point
     STATE.overview.enableRotationAfterMove = nil -- Clear the rotation flag
+    STATE.overview.enableRotationAfterToggle = nil -- Clear the toggle transition flag
 
     -- Use the final camera state's rotation values directly
     STATE.overview.targetRx = finalCamState.rx
@@ -503,19 +493,24 @@ function TurboOverviewCamera.registerMouseHandlers()
     end)
 
     -- RMB hold - toggle rotation mode
+    -- RMB hold - toggle rotation mode
     MouseManager.onHoldRMB('overview', function(x, y, holdTime)
         -- If the user just holds RMB and doesn't drag, toggle rotation mode after a threshold
-        if holdTime > STATE.mouse.dragTimeThreshold and not STATE.overview.isRotationModeActive then
-            -- Only enable rotation if we have a previous target point
-            if STATE.overview.lastTargetPoint then
-                Log.debug("RMB hold - toggling rotation mode")
-                RotationUtils.toggleRotation()
-            else
-                Log.debug("Cannot enable rotation: No target point available")
+        if holdTime > STATE.mouse.dragTimeThreshold then
+            if not STATE.overview.isRotationModeActive and not STATE.tracking.isModeTransitionInProgress then
+                -- Only enable rotation if we have a previous target point and not already transitioning
+                if STATE.overview.lastTargetPoint then
+                    Log.debug("RMB hold - toggling rotation mode")
+                    RotationUtils.toggleRotation()
+                    -- Set a flag to track that we're in RMB hold rotation mode
+                    STATE.overview.isRmbHoldRotation = true
+                else
+                    Log.debug("Cannot enable rotation: No target point available")
+                end
+            elseif STATE.overview.isRotationModeActive then
+                -- Update rotation speed based on cursor position while holding RMB
+                RotationUtils.updateRotationSpeed(x, y)
             end
-        elseif STATE.overview.isRotationModeActive then
-            -- Update rotation speed based on cursor position while holding RMB
-            RotationUtils.updateRotationSpeed(x, y)
         end
     end)
 
@@ -524,14 +519,20 @@ function TurboOverviewCamera.registerMouseHandlers()
         if STATE.overview.isRotationModeActive then
             -- Update rotation speed based on current cursor position
             RotationUtils.updateRotationSpeed(x, y)
+            -- We're dragging, so this isn't just a hold anymore
+            STATE.overview.isRmbHoldRotation = false
         end
     end)
 
     -- RMB release - cleanup
     MouseManager.onReleaseRMB('overview', function(x, y, wasDoubleClick, wasDragging, holdTime)
-        -- If rotation is active but RMB was just a brief click (not dragging),
-        -- we should disable rotation mode
-        if STATE.overview.isRotationModeActive and not wasDragging and holdTime < STATE.mouse.dragTimeThreshold then
+        -- If rotation was activated via RMB hold without dragging, disable it when released
+        if STATE.overview.isRotationModeActive and STATE.overview.isRmbHoldRotation then
+            RotationUtils.cancelRotation("RMB hold released")
+            STATE.overview.isRmbHoldRotation = false
+            -- If rotation is active but RMB was just a brief click (not dragging),
+            -- we should disable rotation mode
+        elseif STATE.overview.isRotationModeActive and not wasDragging and holdTime < STATE.mouse.dragTimeThreshold then
             RotationUtils.cancelRotation("brief click release")
         elseif STATE.overview.isRotationModeActive then
             -- Apply momentum when releasing RMB
@@ -540,6 +541,9 @@ function TurboOverviewCamera.registerMouseHandlers()
 
         -- Clear the moveButtonPressed flag that was used in the old system
         STATE.overview.moveButtonPressed = false
+
+        -- Always clear this flag when RMB is released
+        STATE.overview.isRmbHoldRotation = false
     end)
 end
 
