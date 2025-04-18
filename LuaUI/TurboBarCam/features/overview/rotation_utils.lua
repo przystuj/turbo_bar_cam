@@ -137,76 +137,171 @@ function RotationUtils.toggleRotation()
         Log.debug(string.format("[DEBUG-ROTATION] Target point: (%.2f, %.2f)",
                 targetPoint.x, targetPoint.z))
 
-        -- Calculate distance
-        local distance = math.sqrt(
+        -- Calculate current distance from target
+        local currentDistance = math.sqrt(
                 (currentCamState.px - targetPoint.x) ^ 2 +
                         (currentCamState.pz - targetPoint.z) ^ 2
         )
 
-        -- Calculate angle
-        local angle = math.atan2(
+        -- CRITICAL: Calculate ideal viewing position
+        local currentHeight = currentCamState.py
+
+        -- Calculate a distance factor based on height
+        local baseFactor = 0.85
+        if currentHeight > 3000 then
+            baseFactor = 0.85
+        elseif currentHeight > 1500 then
+            baseFactor = 0.82
+        elseif currentHeight < 800 then
+            baseFactor = 0.75
+        end
+
+        -- Calculate ideal distance for this height
+        local idealDistance = currentHeight * baseFactor
+
+        -- Calculate current angle (but we'll use a different angle for target position)
+        local currentAngle = math.atan2(
                 currentCamState.px - targetPoint.x,
                 currentCamState.pz - targetPoint.z
         )
-        Log.debug(string.format("[DEBUG-ROTATION] Calculated distance: %.2f, angle: %.4f",
-                distance, angle))
 
-        -- Calculate target position
+        -- We'll use an angle 30 degrees (0.5 radians) different from current
+        -- This forces the camera to move to a new position
+        local angleOffset = 0.785  -- 45 degrees in radians
+        local targetAngle
+
+        -- Try to make a more dramatic change in viewing angle
+        -- Use opposite side of the target point if close to straight line
+        if math.abs(math.sin(currentAngle)) < 0.3 then
+            -- If looking directly at target from front/back, move to side view
+            targetAngle = currentAngle + math.pi/2
+        elseif math.abs(math.cos(currentAngle)) < 0.3 then
+            -- If looking directly from side, move to front/back view
+            targetAngle = currentAngle + math.pi/2
+        else
+            -- Otherwise use a 45-degree offset
+            targetAngle = currentAngle + angleOffset
+        end
+
+        -- Normalize the angle
+        targetAngle = CameraCommons.normalizeAngle(targetAngle)
+
+        Log.debug(string.format("[DEBUG-ROTATION] Calculated current distance: %.2f, current angle: %.4f",
+                currentDistance, currentAngle))
+        Log.debug(string.format("[DEBUG-ROTATION] Using target angle: %.4f, ideal distance: %.2f",
+                targetAngle, idealDistance))
+
+        -- Calculate map dimensions for boundary checks
+        local mapX = Game.mapSizeX
+        local mapZ = Game.mapSizeZ
+
+        -- Calculate target position at idealDistance and the new angle
+        local targetX = targetPoint.x + math.sin(targetAngle) * idealDistance
+        local targetZ = targetPoint.z + math.cos(targetAngle) * idealDistance
+
+        -- Check if position is within map boundaries with margin
+        local margin = 200
+        local isPositionValid = targetX >= margin and targetX <= mapX - margin and
+                targetZ >= margin and targetZ <= mapZ - margin
+
+        -- If position is invalid, try different angles
+        if not isPositionValid then
+            -- Try angles in both directions from current angle
+            for i = 1, 12 do  -- Try up to 12 different angles
+                local offset = (i % 2 == 0) and (i/2) * 0.2 or -(i/2) * 0.2  -- Alternate between positive and negative offsets
+                local testAngle = currentAngle + offset
+                local testX = targetPoint.x + math.sin(testAngle) * idealDistance
+                local testZ = targetPoint.z + math.cos(testAngle) * idealDistance
+
+                if testX >= margin and testX <= mapX - margin and
+                        testZ >= margin and testZ <= mapZ - margin then
+                    targetX = testX
+                    targetZ = testZ
+                    targetAngle = testAngle
+                    isPositionValid = true
+                    Log.debug(string.format("[DEBUG-ROTATION] Found valid position at angle offset: %.2f", offset))
+                    break
+                end
+            end
+        end
+
+        -- If still no valid position, use current angle but adjust distance
+        if not isPositionValid then
+            local adjustedDistance = idealDistance * 0.8  -- Try 80% of ideal distance
+            targetX = targetPoint.x + math.sin(currentAngle) * adjustedDistance
+            targetZ = targetPoint.z + math.cos(currentAngle) * adjustedDistance
+
+            -- Check if this position is valid
+            isPositionValid = targetX >= margin and targetX <= mapX - margin and
+                    targetZ >= margin and targetZ <= mapZ - margin
+
+            if isPositionValid then
+                targetAngle = currentAngle
+                idealDistance = adjustedDistance
+                Log.debug(string.format("[DEBUG-ROTATION] Using reduced distance: %.2f", adjustedDistance))
+            else
+                -- If still invalid, just use current position as fallback
+                targetX = currentCamState.px
+                targetZ = currentCamState.pz
+                targetAngle = currentAngle
+                Log.debug("[DEBUG-ROTATION] Could not find valid position, using current position")
+            end
+        end
+
+        -- Prepare target camera position
         local targetCamPos = {
-            x = currentCamState.px,  -- Keep current position for smooth transition
-            y = currentCamState.py,
-            z = currentCamState.pz
+            x = targetX,
+            y = currentHeight,
+            z = targetZ
         }
 
         Log.debug(string.format("[DEBUG-ROTATION] Target camera position: (%.2f, %.2f, %.2f)",
                 targetCamPos.x, targetCamPos.y, targetCamPos.z))
 
-        -- Set up rotation state - but don't activate yet
-        STATE.overview.isRotationModeActive = false -- Will be set to true after transition
+        -- Calculate move distance for transition
+        local moveDistance = math.sqrt(
+                (targetCamPos.x - currentCamState.px) ^ 2 +
+                        (targetCamPos.z - currentCamState.pz) ^ 2
+        )
+
+        -- Set up rotation state (but don't activate yet)
+        STATE.overview.isRotationModeActive = false
         STATE.overview.rotationCenter = {
             x = targetPoint.x,
             y = targetPoint.y or Spring.GetGroundHeight(targetPoint.x, targetPoint.z) or 0,
             z = targetPoint.z
         }
-        STATE.overview.rotationDistance = distance
-        STATE.overview.rotationAngle = angle
+
+        -- We'll recalculate exact rotation parameters after movement
+        STATE.overview.rotationDistance = idealDistance
+        STATE.overview.rotationAngle = targetAngle
         STATE.overview.rotationSpeed = 0
         rotationMomentum = 0
 
-        -- *** Set up the transition ***
-
-        -- Store current camera position as starting point for transition
+        -- Set up the transition
         STATE.overview.fixedCamPos = {
             x = currentCamState.px,
             y = currentCamState.py,
             z = currentCamState.pz
         }
 
-        -- Use current position as target (zero-distance transition)
         STATE.overview.targetCamPos = targetCamPos
-
-        -- Store the target point
         STATE.overview.targetPoint = targetPoint
 
-        -- Calculate look direction
+        -- Calculate look direction to the target point
         local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
-
-        -- Set rotation targets
         STATE.overview.targetRx = lookDir.rx
         STATE.overview.targetRy = lookDir.ry
-
-        -- Zero distance transition (just to trigger the completeTransition callback)
-        local moveDistance = 0
 
         -- Reset transition tracking variables
         STATE.overview.stuckFrameCount = 0
         STATE.overview.initialMoveDistance = moveDistance
         STATE.overview.lastTransitionDistance = moveDistance
 
-        -- Use a fast transition factor
-        STATE.overview.currentTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR * 2.0
+        -- Use a smooth transition factor
+        STATE.overview.currentTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR
 
-        -- Begin mode transition to trigger completeTransition
+        -- Begin mode transition
         STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
@@ -216,7 +311,7 @@ function RotationUtils.toggleRotation()
         -- Update tracking state
         TrackingManager.updateTrackingState(currentCamState)
 
-        Log.debug("Starting rotation setup (zero-distance transition)")
+        Log.debug(string.format("Starting rotation setup transition. Distance to move: %.2f", moveDistance))
         return true
     end
 end

@@ -68,7 +68,7 @@ local function completeTransition(finalCamState, userControllingView)
                 math.sqrt((finalCamState.px - STATE.overview.targetCamPos.x) ^ 2 + (finalCamState.pz - STATE.overview.targetCamPos.z) ^ 2)))
     end
 
-    -- *** Special handling for rotation transition - SIMPLIFIED ***
+    -- *** Special handling for rotation transition - IMPROVED ***
     if STATE.overview.enableRotationAfterToggle then
         Log.debug("[DEBUG-ROTATION] Transition complete - enabling rotation mode")
 
@@ -80,6 +80,20 @@ local function completeTransition(finalCamState, userControllingView)
             rx = finalCamState.rx,
             ry = finalCamState.ry
         }
+
+        -- CRITICAL: Recalculate the exact rotation angle based on final position
+        -- This ensures proper continuity from movement end to rotation start
+        local angle = math.atan2(
+                finalCamState.px - STATE.overview.rotationCenter.x,
+                finalCamState.pz - STATE.overview.rotationCenter.z
+        )
+        STATE.overview.rotationAngle = angle
+
+        -- Recalculate the exact distance based on final position
+        STATE.overview.rotationDistance = math.sqrt(
+                (finalCamState.px - STATE.overview.rotationCenter.x) ^ 2 +
+                        (finalCamState.pz - STATE.overview.rotationCenter.z) ^ 2
+        )
 
         -- Activate rotation mode after the camera has reached its position
         STATE.overview.isRotationModeActive = true
@@ -216,7 +230,8 @@ local function updateRotationMode(currentHeight)
         -- Use the stored exact final position
         local exactPos = STATE.overview.exactFinalPosition
 
-        -- Apply the exact camera state directly
+        -- IMPORTANT: The camera should stay EXACTLY at this position on the first frame
+        -- We don't want any sudden jumps in position or rotation!
         local exactCamState = {
             mode = 0,
             name = "fps",
@@ -228,6 +243,17 @@ local function updateRotationMode(currentHeight)
             rz = 0
         }
 
+        -- Calculate direction vector from rotation angles for consistency
+        local cosRx = math.cos(exactPos.rx)
+        local dx = math.sin(exactPos.ry) * cosRx
+        local dy = math.sin(exactPos.rx)
+        local dz = math.cos(exactPos.ry) * cosRx
+
+        -- Add direction vectors to ensure consistency
+        exactCamState.dx = dx
+        exactCamState.dy = dy
+        exactCamState.dz = dz
+
         -- Log the exact state being applied
         Log.debug(string.format("[FIXED-ROTATION] Using exact final position for first rotation frame: (%.2f, %.2f)",
                 exactPos.x, exactPos.z))
@@ -238,7 +264,7 @@ local function updateRotationMode(currentHeight)
         -- Update tracking state
         TrackingManager.updateTrackingState(exactCamState)
 
-        -- Update fixed camera position to match
+        -- Update fixed camera position to match exact position
         STATE.overview.fixedCamPos = {
             x = exactPos.x,
             z = exactPos.z
@@ -247,7 +273,74 @@ local function updateRotationMode(currentHeight)
         -- Clear the stored position to use normal rotation updates after first frame
         STATE.overview.exactFinalPosition = nil
 
+        -- Add a flag to indicate this is the first frame (for next rotation update)
+        STATE.overview.firstRotationFrame = true
+
         return -- Skip normal rotation update for first frame
+    end
+
+    -- For the second rotation frame (first actual rotation),
+    -- we'll make a VERY tiny adjustment to avoid a sudden jump
+    if STATE.overview.firstRotationFrame then
+        -- Ensure we have rotation parameters for safety
+        if not STATE.overview.rotationCenter or not STATE.overview.rotationDistance or not STATE.overview.rotationAngle then
+            Log.debug("Missing rotation parameters on first rotate frame - canceling rotation")
+            RotationUtils.cancelRotation("missing parameters on first rotation frame")
+            return
+        end
+
+        -- Use a very tiny rotation step (barely noticeable)
+        local tinyRotationStep = 0.001
+        STATE.overview.rotationAngle = STATE.overview.rotationAngle + tinyRotationStep
+
+        -- Calculate new position with this tiny adjustment
+        local sinAngle = math.sin(STATE.overview.rotationAngle)
+        local cosAngle = math.cos(STATE.overview.rotationAngle)
+
+        -- Calculate new camera position based on rotation parameters
+        local newCamPos = {
+            x = STATE.overview.rotationCenter.x + STATE.overview.rotationDistance * sinAngle,
+            y = currentHeight,
+            z = STATE.overview.rotationCenter.z + STATE.overview.rotationDistance * cosAngle
+        }
+
+        -- Update fixed camera position with this tiny change
+        STATE.overview.fixedCamPos.x = newCamPos.x
+        STATE.overview.fixedCamPos.z = newCamPos.z
+
+        -- Calculate look direction to the rotation center
+        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(
+                newCamPos,
+                STATE.overview.rotationCenter
+        )
+
+        -- Apply the camera state with this tiny change
+        local camStatePatch = {
+            mode = 0,
+            name = "fps",
+            px = newCamPos.x,
+            py = newCamPos.y,
+            pz = newCamPos.z,
+            dx = lookDir.dx,
+            dy = lookDir.dy,
+            dz = lookDir.dz,
+            rx = lookDir.rx,
+            ry = lookDir.ry,
+            rz = 0
+        }
+
+        -- Apply camera state
+        CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.firstRotationStep")
+
+        -- Update tracking state
+        TrackingManager.updateTrackingState(camStatePatch)
+
+        -- Clear the first frame flag
+        STATE.overview.firstRotationFrame = nil
+
+        Log.debug(string.format("[FIXED-ROTATION] First actual rotation step (tiny adjustment): angle=%.4f", STATE.overview.rotationAngle))
+
+        return
     end
 
     -- Normal rotation update for subsequent frames
