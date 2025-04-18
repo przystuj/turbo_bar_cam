@@ -1,11 +1,19 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type MouseManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
+---@type OverviewCameraUtils
+local OverviewCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/overview_utils.lua").OverviewCameraUtils
+---@type RotationUtils
+local RotationUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/rotation_utils.lua").RotationUtils
+---@type MovementUtils
+local MovementUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/movement_utils.lua").MovementUtils
+---@type Scheduler
+local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -13,13 +21,6 @@ local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
 local CameraCommons = CommonModules.CameraCommons
-
----@type OverviewCameraUtils
-local OverviewCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/overview_utils.lua").OverviewCameraUtils
----@type RotationUtils
-local RotationUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/rotation_utils.lua").RotationUtils
----@type MovementUtils
-local MovementUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/movement_utils.lua").MovementUtils
 
 ---@class TurboOverviewCamera
 local TurboOverviewCamera = {}
@@ -680,8 +681,10 @@ function TurboOverviewCamera.registerMouseHandlers()
         elseif STATE.overview.isRotationModeActive and not wasDragging and holdTime < STATE.mouse.dragTimeThreshold then
             RotationUtils.cancelRotation("brief click release")
         elseif STATE.overview.isRotationModeActive then
-            -- Apply momentum when releasing RMB
             RotationUtils.applyMomentum()
+            Scheduler.schedule(function()
+                RotationUtils.cancelRotation("RMB released")
+            end, 0.5, "Overview_RMB_released")
         end
 
         -- Clear the moveButtonPressed flag that was used in the old system

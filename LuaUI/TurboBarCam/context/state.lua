@@ -11,6 +11,8 @@ if not WG.TurboBarCam.STATE then
         anchors = {},
         lastUsedAnchor = nil,
 
+        scheduler = {schedules = {}},
+
         -- Camera transitions
         transition = {
             active = false,
