@@ -185,7 +185,7 @@ function Actions.overviewActions()
 
     Actions.registerAction("turbobarcam_overview_change_height", 'tp',
             function(_, amount)
-                FeatureModules.TurboOverviewCamera.changeHeight(amount)
+                FeatureModules.TurboOverviewCamera.changeHeightAndMove(amount)
                 return true
             end)
 

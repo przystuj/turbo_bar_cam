@@ -40,13 +40,22 @@ local function calculateDistanceFactorFromHeight(height)
 end
 
 -- New function to separate the movement logic for cleaner code organization
+-- Updated function to respect targetHeight when set
 function MovementUtils.startMoveToTarget(targetPoint)
     -- Cancel rotation mode if it's active
     RotationUtils.cancelRotation("movement")
 
     -- Get current camera state and height
     local currentCamState = CameraManager.getCameraState("MovementUtils.startMoveToTarget")
-    local currentHeight = OverviewCameraUtils.calculateCurrentHeight()
+
+    -- Use STATE.overview.targetHeight if it's set, otherwise calculate current height
+    local currentHeight
+    if STATE.overview.targetHeight then
+        currentHeight = STATE.overview.targetHeight
+        Log.debug(string.format("Using target height: %.1f for move operation", currentHeight))
+    else
+        currentHeight = OverviewCameraUtils.calculateCurrentHeight()
+    end
 
     -- Calculate base distance factor based on current height
     local baseFactor = calculateDistanceFactorFromHeight(currentHeight)

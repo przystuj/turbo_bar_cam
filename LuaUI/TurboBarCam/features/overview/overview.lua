@@ -594,27 +594,44 @@ function TurboOverviewCamera.centerViewOnPoint()
     STATE.overview.userLookedAround = true
 end
 
--- In the height change function, also cancel rotation mode
-function TurboOverviewCamera.changeHeight(amount)
+-- Simple height change function that updates height and triggers move to target
+function TurboOverviewCamera.changeHeightAndMove(amount)
     if Util.isModeDisabled("overview") then
         return
     end
-
-    -- Cancel rotation mode when changing height
-    RotationUtils.cancelRotation("height change")
 
     local granularity = CONFIG.CAMERA_MODES.OVERVIEW.HEIGHT_CONTROL_GRANULARITY
     if not STATE.overview.heightLevel then
         STATE.overview.heightLevel = CONFIG.CAMERA_MODES.OVERVIEW.DEFAULT_HEIGHT_LEVEL
     end
+
+    -- Calculate the new height level
     local newHeightLevel = STATE.overview.heightLevel + amount
+
+    -- Check if the new height level is within valid range
     if newHeightLevel >= 1 and newHeightLevel <= granularity then
+        -- Store the previous height level to check if there was a change
+        local previousHeightLevel = STATE.overview.heightLevel
+
+        -- Update the height level
         STATE.overview.heightLevel = newHeightLevel
-        -- Update target height for smooth transition IN THE MAIN UPDATE LOOP
+
+        -- Calculate the new target height
         local newTargetHeight = OverviewCameraUtils.calculateCurrentHeight()
-        STATE.overview.targetHeight = newTargetHeight -- The update loop will handle smoothing
-        Log.debug("Turbo Overview camera height changed to level " .. STATE.overview.heightLevel ..
-                " (target height: " .. math.floor(newTargetHeight) .. " units)")
+
+        -- Only proceed with move-to-target if height actually changed
+        if previousHeightLevel ~= newHeightLevel then
+            -- Set the target height for the move operation
+            STATE.overview.targetHeight = newTargetHeight
+
+            -- Call the standard move to target function which uses cursor position
+            MovementUtils.moveToTarget()
+
+            Log.debug("Height changed to level " .. STATE.overview.heightLevel ..
+                    " (target height: " .. math.floor(newTargetHeight) .. " units)")
+        else
+            Log.debug("Height level unchanged: " .. STATE.overview.heightLevel)
+        end
     else
         Log.debug("Cannot change height level: would exceed valid range (1-" .. granularity .. ")")
     end
