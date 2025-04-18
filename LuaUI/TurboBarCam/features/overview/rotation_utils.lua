@@ -344,13 +344,6 @@ function RotationUtils.applyMomentum()
     return true
 end
 
--- Simple pass-through function for API compatibility
-function RotationUtils.adjustParams(params)
-    -- This function is kept for API compatibility but all values will be set through
-    -- the ensureRotationParams function with hardcoded defaults
-    Log.debug("Using hardcoded rotation parameters")
-end
-
 return {
     RotationUtils = RotationUtils
 }

@@ -103,7 +103,7 @@ if not WG.TurboBarCam.CONFIG then
                 MIN_DISTANCE = 150, -- Minimum distance to target
                 MOUSE_MOVE_SENSITIVITY = 0.1, -- Mouse sensitivity for camera rotation
 
-                HEIGHT_CONTROL_GRANULARITY = 4, -- Number of height steps
+                HEIGHT_CONTROL_GRANULARITY = 6, -- Number of height steps
                 DEFAULT_HEIGHT_LEVEL = 2, -- Default level (1 = highest, granularity = lowest)
                 DISTANCE_LEVELS = { 1.0, 0.5, 2.0 }, -- Base (1.0), Close (0.5), Far (2.0)
                 DEFAULT_DISTANCE_LEVEL = 1,
@@ -121,14 +121,6 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_SMOOTHING = {
                     FREE_CAMERA_FACTOR = 0.05,
                     MOVEMENT = 0.05,
-                },
-
-                -- Rotation mode settings
-                ROTATION_MODE = {
-                    BUFFER_ZONE = 0.05,             -- Center buffer zone where no rotation occurs (0-1)
-                    BASE_ROTATION_SPEED = 0.05,     -- Base speed for rotation mode
-                    EDGE_ROTATION_MULTIPLIER = 1.5, -- Speed multiplier at screen edges
-                    EDGE_THRESHOLD = 0.05           -- How close to screen edge to trigger edge boost (0-1)
                 },
             },
 
@@ -279,15 +271,6 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.ANCHOR,
         PARAM_NAMES = {
             DURATION = { 0, nil },
-        }
-    },
-    OVERVIEW = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.OVERVIEW,
-        PARAM_NAMES = {
-            --DEFAULT_SMOOTHING = { 0.001, 0.5 },
-            --FORWARD_VELOCITY = { 1, 20 },
-            --MAX_ROTATION_SPEED = { 0.001, 0.05 },
-            --BUFFER_ZONE = { 0, 0.5 },
         }
     },
     UNIT_TRACKING = {

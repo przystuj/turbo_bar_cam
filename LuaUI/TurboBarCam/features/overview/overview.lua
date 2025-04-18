@@ -543,57 +543,6 @@ function TurboOverviewCamera.registerMouseHandlers()
     end)
 end
 
---- Modify centerViewOnPoint slightly to use the standard transition mechanism
-function TurboOverviewCamera.centerViewOnPoint()
-    if Util.isModeDisabled("overview") then
-        return
-    end
-    local targetPoint = OverviewCameraUtils.getCursorWorldPosition()
-    if not targetPoint then
-        Log.debug("Click outside map boundaries - ignoring");
-        return
-    end
-
-    local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.centerViewOnPoint")
-    local currentHeight = currentCamState.py -- Use current height
-
-    -- Calculate look direction to the target
-    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(
-            { x = currentCamState.px, y = currentHeight, z = currentCamState.pz },
-            targetPoint
-    )
-
-    -- If already in a transition, just update the target rotation and point
-    if STATE.tracking.isModeTransitionInProgress then
-        STATE.overview.targetRx = lookDir.rx
-        STATE.overview.targetRy = lookDir.ry
-        STATE.overview.targetPoint = targetPoint -- Update look-at point if already moving
-        Log.debug("Updating look target during existing transition.")
-    else
-        -- Start a new, short transition just for the rotation change
-        STATE.overview.fixedCamPos = { x = currentCamState.px, z = currentCamState.pz } -- Keep current position
-        STATE.overview.targetCamPos = nil -- No position change target
-        STATE.overview.targetPoint = targetPoint -- Set look-at target
-
-        STATE.overview.targetRx = lookDir.rx
-        STATE.overview.targetRy = lookDir.ry
-
-        STATE.tracking.isModeTransitionInProgress = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
-        -- Use a faster transition factor for view centering
-        STATE.overview.currentTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR * 2.0
-        STATE.overview.initialMoveDistance = 0 -- No positional move
-        STATE.overview.lastTransitionDistance = 0
-
-        -- Update tracking state to start the transition smoothly using manager's function
-        TrackingManager.updateTrackingState(currentCamState)
-        Log.debug("Starting transition to center view on point.")
-    end
-
-    -- Mark that user has manually changed view direction (might prevent auto-rotation logic if any)
-    STATE.overview.userLookedAround = true
-end
-
 -- Simple height change function that updates height and triggers move to target
 function TurboOverviewCamera.changeHeightAndMove(amount)
     if Util.isModeDisabled("overview") then
@@ -635,16 +584,6 @@ function TurboOverviewCamera.changeHeightAndMove(amount)
     else
         Log.debug("Cannot change height level: would exceed valid range (1-" .. granularity .. ")")
     end
-end
-
-function TurboOverviewCamera.adjustParams(params)
-    OverviewCameraUtils.adjustParams(params)
-    RotationUtils.adjustParams(params) -- Also allow rotation params adjustment if needed
-end
-
--- Expose the public MovementUtils function via the main camera object
-function TurboOverviewCamera.moveToTarget()
-    MovementUtils.moveAndRotate()
 end
 
 return {

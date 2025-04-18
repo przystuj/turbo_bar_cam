@@ -70,8 +70,6 @@ bind		PageDown 		turbobarcam_fps_next_weapon
 bind		PageUp			turbobarcam_overview_toggle
 bind		numpad8			turbobarcam_overview_change_height 1
 bind		numpad5			turbobarcam_overview_change_height -1
-bind		numpad6         turbobarcam_overview_move_camera
-bind		numpad4			turbobarcam_overview_toggle_rotation
 
 // Group Unit Tracking
 bind		numpad0  		turbobarcam_toggle_group_tracking_camera

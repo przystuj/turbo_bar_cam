@@ -176,34 +176,9 @@ if not WG.TurboBarCam.STATE then
             isMiddleMouseDown = false,
             isRightMouseDown = false,
 
-            -- Click tracking
-            leftClickCount = 0,
-            middleClickCount = 0,
-            rightClickCount = 0,
-
-            -- Timestamps for double-click detection
-            lastLeftClickTime = 0,
-            lastMiddleClickTime = 0,
-            lastRightClickTime = 0,
-
-            -- Dragging state
-            isDraggingLMB = false,
-            isDraggingMMB = false,
-            isDraggingRMB = false,
-
-            -- Mouse press start time (for distinguishing click from drag)
-            leftMousePressStartTime = 0,
-            middleMousePressStartTime = 0,
-            rightMousePressStartTime = 0,
-
             -- Last mouse positions for drag detection and calculation
             lastMouseX = 0,
             lastMouseY = 0,
-
-            -- Initial press positions for each button (important for drag start position)
-            initialPressLMB = { x = 0, y = 0 },
-            initialPressMMB = { x = 0, y = 0 },
-            initialPressRMB = { x = 0, y = 0 },
 
             -- Previous drag positions (for calculating deltas)
             lastDragX = nil,
@@ -215,27 +190,7 @@ if not WG.TurboBarCam.STATE then
             dragTimeThreshold = 0.15,    -- seconds
 
             -- Callback storage
-            callbacks = {
-                onLMB = {},
-                onMMB = {},
-                onRMB = {},
-                onDoubleLMB = {},
-                onDoubleMMB = {},
-                onDoubleRMB = {},
-                onHoldLMB = {},
-                onHoldMMB = {},
-                onHoldRMB = {},
-                onReleaseLMB = {},
-                onReleaseMMB = {},
-                onReleaseRMB = {},
-                onDragLMB = {},
-                onDragMMB = {},
-                onDragRMB = {},
-                onDragStartLMB = {},
-                onDragStartMMB = {},
-                onDragStartRMB = {},
-                onScroll = {},
-            }
+            callbacks = {}
         }
     }
 end
