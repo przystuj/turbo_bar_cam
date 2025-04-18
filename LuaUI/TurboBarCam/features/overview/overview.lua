@@ -58,28 +58,46 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.overview.movementVelocity = movementVelocity
     STATE.overview.velocityDecay = 0.95 -- How quickly the velocity decays each frame
 
+    -- Log the final camera position for debugging
+    Log.debug(string.format("[DEBUG-ROTATION] Transition complete. Final position: (%.2f, %.2f, %.2f)",
+            finalCamState.px, finalCamState.py, finalCamState.pz))
+
+    if STATE.overview.targetCamPos then
+        Log.debug(string.format("[DEBUG-ROTATION] Target position was: (%.2f, %.2f, %.2f), distance=%.2f",
+                STATE.overview.targetCamPos.x, STATE.overview.targetCamPos.y or 0, STATE.overview.targetCamPos.z,
+                math.sqrt((finalCamState.px - STATE.overview.targetCamPos.x) ^ 2 + (finalCamState.pz - STATE.overview.targetCamPos.z) ^ 2)))
+    end
+
     -- *** Special handling for rotation transition - SIMPLIFIED ***
     if STATE.overview.enableRotationAfterToggle then
-        Log.debug("Transition complete - enabling rotation mode")
+        Log.debug("[DEBUG-ROTATION] Transition complete - enabling rotation mode")
+
+        -- Store the EXACT final camera position and rotation
+        STATE.overview.exactFinalPosition = {
+            x = finalCamState.px,
+            y = finalCamState.py,
+            z = finalCamState.pz,
+            rx = finalCamState.rx,
+            ry = finalCamState.ry
+        }
 
         -- Activate rotation mode after the camera has reached its position
         STATE.overview.isRotationModeActive = true
         STATE.overview.rotationParametersInitialized = true
 
         -- CRITICAL: Make sure fixed camera position exactly matches finalCamState
-        -- This prevents any potential jump when switching modes
         STATE.overview.fixedCamPos = {
             x = finalCamState.px,
             z = finalCamState.pz
         }
 
-        Log.debug(string.format("Rotation activated around (%.1f, %.1f) at distance %.1f",
+        Log.debug(string.format("[DEBUG-ROTATION] Fixed camera position set to (%.2f, %.2f)",
+                STATE.overview.fixedCamPos.x, STATE.overview.fixedCamPos.z))
+
+        Log.debug(string.format("[DEBUG-ROTATION] Rotation activated around (%.2f, %.2f) at distance %.2f",
                 STATE.overview.rotationCenter.x, STATE.overview.rotationCenter.z,
                 STATE.overview.rotationDistance))
     end
-
-    -- Remove the legacy rotation code - we don't need it anymore
-    -- The moveButtonPressed and enableRotationAfterMove flags are no longer used
 
     -- End the transition flag
     STATE.tracking.isModeTransitionInProgress = false
@@ -99,6 +117,7 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.overview.targetRy = finalCamState.ry
 
     -- Set fixed camera position from the final state of the transition
+    -- Done again for emphasis and clarity
     STATE.overview.fixedCamPos = {
         x = finalCamState.px,
         -- y = finalCamState.py, -- Y is managed by height/zoom logic, not fixed here
@@ -106,12 +125,13 @@ local function completeTransition(finalCamState, userControllingView)
     }
 
     -- Clear the target position since we've reached it (or are close enough)
-    STATE.overview.targetCamPos = nil
+    -- But preserve for debugging
+    -- STATE.overview.targetCamPos = nil
 
     -- Update tracking state one last time with the final state using the manager's function
     TrackingManager.updateTrackingState(finalCamState)
 
-    Log.trace("Overview camera transition complete with preserved momentum.")
+    Log.debug("[DEBUG-ROTATION] Overview camera transition complete")
 end
 
 --- Handles the camera update logic during a mode transition (e.g., movement).
@@ -191,7 +211,46 @@ local function handleModeTransition(camState, currentHeight, userControllingView
 end
 
 local function updateRotationMode(currentHeight)
-    -- Update rotation based on current state
+    -- For the very first rotation frame, use the exact final position from the transition
+    if STATE.overview.exactFinalPosition then
+        -- Use the stored exact final position
+        local exactPos = STATE.overview.exactFinalPosition
+
+        -- Apply the exact camera state directly
+        local exactCamState = {
+            mode = 0,
+            name = "fps",
+            px = exactPos.x,
+            py = currentHeight, -- Use current height (may have changed)
+            pz = exactPos.z,
+            rx = exactPos.rx,
+            ry = exactPos.ry,
+            rz = 0
+        }
+
+        -- Log the exact state being applied
+        Log.debug(string.format("[FIXED-ROTATION] Using exact final position for first rotation frame: (%.2f, %.2f)",
+                exactPos.x, exactPos.z))
+
+        -- Apply camera state DIRECTLY to ensure exact match with transition end
+        CameraManager.setCameraState(exactCamState, 0, "TurboOverviewCamera.firstRotationFrame")
+
+        -- Update tracking state
+        TrackingManager.updateTrackingState(exactCamState)
+
+        -- Update fixed camera position to match
+        STATE.overview.fixedCamPos = {
+            x = exactPos.x,
+            z = exactPos.z
+        }
+
+        -- Clear the stored position to use normal rotation updates after first frame
+        STATE.overview.exactFinalPosition = nil
+
+        return -- Skip normal rotation update for first frame
+    end
+
+    -- Normal rotation update for subsequent frames
     if not RotationUtils.updateRotation() then
         return -- Exit early if rotation update failed
     end
@@ -224,19 +283,12 @@ local function updateRotationMode(currentHeight)
         rz = 0
     }
 
-    -- Log the actual camera state being applied
-    Log.trace(string.format("Applying rotation camera: pos=(%.1f, %.1f, %.1f), rot=(%.2f, %.2f)",
-            camStatePatch.px, camStatePatch.py, camStatePatch.pz,
-            camStatePatch.rx, camStatePatch.ry))
-
     -- Apply camera state DIRECTLY to ensure immediate effect
     CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.updateRotationMode")
 
     -- Update tracking state AFTER applying (important order!)
     TrackingManager.updateTrackingState(camStatePatch)
-
 end
-
 
 -- Update camera in normal overview mode (Assumed mostly correct, ensure it uses currentHeight)
 local function updateNormalMode(camState, currentHeight)

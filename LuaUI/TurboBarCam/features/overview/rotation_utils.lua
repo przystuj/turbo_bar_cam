@@ -129,9 +129,13 @@ function RotationUtils.toggleRotation()
 
         -- Get current camera state
         local currentCamState = CameraManager.getCameraState("RotationUtils.toggleRotation")
+        Log.debug(string.format("[DEBUG-ROTATION] Initial camera position: (%.2f, %.2f, %.2f)",
+                currentCamState.px, currentCamState.py, currentCamState.pz))
 
         -- Use the last target point as rotation center
         local targetPoint = STATE.overview.lastTargetPoint
+        Log.debug(string.format("[DEBUG-ROTATION] Target point: (%.2f, %.2f)",
+                targetPoint.x, targetPoint.z))
 
         -- Calculate distance
         local distance = math.sqrt(
@@ -139,18 +143,23 @@ function RotationUtils.toggleRotation()
                         (currentCamState.pz - targetPoint.z) ^ 2
         )
 
-        -- Calculate angle - IMPORTANT: This angle will be used both for transition and rotation
+        -- Calculate angle
         local angle = math.atan2(
                 currentCamState.px - targetPoint.x,
                 currentCamState.pz - targetPoint.z
         )
+        Log.debug(string.format("[DEBUG-ROTATION] Calculated distance: %.2f, angle: %.4f",
+                distance, angle))
 
-        -- *** CRITICAL: Calculate EXACT target position that will be used for rotation ***
-        local exactTargetCamPos = {
-            x = targetPoint.x + distance * math.sin(angle),
-            y = currentCamState.py, -- Keep the same height
-            z = targetPoint.z + distance * math.cos(angle)
+        -- Calculate target position
+        local targetCamPos = {
+            x = currentCamState.px,  -- Keep current position for smooth transition
+            y = currentCamState.py,
+            z = currentCamState.pz
         }
+
+        Log.debug(string.format("[DEBUG-ROTATION] Target camera position: (%.2f, %.2f, %.2f)",
+                targetCamPos.x, targetCamPos.y, targetCamPos.z))
 
         -- Set up rotation state - but don't activate yet
         STATE.overview.isRotationModeActive = false -- Will be set to true after transition
@@ -164,11 +173,7 @@ function RotationUtils.toggleRotation()
         STATE.overview.rotationSpeed = 0
         rotationMomentum = 0
 
-        -- Log the exact parameters we're using
-        Log.debug(string.format("Setting up rotation: center=(%.2f, %.2f), distance=%.2f, angle=%.4f",
-                targetPoint.x, targetPoint.z, distance, angle))
-
-        -- *** Use MovementUtils to properly set up the transition ***
+        -- *** Set up the transition ***
 
         -- Store current camera position as starting point for transition
         STATE.overview.fixedCamPos = {
@@ -177,34 +182,31 @@ function RotationUtils.toggleRotation()
             z = currentCamState.pz
         }
 
-        -- Store the EXACT target position for smooth transition
-        STATE.overview.targetCamPos = exactTargetCamPos
+        -- Use current position as target (zero-distance transition)
+        STATE.overview.targetCamPos = targetCamPos
 
         -- Store the target point
         STATE.overview.targetPoint = targetPoint
 
-        -- Calculate look direction from the EXACT target position
-        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(exactTargetCamPos, targetPoint)
+        -- Calculate look direction
+        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
 
         -- Set rotation targets
         STATE.overview.targetRx = lookDir.rx
         STATE.overview.targetRy = lookDir.ry
 
-        -- Calculate movement distance
-        local moveDistance = math.sqrt(
-                (exactTargetCamPos.x - currentCamState.px) ^ 2 +
-                        (exactTargetCamPos.z - currentCamState.pz) ^ 2
-        )
+        -- Zero distance transition (just to trigger the completeTransition callback)
+        local moveDistance = 0
 
         -- Reset transition tracking variables
         STATE.overview.stuckFrameCount = 0
         STATE.overview.initialMoveDistance = moveDistance
         STATE.overview.lastTransitionDistance = moveDistance
 
-        -- Use a faster transition factor for rotation
-        STATE.overview.currentTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR * 1.5
+        -- Use a fast transition factor
+        STATE.overview.currentTransitionFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR * 2.0
 
-        -- Begin mode transition for smooth movement
+        -- Begin mode transition to trigger completeTransition
         STATE.tracking.isModeTransitionInProgress = true
         STATE.tracking.transitionStartTime = Spring.GetTimer()
 
@@ -214,7 +216,7 @@ function RotationUtils.toggleRotation()
         -- Update tracking state
         TrackingManager.updateTrackingState(currentCamState)
 
-        Log.debug(string.format("Starting transition to rotation position. Distance: %.1f", moveDistance))
+        Log.debug("Starting rotation setup (zero-distance transition)")
         return true
     end
 end
@@ -266,15 +268,18 @@ function RotationUtils.updateRotation()
     -- Get current camera state to obtain height
     local camState = CameraManager.getCameraState("RotationUtils.updateRotationMode")
 
+    -- Calculate sin/cos of the angle
+    local sinAngle = math.sin(STATE.overview.rotationAngle)
+    local cosAngle = math.cos(STATE.overview.rotationAngle)
+
     -- Calculate new camera position based on rotation parameters
-    -- IMPORTANT: Use exactly the same math as in toggleRotation to ensure consistency
     local newCamPos = {
-        x = STATE.overview.rotationCenter.x + STATE.overview.rotationDistance * math.sin(STATE.overview.rotationAngle),
+        x = STATE.overview.rotationCenter.x + STATE.overview.rotationDistance * sinAngle,
         y = camState.py, -- Keep the same height
-        z = STATE.overview.rotationCenter.z + STATE.overview.rotationDistance * math.cos(STATE.overview.rotationAngle)
+        z = STATE.overview.rotationCenter.z + STATE.overview.rotationDistance * cosAngle
     }
 
-    -- Update fixed camera position with exactly the same calculation
+    -- Update fixed camera position
     STATE.overview.fixedCamPos.x = newCamPos.x
     STATE.overview.fixedCamPos.z = newCamPos.z
 
@@ -308,8 +313,10 @@ function RotationUtils.cancelRotation(reason)
     STATE.overview.rotationDistance = nil
     STATE.overview.rotationAngle = nil
     STATE.overview.rotationSpeed = nil
-    STATE.overview.rotationParametersInitialized = nil  -- Clear the flag to reduce log spam
-    STATE.overview.isRmbHoldRotation = nil  -- Clear RMB hold state
+    STATE.overview.rotationParametersInitialized = nil
+    STATE.overview.isRmbHoldRotation = nil
+    STATE.overview.exactFinalPosition = nil  -- Clear the exact position storage
+
     rotationMomentum = 0
 
     local logReason = reason or "user action"
