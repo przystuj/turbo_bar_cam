@@ -101,7 +101,7 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Movement Behavior Settings
                 MIN_DISTANCE = 150, -- Minimum distance to target
-                MOUSE_MOVE_SENSITIVITY = 0.1, -- Mouse sensitivity for camera rotation
+                MOUSE_MOVE_SENSITIVITY = 0.15, -- Mouse sensitivity for camera rotation
 
                 HEIGHT_CONTROL_GRANULARITY = 6, -- Number of height steps
                 DEFAULT_HEIGHT_LEVEL = 2, -- Default level (1 = highest, granularity = lowest)

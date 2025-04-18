@@ -99,7 +99,7 @@ local function ensureRotationParams()
     STATE.overview.maxAngularVelocity = 0.1 -- Hardcoded default value
     STATE.overview.angularDamping = 0.98 -- Hardcoded default value
 
-    Log.debug("Rotation parameters initialized with hardcoded values")
+    Log.trace("Rotation parameters initialized with hardcoded values")
 end
 
 function RotationUtils.toggleRotation()
@@ -115,7 +115,7 @@ function RotationUtils.toggleRotation()
         STATE.overview.rotationAngle = nil
         STATE.overview.rotationSpeed = nil
         rotationMomentum = 0
-        Log.debug("Rotation mode disabled")
+        Log.trace("Rotation mode disabled")
         return false
     else
         -- Ensure rotation parameters are properly initialized
@@ -123,18 +123,18 @@ function RotationUtils.toggleRotation()
 
         -- Enable rotation mode ONLY if we have a last target point
         if not STATE.overview.lastTargetPoint then
-            Log.debug("Cannot enable rotation: No target point available. Use 'Move to Target' first.")
+            Log.trace("Cannot enable rotation: No target point available. Use 'Move to Target' first.")
             return false
         end
 
         -- Get current camera state
         local currentCamState = CameraManager.getCameraState("RotationUtils.toggleRotation")
-        Log.debug(string.format("[DEBUG-ROTATION] Initial camera position: (%.2f, %.2f, %.2f)",
+        Log.trace(string.format("[DEBUG-ROTATION] Initial camera position: (%.2f, %.2f, %.2f)",
                 currentCamState.px, currentCamState.py, currentCamState.pz))
 
         -- Use the last target point as rotation center
         local targetPoint = STATE.overview.lastTargetPoint
-        Log.debug(string.format("[DEBUG-ROTATION] Target point: (%.2f, %.2f)",
+        Log.trace(string.format("[DEBUG-ROTATION] Target point: (%.2f, %.2f)",
                 targetPoint.x, targetPoint.z))
 
         -- Calculate distance
@@ -148,7 +148,7 @@ function RotationUtils.toggleRotation()
                 currentCamState.px - targetPoint.x,
                 currentCamState.pz - targetPoint.z
         )
-        Log.debug(string.format("[DEBUG-ROTATION] Calculated distance: %.2f, angle: %.4f",
+        Log.trace(string.format("[DEBUG-ROTATION] Calculated distance: %.2f, angle: %.4f",
                 distance, angle))
 
         -- Calculate target position
@@ -158,7 +158,7 @@ function RotationUtils.toggleRotation()
             z = currentCamState.pz
         }
 
-        Log.debug(string.format("[DEBUG-ROTATION] Target camera position: (%.2f, %.2f, %.2f)",
+        Log.trace(string.format("[DEBUG-ROTATION] Target camera position: (%.2f, %.2f, %.2f)",
                 targetCamPos.x, targetCamPos.y, targetCamPos.z))
 
         -- Set up rotation state - but don't activate yet
@@ -216,7 +216,7 @@ function RotationUtils.toggleRotation()
         -- Update tracking state
         TrackingManager.updateTrackingState(currentCamState)
 
-        Log.debug("Starting rotation setup (zero-distance transition)")
+        Log.trace("Starting rotation setup (zero-distance transition)")
         return true
     end
 end
@@ -229,7 +229,7 @@ function RotationUtils.updateRotation()
 
     -- Ensure we have all required state values
     if not STATE.overview.rotationCenter or not STATE.overview.rotationDistance then
-        Log.debug("Missing rotation state values - disabling rotation mode")
+        Log.trace("Missing rotation state values - disabling rotation mode")
         RotationUtils.cancelRotation("missing state values")
         return false
     end
@@ -320,7 +320,7 @@ function RotationUtils.cancelRotation(reason)
     rotationMomentum = 0
 
     local logReason = reason or "user action"
-    Log.debug("Rotation mode canceled due to " .. logReason)
+    Log.trace("Rotation mode canceled due to " .. logReason)
     return true
 end
 
@@ -329,7 +329,7 @@ end
 ---@param cursorY number Current Y position of cursor
 function RotationUtils.updateRotationSpeed(cursorX, cursorY)
     if not STATE.overview.isRotationModeActive then
-        Log.debug("Cannot update rotation speed: not in rotation mode")
+        Log.trace("Cannot update rotation speed: not in rotation mode")
         return false
     end
 
@@ -365,7 +365,7 @@ function RotationUtils.updateRotationSpeed(cursorX, cursorY)
     if math.abs(baseSpeed - STATE.overview.rotationSpeed) > 0.0001 then
         STATE.overview.rotationSpeed = baseSpeed
 
-        Log.debug(string.format("Rotation speed updated: %.4f", baseSpeed))
+        Log.trace(string.format("Rotation speed updated: %.4f", baseSpeed))
     end
 
     return true
@@ -383,7 +383,7 @@ function RotationUtils.applyMomentum()
     -- Clear active control speed to signal we're in momentum mode
     STATE.overview.rotationSpeed = 0
 
-    Log.debug(string.format("Applied rotation momentum: %.4f", rotationMomentum))
+    Log.trace(string.format("Applied rotation momentum: %.4f", rotationMomentum))
     return true
 end
 

@@ -52,7 +52,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     local currentHeight
     if STATE.overview.targetHeight then
         currentHeight = STATE.overview.targetHeight
-        Log.debug(string.format("Using target height: %.1f for move operation", currentHeight))
+        Log.trace(string.format("Using target height: %.1f for move operation", currentHeight))
     else
         currentHeight = OverviewCameraUtils.calculateCurrentHeight()
     end
@@ -95,7 +95,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
 
     -- IMPORTANT: Also store as lastTargetPoint for future rotation reference
     STATE.overview.lastTargetPoint = targetPoint
-    Log.debug(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
+    Log.trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
 
     -- Calculate look direction
     local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
@@ -130,7 +130,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     -- Update tracking state
     TrackingManager.updateTrackingState(currentCamState)
 
-    Log.debug(string.format("Starting move to target. Initial Distance: %.1f", moveDistance))
+    Log.trace(string.format("Starting move to target. Initial Distance: %.1f", moveDistance))
 end
 
 --- Checks if a transition has made enough progress or should be considered completed.
@@ -158,7 +158,7 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
     -- If we've completed at least 98% of the journey, also consider it complete
     -- Ensure initialDistance is valid and positive before division
     if initialDistance and initialDistance > 0 and currentDistance < (initialDistance * 0.02) then
-        Log.debug("Transition complete: Reached 98% of distance.")
+        Log.trace("Transition complete: Reached 98% of distance.")
         return true
     end
 
@@ -171,7 +171,7 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
         STATE.overview.stuckFrameCount = (STATE.overview.stuckFrameCount or 0) + 1
         if STATE.overview.stuckFrameCount > 5 then
             -- Number of frames threshold for being stuck
-            Log.debug("Transition complete: Stuck (no progress).")
+            Log.trace("Transition complete: Stuck (no progress).")
             return true
         end
     else
@@ -194,7 +194,7 @@ end
 function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userControllingView)
     -- Ensure we have a target position to move towards
     if not STATE.overview.targetCamPos then
-        Log.debug("UpdateTransition called without targetCamPos")
+        Log.trace("UpdateTransition called without targetCamPos")
         return false -- Indicate nothing happened
     end
 

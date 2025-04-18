@@ -241,7 +241,7 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
 
     -- If we still don't have a valid position, default to directly above target
     if not validPosition then
-        Log.debug("Could not find valid position in same direction, positioning above target")
+        Log.trace("Could not find valid position in same direction, positioning above target")
         return {
             x = targetPoint.x,
             y = currentHeight,
@@ -249,7 +249,7 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
         }
     end
 
-    Log.debug(string.format("Camera positioned at straight line offset (%.1f, %.1f)", newX - targetPoint.x, newZ - targetPoint.z))
+    Log.trace(string.format("Camera positioned at straight line offset (%.1f, %.1f)", newX - targetPoint.x, newZ - targetPoint.z))
 
     return {
         x = newX,
