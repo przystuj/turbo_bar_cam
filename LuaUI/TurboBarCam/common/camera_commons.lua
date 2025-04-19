@@ -21,9 +21,9 @@ end
 ---@param smoothFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
-function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
+function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor, pitchModifier)
     -- Calculate look direction to the target point
-    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
+    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos, pitchModifier)
 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
@@ -50,7 +50,10 @@ end
 ---@param camPos table Camera position {x, y, z}
 ---@param targetPos table Target position {x, y, z}
 ---@return table direction and rotation values
-function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
+function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos, pitchModifier)
+    -- 1.65 looks at target. 1.8 above target
+    pitchModifier = pitchModifier or 1.65
+
     -- Calculate direction vector from camera to target
     local dirX = targetPos.x - (camPos.x or camPos.px)
     local dirY = targetPos.y - (camPos.y or camPos.py)
@@ -69,7 +72,7 @@ function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
 
     -- Calculate pitch (rx)
     local horizontalLength = math.sqrt(dirX * dirX + dirZ * dirZ)
-    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / 1.65)
+    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / pitchModifier)
 
     return {
         dx = dirX,

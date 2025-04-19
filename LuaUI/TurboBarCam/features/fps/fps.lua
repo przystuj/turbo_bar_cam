@@ -139,7 +139,8 @@ function FPSCamera.update()
                 smoothedPos,
                 STATE.tracking.fps.fixedPoint,
                 rotFactor,
-                rotFactor
+                rotFactor,
+                1.8
         )
     elseif STATE.tracking.fps.isFreeCameraActive then
         -- Free camera mode - controlled by mouse

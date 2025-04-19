@@ -182,7 +182,7 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     if targetPos then
         -- Get camera position using weapon position for active weapons
         local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
-        return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
+        return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
     end
 
     -- Fall back to unit hull direction if no weapon direction available

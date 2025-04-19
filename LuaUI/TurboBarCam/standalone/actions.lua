@@ -96,12 +96,19 @@ end
 
 
 function Actions.projectileActions()
-    Actions.registerAction("turbobarcam_toggle_projectile", 'tp',
+    Actions.registerAction("turbobarcam_projectile_camera_follow", 'tp',
             function()
-                FeatureModules.ProjectileCamera.toggle()
+                FeatureModules.ProjectileCamera.followProjectile()
                 return true
             end)
 
+    Actions.registerAction("turbobarcam_projectile_camera_track", 'tp',
+            function()
+                FeatureModules.ProjectileCamera.trackProjectile()
+                return true
+            end)
+
+    -- Projectile camera parameter adjustments
     Actions.registerAction("turbobarcam_projectile_adjust_params", 'pR',
             function(_, params)
                 FeatureModules.ProjectileCamera.adjustParams(params)

@@ -258,6 +258,7 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
     }
 end
 
+
 return {
     OverviewCameraUtils = OverviewCameraUtils
 }

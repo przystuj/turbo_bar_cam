@@ -143,7 +143,8 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
         -- Ensure even small movements have a minimum transition duration
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed < 0.25 then  -- Minimum 0.25 seconds for small movements
+        if elapsed < 0.25 then
+            -- Minimum 0.25 seconds for small movements
             return false
         end
     end
@@ -222,10 +223,7 @@ function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userC
             z = STATE.overview.fixedCamPos.z  -- Use the just-calculated Z
         }
 
-        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(
-                currentIntermediatePos,
-                STATE.overview.targetPoint
-        )
+        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(currentIntermediatePos, STATE.overview.targetPoint)
 
         -- Update the target rotation angles. The actual smoothing/application happens in handleModeTransition.
         STATE.overview.targetRx = lookDir.rx

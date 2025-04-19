@@ -29,7 +29,7 @@ if not WG.TurboBarCam.CONFIG then
         CAMERA_MODES = {
             ANCHOR = {
                 -- modes which will trigger focus_while_tracking effect
-                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit" },
+                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera"  },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
                 STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
@@ -137,6 +137,11 @@ if not WG.TurboBarCam.CONFIG then
             },
 
             PROJECTILE_CAMERA = {
+                -- Camera mode: "follow" (behind projectile) or "static" (fixed position looking at projectile)
+                DEFAULT_CAMERA_MODE = "follow",
+                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera" },
+                DEFAULT_MODE = "unit_tracking",
+
                 -- Default distance behind projectile
                 DEFAULT_DISTANCE = 200,
                 DISTANCE = 200,
