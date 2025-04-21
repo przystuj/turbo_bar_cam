@@ -10,20 +10,20 @@
             width: 300dp;
             padding: 10dp;
             background-color: #11171D99;
-            border: 1dp solid #455A64;
+            border-width: 1dp;
+            border-color: #455A64;
             border-radius: 4dp;
         }
 
         h1 {
             font-family: "Exo 2";
-            font-weight: regular;
             font-size: 18dp;
             color: #F5F5F5;
-            margin-top: 0;
+            margin-top: 0dp;
         }
 
         .section {
-            margin: 5dp 0;
+            margin: 5dp 0dp;
             padding: 5dp;
             background-color: #232F3899;
             border-radius: 3dp;
@@ -31,7 +31,6 @@
 
         .section-header {
             font-family: "Exo 2";
-            font-weight: regular;
             color: #B2CCD6;
             margin-bottom: 5dp;
         }
@@ -46,23 +45,30 @@
         }
 
         .action {
-            margin: 2dp 0;
+            margin: 2dp 0dp;
             background-color: #19212999;
             padding: 5dp;
             border-radius: 2dp;
+            display: flex;
+            justify-content: space-between;
         }
 
         .action-key {
             color: #FFCA28;
             font-weight: bold;
-            margin-right: 5dp;
+            margin-left: 5dp;
+            padding: 0dp 5dp;
+            background-color: #19212999;
+            border-radius: 3dp;
         }
 
         .anchor-item {
-            margin: 2dp 0;
+            margin: 2dp 0dp;
             padding: 5dp;
             border-radius: 2dp;
             background-color: #19212999;
+            display: flex;
+            justify-content: space-between;
         }
 
         .disabled {
@@ -71,11 +77,11 @@
 
         .btn {
             font-family: "Exo 2";
-            font-weight: regular;
             display: inline-block;
             padding: 5dp 10dp;
             background-color: #232F38;
-            border: 1dp solid #455A64;
+            border-width: 1dp;
+            border-color: #455A64;
             border-radius: 3dp;
             color: #B0BEC5;
             cursor: pointer;
@@ -96,11 +102,11 @@
 
         .btn-toggle {
             font-family: "Exo 2";
-            font-weight: regular;
             display: inline-block;
             padding: 5dp 10dp;
             background-color: #263238;
-            border: 1dp solid #455A64;
+            border-width: 1dp;
+            border-color: #455A64;
             border-radius: 3dp;
             color: #B0BEC5;
             cursor: pointer;
@@ -131,33 +137,51 @@
         }
     </style>
 </head>
-<body id="turbobarcam-ui">
+<body id="turbobarcam-ui" data-model="turbobarcam_ui_model">
     <h1>TurboBarCam</h1>
-    
+
     <div class="section">
-        <div>Status: <span id="status-text" class="status-disabled">Disabled</span></div>
-        <div>Current Mode: <span id="current-mode">None</span></div>
-        <div id="toggle-button" class="btn-toggle" onclick="TurboBarCamUI.ToggleTurboBarCam()">Enable TurboBarCam</div>
+        <div>Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span></div>
+        <div>Current Mode: <span>{{ currentMode }}</span></div>
+        <div class="btn-toggle" onclick="ToggleTurboBarCam">{{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam</div>
     </div>
-    
+
     <div class="section">
         <div class="section-header">Available Modes:</div>
         <div id="available-modes">
-            <!-- Available modes will be inserted here dynamically -->
+            <div data-for="mode : availableModes" class="btn {{ mode.isActive ? 'active' : '' }}" onclick="ToggleMode(mode.key)">
+                {{ mode.name }} {{ mode.keyBind != '' ? '[' + mode.keyBind + ']' : '' }}
+            </div>
         </div>
     </div>
-    
+
     <div class="section">
-        <div class="section-header">Actions for <span id="current-mode-actions">Current Mode</span>:</div>
+        <div class="section-header">Actions for <span>{{ currentModeActions }}</span>:</div>
         <div id="mode-actions">
-            <!-- Actions for current mode will be inserted here dynamically -->
+            <div data-if="modeActions.length > 0">
+                <div data-for="action : modeActions" class="action">
+                    <span>{{ action.name }}</span>
+                    <span class="action-key">{{ action.keyBind }}</span>
+                </div>
+            </div>
+            <div data-if="modeActions.length == 0">
+                No actions available for this mode
+            </div>
         </div>
     </div>
-    
+
     <div class="section">
         <div class="section-header">Saved Anchors:</div>
         <div id="saved-anchors">
-            <!-- Saved anchors will be inserted here dynamically -->
+            <div data-if="hasAnchors">
+                <div data-for="anchor : savedAnchors" class="anchor-item">
+                    Anchor {{ anchor.index }}
+                    <span data-if="anchor.keyBind != ''" class="action-key">{{ anchor.keyBind }}</span>
+                </div>
+            </div>
+            <div data-if="!hasAnchors">
+                No anchors saved
+            </div>
         </div>
     </div>
     

@@ -26,83 +26,42 @@ if not RmlUi then
     }
 end
 
+local widget = widget
+
 ---@class TurboBarCamUI
 local TurboBarCamUI = {
     initialized = false,
     visible = false,
     document = nil,
-    rmlContext = nil,
-    dataModelHandle = nil,
-
-    -- Data model
-    model = {
-        status = "Disabled",
-        isEnabled = false,
-        currentMode = "None",
-        currentModeActions = "No Active Mode",
-        availableModes = {},
-        modeActions = {},
-        savedAnchors = {},
-        hasAnchors = false
-    },
 
     -- Constants
-    MAIN_MODEL_NAME = "turbobarcam_model",
+    MAIN_MODEL_NAME = "turbobarcam_ui_model", -- Changed to avoid conflict
 
     -- Available modes definition
-    modesInfo = {
+    availableModes = {
         fps = "FPS Camera",
         unit_tracking = "Unit Tracking",
         orbit = "Orbit Camera",
         overview = "Overview",
         group_tracking = "Group Tracking",
         projectile_camera = "Projectile Camera"
-    }
+    },
+
+    -- Key bindings storage
+    keyBinds = {}
 }
 
--- Initialize the UI module
-function TurboBarCamUI.initialize()
-    -- Get RmlUi context
-    TurboBarCamUI.rmlContext = RmlUi.GetContext("shared")
-
-    if not TurboBarCamUI.rmlContext then
-        Log.info("[UI] Failed to get RmlUi context")
-        return false
-    end
-
-    widget.rmlContext = RmlUi.GetContext("TurboBarCam")
-
-    -- Initialize data model
-    TurboBarCamUI.dataModelHandle = TurboBarCamUI.rmlContext:OpenDataModel(TurboBarCamUI.MAIN_MODEL_NAME, TurboBarCamUI.model)
-
-    if not TurboBarCamUI.dataModelHandle then
-        Log.info("[UI] Failed to open data model " .. TurboBarCamUI.MAIN_MODEL_NAME)
-        return false
-    end
-
-    -- Load the document
-    TurboBarCamUI.document = TurboBarCamUI.rmlContext:LoadDocument("LuaUI/TurboBarCam/ui/rml/ui_template.rml", widget)
-
-    if not TurboBarCamUI.document then
-        Log.info("[UI] Failed to load UI document")
-        TurboBarCamUI.rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
-        return false
-    end
-
-    -- Prepare and load initial data
-    --TurboBarCamUI.loadKeyBindings()
-    --TurboBarCamUI.updateDataModel()
-
-    -- Reload stylesheet and show document
-    TurboBarCamUI.document:ReloadStyleSheet()
-
-    -- Initially hide the UI
-    TurboBarCamUI.document:Hide()
-    TurboBarCamUI.visible = false
-
-    TurboBarCamUI.initialized = true
-    return true
-end
+-- Initialize model data
+local initialModel = {
+    status = "Disabled",
+    isEnabled = false,
+    currentMode = "None",
+    currentModeActions = "No Active Mode",
+    availableModes = {},
+    modeActions = {},
+    savedAnchors = {},
+    hasAnchors = false
+}
 
 -- Load UI key bindings from Spring
 function TurboBarCamUI.loadKeyBindings()
@@ -117,7 +76,7 @@ function TurboBarCamUI.loadKeyBindings()
         local keyCombo = bind[2]
 
         -- Only consider TurboBarCam actions
-        if string.find(actionName, "turbobarcam_") then
+        if actionName and string.find(actionName, "turbobarcam_") then
             -- Store the key binding
             TurboBarCamUI.keyBinds[actionName] = TurboBarCamUI.keyBinds[actionName] or {}
             table.insert(TurboBarCamUI.keyBinds[actionName], keyCombo)
@@ -125,81 +84,106 @@ function TurboBarCamUI.loadKeyBindings()
     end
 end
 
--- Toggle UI visibility
-function TurboBarCamUI.toggle()
-    if not TurboBarCamUI.initialized then
-        if not TurboBarCamUI.initialize() then
-            return
-        end
+-- Initialize the UI module
+function TurboBarCamUI.initialize()
+    if TurboBarCamUI.initialized then
+        return true
     end
 
-    TurboBarCamUI.visible = not TurboBarCamUI.visible
+    -- Get RmlUi context through widget
+    widget.rmlContext = RmlUi.GetContext("shared")
 
-    if TurboBarCamUI.document then
-        TurboBarCamUI.document.visible = TurboBarCamUI.visible
-
-        if TurboBarCamUI.visible then
-            -- Update UI when showing
-            TurboBarCamUI.update()
-        end
+    if not widget.rmlContext then
+        Log.info("[UI] Failed to get RmlUi context")
+        return false
     end
+
+    -- Prepare and load initial data
+    TurboBarCamUI.loadKeyBindings()
+
+    -- Open data model first
+    local dmHandle = widget.rmlContext:OpenDataModel(TurboBarCamUI.MAIN_MODEL_NAME, initialModel)
+
+    if not dmHandle then
+        Log.info("[UI] Failed to open data model " .. TurboBarCamUI.MAIN_MODEL_NAME)
+        return false
+    end
+
+    -- Load the document (passing the widget for events)
+    TurboBarCamUI.document = widget.rmlContext:LoadDocument("LuaUI/TurboBarCam/ui/rml/ui_template.rml", widget)
+
+    if not TurboBarCamUI.document then
+        Log.info("[UI] Failed to load UI document")
+        widget.rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+        return false
+    end
+
+    -- Update the document with current state
+    TurboBarCamUI.updateDataModel(dmHandle)
+
+    -- Setup document
+    TurboBarCamUI.document:ReloadStyleSheet()
+    TurboBarCamUI.document:Hide() -- Start hidden
+    TurboBarCamUI.visible = false
+
+    TurboBarCamUI.initialized = true
+    return true
 end
 
--- Update the UI with current TurboBarCam state
-function TurboBarCamUI.update()
-    if not TurboBarCamUI.initialized or not TurboBarCamUI.visible or not TurboBarCamUI.document then
+-- Update data model with current TurboBarCam state
+function TurboBarCamUI.updateDataModel(dm_handle)
+    if not TurboBarCamUI.initialized then
         return
     end
 
-    -- Update status and toggle button
-    local statusElement = TurboBarCamUI.document:GetElementById("status-text")
-    local toggleButton = TurboBarCamUI.document:GetElementById("toggle-button")
+    -- Get the handle if not provided
+    local handle = dm_handle or widget.rmlContext:GetDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+    if not handle then return end
 
-    if STATE.enabled then
-        statusElement.inner_rml = "Enabled"
-        statusElement.class_name = "status-enabled"
-        toggleButton.inner_rml = "Disable TurboBarCam"
-    else
-        statusElement.inner_rml = "Disabled"
-        statusElement.class_name = "status-disabled"
-        toggleButton.inner_rml = "Enable TurboBarCam"
-    end
+    -- Build model
+    local model = {}
+
+    -- Update status
+    model.isEnabled = STATE.enabled
+    model.status = STATE.enabled and "Enabled" or "Disabled"
 
     -- Update current mode
     local currentMode = STATE.tracking.mode or "None"
-    TurboBarCamUI.document:GetElementById("current-mode").inner_rml = currentMode ~= "None"
+    model.currentMode = currentMode ~= "None"
             and (TurboBarCamUI.availableModes[currentMode] or currentMode)
             or "None"
 
     -- Update mode actions header
-    TurboBarCamUI.document:GetElementById("current-mode-actions").inner_rml = currentMode ~= "None"
+    model.currentModeActions = currentMode ~= "None"
             and (TurboBarCamUI.availableModes[currentMode] or currentMode)
             or "No Active Mode"
 
     -- Update available modes
-    local modesHtml = ""
+    model.availableModes = {}
     for modeKey, modeName in pairs(TurboBarCamUI.availableModes) do
         local isActive = currentMode == modeKey
-        local modeClass = isActive and "btn active" or "btn"
 
         -- Find the key binding for toggling this mode
         local toggleAction = "turbobarcam_toggle_" .. modeKey
-
-        local keyBindText = ""
-        if TurboBarCamUI.keyBinds[toggleAction] and TurboBarCamUI.keyBinds[toggleAction][1] then
-            keyBindText = " [" .. TurboBarCamUI.keyBinds[toggleAction][1] .. "]"
+        if modeKey == "unit_tracking" then
+            toggleAction = "turbobarcam_toggle_tracking_camera"
         end
 
-        modesHtml = modesHtml ..
-                '<div class="' .. modeClass .. '" onclick="TurboBarCamUI.ToggleMode(\'' .. modeKey .. '\')">' ..
-                modeName .. keyBindText ..
-                '</div>'
+        local keyBind = ""
+        if TurboBarCamUI.keyBinds[toggleAction] and TurboBarCamUI.keyBinds[toggleAction][1] then
+            keyBind = TurboBarCamUI.keyBinds[toggleAction][1]
+        end
+
+        table.insert(model.availableModes, {
+            key = modeKey,
+            name = modeName,
+            isActive = isActive,
+            keyBind = keyBind
+        })
     end
 
-    TurboBarCamUI.document:GetElementById("available-modes").inner_rml = modesHtml
-
     -- Update mode actions
-    local actionsHtml = ""
+    model.modeActions = {}
 
     -- Only show actions for current mode, if a mode is active
     if currentMode ~= "None" then
@@ -213,30 +197,23 @@ function TurboBarCamUI.update()
                     local keyBind = keyBinds[1] or "Unbound"
                     local actionDisplay = actionName:gsub("turbobarcam_", ""):gsub("_", " ")
 
-                    actionsHtml = actionsHtml ..
-                            '<div class="action">' ..
-                            '<span>' .. actionDisplay .. '</span>' ..
-                            '<span class="action-key">' .. keyBind .. '</span>' ..
-                            '</div>'
+                    table.insert(model.modeActions, {
+                        name = actionDisplay,
+                        keyBind = keyBind
+                    })
                 end
             end
         end
     end
 
-    if actionsHtml == "" then
-        actionsHtml = '<div>No actions available for this mode</div>'
-    end
-
-    TurboBarCamUI.document:GetElementById("mode-actions").inner_rml = actionsHtml
-
     -- Update saved anchors
-    local anchorsHtml = ""
-    local hasAnchors = false
+    model.savedAnchors = {}
+    model.hasAnchors = false
 
     -- Loop through potential anchors (0-9)
     for i = 0, 9 do
         if STATE.anchors[i] then
-            hasAnchors = true
+            model.hasAnchors = true
 
             -- Find keybinding for focusing this anchor
             local focusKeyBind = ""
@@ -251,27 +228,87 @@ function TurboBarCamUI.update()
                 end
             end
 
-            anchorsHtml = anchorsHtml ..
-                    '<div class="anchor-item">' ..
-                    'Anchor ' .. i ..
-                    (focusKeyBind ~= "" and ' <span class="action-key">' .. focusKeyBind .. '</span>' or '') ..
-                    '</div>'
+            table.insert(model.savedAnchors, {
+                index = i,
+                keyBind = focusKeyBind
+            })
         end
     end
 
-    if not hasAnchors then
-        anchorsHtml = '<div>No anchors saved</div>'
+    -- Update the data model
+    handle:UpdateValues(model)
+end
+
+-- Toggle UI visibility
+function TurboBarCamUI.toggle()
+    if not TurboBarCamUI.initialized then
+        if not TurboBarCamUI.initialize() then
+            return
+        end
     end
 
-    TurboBarCamUI.document:GetElementById("saved-anchors").inner_rml = anchorsHtml
+    TurboBarCamUI.visible = not TurboBarCamUI.visible
+
+    if TurboBarCamUI.document then
+        if TurboBarCamUI.visible then
+            TurboBarCamUI.update()
+            TurboBarCamUI.document:Show()
+        else
+            TurboBarCamUI.document:Hide()
+        end
+    end
+end
+
+-- Update function to be called from the update manager
+function TurboBarCamUI.update()
+    if TurboBarCamUI.initialized and TurboBarCamUI.visible then
+        -- Update data model
+        TurboBarCamUI.updateDataModel()
+    end
+end
+
+-- RML event handlers (referenced in the template)
+function widget:ToggleTurboBarCam()
+    if CoreModules and CoreModules.WidgetControl then
+        CoreModules.WidgetControl.toggle()
+        TurboBarCamUI.update() -- Update UI immediately after toggle
+    else
+        Log.info("[UI] Could not toggle TurboBarCam - WidgetControl not loaded")
+    end
+end
+
+function widget:ToggleMode(mode)
+    if mode and STATE.enabled then
+        local actionName = "turbobarcam_toggle_" .. mode
+
+        -- Special case for unit_tracking
+        if mode == "unit_tracking" then
+            actionName = "turbobarcam_toggle_tracking_camera"
+        end
+
+        -- Execute the action through Spring
+        Spring.SendCommands(actionName)
+
+        -- Update the UI after a short delay to allow state to update
+        Spring.SetTimer(0.1, function() TurboBarCamUI.update() end)
+    else
+        Log.info("[UI] Could not toggle mode - TurboBarCam not enabled or mode invalid")
+    end
 end
 
 -- Shutdown function
 function TurboBarCamUI.shutdown()
-    if TurboBarCamUI.initialized and TurboBarCamUI.document then
-        TurboBarCamUI.rml.RemoveDocument(TurboBarCamUI.document)
-        TurboBarCamUI.document = nil
+    if TurboBarCamUI.initialized then
+        if TurboBarCamUI.document then
+            TurboBarCamUI.document:Close()
+            TurboBarCamUI.document = nil
+        end
+
+        if widget.rmlContext then
+            widget.rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+        end
     end
+
     TurboBarCamUI.initialized = false
 end
 
