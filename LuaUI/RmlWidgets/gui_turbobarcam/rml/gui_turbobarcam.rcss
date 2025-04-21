@@ -9,13 +9,31 @@ body {
     border-width: 1dp;
     border-color: #455A64;
     border-radius: 4dp;
+    position: absolute;
+    top: 200dp;
+    left: 200dp;
 }
 
-h1 {
+/* Ensure all divs are block-level elements that start on new lines */
+div {
+    display: block;
+    margin-bottom: 5dp;
+}
+
+/* Title bar styles */
+#title_bar {
+    background-color: #1A2530;
+    padding: 5dp;
+    margin: -10dp -10dp 10dp -10dp; /* Negative margin to compensate for body padding */
+    border-radius: 4dp 4dp 0 0;
+    cursor: move;
+}
+
+#title {
     font-family: "Exo 2";
-    font-size: 18dp;
+    font-size: 16dp;
     color: #F5F5F5;
-    margin-top: 0dp;
+    font-weight: bold;
 }
 
 .section {
@@ -25,80 +43,10 @@ h1 {
     border-radius: 3dp;
 }
 
-.section-header {
-    font-family: "Exo 2";
-    color: #B2CCD6;
-    margin-bottom: 5dp;
-}
-
-.mode-active {
-    color: #8BC34A;
-    font-weight: bold;
-}
-
-.mode-inactive {
-    color: #B0BEC5;
-}
-
-.action {
-    margin: 2dp 0dp;
-    background-color: #19212999;
-    padding: 5dp;
-    border-radius: 2dp;
-    display: flex;
-    justify-content: space-between;
-}
-
-.action-key {
-    color: #FFCA28;
-    font-weight: bold;
-    margin-left: 5dp;
-    padding: 0dp 5dp;
-    background-color: #19212999;
-    border-radius: 3dp;
-}
-
-.anchor-item {
-    margin: 2dp 0dp;
-    padding: 5dp;
-    border-radius: 2dp;
-    background-color: #19212999;
-    display: flex;
-    justify-content: space-between;
-}
-
-.disabled {
-    opacity: 0.5;
-}
-
-.btn {
-    font-family: "Exo 2";
-    display: inline-block;
-    padding: 5dp 10dp;
-    background-color: #232F38;
-    border-width: 1dp;
-    border-color: #455A64;
-    border-radius: 3dp;
-    color: #B0BEC5;
-    cursor: pointer;
-    margin: 2dp;
-    text-align: center;
-}
-
-.btn:hover {
-    background-color: #2C3B47;
-    color: #F5F5F5;
-}
-
-.btn.active {
-    background-color: #37474F;
-    color: #8BC34A;
-    border-color: #78909C;
-}
-
 .btn-toggle {
     font-family: "Exo 2";
-    display: inline-block;
+    display: block;
+    width: auto;
     padding: 5dp 10dp;
     background-color: #263238;
     border-width: 1dp;
@@ -123,11 +71,4 @@ h1 {
 .status-disabled {
     color: #FF7043;
     font-weight: bold;
-}
-
-.footer {
-    font-size: 12dp;
-    color: #78909C;
-    margin-top: 8dp;
-    text-align: center;
 }

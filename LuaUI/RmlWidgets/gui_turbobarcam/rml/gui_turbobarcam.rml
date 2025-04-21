@@ -1,19 +1,38 @@
 <rml>
     <head>
         <title>TurboBarCam UI</title>
-        <link type="text/template" href="draggable.rml"/>
         <link type="text/rcss" href="gui_turbobarcam.rcss"/>
     </head>
-    <body template="draggable" id="turbobarcam-ui" data-model="turbobarcam_model">
-    <div class="section">
-        <div>Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span></div>
-        <div>Current Mode: <span>{{ currentMode }}</span></div>
-        <div class="btn-toggle" onclick="widget.ToggleTurboBarCam()">{{ isEnabled ? 'Disable' : 'Enable' }}
-            TurboBarCam
+    <body id="turbobarcam-ui" data-model="turbobarcam_model">
+    <!-- Title bar with drag functionality -->
+    <handle move_target="#document">
+        <div id="title_bar">
+            <span id="title">TurboBarCam</span>
         </div>
-        <br/>
-        <br/>
-        <div class="btn-toggle" onclick="widget.RestartWidget()">Reload</div>
+    </handle>
+
+    <!-- Main window content -->
+    <div class="section">
+        <div>
+            Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span>
+        </div>
+        <div>
+            Current Mode: <span>{{ currentMode }}</span>
+        </div>
+        <div>
+            <div class="btn-toggle" onclick="widget.ToggleTurboBarCam()">
+                {{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam
+            </div>
+        </div>
+        <div>
+            <div class="btn-toggle" onclick="widget.RestartWidget()">
+                [dev] reload
+            </div>
+        </div>
     </div>
+
+    <!-- Resize handle -->
+    <handle size_target="#document"
+            style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;"></handle>
     </body>
 </rml>
