@@ -59,6 +59,10 @@ function widget:Initialize()
         return STATE.allowPlayerCamUnitSelection
     end
 
+    WG.TurboBarCam.UI = {
+        ToggleTurboBarCam = CoreModules.WidgetControl.toggle
+    }
+
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
@@ -119,7 +123,7 @@ end
 if CONFIG and CONFIG.DEBUG and CONFIG.DEBUG.TRACE_BACK then
     local function wrapWithTrace(func, name)
         return function(...)
-            local args = {...}
+            local args = { ... }
             local success, result = xpcall(
                     function()
                         return func(unpack(args))

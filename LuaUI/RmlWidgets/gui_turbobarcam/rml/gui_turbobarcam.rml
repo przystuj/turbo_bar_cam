@@ -1,0 +1,19 @@
+<rml>
+    <head>
+        <title>TurboBarCam UI</title>
+        <link type="text/template" href="draggable.rml"/>
+        <link type="text/rcss" href="gui_turbobarcam.rcss"/>
+    </head>
+    <body template="draggable" id="turbobarcam-ui" data-model="turbobarcam_model">
+    <div class="section">
+        <div>Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span></div>
+        <div>Current Mode: <span>{{ currentMode }}</span></div>
+        <div class="btn-toggle" onclick="widget.ToggleTurboBarCam()">{{ isEnabled ? 'Disable' : 'Enable' }}
+            TurboBarCam
+        </div>
+        <br/>
+        <br/>
+        <div class="btn-toggle" onclick="widget.RestartWidget()">Reload</div>
+    </div>
+    </body>
+</rml>

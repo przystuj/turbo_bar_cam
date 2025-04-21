@@ -1,0 +1,133 @@
+body {
+    font-family: Poppins;
+    font-weight: 200;
+    font-size: 14dp;
+    color: #F5F5F5;
+    width: 300dp;
+    padding: 10dp;
+    background-color: #11171D99;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 4dp;
+}
+
+h1 {
+    font-family: "Exo 2";
+    font-size: 18dp;
+    color: #F5F5F5;
+    margin-top: 0dp;
+}
+
+.section {
+    margin: 5dp 0dp;
+    padding: 5dp;
+    background-color: #232F3899;
+    border-radius: 3dp;
+}
+
+.section-header {
+    font-family: "Exo 2";
+    color: #B2CCD6;
+    margin-bottom: 5dp;
+}
+
+.mode-active {
+    color: #8BC34A;
+    font-weight: bold;
+}
+
+.mode-inactive {
+    color: #B0BEC5;
+}
+
+.action {
+    margin: 2dp 0dp;
+    background-color: #19212999;
+    padding: 5dp;
+    border-radius: 2dp;
+    display: flex;
+    justify-content: space-between;
+}
+
+.action-key {
+    color: #FFCA28;
+    font-weight: bold;
+    margin-left: 5dp;
+    padding: 0dp 5dp;
+    background-color: #19212999;
+    border-radius: 3dp;
+}
+
+.anchor-item {
+    margin: 2dp 0dp;
+    padding: 5dp;
+    border-radius: 2dp;
+    background-color: #19212999;
+    display: flex;
+    justify-content: space-between;
+}
+
+.disabled {
+    opacity: 0.5;
+}
+
+.btn {
+    font-family: "Exo 2";
+    display: inline-block;
+    padding: 5dp 10dp;
+    background-color: #232F38;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    margin: 2dp;
+    text-align: center;
+}
+
+.btn:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
+}
+
+.btn.active {
+    background-color: #37474F;
+    color: #8BC34A;
+    border-color: #78909C;
+}
+
+.btn-toggle {
+    font-family: "Exo 2";
+    display: inline-block;
+    padding: 5dp 10dp;
+    background-color: #263238;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    margin-top: 5dp;
+    text-align: center;
+}
+
+.btn-toggle:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
+}
+
+.status-enabled {
+    color: #8BC34A;
+    font-weight: bold;
+}
+
+.status-disabled {
+    color: #FF7043;
+    font-weight: bold;
+}
+
+.footer {
+    font-size: 12dp;
+    color: #78909C;
+    margin-top: 8dp;
+    text-align: center;
+}
