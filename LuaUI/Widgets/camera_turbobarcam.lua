@@ -7,7 +7,7 @@ function widget:GetInfo()
         license = "GNU GPL, v2 or later",
         layer = 1,
         enabled = true,
-        version = 1.6,
+        version = 1.7,
         handler = true,
     }
 end
@@ -28,6 +28,9 @@ local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 ---@type ProjectileTracker
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
+
+-- init rml exposed functions
+VFS.Include("LuaUI/TurboBarCam/ui/rml_functions.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

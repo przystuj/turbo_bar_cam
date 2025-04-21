@@ -3,7 +3,7 @@
 //---------------
 bind            numpad.             turbobarcam_toggle
 bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
-// Just in case kek
+bind		    Ctrl+sc_]           turbobarcam_toggle_ui
 bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
 bind		    Home      		    turbobarcam_toggle_zoom
 
@@ -26,13 +26,13 @@ bind			Ctrl+Shift+numpad-	turbobarcam_anchor_adjust_params add;DURATION,-1
 bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
 
 // Single Unit Tracking
-bind		numpad3  		turbobarcam_toggle_tracking_camera
-bind		Ctrl+numpad3  	turbobarcam_tracking_camera_adjust_params reset
-bind		numpad8			turbobarcam_tracking_camera_adjust_params add;HEIGHT,20
-bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-20
+bind		numpad3  		turbobarcam_toggle_unit_tracking
+bind		Ctrl+numpad3  	turbobarcam_unit_tracking_adjust_params reset
+bind		numpad8			turbobarcam_unit_tracking_adjust_params add;HEIGHT,20
+bind		numpad5			turbobarcam_unit_tracking_adjust_params add;HEIGHT,-20
 
 // Orbit
-bind		numpad2  		turbobarcam_toggle_orbiting_camera
+bind		numpad2  		turbobarcam_toggle_orbit
 bind		numpad5			turbobarcam_orbit_adjust_params add;HEIGHT,5;DISTANCE,10
 bind		numpad8			turbobarcam_orbit_adjust_params add;HEIGHT,-5;DISTANCE,-10
 bind		numpad6			turbobarcam_orbit_adjust_params add;HEIGHT,5

@@ -4,6 +4,8 @@ local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+---@type TurboBarCamUI
+local TurboBarCamUI = VFS.Include("LuaUI/TurboBarCam/ui/ui_module.lua").TurboBarCamUI
 
 ---@class Actions
 local Actions = {}
@@ -20,6 +22,7 @@ function Actions.registerAllActions()
     Actions.overviewActions()
     Actions.groupTrackingActions()
     Actions.projectileActions()
+    Actions.uiActions()
     Actions.I18N()
 end
 
@@ -46,7 +49,6 @@ function Actions.coreActions()
                 return true
             end)
 end
-
 
 function Actions.fpsActions()
     -- FPS camera actions
@@ -94,7 +96,6 @@ function Actions.fpsActions()
             end)
 end
 
-
 function Actions.projectileActions()
     Actions.registerAction("turbobarcam_projectile_camera_follow", 'tp',
             function()
@@ -115,7 +116,6 @@ function Actions.projectileActions()
                 return false
             end)
 end
-
 
 function Actions.anchorActions()
     Actions.registerAction("turbobarcam_anchor_set", 'tp',
@@ -143,21 +143,19 @@ function Actions.anchorActions()
             end)
 end
 
-
 function Actions.trackingCameraActions()
-    Actions.registerAction("turbobarcam_toggle_tracking_camera", 'tp',
+    Actions.registerAction("turbobarcam_toggle_unit_tracking", 'tp',
             function()
                 FeatureModules.UnitTrackingCamera.toggle()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_unit_tracking_adjust_params", 'pR',
             function(_, params)
                 FeatureModules.UnitTrackingCamera.adjustParams(params)
                 return false
             end)
 end
-
 
 function Actions.specGroupsActions()
     Actions.registerAction("turbobarcam_spec_unit_group", 'tp',
@@ -167,9 +165,8 @@ function Actions.specGroupsActions()
             end)
 end
 
-
 function Actions.orbitActions()
-    Actions.registerAction("turbobarcam_toggle_orbiting_camera", 'tp',
+    Actions.registerAction("turbobarcam_toggle_orbit", 'tp',
             function()
                 FeatureModules.OrbitingCamera.toggle()
                 return true
@@ -181,7 +178,6 @@ function Actions.orbitActions()
                 return false
             end)
 end
-
 
 function Actions.overviewActions()
     Actions.registerAction("turbobarcam_overview_toggle", 'tp',
@@ -204,7 +200,6 @@ function Actions.overviewActions()
             end)
 end
 
-
 function Actions.groupTrackingActions()
     Actions.registerAction("turbobarcam_toggle_group_tracking_camera", 'tp',
             function()
@@ -216,6 +211,16 @@ function Actions.groupTrackingActions()
             function(_, params)
                 FeatureModules.GroupTrackingCamera.adjustParams(params)
                 return false
+            end)
+end
+
+function Actions.uiActions()
+    Actions.registerAction("turbobarcam_toggle_ui", 'tp',
+            function()
+                if TurboBarCamUI and TurboBarCamUI.toggle then
+                    TurboBarCamUI.toggle()
+                end
+                return true
             end)
 end
 

@@ -14,6 +14,8 @@ local TrackingManager = CommonModules.TrackingManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
 ---@type Scheduler
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
+---@type TurboBarCamUI
+local TurboBarCamUI = VFS.Include("LuaUI/TurboBarCam/ui/ui_module.lua").TurboBarCamUI
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -41,7 +43,13 @@ function UpdateManager.processCycle()
 
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode()
+
+    -- Update UI if initialized
+    --if TurboBarCamUI and TurboBarCamUI.update then
+    --    TurboBarCamUI.update()
+    --end
 end
+
 
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
