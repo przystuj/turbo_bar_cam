@@ -56,6 +56,43 @@ div {
     border-radius: 3dp;
 }
 
+.keybind-section {
+    margin-top: 10dp;
+}
+
+.keybind-title {
+    font-family: "Exo 2";
+    font-size: 15dp;
+    color: #90CAF9;
+    margin-bottom: 5dp;
+}
+
+.keybind-table {
+    width: 100%;
+    border-spacing: 0 3dp;
+}
+
+.keybind-row {
+    width: 100%;
+}
+
+.keybind-action {
+    color: #E0E0E0;
+    width: 70%;
+    text-align: left;
+    padding: 2dp 0;
+}
+
+.keybind-key {
+    color: #FFCC80;
+    width: 30%;
+    text-align: right;
+    font-family: monospace;
+    background-color: #1A2530;
+    border-radius: 2dp;
+    padding: 2dp 4dp;
+}
+
 .btn-toggle {
     font-family: "Exo 2";
     display: block;

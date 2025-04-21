@@ -22,6 +22,24 @@
                 {{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam
             </div>
         </div>
+
+        <!-- Keybinds section -->
+        <div class="keybind-section">
+            <div class="keybind-title">Mode Keybindings</div>
+            <table class="keybind-table">
+                <tr class="keybind-row" data-for-each="modeBindings">
+                    <td class="keybind-action">{{ actionName }}</td>
+                    <td class="keybind-key">{{ keyBind }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div>
+            <div class="btn-toggle" onclick="widget.RefreshBindings()">
+                Refresh Bindings
+            </div>
+        </div>
+
         <div>
             <div class="btn-toggle" onclick="widget.RestartWidget()">
                 [dev] reload

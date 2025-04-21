@@ -34,6 +34,118 @@ local availableModes = {
     projectile_camera = "Projectile Camera"
 }
 
+-- Action prefixes for different camera modes
+local MODE_ACTION_PREFIXES = {
+    fps = "turbobarcam_fps_",
+    unit_tracking = "turbobarcam_unit_tracking_",
+    orbit = "turbobarcam_orbit_",
+    overview = "turbobarcam_overview_",
+    group_tracking = "turbobarcam_group_tracking_",
+    projectile_camera = "turbobarcam_projectile_"
+}
+
+-- Helper function to get pretty action name
+local function getPrettyActionName(actionName)
+    -- Strip prefix and replace underscores with spaces
+    local baseAction = actionName:gsub("turbobarcam_", "")
+
+    -- Strip the mode prefix if it exists
+    for mode, prefix in pairs(MODE_ACTION_PREFIXES) do
+        baseAction = baseAction:gsub("^" .. mode:gsub("_", "_") .. "_", "")
+    end
+
+    -- Replace underscores with spaces and capitalize first letter of each word
+    baseAction = baseAction:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest)
+        return first:upper() .. rest
+    end)
+
+    return baseAction
+end
+
+-- Function to get key bindings for actions
+local function getActionBindings()
+    local bindings = {}
+
+    -- Get all keybinds from Spring
+    local allBindings = Spring.GetKeyBindings()
+
+    for _, binding in ipairs(allBindings) do
+        local action = binding.action
+        if action:find("turbobarcam_") == 1 then
+            -- Format the key binding
+            local key = binding.command:match("%s(.+)$") or binding.command
+
+            -- Format the action name
+            bindings[action] = {
+                action = action,
+                key = key,
+                prettyName = getPrettyActionName(action)
+            }
+        end
+    end
+
+    return bindings
+end
+
+-- Function to get bindings for the current mode
+local function getModeBindings(currentMode)
+    if not currentMode or currentMode == "None" then
+        return {}
+    end
+
+    -- Convert display mode name back to internal mode name
+    local internalMode = nil
+    for mode, displayName in pairs(availableModes) do
+        if displayName == currentMode then
+            internalMode = mode
+            break
+        end
+    end
+
+    if not internalMode then
+        return {}
+    end
+
+    local prefix = MODE_ACTION_PREFIXES[internalMode]
+    if not prefix then
+        return {}
+    end
+
+    local allBindings = getActionBindings()
+    local modeBindings = {}
+
+    -- Add general TurboBarCam controls
+    table.insert(modeBindings, {
+        actionName = "Toggle TurboBarCam",
+        keyBind = allBindings["turbobarcam_toggle"] and allBindings["turbobarcam_toggle"].key or "Not bound"
+    })
+
+    table.insert(modeBindings, {
+        actionName = "Toggle UI",
+        keyBind = allBindings["turbobarcam_toggle_ui"] and allBindings["turbobarcam_toggle_ui"].key or "Not bound"
+    })
+
+    -- Get mode-specific bindings
+    for action, bindInfo in pairs(allBindings) do
+        if action:find(prefix) == 1 then
+            table.insert(modeBindings, {
+                actionName = bindInfo.prettyName,
+                keyBind = bindInfo.key
+            })
+        end
+    end
+
+    -- Add the toggle action for this mode
+    local toggleAction = "turbobarcam_toggle_" .. internalMode
+    if allBindings[toggleAction] then
+        table.insert(modeBindings, {
+            actionName = "Toggle " .. currentMode,
+            keyBind = allBindings[toggleAction].key
+        })
+    end
+
+    return modeBindings
+end
 
 -- Update data model with current TurboBarCam state
 local function updateDataModel()
@@ -55,6 +167,9 @@ local function updateDataModel()
     dm_handle.currentMode = currentMode ~= "None"
             and (availableModes[currentMode] or currentMode)
             or "None"
+
+    -- Update keybindings for current mode
+    dm_handle.modeBindings = getModeBindings(dm_handle.currentMode)
 end
 
 -- Widget initialization
@@ -77,12 +192,16 @@ function widget:Initialize()
     dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, {
         status = STATE.enabled and "ENABLED" or "DISABLED",
         currentMode = STATE.tracking.mode or "None",
-        isEnabled = STATE.enabled }
-    )
+        isEnabled = STATE.enabled,
+        modeBindings = {}
+    })
 
     if not dm_handle then
         return false
     end
+
+    -- Get and set initial bindings
+    updateDataModel()
 
     -- Load the document (passing the widget for events)
     document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml", widget)
@@ -122,6 +241,13 @@ function widget:ToggleTurboBarCam()
         WG.TurboBarCam.UI.ToggleTurboBarCam()
     else
         Spring.Echo("[TurboBarCam UI] Could not toggle TurboBarCam - UI functions not loaded")
+    end
+end
+
+function widget:RefreshBindings()
+    if initialized and visible then
+        Spring.Echo("[TurboBarCam UI] Refreshing keybindings")
+        updateDataModel()
     end
 end
 
