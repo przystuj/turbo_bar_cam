@@ -63,6 +63,9 @@ local initialModel = {
     hasAnchors = false
 }
 
+-- Save a local reference to widget.rmlContext for use throughout the module
+local rmlContext = nil
+
 -- Load UI key bindings from Spring
 function TurboBarCamUI.loadKeyBindings()
     TurboBarCamUI.keyBinds = {}
@@ -91,9 +94,9 @@ function TurboBarCamUI.initialize()
     end
 
     -- Get RmlUi context through widget
-    widget.rmlContext = RmlUi.GetContext("shared")
+    rmlContext = RmlUi.GetContext("shared")
 
-    if not widget.rmlContext then
+    if not rmlContext then
         Log.info("[UI] Failed to get RmlUi context")
         return false
     end
@@ -102,7 +105,7 @@ function TurboBarCamUI.initialize()
     TurboBarCamUI.loadKeyBindings()
 
     -- Open data model first
-    local dmHandle = widget.rmlContext:OpenDataModel(TurboBarCamUI.MAIN_MODEL_NAME, initialModel)
+    local dmHandle = rmlContext:OpenDataModel(TurboBarCamUI.MAIN_MODEL_NAME, initialModel)
 
     if not dmHandle then
         Log.info("[UI] Failed to open data model " .. TurboBarCamUI.MAIN_MODEL_NAME)
@@ -110,11 +113,11 @@ function TurboBarCamUI.initialize()
     end
 
     -- Load the document (passing the widget for events)
-    TurboBarCamUI.document = widget.rmlContext:LoadDocument("LuaUI/TurboBarCam/ui/rml/ui_template.rml", widget)
+    TurboBarCamUI.document = rmlContext:LoadDocument("LuaUI/TurboBarCam/ui/rml/ui_template.rml", widget)
 
     if not TurboBarCamUI.document then
         Log.info("[UI] Failed to load UI document")
-        widget.rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+        rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
         return false
     end
 
@@ -127,6 +130,7 @@ function TurboBarCamUI.initialize()
     TurboBarCamUI.visible = false
 
     TurboBarCamUI.initialized = true
+    Log.info("[UI] TurboBarCam UI initialized - press Ctrl+Shift+T to toggle")
     return true
 end
 
@@ -137,8 +141,14 @@ function TurboBarCamUI.updateDataModel(dm_handle)
     end
 
     -- Get the handle if not provided
-    local handle = dm_handle or widget.rmlContext:GetDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
-    if not handle then return end
+    local handle = dm_handle
+    if not handle and rmlContext then
+        handle = rmlContext:GetDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+    end
+    if not handle then
+        Log.info("[UI] Could not get data model for update")
+        return
+    end
 
     -- Build model
     local model = {}
@@ -281,11 +291,6 @@ function widget:ToggleMode(mode)
     if mode and STATE.enabled then
         local actionName = "turbobarcam_toggle_" .. mode
 
-        -- Special case for unit_tracking
-        if mode == "unit_tracking" then
-            actionName = "turbobarcam_toggle_tracking_camera"
-        end
-
         -- Execute the action through Spring
         Spring.SendCommands(actionName)
 
@@ -304,8 +309,8 @@ function TurboBarCamUI.shutdown()
             TurboBarCamUI.document = nil
         end
 
-        if widget.rmlContext then
-            widget.rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
+        if rmlContext then
+            rmlContext:RemoveDataModel(TurboBarCamUI.MAIN_MODEL_NAME)
         end
     end
 

@@ -14,14 +14,23 @@ WG.TurboBarCam.UI = WG.TurboBarCam.UI or {}
 
 -- RML-callable function to toggle TurboBarCam
 function WG.TurboBarCam.UI.ToggleTurboBarCam()
-    CoreModules.WidgetControl.toggle()
+    if CoreModules and CoreModules.WidgetControl then
+        CoreModules.WidgetControl.toggle()
+    else
+        Log.info("[UI] Could not toggle TurboBarCam - WidgetControl not loaded")
+    end
 end
 
 -- RML-callable function to toggle specific camera mode
 function WG.TurboBarCam.UI.ToggleMode(mode)
     if mode and STATE.enabled then
         local actionName = "turbobarcam_toggle_" .. mode
-        
+
+        -- Special case for unit_tracking
+        if mode == "unit_tracking" then
+            actionName = "turbobarcam_toggle_tracking_camera"
+        end
+
         -- Execute the action through Spring
         Spring.SendCommands(actionName)
     else

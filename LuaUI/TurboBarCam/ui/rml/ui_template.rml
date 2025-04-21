@@ -143,13 +143,13 @@
     <div class="section">
         <div>Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span></div>
         <div>Current Mode: <span>{{ currentMode }}</span></div>
-        <div class="btn-toggle" onclick="ToggleTurboBarCam">{{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam</div>
+        <div class="btn-toggle" onclick="ToggleTurboBarCam()">{{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam</div>
     </div>
 
     <div class="section">
         <div class="section-header">Available Modes:</div>
         <div id="available-modes">
-            <div data-for="mode : availableModes" class="btn {{ mode.isActive ? 'active' : '' }}" onclick="ToggleMode(mode.key)">
+            <div data-for="mode in availableModes" class="btn {{ mode.isActive ? 'active' : '' }}" onclick="ToggleMode({{ mode.key }})">
                 {{ mode.name }} {{ mode.keyBind != '' ? '[' + mode.keyBind + ']' : '' }}
             </div>
         </div>
@@ -159,7 +159,7 @@
         <div class="section-header">Actions for <span>{{ currentModeActions }}</span>:</div>
         <div id="mode-actions">
             <div data-if="modeActions.length > 0">
-                <div data-for="action : modeActions" class="action">
+                <div data-for="action in modeActions" class="action">
                     <span>{{ action.name }}</span>
                     <span class="action-key">{{ action.keyBind }}</span>
                 </div>
@@ -174,7 +174,7 @@
         <div class="section-header">Saved Anchors:</div>
         <div id="saved-anchors">
             <div data-if="hasAnchors">
-                <div data-for="anchor : savedAnchors" class="anchor-item">
+                <div data-for="anchor in savedAnchors" class="anchor-item">
                     Anchor {{ anchor.index }}
                     <span data-if="anchor.keyBind != ''" class="action-key">{{ anchor.keyBind }}</span>
                 </div>
