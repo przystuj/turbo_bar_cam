@@ -90,8 +90,8 @@ function TurboBarCamUI.initialize()
     end
 
     -- Prepare and load initial data
-    TurboBarCamUI.loadKeyBindings()
-    TurboBarCamUI.updateDataModel()
+    --TurboBarCamUI.loadKeyBindings()
+    --TurboBarCamUI.updateDataModel()
 
     -- Reload stylesheet and show document
     TurboBarCamUI.document:ReloadStyleSheet()
