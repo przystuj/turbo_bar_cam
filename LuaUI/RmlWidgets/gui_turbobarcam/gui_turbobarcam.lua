@@ -16,7 +16,7 @@ function widget:GetInfo()
         author = "YourUsername",
         date = "April 2025",
         license = "GNU GPL, v2 or later",
-        layer = 1000, -- High layer to be on top
+        layer = 2, -- High layer to be on top
         enabled = true
     }
 end
@@ -196,7 +196,7 @@ local function updateDataModel()
     end
 
     -- Update the data model
-    dm_handle:UpdateValues(model)
+    --dm_handle:UpdateValues(model)
 end
 
 -- Toggle UI visibility
@@ -250,10 +250,10 @@ function widget:Initialize()
 
     -- Initialize document and data
     document:ReloadStyleSheet()
-    document:Hide() -- Start hidden
-    visible = false
+    --document:Hide() -- Start hidden
+    visible = true
 
-    updateDataModel()
+    --updateDataModel()
 
     -- Set initialized flag
     initialized = true
@@ -266,9 +266,9 @@ end
 
 -- Widget update (called each frame)
 function widget:Update()
-    if initialized and visible then
-        updateDataModel()
-    end
+    --if initialized and visible then
+    --    updateDataModel()
+    --end
 end
 
 -- RML event handlers (referenced in the template)
