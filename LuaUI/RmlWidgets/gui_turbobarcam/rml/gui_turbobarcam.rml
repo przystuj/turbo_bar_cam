@@ -8,14 +8,12 @@
     <handle move_target="#document">
         <div id="title_bar">
             <span id="title">TurboBarCam</span>
+            <span id="status-indicator" data-class-status-enabled="isEnabled" data-class-status-disabled="!isEnabled">{{ status }}</span>
         </div>
     </handle>
 
     <!-- Main window content -->
     <div class="section">
-        <div>
-            Status: <span class="{{ isEnabled ? 'status-enabled' : 'status-disabled' }}">{{ status }}</span>
-        </div>
         <div>
             Current Mode: <span>{{ currentMode }}</span>
         </div>
