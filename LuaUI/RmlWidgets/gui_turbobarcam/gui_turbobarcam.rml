@@ -1,0 +1,103 @@
+<rml>
+<head>
+    <title>TurboBarCam UI</title>
+    <link rel="stylesheet" href="../styles.rcss" type="text/rcss" />
+    <link rel="stylesheet" href="../rml-utils.rcss" type="text/rcss" />
+    <link rel="stylesheet" href="../palette-standard-global.rcss" type="text/rcss" />
+    <style>
+        #turbobarcam-widget {
+            pointer-events: auto;
+            width: 300dp;
+            right: 0;
+            top: 20%;
+            position: absolute;
+            margin-right: 10dp;
+        }
+
+        .section {
+            margin: 5dp 0dp;
+            padding: 5dp;
+            border-radius: 3dp;
+        }
+
+        .section-header {
+            font-weight: bold;
+            margin-bottom: 5dp;
+        }
+
+        .action {
+            margin: 2dp 0dp;
+            padding: 5dp;
+            border-radius: 2dp;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .action-key {
+            font-weight: bold;
+            margin-left: 5dp;
+            padding: 0dp 5dp;
+            border-radius: 3dp;
+        }
+
+        .anchor-item {
+            margin: 2dp 0dp;
+            padding: 5dp;
+            border-radius: 2dp;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .footer {
+            font-size: 12dp;
+            margin-top: 8dp;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="turbobarcam-widget" class="p-4 bg-surface rounded" data-model="turbobarcam_model">
+        <h1 class="text-primary">TurboBarCam</h1>
+
+        <div class="section bg-surface-variant rounded">
+            <div>Status: <span class="{{ isEnabled ? 'text-success' : 'text-error' }} font-bold">{{ status }}</span></div>
+            <div>Current Mode: <span>{{ currentMode }}</span></div>
+            <div class="btn bg-accent py-1 px-2 mt-2 text-center rounded cursor-pointer" onclick="ToggleTurboBarCam()">{{ isEnabled ? 'Disable' : 'Enable' }} TurboBarCam</div>
+        </div>
+
+        <div class="section bg-surface-variant rounded">
+            <div class="section-header text-secondary">Available Modes:</div>
+            <div id="available-modes">
+                <div data-for="mode in availableModes" class="btn bg-surface-low p-2 m-1 rounded cursor-pointer {{ mode.isActive ? 'border border-accent text-accent' : '' }}" onclick="ToggleMode({{ mode.key }})">
+                    {{ mode.name }} {{ mode.keyBind != '' ? '[' + mode.keyBind + ']' : '' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="section bg-surface-variant rounded" data-if="isEnabled">
+            <div class="section-header text-secondary">Actions for <span>{{ currentModeActions }}</span>:</div>
+            <div id="mode-actions">
+                <div data-if="modeActions.length > 0">
+                    <div data-for="action in modeActions" class="action bg-surface-low rounded">
+                        <span>{{ action.name }}</span>
+                        <span class="action-key bg-surface-variant text-accent">{{ action.keyBind }}</span>
+                    </div>
+                </div>
+                <div data-if="modeActions.length == 0">
+                    <div class="p-2">No actions available for this mode</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section bg-surface-variant rounded" data-if="isEnabled && hasAnchors">
+            <div class="section-header text-secondary">Saved Anchors:</div>
+            <div id="saved-anchors">
+                <div data-for="anchor in savedAnchors" class="anchor-item bg-surface-low rounded">
+                    Anchor {{ anchor.index }}
+                    <span data-if="anchor.keyBind != ''" class="action-key bg-surface-variant text-accent">{{ anchor.keyBind }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</rml>

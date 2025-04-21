@@ -29,9 +29,6 @@ local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manag
 ---@type ProjectileTracker
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
 
--- init rml exposed functions
-VFS.Include("LuaUI/TurboBarCam/ui/rml_functions.lua")
-
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
