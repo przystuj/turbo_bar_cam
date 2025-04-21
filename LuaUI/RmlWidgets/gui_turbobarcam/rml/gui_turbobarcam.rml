@@ -1,0 +1,117 @@
+<rml>
+    <head>
+        <title>TurboBarCam UI</title>
+        <link type="text/rcss" href="gui_turbobarcam.rcss"/>
+    </head>
+    <body id="turbobarcam-ui" data-model="turbobarcam_model">
+    <!-- Title bar with drag functionality -->
+    <handle move_target="#document">
+        <div id="title_bar">
+            <span id="title">TurboBarCam</span>
+            <div class="toggle-button" onclick="widget.ToggleTurboBarCam()">
+                <span id="status-indicator" data-class-status-enabled="isEnabled"
+                      data-class-status-disabled="!isEnabled">{{ status }}</span>
+            </div>
+        </div>
+    </handle>
+
+    <!-- Main window content -->
+    <div class="section">
+        <div>
+            Current Mode: <span>{{ currentMode }}</span>
+        </div>
+
+        <!-- Keybinds section -->
+        <div class="keybind-section">
+            <div class="keybind-title">Mode Keybindings</div>
+
+            <!-- Static bindings display with conditionals to hide empty rows -->
+            <div class="keybind-row" data-if="binding1name != ''">
+                <span class="keybind-action">{{ binding1name }}
+                    <span class="param-adjust" data-if="binding1param != ''">{{ binding1param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding1key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding2name != ''">
+                <span class="keybind-action">{{ binding2name }}
+                    <span class="param-adjust" data-if="binding2param != ''">{{ binding2param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding2key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding3name != ''">
+                <span class="keybind-action">{{ binding3name }}
+                    <span class="param-adjust" data-if="binding3param != ''">{{ binding3param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding3key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding4name != ''">
+                <span class="keybind-action">{{ binding4name }}
+                    <span class="param-adjust" data-if="binding4param != ''">{{ binding4param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding4key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding5name != ''">
+                <span class="keybind-action">{{ binding5name }}
+                    <span class="param-adjust" data-if="binding5param != ''">{{ binding5param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding5key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding6name != ''">
+                <span class="keybind-action">{{ binding6name }}
+                    <span class="param-adjust" data-if="binding6param != ''">{{ binding6param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding6key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding7name != ''">
+                <span class="keybind-action">{{ binding7name }}
+                    <span class="param-adjust" data-if="binding7param != ''">{{ binding7param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding7key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding8name != ''">
+                <span class="keybind-action">{{ binding8name }}
+                    <span class="param-adjust" data-if="binding8param != ''">{{ binding8param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding8key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding9name != ''">
+                <span class="keybind-action">{{ binding9name }}
+                    <span class="param-adjust" data-if="binding9param != ''">{{ binding9param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding9key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding10name != ''">
+                <span class="keybind-action">{{ binding10name }}
+                    <span class="param-adjust" data-if="binding10param != ''">{{ binding10param }}</span>
+                </span>
+                <span class="keybind-key">{{ binding10key }}</span>
+            </div>
+        </div>
+
+<!--        <div>-->
+<!--            <div class="btn-toggle" onclick="widget.RefreshBindings()">-->
+<!--                Refresh Bindings-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        <div>-->
+<!--            <div class="btn-toggle" onclick="widget.DumpBindings()">-->
+<!--                [dev] dump bindings-->
+<!--            </div>-->
+<!--        </div>-->
+    </div>
+
+    <!-- Resize handle -->
+    <handle size_target="#document"
+            style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;"></handle>
+    </body>
+</rml>

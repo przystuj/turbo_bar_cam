@@ -1,8 +1,8 @@
 return {
   ["armcom"] = {
-    FORWARD = -175,
+    FORWARD = -335,
     HEIGHT = 25,
-    SIDE = 20,
+    SIDE = -70,
     ROTATION = 0
   },
   ["cordemon"] = {

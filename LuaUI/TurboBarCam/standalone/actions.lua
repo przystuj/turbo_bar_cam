@@ -4,8 +4,6 @@ local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
----@type TurboBarCamUI
-local TurboBarCamUI = VFS.Include("LuaUI/TurboBarCam/ui/ui_module.lua").TurboBarCamUI
 
 ---@class Actions
 local Actions = {}
@@ -22,7 +20,6 @@ function Actions.registerAllActions()
     Actions.overviewActions()
     Actions.groupTrackingActions()
     Actions.projectileActions()
-    Actions.uiActions()
     Actions.I18N()
 end
 
@@ -211,16 +208,6 @@ function Actions.groupTrackingActions()
             function(_, params)
                 FeatureModules.GroupTrackingCamera.adjustParams(params)
                 return false
-            end)
-end
-
-function Actions.uiActions()
-    Actions.registerAction("turbobarcam_toggle_ui", 'tp',
-            function()
-                if TurboBarCamUI and TurboBarCamUI.toggle then
-                    TurboBarCamUI.toggle()
-                end
-                return true
             end)
 end
 
