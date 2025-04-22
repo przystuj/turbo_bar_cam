@@ -27,26 +27,25 @@
 <!--            <div class="tab" data-class-tab-active="activeTab == 'params'" onclick="widget.SetTab('params')">Parameters</div>-->
         </div>
 
-        <span>{{test1}}</span>
-        <span>{{test2}}</span>
-        <span>{{test3}}</span>
+
+        <span data-for="teste, i: test3">{{teste.testName}} {{i}}</span>
 
         <!-- Keybinds tab content -->
-        <div class="tab-content" data-class-tab-content-active="activeTab == 'keybinds'">
-            <div class="keybind-section">
-                <div class="keybind-title">Mode Keybindings</div>
+<!--        <div class="tab-content" data-class-tab-content-active="activeTab == 'keybinds'">-->
+<!--            <div class="keybind-section">-->
+<!--                <div class="keybind-title">Mode Keybindings</div>-->
 
-                <!-- Dynamic bindings display using data-for -->
-                <div data-for="binding, i : bindings">
-                    <div class="keybind-row">
-                        <span class="keybind-action">{{ binding.name }}
-                            <span class="param-adjust" data-if="binding.param != ''">{{ binding.param }}</span>
-                        </span>
-                        <span class="keybind-key">{{ binding.key }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!--                &lt;!&ndash; Dynamic bindings display using data-for &ndash;&gt;-->
+<!--                <div data-for="binding, i : bindings">-->
+<!--                    <div class="keybind-row">-->
+<!--                        <span class="keybind-action">{{ binding.name }}-->
+<!--                            <span class="param-adjust" data-if="binding.param != ''">{{ binding.param }}</span>-->
+<!--                        </span>-->
+<!--                        <span class="keybind-key">{{ binding.key }}</span>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
 
 <!--        &lt;!&ndash; Parameters tab content &ndash;&gt;-->
 <!--        <div class="tab-content" data-class-tab-content-active="activeTab == 'params'">-->

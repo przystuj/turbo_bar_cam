@@ -90,16 +90,20 @@ local function updateDataModel()
     -- Get bindings for the current mode
     local binds = bindings.getActiveModeMappings(STATE, dm_handle.currentMode)
 
-    -- Set the bindings array in the data model
-    Log.debug(binds)
+    -- Set the bindings array
     dm_handle.bindings = binds
+    -- Mark the variable as dirty to notify the UI
+    dm_handle:__SetDirty("bindings")
 
     -- Get parameters for the current mode
     local parameters = params.getParameters(CONFIG, dm_handle.currentMode)
 
-    -- Set the parameters array in the data model
+    -- Set the parameters array
     dm_handle.parameters = parameters
+    -- Mark the variable as dirty to notify the UI
+    dm_handle:__SetDirty("parameters")
 end
+
 
 -- Widget initialization
 function widget:Initialize()
@@ -125,20 +129,18 @@ function widget:Initialize()
         }
     end
 
-    -- Open data model with array support for bindings and parameters
+    -- Open data model
     widget.rmlContext:RemoveDataModel(MODEL_NAME)
-    dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, {
+
+    -- Create the initial data model table with arrays
+    local initialData = {
         status = STATE.enabled and "ENABLED" or "DISABLED",
-        currentMode = STATE.tracking and STATE.tracking.mode and bindings.availableModes[STATE.tracking.mode] or "None",
-        isEnabled = STATE.enabled,
-        activeTab = "keybinds",
-        -- Use arrays for dynamic content
-        bindings = { { key = "", name = "", param = "" } },
-        parameters = {},
-        test1 = "test1",
-        test2 = { "test2" },
-        test3 = { test = "test3" },
-    })
+        test3 = { { testName = "left" },
+                  { testName = "right" }, }
+    }
+
+    -- Open data model with the initial data
+    dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, initialData)
 
     if not dm_handle then
         Log.debug("[TurboBarCam UI] Failed to open data model")
