@@ -7,6 +7,8 @@ local scriptPath = LUAUI_DIRNAME .. "RmlWidgets/gui_turbobarcam/"
 local bindings = VFS.Include(scriptPath .. "bindings.lua")
 local params = VFS.Include(scriptPath .. "parameters.lua")
 local utils = VFS.Include(scriptPath .. "utils.lua")
+---@type Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 
 local widget = widget
 
@@ -89,6 +91,7 @@ local function updateDataModel()
     local binds = bindings.getActiveModeMappings(STATE, dm_handle.currentMode)
 
     -- Set the bindings array in the data model
+    Log.debug(binds)
     dm_handle.bindings = binds
 
     -- Get parameters for the current mode
@@ -104,7 +107,7 @@ function widget:Initialize()
     widget.rmlContext = RmlUi.CreateContext("turbobarcam_ui")
 
     if not widget.rmlContext then
-        Spring.Echo("[TurboBarCam UI] Failed to create RmlUi context")
+        Log.debug("[TurboBarCam UI] Failed to create RmlUi context")
         return false
     end
 
@@ -130,12 +133,15 @@ function widget:Initialize()
         isEnabled = STATE.enabled,
         activeTab = "keybinds",
         -- Use arrays for dynamic content
-        bindings = {},
-        parameters = {}
+        bindings = { { key = "", name = "", param = "" } },
+        parameters = {},
+        test1 = "test1",
+        test2 = { "test2" },
+        test3 = { test = "test3" },
     })
 
     if not dm_handle then
-        Spring.Echo("[TurboBarCam UI] Failed to open data model")
+        Log.debug("[TurboBarCam UI] Failed to open data model")
         return false
     end
 
@@ -143,7 +149,7 @@ function widget:Initialize()
     document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml", widget)
 
     if not document then
-        Spring.Echo("[TurboBarCam UI] Failed to load document")
+        Log.debug("[TurboBarCam UI] Failed to load document")
         widget.rmlContext:RemoveDataModel(MODEL_NAME)
         return false
     end
@@ -157,7 +163,7 @@ function widget:Initialize()
     visible = true
     initialized = true
 
-    Spring.Echo("[TurboBarCam UI] Initialized successfully")
+    Log.debug("[TurboBarCam UI] Initialized successfully")
 
     return true
 end
@@ -176,20 +182,20 @@ function widget:Shutdown()
 
     initialized = false
     visible = false
-    Spring.Echo("[TurboBarCam UI] Shutdown complete")
+    Log.debug("[TurboBarCam UI] Shutdown complete")
 end
 
 function widget:ToggleTurboBarCam()
     if WG.TurboBarCam and WG.TurboBarCam.UI and WG.TurboBarCam.UI.ToggleTurboBarCam then
         WG.TurboBarCam.UI.ToggleTurboBarCam()
     else
-        Spring.Echo("[TurboBarCam UI] Could not toggle TurboBarCam - UI functions not loaded")
+        Log.debug("[TurboBarCam UI] Could not toggle TurboBarCam - UI functions not loaded")
     end
 end
 
 function widget:RefreshBindings()
     if initialized and visible then
-        Spring.Echo("[TurboBarCam UI] Refreshing UI")
+        Log.debug("[TurboBarCam UI] Refreshing UI")
         updateDataModel()
     end
 end
