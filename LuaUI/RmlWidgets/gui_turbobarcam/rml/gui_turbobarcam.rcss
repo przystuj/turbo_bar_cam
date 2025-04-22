@@ -46,7 +46,28 @@ div {
 #status-indicator {
     margin-left: auto;
     padding-right: 5dp;
+    padding-left: 5dp;
     font-size: 14dp;
+}
+
+.toggle-button {
+    width: auto;
+    height: 20dp;
+    background-color: #263238;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    text-align: center;
+    margin-left: 5dp;
+    padding: 2dp;
+    font-size: 12dp;
+}
+
+.toggle-button:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
 }
 
 .section {
@@ -67,14 +88,13 @@ div {
     margin-bottom: 5dp;
 }
 
-.keybind-table {
-    width: 100%;
-    margin-bottom: 3dp;
-}
-
 .keybind-row {
     width: 100%;
     margin-bottom: 3dp;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .keybind-action {
@@ -86,12 +106,13 @@ div {
 
 .keybind-key {
     color: #FFCC80;
-    width: 30%;
     text-align: right;
     font-family: Poppins;
     background-color: #1A2530;
     border-radius: 2dp;
     padding: 2dp 4dp;
+    margin-left: 5dp;
+    flex-shrink: 0;
 }
 
 .btn-toggle {
@@ -122,4 +143,11 @@ div {
 .status-disabled {
     color: #FF7043;
     font-weight: bold;
+}
+
+.param-adjust {
+    color: #B0BEC5;
+    font-size: 12dp;
+    margin-top: 1dp;
+    display: block;
 }
