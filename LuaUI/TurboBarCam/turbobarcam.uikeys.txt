@@ -3,7 +3,7 @@
 //---------------
 bind            numpad.             turbobarcam_toggle
 bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
-bind		    Ctrl+sc_]           turbobarcam_toggle_ui
+bind		    Ctrl+sc_]           togglewidget TurboBarCam UI
 bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
 bind		    Home      		    turbobarcam_toggle_zoom
 

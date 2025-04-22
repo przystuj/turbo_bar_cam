@@ -69,11 +69,12 @@ div {
 
 .keybind-table {
     width: 100%;
-    border-spacing: 0 3dp;
+    margin-bottom: 3dp;
 }
 
 .keybind-row {
     width: 100%;
+    margin-bottom: 3dp;
 }
 
 .keybind-action {
@@ -87,7 +88,7 @@ div {
     color: #FFCC80;
     width: 30%;
     text-align: right;
-    font-family: monospace;
+    font-family: Poppins;
     background-color: #1A2530;
     border-radius: 2dp;
     padding: 2dp 4dp;

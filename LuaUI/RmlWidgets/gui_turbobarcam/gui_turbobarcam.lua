@@ -31,7 +31,7 @@ local availableModes = {
     orbit = "Orbit Camera",
     overview = "Overview",
     group_tracking = "Group Tracking",
-    projectile_camera = "Projectile Camera"
+    projectile = "Projectile Camera"
 }
 
 -- Action prefixes for different camera modes
@@ -41,18 +41,107 @@ local MODE_ACTION_PREFIXES = {
     orbit = "turbobarcam_orbit_",
     overview = "turbobarcam_overview_",
     group_tracking = "turbobarcam_group_tracking_",
-    projectile_camera = "turbobarcam_projectile_"
+    projectile = "turbobarcam_projectile_"
 }
+
+-- Actions we want to display for each mode (priority order)
+local MODE_IMPORTANT_ACTIONS = {
+    fps = {
+        "toggle_fps_camera",
+        "fps_adjust_params",
+        "fps_set_fixed_look_point",
+        "fps_clear_fixed_look_point",
+        "fps_next_weapon",
+        "fps_clear_weapon_selection"
+    },
+    unit_tracking = {
+        "toggle_unit_tracking",
+        "unit_tracking_adjust_params"
+    },
+    orbit = {
+        "toggle_orbit",
+        "orbit_adjust_params"
+    },
+    overview = {
+        "overview_toggle",
+        "overview_change_height"
+    },
+    group_tracking = {
+        "toggle_group_tracking_camera",
+        "group_tracking_adjust_params"
+    },
+    projectile = {
+        "projectile_camera_follow",
+        "projectile_camera_track",
+        "projectile_adjust_params"
+    }
+}
+
+-- Direct lookup table from uikeys.txt
+local KEY_LOOKUP = {
+    -- Common controls
+    ["turbobarcam_toggle"] = "numpad.",
+    ["turbobarcam_toggle_ui"] = "Ctrl+]",
+    ["turbobarcam_toggle_zoom"] = "Home",
+
+    -- FPS mode
+    ["turbobarcam_toggle_fps_camera"] = "numpad1",
+    ["turbobarcam_fps_adjust_params"] = { "numpad8", "numpad5", "numpad6", "numpad4", "numpad7", "numpad9" },
+    ["turbobarcam_fps_clear_fixed_look_point"] = "numpad*",
+    ["turbobarcam_fps_set_fixed_look_point"] = "numpad/",
+    ["turbobarcam_fps_clear_weapon_selection"] = "End",
+    ["turbobarcam_fps_next_weapon"] = "PageDown",
+
+    -- Unit Tracking
+    ["turbobarcam_toggle_unit_tracking"] = "numpad3",
+    ["turbobarcam_unit_tracking_adjust_params"] = { "numpad8", "numpad5" },
+
+    -- Orbit
+    ["turbobarcam_toggle_orbit"] = "numpad2",
+    ["turbobarcam_orbit_adjust_params"] = { "numpad5", "numpad8", "numpad6", "numpad4", "numpad9", "numpad7" },
+
+    -- Overview
+    ["turbobarcam_overview_toggle"] = "PageUp",
+    ["turbobarcam_overview_change_height"] = { "numpad8", "numpad5" },
+
+    -- Group tracking
+    ["turbobarcam_toggle_group_tracking_camera"] = "numpad0",
+    ["turbobarcam_group_tracking_adjust_params"] = { "numpad5", "numpad8", "numpad6", "numpad4", "numpad7", "numpad9" },
+
+    -- Projectile
+    ["turbobarcam_projectile_camera_follow"] = "Delete",
+    ["turbobarcam_projectile_camera_track"] = "Insert",
+    ["turbobarcam_projectile_adjust_params"] = { "numpad8", "numpad5", "numpad9", "numpad7", "numpad6", "numpad4" }
+}
+
+-- Get key bindings for actions from Spring and fallback to our lookup
+local function GetKeyBindForAction(action)
+    -- Try Spring's action hotkeys first
+    local keys = Spring.GetActionHotKeys(action)
+    if keys and #keys > 0 then
+        return keys[1]
+    end
+
+    -- Fall back to our lookup table
+    local key = KEY_LOOKUP[action]
+    if key then
+        -- If it's a table, return the first one
+        if type(key) == "table" then
+            return key[1]
+        end
+        return key
+    end
+
+    return "Not bound"
+end
 
 -- Helper function to get pretty action name
 local function getPrettyActionName(actionName)
     -- Strip prefix and replace underscores with spaces
     local baseAction = actionName:gsub("turbobarcam_", "")
 
-    -- Strip the mode prefix if it exists
-    for mode, prefix in pairs(MODE_ACTION_PREFIXES) do
-        baseAction = baseAction:gsub("^" .. mode:gsub("_", "_") .. "_", "")
-    end
+    -- Make parameters look better
+    baseAction = baseAction:gsub("adjust_params", "adjust")
 
     -- Replace underscores with spaces and capitalize first letter of each word
     baseAction = baseAction:gsub("_", " "):gsub("(%a)([%w_']*)", function(first, rest)
@@ -62,92 +151,111 @@ local function getPrettyActionName(actionName)
     return baseAction
 end
 
--- Function to get key bindings for actions
-local function getActionBindings()
-    local bindings = {}
+-- Debug function to dump all bindings
+function widget:DumpBindings()
+    Spring.Echo("[TurboBarCam UI] Dumping all TurboBarCam bindings")
 
-    -- Get all keybinds from Spring
-    local allBindings = Spring.GetKeyBindings()
-
-    for _, binding in ipairs(allBindings) do
-        local action = binding.action
-        if action:find("turbobarcam_") == 1 then
-            -- Format the key binding
-            local key = binding.command:match("%s(.+)$") or binding.command
-
-            -- Format the action name
-            bindings[action] = {
-                action = action,
-                key = key,
-                prettyName = getPrettyActionName(action)
-            }
-        end
+    -- Check our internal lookup table
+    Spring.Echo("1. Internal lookup table actions:")
+    for action, _ in pairs(KEY_LOOKUP) do
+        Spring.Echo("  " .. action)
     end
 
-    return bindings
+    -- First try using GetActionHotKeys with our lookup
+    Spring.Echo("2. Using Spring.GetActionHotKeys with our lookup:")
+    for action, _ in pairs(KEY_LOOKUP) do
+        local keys = Spring.GetActionHotKeys(action)
+        local keyStr = "none"
+        if keys and #keys > 0 then
+            keyStr = table.concat(keys, ", ")
+        end
+        Spring.Echo("  " .. action .. " -> " .. keyStr)
+    end
+
+    -- Also check GetKeyBindings
+    Spring.Echo("3. Using Spring.GetKeyBindings:")
+    local keyBinds = Spring.GetKeyBindings()
+    if keyBinds then
+        local turboBinds = {}
+        for _, binding in ipairs(keyBinds) do
+            if binding.action and binding.action:find("turbobarcam_") == 1 then
+                table.insert(turboBinds, binding)
+                Spring.Echo("  " .. binding.command .. " -> " .. binding.action)
+            end
+        end
+        Spring.Echo("  Found " .. #turboBinds .. " TurboBarCam bindings")
+    else
+        Spring.Echo("  GetKeyBindings returned nil")
+    end
+
 end
 
--- Function to get bindings for the current mode
-local function getModeBindings(currentMode)
-    if not currentMode or currentMode == "None" then
-        return {}
+
+-- Get active mode keybinds with smart fallbacks
+local function getActiveModeMappings(mode)
+    local mappings = {}
+
+    -- Always add common controls
+    mappings[#mappings + 1] = {
+        name = "Toggle TurboBarCam",
+        key = GetKeyBindForAction("turbobarcam_toggle")
+    }
+
+    mappings[#mappings + 1] = {
+        name = "Toggle UI",
+        key = GetKeyBindForAction("turbobarcam_toggle_ui")
+    }
+
+    mappings[#mappings + 1] = {
+        name = "Toggle Zoom",
+        key = GetKeyBindForAction("turbobarcam_toggle_zoom")
+    }
+
+    -- If no mode or is "None", just return common controls
+    if not mode or mode == "None" then
+        return mappings
     end
 
-    -- Convert display mode name back to internal mode name
+    -- Find internal mode name
     local internalMode = nil
-    for mode, displayName in pairs(availableModes) do
-        if displayName == currentMode then
-            internalMode = mode
+    for modeKey, modeName in pairs(availableModes) do
+        if modeName == mode then
+            internalMode = modeKey
             break
         end
     end
 
     if not internalMode then
-        return {}
+        return mappings
     end
 
-    local prefix = MODE_ACTION_PREFIXES[internalMode]
-    if not prefix then
-        return {}
-    end
+    -- Get important actions for this mode
+    local modeActions = MODE_IMPORTANT_ACTIONS[internalMode]
+    if modeActions then
+        for _, actionSuffix in ipairs(modeActions) do
+            local fullAction = "turbobarcam_" .. actionSuffix
+            local keyBind = GetKeyBindForAction(fullAction)
 
-    local allBindings = getActionBindings()
-    local modeBindings = {}
+            -- Only add if we have a valid keybind
+            if keyBind ~= "Not bound" then
+                mappings[#mappings + 1] = {
+                    name = getPrettyActionName(fullAction),
+                    key = keyBind
+                }
 
-    -- Add general TurboBarCam controls
-    table.insert(modeBindings, {
-        actionName = "Toggle TurboBarCam",
-        keyBind = allBindings["turbobarcam_toggle"] and allBindings["turbobarcam_toggle"].key or "Not bound"
-    })
-
-    table.insert(modeBindings, {
-        actionName = "Toggle UI",
-        keyBind = allBindings["turbobarcam_toggle_ui"] and allBindings["turbobarcam_toggle_ui"].key or "Not bound"
-    })
-
-    -- Get mode-specific bindings
-    for action, bindInfo in pairs(allBindings) do
-        if action:find(prefix) == 1 then
-            table.insert(modeBindings, {
-                actionName = bindInfo.prettyName,
-                keyBind = bindInfo.key
-            })
+                -- Limit to max of 8 bindings to avoid cluttering UI
+                if #mappings >= 8 then
+                    break
+                end
+            end
         end
     end
 
-    -- Add the toggle action for this mode
-    local toggleAction = "turbobarcam_toggle_" .. internalMode
-    if allBindings[toggleAction] then
-        table.insert(modeBindings, {
-            actionName = "Toggle " .. currentMode,
-            keyBind = allBindings[toggleAction].key
-        })
-    end
-
-    return modeBindings
+    return mappings
 end
 
--- Update data model with current TurboBarCam state
+
+-- Update data model with current TurboBarCam state and keybindings
 local function updateDataModel()
     if not initialized or not dm_handle then
         return
@@ -168,17 +276,32 @@ local function updateDataModel()
             and (availableModes[currentMode] or currentMode)
             or "None"
 
-    -- Update keybindings for current mode
-    dm_handle.modeBindings = getModeBindings(dm_handle.currentMode)
+    -- Get bindings for the current mode
+    local bindings = getActiveModeMappings(dm_handle.currentMode)
+
+    -- Update the bindings in the data model
+    for i = 1, 8 do
+        dm_handle["binding" .. i .. "name"] = ""
+        dm_handle["binding" .. i .. "key"] = ""
+    end
+
+    -- Set the bindings we found
+    for i = 1, math.min(8, #bindings) do
+        dm_handle["binding" .. i .. "name"] = bindings[i].name
+        dm_handle["binding" .. i .. "key"] = bindings[i].key
+    end
+
+    -- Debug print
+    Spring.Echo("[TurboBarCam UI] Updated data model. Mode: " .. dm_handle.currentMode .. ", Bindings: " .. #bindings)
 end
 
 -- Widget initialization
 function widget:Initialize()
-
     -- Get RmlUi context through widget
     widget.rmlContext = RmlUi.CreateContext("turbobarcam_ui")
 
     if not widget.rmlContext then
+        Spring.Echo("[TurboBarCam UI] Failed to create RmlUi context")
         return false
     end
 
@@ -187,35 +310,55 @@ function widget:Initialize()
         tracking = { mode = "None" },
     }
 
-    -- Open data model first
+    -- Open data model with all variables
     widget.rmlContext:RemoveDataModel(MODEL_NAME)
     dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, {
         status = STATE.enabled and "ENABLED" or "DISABLED",
-        currentMode = STATE.tracking.mode or "None",
+        currentMode = STATE.tracking and STATE.tracking.mode or "None",
         isEnabled = STATE.enabled,
-        modeBindings = {}
+        -- Binding placeholders
+        binding1name = "",
+        binding1key = "",
+        binding2name = "",
+        binding2key = "",
+        binding3name = "",
+        binding3key = "",
+        binding4name = "",
+        binding4key = "",
+        binding5name = "",
+        binding5key = "",
+        binding6name = "",
+        binding6key = "",
+        binding7name = "",
+        binding7key = "",
+        binding8name = "",
+        binding8key = ""
     })
 
     if not dm_handle then
+        Spring.Echo("[TurboBarCam UI] Failed to open data model")
+        return false
+    end
+
+    -- Load the document (passing the widget for events)
+    document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml", widget)
+
+    if not document then
+        Spring.Echo("[TurboBarCam UI] Failed to load document")
+        widget.rmlContext:RemoveDataModel(MODEL_NAME)
         return false
     end
 
     -- Get and set initial bindings
     updateDataModel()
 
-    -- Load the document (passing the widget for events)
-    document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml", widget)
-
-    if not document then
-        widget.rmlContext:RemoveDataModel(MODEL_NAME)
-        return false
-    end
-
     -- Setup document
     document:ReloadStyleSheet()
     document:Show()
     visible = true
     initialized = true
+
+    Spring.Echo("[TurboBarCam UI] Initialized successfully")
 
     return true
 end
@@ -234,6 +377,7 @@ function widget:Shutdown()
 
     initialized = false
     visible = false
+    Spring.Echo("[TurboBarCam UI] Shutdown complete")
 end
 
 function widget:ToggleTurboBarCam()

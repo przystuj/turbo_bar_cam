@@ -26,12 +26,47 @@
         <!-- Keybinds section -->
         <div class="keybind-section">
             <div class="keybind-title">Mode Keybindings</div>
-            <table class="keybind-table">
-                <tr class="keybind-row" data-for-each="modeBindings">
-                    <td class="keybind-action">{{ actionName }}</td>
-                    <td class="keybind-key">{{ keyBind }}</td>
-                </tr>
-            </table>
+
+            <!-- Static bindings display with conditionals to hide empty rows -->
+            <div class="keybind-row" data-if="binding1name != ''">
+                <span class="keybind-action">{{ binding1name }}</span>
+                <span class="keybind-key">{{ binding1key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding2name != ''">
+                <span class="keybind-action">{{ binding2name }}</span>
+                <span class="keybind-key">{{ binding2key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding3name != ''">
+                <span class="keybind-action">{{ binding3name }}</span>
+                <span class="keybind-key">{{ binding3key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding4name != ''">
+                <span class="keybind-action">{{ binding4name }}</span>
+                <span class="keybind-key">{{ binding4key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding5name != ''">
+                <span class="keybind-action">{{ binding5name }}</span>
+                <span class="keybind-key">{{ binding5key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding6name != ''">
+                <span class="keybind-action">{{ binding6name }}</span>
+                <span class="keybind-key">{{ binding6key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding7name != ''">
+                <span class="keybind-action">{{ binding7name }}</span>
+                <span class="keybind-key">{{ binding7key }}</span>
+            </div>
+
+            <div class="keybind-row" data-if="binding8name != ''">
+                <span class="keybind-action">{{ binding8name }}</span>
+                <span class="keybind-key">{{ binding8key }}</span>
+            </div>
         </div>
 
         <div>
@@ -43,6 +78,12 @@
         <div>
             <div class="btn-toggle" onclick="widget.RestartWidget()">
                 [dev] reload
+            </div>
+        </div>
+
+        <div>
+            <div class="btn-toggle" onclick="widget.DumpBindings()">
+                [dev] dump bindings
             </div>
         </div>
     </div>
