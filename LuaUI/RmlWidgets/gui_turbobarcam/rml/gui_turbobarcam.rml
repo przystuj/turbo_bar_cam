@@ -8,9 +8,9 @@
     <handle move_target="#document">
         <div id="title_bar">
             <span id="title">TurboBarCam</span>
+            <span id="status-indicator" data-class-status-enabled="isEnabled" data-class-status-disabled="!isEnabled">{{ status }}</span>
             <div class="toggle-button" onclick="widget.ToggleTurboBarCam()">
-                <span id="status-indicator" data-class-status-enabled="isEnabled"
-                      data-class-status-disabled="!isEnabled">{{ status }}</span>
+                {{ isEnabled ? '⏻' : '⭘' }}
             </div>
         </div>
     </handle>
@@ -21,93 +21,61 @@
             Current Mode: <span>{{ currentMode }}</span>
         </div>
 
-        <!-- Keybinds section -->
-        <div class="keybind-section">
-            <div class="keybind-title">Mode Keybindings</div>
+        <!-- Tabs for different sections -->
+        <div class="tabs">
+            <div class="tab" data-class-tab-active="activeTab == 'keybinds'" onclick="widget.SetTab('keybinds')">Keybinds</div>
+            <div class="tab" data-class-tab-active="activeTab == 'params'" onclick="widget.SetTab('params')">Parameters</div>
+        </div>
 
-            <!-- Static bindings display with conditionals to hide empty rows -->
-            <div class="keybind-row" data-if="binding1name != ''">
-                <span class="keybind-action">{{ binding1name }}
-                    <span class="param-adjust" data-if="binding1param != ''">{{ binding1param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding1key }}</span>
-            </div>
+        <!-- Keybinds tab content -->
+        <div class="tab-content" data-class-tab-content-active="activeTab == 'keybinds'">
+            <div class="keybind-section">
+                <div class="keybind-title">Mode Keybindings</div>
 
-            <div class="keybind-row" data-if="binding2name != ''">
-                <span class="keybind-action">{{ binding2name }}
-                    <span class="param-adjust" data-if="binding2param != ''">{{ binding2param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding2key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding3name != ''">
-                <span class="keybind-action">{{ binding3name }}
-                    <span class="param-adjust" data-if="binding3param != ''">{{ binding3param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding3key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding4name != ''">
-                <span class="keybind-action">{{ binding4name }}
-                    <span class="param-adjust" data-if="binding4param != ''">{{ binding4param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding4key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding5name != ''">
-                <span class="keybind-action">{{ binding5name }}
-                    <span class="param-adjust" data-if="binding5param != ''">{{ binding5param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding5key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding6name != ''">
-                <span class="keybind-action">{{ binding6name }}
-                    <span class="param-adjust" data-if="binding6param != ''">{{ binding6param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding6key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding7name != ''">
-                <span class="keybind-action">{{ binding7name }}
-                    <span class="param-adjust" data-if="binding7param != ''">{{ binding7param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding7key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding8name != ''">
-                <span class="keybind-action">{{ binding8name }}
-                    <span class="param-adjust" data-if="binding8param != ''">{{ binding8param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding8key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding9name != ''">
-                <span class="keybind-action">{{ binding9name }}
-                    <span class="param-adjust" data-if="binding9param != ''">{{ binding9param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding9key }}</span>
-            </div>
-
-            <div class="keybind-row" data-if="binding10name != ''">
-                <span class="keybind-action">{{ binding10name }}
-                    <span class="param-adjust" data-if="binding10param != ''">{{ binding10param }}</span>
-                </span>
-                <span class="keybind-key">{{ binding10key }}</span>
+                <!-- Dynamic bindings display using data-for -->
+                <div data-for="binding, i : bindings">
+                    <div class="keybind-row">
+                        <span class="keybind-action">{{ binding.name }}
+                            <span class="param-adjust" data-if="binding.param != ''">{{ binding.param }}</span>
+                        </span>
+                        <span class="keybind-key">{{ binding.key }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-<!--        <div>-->
-<!--            <div class="btn-toggle" onclick="widget.RefreshBindings()">-->
-<!--                Refresh Bindings-->
-<!--            </div>-->
-<!--        </div>-->
+        <!-- Parameters tab content -->
+        <div class="tab-content" data-class-tab-content-active="activeTab == 'params'">
+            <div class="param-section">
+                <!-- Dynamic parameters display -->
+                <div data-for="param, j : parameters">
+                    <div class="param-row">
+                        <div class="param-header">
+                            <span class="param-name">{{ param.name }}</span>
+                            <span class="param-value">{{ param.value }}</span>
+                            <span class="param-key" data-if="param.key != ''">{{ param.key }}</span>
+                        </div>
+                        <div class="param-slider-container">
+                            <div class="slider-min">{{ param.min }}</div>
+                            <input type="range" class="slider" min="{{ param.min }}" max="{{ param.max }}" value="{{ param.value }}" step="{{ param.step }}" onchange="widget.UpdateParameter('{{ param.id }}', this.value)" />
+                            <div class="slider-max">{{ param.max }}</div>
+                        </div>
+                        <div class="button-small" style="align-self: flex-end;" onclick="widget.ResetParameter('{{ param.id }}')">Reset</div>
+                    </div>
+                </div>
 
-<!--        <div>-->
-<!--            <div class="btn-toggle" onclick="widget.DumpBindings()">-->
-<!--                [dev] dump bindings-->
-<!--            </div>-->
-<!--        </div>-->
+                <!-- Reset all button -->
+                <div class="btn-toggle" onclick="widget.ResetAllParameters()">
+                    Reset All Parameters
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 10dp;">
+            <div class="btn-toggle" onclick="widget.RefreshBindings()">
+                Refresh
+            </div>
+        </div>
     </div>
 
     <!-- Resize handle -->

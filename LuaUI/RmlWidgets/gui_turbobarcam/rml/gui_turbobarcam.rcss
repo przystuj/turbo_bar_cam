@@ -46,12 +46,11 @@ div {
 #status-indicator {
     margin-left: auto;
     padding-right: 5dp;
-    padding-left: 5dp;
     font-size: 14dp;
 }
 
 .toggle-button {
-    width: auto;
+    width: 20dp;
     height: 20dp;
     background-color: #263238;
     border-width: 1dp;
@@ -150,4 +149,120 @@ div {
     font-size: 12dp;
     margin-top: 1dp;
     display: block;
+}
+
+/* Parameters section */
+.param-section {
+    margin-top: 15dp;
+}
+
+.param-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10dp;
+}
+
+.param-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3dp;
+}
+
+.param-name {
+    color: #E0E0E0;
+    font-weight: bold;
+}
+
+.param-value {
+    color: #90CAF9;
+    margin-left: 10dp;
+}
+
+.param-key {
+    color: #FFCC80;
+    background-color: #1A2530;
+    border-radius: 2dp;
+    padding: 1dp 3dp;
+    font-size: 12dp;
+    margin-left: auto;
+}
+
+.param-slider-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+}
+
+input.slider {
+    width: 100%;
+    height: 6dp;
+    margin: 0 5dp;
+}
+
+.slider-min, .slider-max {
+    color: #90CAF9;
+    font-size: 10dp;
+    width: 30dp;
+    text-align: center;
+}
+
+.slider-min {
+    text-align: left;
+}
+
+.slider-max {
+    text-align: right;
+}
+
+.tabs {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1dp solid #455A64;
+    margin-bottom: 10dp;
+}
+
+.tab {
+    padding: 5dp 10dp;
+    cursor: pointer;
+    background-color: #1A2530;
+    border-radius: 3dp 3dp 0 0;
+    margin-right: 2dp;
+}
+
+.tab:hover {
+    background-color: #2C3B47;
+}
+
+.tab-active {
+    background-color: #2962FF;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content-active {
+    display: block;
+}
+
+.button-small {
+    background-color: #263238;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    padding: 2dp 5dp;
+    font-size: 12dp;
+    text-align: center;
+    margin-left: 5dp;
+}
+
+.button-small:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
 }
