@@ -28,9 +28,9 @@ function UnitTrackingCamera.toggle()
         -- If no unit is selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'unit_tracking' then
             TrackingManager.disableTracking()
-            Log.debug("Tracking Camera disabled")
+            Log.trace("Tracking Camera disabled")
         else
-            Log.debug("No unit selected for Tracking Camera")
+            Log.trace("No unit selected for Tracking Camera")
         end
         return
     end
@@ -40,13 +40,13 @@ function UnitTrackingCamera.toggle()
     -- If we're already tracking this exact unit in tracking camera mode, turn it off
     if STATE.tracking.mode == 'unit_tracking' and STATE.tracking.unitID == selectedUnitID then
         TrackingManager.disableTracking()
-        Log.debug("Tracking Camera disabled")
+        Log.trace("Tracking Camera disabled")
         return
     end
 
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
-        Log.debug("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
+        Log.trace("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
     end
 end
 
@@ -58,7 +58,7 @@ function UnitTrackingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Log.debug("Tracked unit no longer exists, disabling Tracking Camera")
+        Log.trace("Tracked unit no longer exists, disabling Tracking Camera")
         TrackingManager.disableTracking()
         return
     end
@@ -128,7 +128,7 @@ function UnitTrackingCamera.adjustParams(params)
     end
     -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
-        Log.debug("No unit is tracked")
+        Log.trace("No unit is tracked")
         return
     end
 

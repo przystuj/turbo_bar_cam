@@ -43,7 +43,7 @@ function ProjectileTracker.initUnitTracking(unitID)
             active = true,  -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
         }
-        Log.debug("Initialized projectile tracking for unit " .. unitID)
+        Log.trace("Initialized projectile tracking for unit " .. unitID)
     else
         -- Unit already being tracked, just mark as active
         STATE.projectileTracking.unitProjectiles[unitID].active = true
@@ -59,7 +59,7 @@ function ProjectileTracker.markUnitInactive(unitID)
     end
 
     STATE.projectileTracking.unitProjectiles[unitID].active = false
-    Log.debug("Marked unit " .. unitID .. " as inactive for projectile tracking")
+    Log.trace("Marked unit " .. unitID .. " as inactive for projectile tracking")
 end
 
 -- Remove projectile tracking data for a unit
@@ -70,7 +70,7 @@ function ProjectileTracker.removeUnitTracking(unitID)
     end
 
     STATE.projectileTracking.unitProjectiles[unitID] = nil
-    Log.debug("Removed projectile tracking for unit " .. unitID)
+    Log.trace("Removed projectile tracking for unit " .. unitID)
 end
 
 -- Find new projectiles for a tracked unit

@@ -168,7 +168,7 @@ function FreeCam.toggle()
         STATE.tracking.fps.freeCam.targetRy = nil
         STATE.tracking.fps.freeCam.lastUnitHeading = nil
 
-        Log.debug("Free camera mode disabled - view follows unit orientation")
+        Log.trace("Free camera mode disabled - view follows unit orientation")
     end
 
     -- Start a transition for smooth change

@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
@@ -65,7 +65,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
             SettingsManager.loadModeSettings(STATE.tracking.mode, unitID)
         end
 
-        Log.debug("Tracking switched to unit " .. unitID)
+        Log.trace("Tracking switched to unit " .. unitID)
     end
 end
 

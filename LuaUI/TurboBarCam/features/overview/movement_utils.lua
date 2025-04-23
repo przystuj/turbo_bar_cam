@@ -243,7 +243,7 @@ function MovementUtils.moveToTarget()
 
     -- If targetPoint is nil, it means the click was outside the map and should be ignored
     if not targetPoint then
-        Log.debug("Move target outside map boundaries - ignoring")
+        Log.trace("Move target outside map boundaries - ignoring")
         return false
     end
 

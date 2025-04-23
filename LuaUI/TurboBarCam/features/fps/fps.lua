@@ -53,7 +53,7 @@ function FPSCamera.toggle()
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Log.debug("Invalid unit ID for FPS view")
+        Log.trace("Invalid unit ID for FPS view")
         return
     end
 
@@ -68,7 +68,7 @@ function FPSCamera.toggle()
         STATE.tracking.fps.forcedWeaponNumber = nil
 
         TrackingManager.disableTracking()
-        Log.debug("FPS camera detached")
+        Log.trace("FPS camera detached")
 
         -- Refresh units command bar to remove custom command
         selectedUnits = Spring.GetSelectedUnits()
@@ -89,7 +89,7 @@ function FPSCamera.toggle()
         STATE.tracking.fps.combatModeEnabled = false
         STATE.tracking.fps.forcedWeaponNumber = nil
 
-        Log.debug("FPS camera attached to unit " .. unitID)
+        Log.trace("FPS camera attached to unit " .. unitID)
     end
 end
 
@@ -220,7 +220,7 @@ function FPSCamera.checkFixedPointCommandActivation()
                 STATE.tracking.isModeTransitionInProgress = true
                 STATE.tracking.transitionStartTime = Spring.GetTimer()
 
-                Log.debug("Target selection mode activated - select a target to look at")
+                Log.trace("Target selection mode activated - select a target to look at")
             end
             -- Case 2: Command deactivated - exiting target selection mode without setting a point
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.fps.inTargetSelectionMode then
@@ -231,7 +231,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             if STATE.tracking.fps.prevFixedPointActive and STATE.tracking.fps.prevFixedPoint then
                 STATE.tracking.fps.isFixedPointActive = true
                 STATE.tracking.fps.fixedPoint = STATE.tracking.fps.prevFixedPoint
-                Log.debug("Target selection canceled, returning to fixed point view")
+                Log.trace("Target selection canceled, returning to fixed point view")
             end
 
             -- Restore previous free camera state
@@ -242,7 +242,7 @@ function FPSCamera.checkFixedPointCommandActivation()
             STATE.tracking.transitionStartTime = Spring.GetTimer()
 
             if not STATE.tracking.fps.prevFixedPointActive then
-                Log.debug("Target selection canceled, returning to unit view")
+                Log.trace("Target selection canceled, returning to unit view")
             end
         end
     end
@@ -258,13 +258,9 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     if Util.isTurboBarCamDisabled() then
         return
     end
-
-    -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' then
-        Log.debug("Fixed point tracking only works when in FPS mode")
-        return false
+    if Util.isModeDisabled("fps") then
+        return
     end
-
     if not STATE.tracking.unitID then
         Log.debug("No unit being tracked for fixed point camera")
         return false
@@ -283,7 +279,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
                 -- Store the target unit ID for continuous tracking
                 STATE.tracking.fps.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
-                Log.debug("Camera will follow current unit but look at unit " .. unitID)
+                Log.trace("Camera will follow current unit but look at unit " .. unitID)
             end
         elseif #cmdParams == 3 then
             -- Clicked on ground/feature
@@ -298,7 +294,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     if not x or not y or not z then
-        Log.debug("Could not find a valid position")
+        Log.trace("Could not find a valid position")
         return false
     end
 
@@ -384,13 +380,13 @@ function FPSCamera.loadSettings(identifier)
         CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
         CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
         CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
-        Log.debug("[FPS] Using previous settings")
+        Log.trace("[FPS] Using previous settings")
     else
         CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
         CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
         CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
         CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-        Log.debug("[FPS] Using default settings")
+        Log.trace("[FPS] Using default settings")
     end
     FPSCameraUtils.ensureHeightIsSet()
 end

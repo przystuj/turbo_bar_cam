@@ -115,7 +115,7 @@ function CameraManager.getCameraState(source)
 
         -- Verify that we're in FPS mode
         if CameraManager.cache.currentState.mode ~= 0 then
-            Log.debug("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
+            Log.trace("Warning: Camera is not in FPS mode, current mode: " .. (CameraManager.cache.currentState.mode or "nil"))
             CameraManager.cache.currentState.mode = 0
             CameraManager.cache.currentState.name = "fps"
         end

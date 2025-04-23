@@ -32,9 +32,9 @@ function GroupTrackingCamera.toggle()
         -- If no units are selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'group_tracking' then
             TrackingManager.disableTracking()
-            Log.debug("Group Tracking Camera disabled")
+            Log.trace("Group Tracking Camera disabled")
         else
-            Log.debug("No units selected for Group Tracking Camera")
+            Log.trace("No units selected for Group Tracking Camera")
         end
         return true
     end
@@ -42,7 +42,7 @@ function GroupTrackingCamera.toggle()
     -- If we're already in group tracking mode, turn it off
     if STATE.tracking.mode == 'group_tracking' then
         TrackingManager.disableTracking()
-        Log.debug("Group Tracking Camera disabled")
+        Log.trace("Group Tracking Camera disabled")
         return true
     end
 
@@ -90,7 +90,7 @@ function GroupTrackingCamera.toggle()
         -- Initialize camera position based on center of mass
         GroupTrackingCamera.initializeCameraPosition()
 
-        Log.debug(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.tracking.group.unitIDs))
+        Log.trace(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.tracking.group.unitIDs))
     end
 
     return true

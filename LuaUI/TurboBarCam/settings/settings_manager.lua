@@ -69,7 +69,7 @@ function SettingsManager.saveModeSettings(mode, unitID)
         return
     end
 
-    Log.debug(string.format("Saving settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
+    Log.trace(string.format("Saving settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
 
     if mode == 'fps' then
         FeatureModules.FPSCamera.saveSettings(identifier)
@@ -89,7 +89,7 @@ function SettingsManager.loadModeSettings(mode, unitID)
     local FeatureModules = WG.TurboBarCam.FeatureModules
     local identifier = SettingsManager.chooseIdentifier(mode, unitID)
 
-    Log.debug(string.format("Loading settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
+    Log.trace(string.format("Loading settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
 
     if mode == 'fps' then
         FeatureModules.FPSCamera.loadSettings(identifier)
@@ -110,7 +110,7 @@ function SettingsManager.saveWeaponSettings(unitId)
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
     local unitName = unitDef.name
 
-    Log.info("Saving weapon offsets for " .. unitName)
+    Log.trace("Saving weapon offsets for " .. unitName)
 
     -- Set the current weapon settings in storage
     SettingsManager.weaponSettings:set(unitName, {
@@ -120,7 +120,7 @@ function SettingsManager.saveWeaponSettings(unitId)
         ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
     })
 
-    Log.debug("Updated settings for " .. unitName)
+    Log.trace("Updated settings for " .. unitName)
 end
 
 --- Loads weapon settings for a specific unit

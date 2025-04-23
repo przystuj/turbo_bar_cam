@@ -56,14 +56,14 @@ function CameraAnchor.focus(index)
     if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
         STATE.transition.active = false
         STATE.transition.currentAnchorIndex = nil
-        Log.debug("Transition canceled")
+        Log.trace("Transition canceled")
         return true
     end
 
     -- Cancel any in-progress transition when starting a new one
     if STATE.transition.active then
         STATE.transition.active = false
-        Log.debug("Canceled previous transition")
+        Log.trace("Canceled previous transition")
     end
 
     -- Check if we should do an instant transition (duration = 0)
@@ -74,14 +74,14 @@ function CameraAnchor.focus(index)
         targetState.mode = 0
         targetState.name = "fps"
         CameraManager.setCameraState(targetState, 0, "CameraAnchor.focus")
-        Log.debug("Instantly jumped to camera anchor: " .. index)
+        Log.trace("Instantly jumped to camera anchor: " .. index)
         return true
     end
 
     -- Start transition
     CameraAnchorUtils.start(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
     STATE.transition.currentAnchorIndex = index
-    Log.debug("Loading camera anchor: " .. index)
+    Log.trace("Loading camera anchor: " .. index)
     return true
 end
 
@@ -113,14 +113,14 @@ function CameraAnchor.focusAndTrack(index)
 
     -- If not in a compatible tracking mode or no unit is being tracked, do normal focus
     if not isCompatibleMode or not STATE.tracking.unitID then
-        Log.debug("No unit was tracked during focused anchor transition")
+        Log.trace("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
 
     local unitID = STATE.tracking.unitID
     if not Spring.ValidUnitID(unitID) then
-        Log.debug("Invalid unit for tracking during anchor transition")
+        Log.trace("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index)
     end
@@ -128,7 +128,7 @@ function CameraAnchor.focusAndTrack(index)
     -- Cancel any in-progress transitions
     if STATE.transition.active then
         STATE.transition.active = false
-        Log.debug("Canceled previous transition")
+        Log.trace("Canceled previous transition")
     end
 
     -- Disable any existing tracking modes to avoid conflicts
@@ -162,7 +162,7 @@ function CameraAnchor.focusAndTrack(index)
     STATE.transition.active = true
     STATE.transition.currentAnchorIndex = index
 
-    Log.debug("Moving to anchor " .. index .. " while tracking unit " .. unitID)
+    Log.trace("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true
 end
 
@@ -195,7 +195,7 @@ function CameraAnchor.update()
         if STATE.transition.currentStepIndex >= totalSteps then
             STATE.transition.active = false
             STATE.transition.currentAnchorIndex = nil
-            Log.debug("transition complete")
+            Log.trace("transition complete")
 
             local currentState = CameraManager.getCameraState("CameraAnchor.update")
             Log.debug(string.format("currentState.rx=%.3f currentState.ry=%.3f",

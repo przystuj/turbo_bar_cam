@@ -239,7 +239,7 @@ local function adjustParam(command, module)
 
     -- Check if value has changed
     if newValue == currentValue then
-        Log.debug("Value has not changed.")
+        Log.trace("Value has not changed.")
         return
     end
 
@@ -264,7 +264,7 @@ end
 ---example params: add;HEIGHT,100;DISTANCE,-50
 ---@see ModifiableParams
 function Util.adjustParams(params, module, resetFunction)
-    Log.debug("Adjusting module: " .. module)
+    Log.trace("Adjusting module: " .. module)
     local adjustments = parseParams(params, module)
 
     ---@param adjustment CommandData

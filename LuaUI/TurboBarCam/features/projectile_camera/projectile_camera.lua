@@ -40,14 +40,14 @@ function ProjectileCamera.toggle(mode)
     end
 
     if STATE.tracking.mode and not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES, STATE.tracking.mode) then
-        Log.debug("Current mode " .. STATE.tracking.mode .. " is not compatible with projectile tracking")
+        Log.info("Current mode " .. STATE.tracking.mode .. " is not compatible with projectile tracking")
         return false
     end
 
     -- Get the currently tracked unit ID
     local unitID = STATE.tracking.unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.debug("No valid unit selected for projectile camera")
+        Log.trace("No valid unit selected for projectile camera")
         return false
     end
 
@@ -59,7 +59,7 @@ function ProjectileCamera.toggle(mode)
             return true
         else
             -- Switch between follow and static modes
-            Log.debug("Switching from " .. STATE.projectileWatching.cameraMode .. " mode to " .. mode .. " mode")
+            Log.trace("Switching from " .. STATE.projectileWatching.cameraMode .. " mode to " .. mode .. " mode")
             STATE.projectileWatching.cameraMode = mode
 
             -- When switching to static mode, use the originally saved camera position
@@ -104,7 +104,7 @@ function ProjectileCamera.toggle(mode)
             y = camState.py,
             z = camState.pz
         }
-        Log.debug("Static camera position set at " ..
+        Log.trace("Static camera position set at " ..
                 STATE.projectileWatching.initialCamPos.x .. ", " ..
                 STATE.projectileWatching.initialCamPos.y .. ", " ..
                 STATE.projectileWatching.initialCamPos.z)
@@ -127,13 +127,13 @@ function ProjectileCamera.toggle(mode)
     -- Initialize projectile tracking for this unit
     ProjectileTracker.initUnitTracking(unitID)
 
-    Log.debug("Watching unit " .. unitID .. " for projectiles in " .. mode .. " mode (will return to " ..
+    Log.trace("Watching unit " .. unitID .. " for projectiles in " .. mode .. " mode (will return to " ..
             (STATE.projectileWatching.previousMode or "default") .. " mode after impact)")
 
     -- Try activating immediately if projectiles exist
     local activated = ProjectileCamera.checkAndActivate()
     if activated then
-        Log.debug("Projectiles found, camera activated immediately in " .. mode .. " mode")
+        Log.trace("Projectiles found, camera activated immediately in " .. mode .. " mode")
     end
 
     return true
@@ -177,7 +177,7 @@ function ProjectileCamera.returnToPreviousMode()
             -- Mark that we're in a mode transition
             STATE.tracking.isModeTransitionInProgress = true
             CameraManager.setCameraState(prevCamState, 0.3, "ProjectileCamera.restoreUnitTrackingPosition")
-            Log.debug("Starting smooth transition back to " .. prevMode .. " mode")
+            Log.trace("Starting smooth transition back to " .. prevMode .. " mode")
         end
         ProjectileCamera.disableProjectileCamera()
     end
@@ -198,7 +198,7 @@ function ProjectileCamera.disableProjectileCamera()
         STATE.tracking.projectile.currentProjectileID = nil
     end
 
-    Log.debug("Projectile tracking disabled")
+    Log.trace("Projectile tracking disabled")
 end
 
 -- Get current camera mode
@@ -211,13 +211,13 @@ end
 function ProjectileCamera.checkAndActivate()
     -- Check if we're in impact timeout mode
     if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
-        Log.debug("watchedUnitID", STATE.projectileWatching.watchedUnitID)
+        Log.trace("watchedUnitID", STATE.projectileWatching.watchedUnitID)
         -- Check if timeout has elapsed
         local currentTime = Spring.GetGameSeconds()
         local elapsed = currentTime - STATE.projectileWatching.impactTimer
 
         if elapsed >= STATE.projectileWatching.impactTimeout then
-            Log.debug("Impact timeout elapsed, returning to previous mode: " .. tostring(STATE.projectileWatching.previousMode))
+            Log.trace("Impact timeout elapsed, returning to previous mode: " .. tostring(STATE.projectileWatching.previousMode))
 
             ProjectileCamera.returnToPreviousMode()
             ProjectileCamera.disableProjectileCamera()
@@ -250,7 +250,7 @@ function ProjectileCamera.checkAndActivate()
     -- Check that unit is valid
     local unitID = STATE.projectileWatching.watchedUnitID
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.debug("Watched unit no longer valid, disabling projectile tracking")
+        Log.trace("Watched unit no longer valid, disabling projectile tracking")
         STATE.projectileWatching.enabled = false
         STATE.projectileWatching.watchedUnitID = nil
         STATE.projectileWatching.impactTimer = nil
@@ -577,13 +577,13 @@ function ProjectileCamera.loadSettings(identifier)
         if settings.cameraMode then
             STATE.projectileWatching.cameraMode = settings.cameraMode
         end
-        Log.debug("[PROJECTILE_CAMERA] Using previous settings")
+        Log.trace("[PROJECTILE_CAMERA] Using previous settings")
     else
         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_DISTANCE
         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_HEIGHT
         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_LOOK_AHEAD
         STATE.projectileWatching.cameraMode = "follow"
-        Log.debug("[PROJECTILE_CAMERA] Using default settings")
+        Log.trace("[PROJECTILE_CAMERA] Using default settings")
     end
 end
 

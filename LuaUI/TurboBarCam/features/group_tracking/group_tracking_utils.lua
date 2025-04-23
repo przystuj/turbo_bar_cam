@@ -76,7 +76,7 @@ function GroupTrackingUtils.resetGroupTrackingSettings()
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_POSITION
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_ROTATION
 
-    Log.debug("Group tracking camera settings reset to defaults")
+    Log.trace("Group tracking camera settings reset to defaults")
     return true
 end
 

@@ -7,7 +7,7 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -36,7 +36,7 @@ function TrackingManager.initializeTracking(mode, unitID)
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Log.debug("Invalid unit ID for " .. mode .. " view")
+        Log.trace("Invalid unit ID for " .. mode .. " view")
         return false
     end
 
@@ -100,7 +100,7 @@ function TrackingManager.disableTracking()
             STATE.tracking.projectile.smoothedPositions = nil
         end
 
-        Log.debug("Projectile tracking disabled during tracking disablement")
+        Log.trace("Projectile tracking disabled during tracking disablement")
     end
 
     -- Clean up overview-specific states if in overview mode
@@ -131,7 +131,7 @@ function TrackingManager.disableTracking()
         STATE.overview.movementVelocity = nil
         STATE.overview.velocityDecay = nil
 
-        Log.debug("Overview camera states reset during tracking disablement")
+        Log.trace("Overview camera states reset during tracking disablement")
     end
 
     STATE.tracking.unitID = nil
@@ -192,7 +192,7 @@ function TrackingManager.startModeTransition(newMode)
             STATE.tracking.projectile.smoothedPositions = nil
         end
 
-        Log.debug("Projectile tracking disabled due to mode change to " .. newMode)
+        Log.trace("Projectile tracking disabled due to mode change to " .. newMode)
     end
 
     -- Store modes

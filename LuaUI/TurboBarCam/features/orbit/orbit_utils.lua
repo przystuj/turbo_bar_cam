@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -44,7 +44,7 @@ function OrbitCameraUtils.adjustParams(params)
     end
     -- Make sure we have a unit to orbit around
     if not STATE.tracking.unitID then
-        Log.debug("No unit is being orbited")
+        Log.trace("No unit is being orbited")
         return
     end
 
@@ -58,7 +58,7 @@ function OrbitCameraUtils.resetSettings()
     CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
     CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
     CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-    Log.debug("Restored orbit camera settings to defaults")
+    Log.trace("Restored orbit camera settings to defaults")
 end
 
 return {

@@ -38,14 +38,14 @@ function OrbitingCamera.toggle(unitID)
 
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Log.debug("Invalid unit ID for Orbiting view")
+        Log.trace("Invalid unit ID for Orbiting view")
         return
     end
 
     -- If we're already tracking this exact unit in Orbiting mode, turn it off
     if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID then
         TrackingManager.disableTracking()
-        Log.debug("Orbiting camera detached")
+        Log.trace("Orbiting camera detached")
         return
     end
 
@@ -59,7 +59,7 @@ function OrbitingCamera.toggle(unitID)
         -- Calculate current angle based on camera position relative to unit
         STATE.tracking.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 
-        Log.debug("Orbiting camera attached to unit " .. unitID)
+        Log.trace("Orbiting camera attached to unit " .. unitID)
     end
 
 end
@@ -72,7 +72,7 @@ function OrbitingCamera.update()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Log.debug("Unit no longer exists")
+        Log.trace("Unit no longer exists")
         TrackingManager.disableTracking()
         return
     end
@@ -130,12 +130,12 @@ function OrbitingCamera.loadSettings(identifier)
         CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
         CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
-        Log.debug("[ORBIT] Using previous settings")
+        Log.trace("[ORBIT] Using previous settings")
     else
         CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
         CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-        Log.debug("[ORBIT] Using default settings")
+        Log.trace("[ORBIT] Using default settings")
     end
     OrbitCameraUtils.ensureHeightIsSet()
 end

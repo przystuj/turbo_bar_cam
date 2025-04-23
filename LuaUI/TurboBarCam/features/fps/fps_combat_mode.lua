@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -88,7 +88,7 @@ function FPSCombatMode.clearWeaponSelection()
         FPSCombatMode.setCombatMode(true)
     end
 
-    Log.debug("Cleared weapon selection. Combat mode remains " ..
+    Log.trace("Cleared weapon selection. Combat mode remains " ..
             (STATE.tracking.fps.combatModeEnabled and "enabled" or "disabled") .. ".")
 end
 
@@ -311,7 +311,7 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     unitID = unitID or STATE.tracking.unitID
 
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.debug("No valid unit for combat mode")
+        Log.trace("No valid unit for combat mode")
         return false
     end
 
