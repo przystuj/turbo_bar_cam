@@ -65,6 +65,9 @@ end
 --- Saves weapon settings
 ---@param unitId number Unit ID
 function SettingsManager.saveWeaponSettings(unitId)
+    if not Spring.ValidUnitID(unitId) then
+        return
+    end
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
     local unitName = unitDef.name
 
@@ -123,7 +126,7 @@ function SettingsManager.saveWeaponSettings(unitId)
     if file then
         file:write(content)
         file:close()
-        Log.info("Weapon settings saved to " .. filePath)
+        Log.trace("Weapon settings saved to " .. filePath)
     else
         Log.error("Failed to save weapon settings to " .. filePath)
     end

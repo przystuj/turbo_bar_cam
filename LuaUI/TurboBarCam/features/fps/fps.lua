@@ -369,17 +369,17 @@ function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
 end
 
+function FPSCamera.saveWeaponSettings(unitId)
+    FPSCombatMode.saveWeaponSettings(unitId)
+end
+
 function FPSCamera.saveSettings(identifier)
     STATE.tracking.offsets.fps[identifier] = {
         height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
         forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
         side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-        rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+        rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION,
     }
-end
-
-function FPSCamera.saveWeaponSettings(unitId)
-    FPSCombatMode.saveWeaponSettings(unitId)
 end
 
 function FPSCamera.loadSettings(identifier)

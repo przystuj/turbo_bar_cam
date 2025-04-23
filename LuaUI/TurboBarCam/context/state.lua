@@ -61,6 +61,7 @@ if not WG.TurboBarCam.STATE then
                 lastUnitProjectileID = nil,
                 lastProjectilePosition = nil,
                 combatModeEnabled = false,
+                useLookAtTarget = false,
 
                 -- Free camera state
                 freeCam = {

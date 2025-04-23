@@ -24,8 +24,6 @@ local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
 local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
 ---@type ProjectileTracker
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
 

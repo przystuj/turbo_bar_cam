@@ -4,8 +4,6 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type FPSCombatMode
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
 
@@ -176,84 +174,45 @@ end
 --- @param rotFactor number Rotation smoothing factor
 --- @return table directionState Camera direction and rotation state
 function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
-    -- First check if combat mode is enabled
+    -- Check if combat mode is enabled
     if STATE.tracking.fps.combatModeEnabled then
-        -- Try to get a target if the unit is actively attacking
+        -- Set isAttacking to true so camera uses weapon offsets
+        STATE.tracking.fps.isAttacking = true
+
+        -- Check if the unit is actively attacking a target
         local targetPos, firingWeaponNum = FPSCombatMode.getTargetPosition(unitID)
 
-        -- If there's an active target, focus on it
-        if targetPos then
-            local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
-            return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+        -- Try to create direction state based on targeting data
+        local targetingState = FPSCameraUtils.createTargetingDirectionState(
+                unitID, targetPos, firingWeaponNum, rotFactor)
+
+        if targetingState then
+            -- Successfully created targeting state, return it
+            return targetingState
         end
 
-        -- Even if no target, use weapon direction and offsets in combat mode
-        -- Get weapon direction if we have a forced weapon
-        if STATE.tracking.fps.forcedWeaponNumber then
-            local weaponNum = STATE.tracking.fps.forcedWeaponNumber
-            local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+        -- If targeting state creation failed, fall back to hull direction with weapon offsets
+        local weaponOffsets = {
+            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
+            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
+            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
+            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
+        }
 
-            if posX and destX then
-                -- Calculate weapon direction
-                local dx, dy, dz = destX, destY, destZ
-                local magnitude = math.sqrt(dx*dx + dy*dy + dz*dz)
-                if magnitude > 0 then
-                    dx, dy, dz = dx/magnitude, dy/magnitude, dz/magnitude
-                end
-
-                -- Use combat mode offsets and weapon direction
-                STATE.tracking.fps.isAttacking = true  -- This ensures we use weapon offsets
-
-                -- Store weapon position and direction for other functions
-                STATE.tracking.fps.weaponPos = { x = posX, y = posY, z = posZ }
-                STATE.tracking.fps.weaponDir = { dx, dy, dz }
-                STATE.tracking.fps.activeWeaponNum = weaponNum
-
-                -- Create camera direction state with weapon direction
-                local directionState = {
-                    dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, dx, rotFactor),
-                    dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, dy, rotFactor),
-                    dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, dz, rotFactor),
-                    rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, 1.8, rotFactor),
-                    ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry,
-                            -(Spring.GetUnitHeading(unitID, true) + math.pi) +
-                                    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION, rotFactor),
-                    rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, 0, rotFactor)
-                }
-
-                return directionState
-            end
-        end
-
-        -- If we don't have weapon info, fall back to unit direction but still use weapon offsets
-        STATE.tracking.fps.isAttacking = true  -- Still use weapon offsets even without weapon direction
+        return FPSCameraUtils.createHullDirectionState(unitID, weaponOffsets, rotFactor)
     else
-        -- Not in combat mode, make sure attacking state is cleared
+        -- Not in combat mode, use normal offsets
         STATE.tracking.fps.isAttacking = false
+
+        local normalOffsets = {
+            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
+            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
+            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
+            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
+        }
+
+        return FPSCameraUtils.createHullDirectionState(unitID, normalOffsets, rotFactor)
     end
-
-    -- Fall back to unit hull direction for normal mode or if no weapon direction available
-    local front, _, _ = Spring.GetUnitVectors(unitID)
-    local frontX, frontY, frontZ = front[1], front[2], front[3]
-
-    -- Get appropriate offsets based on mode
-    local offsets = FPSCameraUtils.getAppropriateOffsets()
-
-    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
-    local targetRx = 1.8
-    local targetRz = 0
-
-    -- Create camera direction state with smoothed values
-    local directionState = {
-        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
-    }
-
-    return directionState
 end
 
 --- Sets a fixed look point for the camera
@@ -367,6 +326,75 @@ function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
 
     -- Default
     return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
+end
+
+--- Creates direction state based on unit's hull direction
+--- @param unitID number Unit ID
+--- @param offsets table Offsets to use
+--- @param rotFactor number Rotation smoothing factor
+--- @return table directionState Camera direction state
+function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
+    local front, _, _ = Spring.GetUnitVectors(unitID)
+    local frontX, frontY, frontZ = front[1], front[2], front[3]
+
+    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
+    local targetRx = 1.8
+    local targetRz = 0
+
+    -- Create camera direction state with smoothed values
+    return {
+        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
+    }
+end
+
+--- Creates direction state when actively firing at a target
+--- @param unitID number Unit ID
+--- @param targetPos table Target position
+--- @param weaponNum number|nil Weapon number
+--- @param rotFactor number Rotation smoothing factor
+--- @return table|nil directionState Camera direction state or nil if it fails
+function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponNum, rotFactor)
+    if not targetPos or not weaponNum then
+        return nil
+    end
+
+    -- Get the weapon position if available
+    local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+    if not posX or not destX then
+        return nil
+    end
+
+    -- We have valid weapon vectors
+    local weaponPos = { x = posX, y = posY, z = posZ }
+
+    -- Calculate direction to target (not weapon direction)
+    local dx = targetPos.x - posX
+    local dy = targetPos.y - posY
+    local dz = targetPos.z - posZ
+    local magnitude = math.sqrt(dx*dx + dy*dy + dz*dz)
+
+    if magnitude < 0.001 then
+        return nil
+    end
+
+    -- Normalize direction vector
+    dx, dy, dz = dx/magnitude, dy/magnitude, dz/magnitude
+
+    -- Store position and direction for other functions
+    STATE.tracking.fps.weaponPos = weaponPos
+    STATE.tracking.fps.weaponDir = { dx, dy, dz }
+    STATE.tracking.fps.activeWeaponNum = weaponNum
+
+    -- Get camera position with weapon offsets
+    local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
+
+    -- Create focusing direction to look at target
+    return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
 end
 
 ---@see ModifiableParams

@@ -4,14 +4,11 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/standalone/settings_manager.lua").SettingsManager
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
 
 ---@class FPSCombatMode
 local FPSCombatMode = {}
