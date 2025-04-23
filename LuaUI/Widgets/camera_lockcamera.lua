@@ -11,7 +11,6 @@ function widget:GetInfo()
     }
 end
 
-
 local lockcameraHideEnemies = true            -- specfullview
 local lockcameraLos = true                    -- togglelos
 
@@ -26,7 +25,6 @@ local newBroadcaster = false
 local desiredLosmodeChanged = 0
 local desiredLosmode, myLastCameraState
 
-
 local function UpdateRecentBroadcasters()
     recentBroadcasters = {}
     for playerID, info in pairs(lastBroadcasts) do
@@ -37,7 +35,7 @@ local function UpdateRecentBroadcasters()
             end
         end
     end
-	WG.lockcamera.recentBroadcasters = recentBroadcasters
+    WG.lockcamera.recentBroadcasters = recentBroadcasters
 end
 
 local function LockCamera(playerID)
@@ -74,7 +72,7 @@ local function LockCamera(playerID)
         myLastCameraState = myLastCameraState or Spring.GetCameraState()
         local info = lastBroadcasts[lockPlayerID]
         if info then
-           Spring.SetCameraState(info[2], transitionTime)
+            Spring.SetCameraState(info[2], transitionTime)
         end
 
     else
@@ -100,12 +98,12 @@ local function LockCamera(playerID)
     end
     UpdateRecentBroadcasters()
 
-	return lockPlayerID
+    return lockPlayerID
 end
-
 
 function CameraBroadcastEvent(playerID, cameraState)
     local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.isInControl and WG.TurboBarCam.isInControl() -- TurboBarCam is controlling the camera now
+    local forceFpsCamera = WG.TurboBarCam and WG.TurboBarCam.forceFpsCamera and WG.TurboBarCam.forceFpsCamera() -- TurboBarCam is enabled
 
     -- if cameraState is empty then transmission has stopped
     if not cameraState then
@@ -126,38 +124,42 @@ function CameraBroadcastEvent(playerID, cameraState)
     lastBroadcasts[playerID] = { totalTime, cameraState }
 
     if playerID == lockPlayerID and not skipCameraUpdate then
-        Spring.SetCameraState(cameraState, transitionTime)
+        if forceFpsCamera then
+            WG.TurboBarCam.handleCameraBroadcastEvent(cameraState)
+        else
+            Spring.SetCameraState(cameraState, transitionTime)
+        end
     end
 end
 
 local sec = 0
 function widget:Update(dt)
-	sec = sec + dt
-	if sec > 1 then
-		sec = 0
-		UpdateRecentBroadcasters()
-	end
-    
-    totalTime = totalTime + dt
-    
-	if desiredLosmode and desiredLosmodeChanged + 0.9 > os.clock() then
-		if (desiredLosmode == "los" and Spring.GetMapDrawMode() == "normal") or (desiredLosmode == "normal" and Spring.GetMapDrawMode() == "los") then
-			-- this is needed else the minimap/world doesnt update properly
-			Spring.SendCommands("togglelos")
-		end
-		if desiredLosmodeChanged + 2 < os.clock() then
-			desiredLosmode = nil
-		end
-	end
+    sec = sec + dt
+    if sec > 1 then
+        sec = 0
+        UpdateRecentBroadcasters()
+    end
 
-	if scheduledSpecFullView ~= nil then
-		-- this is needed else the minimap/world doesnt update properly
-		Spring.SendCommands("specfullview")
-		scheduledSpecFullView = scheduledSpecFullView - 1
-		if scheduledSpecFullView == 0 then
-			scheduledSpecFullView = nil
-		end
-	end
+    totalTime = totalTime + dt
+
+    if desiredLosmode and desiredLosmodeChanged + 0.9 > os.clock() then
+        if (desiredLosmode == "los" and Spring.GetMapDrawMode() == "normal") or (desiredLosmode == "normal" and Spring.GetMapDrawMode() == "los") then
+            -- this is needed else the minimap/world doesnt update properly
+            Spring.SendCommands("togglelos")
+        end
+        if desiredLosmodeChanged + 2 < os.clock() then
+            desiredLosmode = nil
+        end
+    end
+
+    if scheduledSpecFullView ~= nil then
+        -- this is needed else the minimap/world doesnt update properly
+        Spring.SendCommands("specfullview")
+        scheduledSpecFullView = scheduledSpecFullView - 1
+        if scheduledSpecFullView == 0 then
+            scheduledSpecFullView = nil
+        end
+    end
 end
 
 function widget:PlayerChanged(playerID)
@@ -172,79 +174,79 @@ function widget:PlayerChanged(playerID)
 end
 
 function widget:Initialize()
-	WG.lockcamera = {}
+    WG.lockcamera = {}
     WG.lockcamera.overrideSelection = false  -- Skip selection mirroring
     WG.lockcamera.overrideCamera = false     -- Skip camera updates
 
-	WG.lockcamera.GetPlayerID = function()
-		return lockPlayerID
-	end
-	WG.lockcamera.SetPlayerID = function(playerID)
-		LockCamera(playerID)
-	end
-	WG.lockcamera.GetHideEnemies = function()
-		return lockcameraHideEnemies
-	end
-	WG.lockcamera.SetHideEnemies = function(value)
-		lockcameraHideEnemies = value
-		if lockPlayerID and not select(3, Spring.GetPlayerInfo(lockPlayerID)) then
-			if not lockcameraHideEnemies then
-				if not fullView then
-					Spring.SendCommands("specfullview")
-					if lockcameraLos and mySpecStatus then
-						desiredLosmode = 'normal'
-						desiredLosmodeChanged = os.clock()
-						Spring.SendCommands("togglelos")
-					end
-				end
-			else
-				if fullView then
-					Spring.SendCommands("specfullview")
-					if lockcameraLos and mySpecStatus then
-						desiredLosmode = 'los'
-						desiredLosmodeChanged = os.clock()
-					end
-				end
-			end
-		end
-	end
-	WG.lockcamera.GetTransitionTime = function()
-	    return transitionTime
-	end
-	WG.lockcamera.SetTransitionTime = function(value)
-	    transitionTime = value
-	end
-	WG.lockcamera.GetLos = function()
-	    return lockcameraLos
-	end
-	WG.lockcamera.SetLos = function(value)
-		lockcameraLos = value
-		if lockcameraHideEnemies and mySpecStatus and lockPlayerID and not select(3, Spring.GetPlayerInfo(lockPlayerID)) then
-			if lockcameraLos and mySpecStatus then
-				desiredLosmode = 'los'
-				desiredLosmodeChanged = os.clock()
-				Spring.SendCommands("togglelos")
-			elseif not lockcameraLos and Spring.GetMapDrawMode() == "los" then
-				desiredLosmode = 'normal'
-				desiredLosmodeChanged = os.clock()
-				Spring.SendCommands("togglelos")
-			end
-		end
-	end
-	WG.lockcamera.SetLosMode = function(value)
-		desiredLosmode = value
-		desiredLosmodeChanged = os.clock()
-	end
+    WG.lockcamera.GetPlayerID = function()
+        return lockPlayerID
+    end
+    WG.lockcamera.SetPlayerID = function(playerID)
+        LockCamera(playerID)
+    end
+    WG.lockcamera.GetHideEnemies = function()
+        return lockcameraHideEnemies
+    end
+    WG.lockcamera.SetHideEnemies = function(value)
+        lockcameraHideEnemies = value
+        if lockPlayerID and not select(3, Spring.GetPlayerInfo(lockPlayerID)) then
+            if not lockcameraHideEnemies then
+                if not fullView then
+                    Spring.SendCommands("specfullview")
+                    if lockcameraLos and mySpecStatus then
+                        desiredLosmode = 'normal'
+                        desiredLosmodeChanged = os.clock()
+                        Spring.SendCommands("togglelos")
+                    end
+                end
+            else
+                if fullView then
+                    Spring.SendCommands("specfullview")
+                    if lockcameraLos and mySpecStatus then
+                        desiredLosmode = 'los'
+                        desiredLosmodeChanged = os.clock()
+                    end
+                end
+            end
+        end
+    end
+    WG.lockcamera.GetTransitionTime = function()
+        return transitionTime
+    end
+    WG.lockcamera.SetTransitionTime = function(value)
+        transitionTime = value
+    end
+    WG.lockcamera.GetLos = function()
+        return lockcameraLos
+    end
+    WG.lockcamera.SetLos = function(value)
+        lockcameraLos = value
+        if lockcameraHideEnemies and mySpecStatus and lockPlayerID and not select(3, Spring.GetPlayerInfo(lockPlayerID)) then
+            if lockcameraLos and mySpecStatus then
+                desiredLosmode = 'los'
+                desiredLosmodeChanged = os.clock()
+                Spring.SendCommands("togglelos")
+            elseif not lockcameraLos and Spring.GetMapDrawMode() == "los" then
+                desiredLosmode = 'normal'
+                desiredLosmodeChanged = os.clock()
+                Spring.SendCommands("togglelos")
+            end
+        end
+    end
+    WG.lockcamera.SetLosMode = function(value)
+        desiredLosmode = value
+        desiredLosmodeChanged = os.clock()
+    end
 
-	widgetHandler:RegisterGlobal('CameraBroadcastEvent', CameraBroadcastEvent)
+    widgetHandler:RegisterGlobal('CameraBroadcastEvent', CameraBroadcastEvent)
 
-	UpdateRecentBroadcasters()
+    UpdateRecentBroadcasters()
 
     widget:PlayerChanged(Spring.GetMyPlayerID())
 end
 
 function widget:Shutdown()
-	WG.lockcamera = nil
+    WG.lockcamera = nil
     widgetHandler:DeregisterGlobal('CameraBroadcastEvent')
 end
 
@@ -254,13 +256,14 @@ function widget:GameOver()
     end
 end
 
-function widget:GetConfigData()    -- save
-	local settings = {
-		transitionTime = transitionTime,
-		lockcameraHideEnemies = lockcameraHideEnemies,
-		lockcameraLos = lockcameraLos,
-	}
-	return settings
+function widget:GetConfigData()
+    -- save
+    local settings = {
+        transitionTime = transitionTime,
+        lockcameraHideEnemies = lockcameraHideEnemies,
+        lockcameraLos = lockcameraLos,
+    }
+    return settings
 end
 
 function widget:SetConfigData(data)

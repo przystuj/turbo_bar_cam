@@ -75,8 +75,8 @@ if not WG.TurboBarCam.CONFIG then
                     },
 
                     WEAPON = {
-                        HEIGHT = 35,
-                        FORWARD = -75,
+                        HEIGHT = 0,
+                        FORWARD = 0,
                         SIDE = 0,
                         ROTATION = 0
                     }

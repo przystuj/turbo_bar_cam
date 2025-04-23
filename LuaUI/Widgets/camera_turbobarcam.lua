@@ -31,6 +31,7 @@ local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local CameraCommons = CommonModules.CameraCommons
 local WidgetControl = CoreModules.WidgetControl
 local FPSCamera = FeatureModules.FPSCamera
 local UpdateManager = CoreModules.UpdateManager
@@ -53,8 +54,15 @@ function widget:Initialize()
     WG.TurboBarCam.isInControl = function()
         return STATE.enabled and STATE.tracking.mode ~= nil
     end
+    WG.TurboBarCam.forceFpsCamera = function()
+        return STATE.enabled
+    end
     WG.TurboBarCam.isUnitSelectionAllowed = function()
         return STATE.allowPlayerCamUnitSelection
+    end
+    WG.TurboBarCam.handleCameraBroadcastEvent = function(cameraState)
+        Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
+        --Spring.SendCommands("viewfps")
     end
 
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
@@ -117,7 +125,7 @@ end
 if CONFIG and CONFIG.DEBUG and CONFIG.DEBUG.TRACE_BACK then
     local function wrapWithTrace(func, name)
         return function(...)
-            local args = {...}
+            local args = { ... }
             local success, result = xpcall(
                     function()
                         return func(unpack(args))

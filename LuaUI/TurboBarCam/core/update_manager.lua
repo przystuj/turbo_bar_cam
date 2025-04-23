@@ -93,7 +93,7 @@ end
 
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode()
-    CameraManager.setCameraState({ mode = 0, name = "fps" }, 0, "UpdateManager.forceFpsMode")
+    Spring.SendCommands("viewfps")
 
     if STATE.transition.active then
         Features.CameraAnchor.update()

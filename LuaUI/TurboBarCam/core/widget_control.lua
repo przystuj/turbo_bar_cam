@@ -9,6 +9,7 @@ local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
 ---@class WidgetControl
@@ -81,38 +82,17 @@ end
 --- Special handling:
 --- First flips the Spring camera downward briefly to prevent visual glitches
 function WidgetControl.switchToFpsCamera()
-    local springState = Spring.GetCameraState()
     local selectedUnits = Spring.GetSelectedUnits()
-    local x, z
-    local useUnitPos = false
 
     if #selectedUnits > 0 then
-        x, _, z = Spring.GetUnitPosition(selectedUnits[1])
-        useUnitPos = true
-    end
+        local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
 
-    -- Check if we're actually switching from Spring camera mode
-    if springState.mode ~= 2 then
-        -- Not coming from spring camera, just switch to FPS mode
-        local newState = {}
-        newState.mode = 0
-        newState.name = "fps"
-        newState.fov = 45
-        Spring.SetCameraState(springState, 1)
-        return
-    end
+        local fpsState = {
+            mode = 0, -- FPS camera mode
+            name = "fps",
+            fov = 45
+        }
 
-    -- first flip camera down in spring mode to avoid strange behaviours when switching to fps
-    Spring.SetCameraState({ rx = math.pi, dx = 0, dy = -1, dz = 0 }, 1)
-
-    -- Create a new state for FPS camera
-    local fpsState = {
-        mode = 0, -- FPS camera mode
-        name = "fps",
-        fov = 45
-    }
-
-    if useUnitPos then
         -- Get map dimensions and calculate camera parameters
         local cameraHeight = 1280
         local offsetDistance = 1024
@@ -140,13 +120,9 @@ function WidgetControl.switchToFpsCamera()
 
         Log.trace("Camera height: " .. cameraHeight)
         Log.trace("Offset distance: " .. offsetDistance)
-    else
-        -- Calculate position based on spring camera state
-        fpsState.py = springState.py + springState.dist * 0.986 -- Height adjustment
-        fpsState.pz = springState.pz + springState.dist * 0.0014 -- Slight forward adjustment
+        Spring.SetCameraState(fpsState, 1)
     end
-
-    Spring.SetCameraState(fpsState, 1)
+    Spring.SendCommands("viewfps")
 end
 
 function WidgetControl.toggleDebug()

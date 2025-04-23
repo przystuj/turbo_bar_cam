@@ -139,6 +139,59 @@ function CameraCommons.normalizeAngle(angle)
     return angle
 end
 
+function CameraCommons.convertSpringToFPSCameraState(camState)
+    if camState.mode ~= 2 then
+        return camState
+    end
+
+    local fpsState = {}
+
+    -- Copy basic properties
+    fpsState.mode = 0  -- FPS mode
+    fpsState.name = "fps"
+    fpsState.fov = camState.fov or 45
+
+    -- Get direction vector
+    local dirX = camState.dx or 0
+    local dirY = camState.dy or 0
+    local dirZ = camState.dz or 0
+
+    -- Normalize direction
+    local dirLen = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
+    if dirLen > 0 then
+        dirX, dirY, dirZ = dirX / dirLen, dirY / dirLen, dirZ / dirLen
+    end
+
+    -- Calculate the actual camera position using the same logic as CSpringController::GetPos()
+    local dist = camState.dist or 0
+    local actualX = camState.px - (dirX * dist)
+    local actualY = camState.py - (dirY * dist)
+    local actualZ = camState.pz - (dirZ * dist)
+
+    -- Use this actual position for the FPS camera
+    fpsState.px = actualX
+    fpsState.py = actualY
+    fpsState.pz = actualZ
+
+    -- Fix rotation calculation - we need to either invert the direction
+    -- or adjust the angles to account for camera direction conventions
+    -- Try adding pi (180 degrees) to the y-rotation to flip the camera direction
+    fpsState.rx = math.atan2(math.sqrt(dirX * dirX + dirZ * dirZ), dirY)
+    fpsState.ry = math.atan2(dirX, dirZ) + math.pi
+    fpsState.rz = 0
+
+    -- Normalize ry to keep it in the range [-π, π]
+    while fpsState.ry > math.pi do fpsState.ry = fpsState.ry - 2 * math.pi end
+    while fpsState.ry < -math.pi do fpsState.ry = fpsState.ry + 2 * math.pi end
+
+    -- Copy any additional properties that might be needed
+    fpsState.vx = camState.vx or 0
+    fpsState.vy = camState.vy or 0
+    fpsState.vz = camState.vz or 0
+
+    return fpsState
+end
+
 return {
     CameraCommons = CameraCommons
 }
