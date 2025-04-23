@@ -56,6 +56,12 @@ function Actions.fpsActions()
                 return true
             end, nil)
 
+    Actions.registerAction("turbobarcam_fps_toggle_combat_mode", 'tp',
+            function()
+                FeatureModules.FPSCamera.toggleCombatMode()
+                return true
+            end, nil)
+
     Actions.registerAction("turbobarcam_fps_adjust_params", 'pR',
             function(_, params)
                 FeatureModules.FPSCamera.adjustParams(params)

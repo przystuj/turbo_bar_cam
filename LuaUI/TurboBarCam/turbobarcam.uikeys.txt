@@ -59,7 +59,10 @@ bind		numpad9	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,5
 bind		numpad7	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,-5
 bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON_SIDE,5
 bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON_SIDE,-5
-bind		End           	turbobarcam_fps_clear_weapon_selection
+
+// FPS Combat
+bind        End             turbobarcam_fps_toggle_combat_mode
+bind		Ctrl+PageDown   turbobarcam_fps_clear_weapon_selection
 bind		PageDown 		turbobarcam_fps_next_weapon
 
 // Spec groups (unit groups which work when spectating)

@@ -63,6 +63,9 @@ function FPSCamera.toggle()
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil
         STATE.tracking.fps.isFixedPointActive = false
+        -- Clear combat mode state as well
+        STATE.tracking.fps.combatModeEnabled = false
+        STATE.tracking.fps.forcedWeaponNumber = nil
 
         TrackingManager.disableTracking()
         Log.debug("FPS camera detached")
@@ -82,6 +85,9 @@ function FPSCamera.toggle()
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil
         STATE.tracking.fps.isFixedPointActive = false
+        -- Initialize combat mode state to false
+        STATE.tracking.fps.combatModeEnabled = false
+        STATE.tracking.fps.forcedWeaponNumber = nil
 
         Log.debug("FPS camera attached to unit " .. unitID)
     end
@@ -391,6 +397,17 @@ function FPSCamera.loadSettings(identifier)
         Log.debug("[FPS] Using default settings")
     end
     FPSCameraUtils.ensureHeightIsSet()
+end
+
+function FPSCamera.toggleCombatMode()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled('fps') then
+        return
+    end
+
+    FPSCombatMode.setCombatMode(not STATE.tracking.fps.combatModeEnabled)
 end
 
 return {

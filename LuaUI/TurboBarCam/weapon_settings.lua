@@ -41,6 +41,12 @@ return {
     SIDE = 0,
     ROTATION = 0
   },
+  ["armmav"] = {
+    FORWARD = -135,
+    HEIGHT = 55,
+    SIDE = 20,
+    ROTATION = 0
+  },
   ["armvang"] = {
     FORWARD = -55,
     HEIGHT = 25,
@@ -65,10 +71,22 @@ return {
     SIDE = 20,
     ROTATION = 0
   },
-  ["corfmd"] = {
-    FORWARD = -55,
-    HEIGHT = 25,
-    SIDE = 20,
+  ["corfav"] = {
+    FORWARD = -75,
+    HEIGHT = 0,
+    SIDE = 0,
+    ROTATION = 0
+  },
+  ["armfboy"] = {
+    FORWARD = -140,
+    HEIGHT = 100,
+    SIDE = 45,
+    ROTATION = 0
+  },
+  ["corsilo"] = {
+    FORWARD = -275,
+    HEIGHT = 190,
+    SIDE = -205,
     ROTATION = 0
   },
   ["corkorg"] = {
@@ -83,22 +101,16 @@ return {
     SIDE = 80,
     ROTATION = 0
   },
-  ["corsilo"] = {
-    FORWARD = -275,
-    HEIGHT = 190,
-    SIDE = -205,
-    ROTATION = 0
-  },
   ["corcat"] = {
     FORWARD = -245,
     HEIGHT = 190,
     SIDE = 130,
     ROTATION = 0
   },
-  ["armfboy"] = {
-    FORWARD = -140,
-    HEIGHT = 100,
-    SIDE = 45,
+  ["corfmd"] = {
+    FORWARD = -55,
+    HEIGHT = 25,
+    SIDE = 20,
     ROTATION = 0
   },
 }

@@ -60,6 +60,7 @@ if not WG.TurboBarCam.STATE then
                 projectileTrackingEnabled = false, -- Whether camera should follow a projectile
                 lastUnitProjectileID = nil,
                 lastProjectilePosition = nil,
+                combatModeEnabled = false,
 
                 -- Free camera state
                 freeCam = {

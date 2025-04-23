@@ -176,20 +176,67 @@ end
 --- @param rotFactor number Rotation smoothing factor
 --- @return table directionState Camera direction and rotation state
 function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
-    -- First check if there's a target to focus on
-    local targetPos, firingWeaponNum = FPSCombatMode.getTargetPosition(unitID)
+    -- First check if combat mode is enabled
+    if STATE.tracking.fps.combatModeEnabled then
+        -- Try to get a target if the unit is actively attacking
+        local targetPos, firingWeaponNum = FPSCombatMode.getTargetPosition(unitID)
 
-    if targetPos then
-        -- Get camera position using weapon position for active weapons
-        local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
-        return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+        -- If there's an active target, focus on it
+        if targetPos then
+            local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
+            return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+        end
+
+        -- Even if no target, use weapon direction and offsets in combat mode
+        -- Get weapon direction if we have a forced weapon
+        if STATE.tracking.fps.forcedWeaponNumber then
+            local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+            local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+
+            if posX and destX then
+                -- Calculate weapon direction
+                local dx, dy, dz = destX, destY, destZ
+                local magnitude = math.sqrt(dx*dx + dy*dy + dz*dz)
+                if magnitude > 0 then
+                    dx, dy, dz = dx/magnitude, dy/magnitude, dz/magnitude
+                end
+
+                -- Use combat mode offsets and weapon direction
+                STATE.tracking.fps.isAttacking = true  -- This ensures we use weapon offsets
+
+                -- Store weapon position and direction for other functions
+                STATE.tracking.fps.weaponPos = { x = posX, y = posY, z = posZ }
+                STATE.tracking.fps.weaponDir = { dx, dy, dz }
+                STATE.tracking.fps.activeWeaponNum = weaponNum
+
+                -- Create camera direction state with weapon direction
+                local directionState = {
+                    dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, dx, rotFactor),
+                    dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, dy, rotFactor),
+                    dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, dz, rotFactor),
+                    rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, 1.8, rotFactor),
+                    ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry,
+                            -(Spring.GetUnitHeading(unitID, true) + math.pi) +
+                                    CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION, rotFactor),
+                    rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, 0, rotFactor)
+                }
+
+                return directionState
+            end
+        end
+
+        -- If we don't have weapon info, fall back to unit direction but still use weapon offsets
+        STATE.tracking.fps.isAttacking = true  -- Still use weapon offsets even without weapon direction
+    else
+        -- Not in combat mode, make sure attacking state is cleared
+        STATE.tracking.fps.isAttacking = false
     end
 
-    -- Fall back to unit hull direction if no weapon direction available
+    -- Fall back to unit hull direction for normal mode or if no weapon direction available
     local front, _, _ = Spring.GetUnitVectors(unitID)
     local frontX, frontY, frontZ = front[1], front[2], front[3]
 
-    -- Get appropriate offsets
+    -- Get appropriate offsets based on mode
     local offsets = FPSCameraUtils.getAppropriateOffsets()
 
     local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION

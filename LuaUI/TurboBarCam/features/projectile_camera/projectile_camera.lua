@@ -381,7 +381,7 @@ function ProjectileCamera.update()
     -- If our selected projectile no longer exists, start impact timer if not already started
     if (not currentProjectile or not currentProjectile.lastPosition) and STATE.tracking.projectile.selectedProjectileID then
         if not STATE.projectileWatching.impactTimer then
-            Log.debug("Selected projectile no longer exists, starting impact timeout timer")
+            Log.trace("Selected projectile no longer exists, starting impact timeout timer")
             STATE.projectileWatching.impactTimer = Spring.GetGameSeconds()
         end
 

@@ -162,7 +162,7 @@ function ProjectileTracker.update(frameNum)
                 lastVelocity = nil   -- Will be updated below
             })
 
-            Log.debug("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
+            Log.trace("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
         end
     end
 
@@ -193,7 +193,7 @@ function ProjectileTracker.update(frameNum)
                     table.insert(validProjectiles, projectile)
                 else
                     -- Projectile no longer exists
-                    Log.debug("Projectile " .. projectile.id .. " no longer exists, removing from tracking")
+                    Log.trace("Projectile " .. projectile.id .. " no longer exists, removing from tracking")
                 end
             end
 
