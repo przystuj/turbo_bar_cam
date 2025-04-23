@@ -3,10 +3,6 @@ if not WG.TurboBarCam.CONFIG then
     WG.TurboBarCam.CONFIG = {
         -- Should offset values be saved after changing/disabling mode
         PERSISTENT_UNIT_SETTINGS = "MODE", -- NONE, UNIT, MODE
-
-        -- Whether weapon offsets should be saved to the config file
-        PERSISTENT_WEAPON_SETTINGS = true,
-
         MODE_TRANSITION_SMOOTHING = 0.04, -- For smoothing between camera modes
 
         -- Debug and performance settings
@@ -29,7 +25,7 @@ if not WG.TurboBarCam.CONFIG then
         CAMERA_MODES = {
             ANCHOR = {
                 -- modes which will trigger focus_while_tracking effect
-                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera"  },
+                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
                 STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
@@ -39,26 +35,51 @@ if not WG.TurboBarCam.CONFIG then
             FPS = {
                 MOUSE_SENSITIVITY = 0.004,
                 OFFSETS = {
-                    HEIGHT = nil, -- It's calculated from unit height
-                    FORWARD = -300,
-                    SIDE = 0,
-                    ROTATION = 0, -- Rotation offset (radians)
+                    -- PEACE mode offsets (normal FPS view)
+                    PEACE = {
+                        HEIGHT = nil, -- It's calculated from unit height
+                        FORWARD = -300,
+                        SIDE = 0,
+                        ROTATION = 0 -- Rotation offset (radians)
+                    },
 
-                    WEAPON_HEIGHT = 0, -- It's calculated from unit height
-                    WEAPON_FORWARD = 0,
-                    WEAPON_SIDE = 0,
-                    WEAPON_ROTATION = 0, -- Rotation offset (radians)
+                    -- COMBAT mode offsets (when combat mode is enabled but not actively firing)
+                    COMBAT = {
+                        HEIGHT = 35,
+                        FORWARD = -75,
+                        SIDE = 0,
+                        ROTATION = 0 -- Rotation offset (radians)
+                    },
+
+                    -- WEAPON mode offsets (when actively firing at a target)
+                    WEAPON = {
+                        HEIGHT = 35,
+                        FORWARD = -75,
+                        SIDE = 0,
+                        ROTATION = 0 -- Rotation offset (radians)
+                    }
                 },
                 DEFAULT_OFFSETS = {
-                    HEIGHT = nil, -- It's calculated from unit height
-                    FORWARD = -300,
-                    SIDE = 0,
-                    ROTATION = 0,
+                    PEACE = {
+                        HEIGHT = nil, -- It's calculated from unit height
+                        FORWARD = -300,
+                        SIDE = 0,
+                        ROTATION = 0
+                    },
 
-                    WEAPON_HEIGHT = 35,
-                    WEAPON_FORWARD = -75,
-                    WEAPON_SIDE = 0,
-                    WEAPON_ROTATION = 0, -- Rotation offset (radians)
+                    COMBAT = {
+                        HEIGHT = 35,
+                        FORWARD = -75,
+                        SIDE = 0,
+                        ROTATION = 0
+                    },
+
+                    WEAPON = {
+                        HEIGHT = 35,
+                        FORWARD = -75,
+                        SIDE = 0,
+                        ROTATION = 0
+                    }
                 },
                 SMOOTHING = {
                     POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
@@ -252,16 +273,26 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.FPS.OFFSETS,
         PARAM_NAMES = {
-            HEIGHT = { 0, nil },
-            FORWARD = { nil, nil },
-            SIDE = { nil, nil },
-            ROTATION = { nil, nil, "rad" },
-            MOUSE_SENSITIVITY = { 0.0001, 0.01 },
+            -- Peace mode offsets
+            ["PEACE.HEIGHT"] = { 0, nil },
+            ["PEACE.FORWARD"] = { nil, nil },
+            ["PEACE.SIDE"] = { nil, nil },
+            ["PEACE.ROTATION"] = { nil, nil, "rad" },
 
-            WEAPON_HEIGHT = { nil, nil },
-            WEAPON_FORWARD = { nil, nil },
-            WEAPON_SIDE = { nil, nil },
-            WEAPON_ROTATION = { nil, nil, "rad" },
+            -- Combat mode offsets
+            ["COMBAT.HEIGHT"] = { nil, nil },
+            ["COMBAT.FORWARD"] = { nil, nil },
+            ["COMBAT.SIDE"] = { nil, nil },
+            ["COMBAT.ROTATION"] = { nil, nil, "rad" },
+
+            -- Weapon mode offsets
+            ["WEAPON.HEIGHT"] = { nil, nil },
+            ["WEAPON.FORWARD"] = { nil, nil },
+            ["WEAPON.SIDE"] = { nil, nil },
+            ["WEAPON.ROTATION"] = { nil, nil, "rad" },
+
+            -- Other params
+            MOUSE_SENSITIVITY = { 0.0001, 0.01 },
         }
     },
     ORBIT = {

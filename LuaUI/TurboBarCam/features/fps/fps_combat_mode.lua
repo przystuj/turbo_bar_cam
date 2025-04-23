@@ -2,10 +2,7 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
-local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
@@ -67,8 +64,16 @@ function FPSCombatMode.nextWeapon()
     local nextIndex = currentIndex % #weaponNumbers + 1
     STATE.tracking.fps.forcedWeaponNumber = weaponNumbers[nextIndex]
 
-    -- Enable combat mode with the new weapon
+    -- Enable combat mode
     FPSCombatMode.setCombatMode(true)
+
+    -- Check if actively targeting something
+    local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, STATE.tracking.fps.forcedWeaponNumber)
+    STATE.tracking.fps.isAttacking = (targetPos ~= nil)
+
+    -- Use a smooth transition
+    STATE.tracking.isModeTransitionInProgress = true
+    STATE.tracking.transitionStartTime = Spring.GetTimer()
 
     Log.info("Current weapon: " .. tostring(STATE.tracking.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.tracking.fps.forcedWeaponNumber].name .. ")")
 end
@@ -85,9 +90,30 @@ function FPSCombatMode.clearWeaponSelection()
     STATE.tracking.fps.forcedWeaponNumber = nil
 
     if STATE.tracking.fps.combatModeEnabled then
-        FPSCombatMode.setCombatMode(true)
-    end
+        -- Update state but keep combat mode enabled
+        local unitID = STATE.tracking.unitID
+        if unitID and Spring.ValidUnitID(unitID) then
+            -- Check if any weapon is targeting something
+            local unitDefID = Spring.GetUnitDefID(unitID)
+            local unitDef = UnitDefs[unitDefID]
 
+            if unitDef and unitDef.weapons then
+                for weaponNum, weaponData in pairs(unitDef.weapons) do
+                    if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
+                        local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+                        if targetPos then
+                            STATE.tracking.fps.isAttacking = true
+                            STATE.tracking.fps.activeWeaponNum = weaponNum
+                            return
+                        end
+                    end
+                end
+            end
+        end
+        -- No active targeting found
+        STATE.tracking.fps.isAttacking = false
+
+    end
     Log.trace("Cleared weapon selection. Combat mode remains " ..
             (STATE.tracking.fps.combatModeEnabled and "enabled" or "disabled") .. ".")
 end
@@ -100,27 +126,6 @@ function FPSCombatMode.clearAttackingState()
     STATE.tracking.fps.weaponPos = nil
     STATE.tracking.fps.weaponDir = nil
     STATE.tracking.fps.activeWeaponNum = nil
-    SettingsManager.loadModeSettings("fps", STATE.tracking.unitID)
-end
-
---- Gets appropriate offsets based on whether the unit is attacking and which weapon is active
----@return table offsets The offsets to apply
-function FPSCombatMode.getAppropriateOffsets()
-    if STATE.tracking.fps.isAttacking then
-        return {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
-        }
-    else
-        return {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
-    end
 end
 
 --- Extracts target position from a weapon target
@@ -197,13 +202,6 @@ end
 --- @return table|nil targetPos Position of the current attack target or nil
 --- @return number|nil weaponNum The weapon number that is firing at the target
 function FPSCombatMode.getCurrentAttackTarget(unitID)
-    -- Skip target detection if combat mode is not enabled
-    if not STATE.tracking.fps.combatModeEnabled then
-        -- Reset attacking state when not in combat mode
-        FPSCombatMode.clearAttackingState()
-        return nil, nil
-    end
-
     if not Spring.ValidUnitID(unitID) then
         -- Reset attacking state when unit is invalid
         FPSCombatMode.clearAttackingState()
@@ -267,7 +265,7 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
             unitPos = { x = posX, y = posY, z = posZ }
 
             -- Create normalized weapon direction vector
-            local magnitude = math.sqrt(destX*destX + destY*destY + destZ*destZ)
+            local magnitude = math.sqrt(destX * destX + destY * destY + destZ * destZ)
             local normalizedDir
             if magnitude > 0 then
                 normalizedDir = {
@@ -280,27 +278,33 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
             end
 
             -- Update state for tracking
-            STATE.tracking.fps.isAttacking = true
             STATE.tracking.fps.weaponPos = unitPos
             STATE.tracking.fps.weaponDir = normalizedDir
             STATE.tracking.fps.activeWeaponNum = weaponNum
-        else
-            -- If weapon vectors couldn't be retrieved, reset state
-            STATE.tracking.fps.isAttacking = false
-            STATE.tracking.fps.weaponPos = nil
-            STATE.tracking.fps.weaponDir = nil
-            STATE.tracking.fps.activeWeaponNum = nil
         end
-    else
-        -- No weapon specified, reset state
-        STATE.tracking.fps.isAttacking = false
-        STATE.tracking.fps.weaponPos = nil
-        STATE.tracking.fps.weaponDir = nil
-        STATE.tracking.fps.activeWeaponNum = nil
     end
 
-    -- Apply offsets to the position
+    -- Apply offsets to the position (applyOffsets will choose the right offset type)
     return applyOffsets(unitPos, front, up, right)
+end
+
+--- Toggles combat mode on/off
+--- @return boolean success Whether the toggle was successful
+function FPSCombatMode.toggleCombatMode()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    if Util.isModeDisabled('fps') then
+        return false
+    end
+
+    if STATE.tracking.fps.combatModeEnabled then
+        FPSCombatMode.setCombatMode(false)
+    else
+        FPSCombatMode.setCombatMode(true)
+    end
+
+    return true
 end
 
 --- Switches between combat and normal modes
@@ -338,20 +342,20 @@ function FPSCombatMode.setCombatMode(enable, unitID)
             end
         end
 
-        -- Set "isAttacking" to true so the camera uses weapon offsets
-        STATE.tracking.fps.isAttacking = true
+        -- Check if actively targeting something
+        local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+        if weaponNum then
+            local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+            STATE.tracking.fps.isAttacking = (targetPos ~= nil)
 
-        -- Get weapon position and direction if available
-        if STATE.tracking.fps.forcedWeaponNumber then
-            local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+            -- Get weapon position and direction
             local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
-
             if posX and destX then
                 -- Use weapon position
                 STATE.tracking.fps.weaponPos = { x = posX, y = posY, z = posZ }
 
-                -- Create normalized weapon direction vector
-                local magnitude = math.sqrt(destX*destX + destY*destY + destZ*destZ)
+                -- Create normalized vector
+                local magnitude = math.sqrt(destX * destX + destY * destY + destZ * destZ)
                 if magnitude > 0 then
                     STATE.tracking.fps.weaponDir = {
                         destX / magnitude,
@@ -366,21 +370,19 @@ function FPSCombatMode.setCombatMode(enable, unitID)
             end
         end
 
-        Log.info("Combat mode enabled - using weapon view")
+        Log.info("Combat mode enabled")
     else
         -- Disable combat mode
         STATE.tracking.fps.isAttacking = false
         STATE.tracking.fps.weaponPos = nil
         STATE.tracking.fps.weaponDir = nil
-        -- We don't clear activeWeaponNum or forcedWeaponNumber to remember last used weapon
 
-        Log.info("Combat mode disabled - using unit view")
+        Log.info("Combat mode disabled")
     end
 
     -- Trigger a transition for smooth camera movement
     STATE.tracking.isModeTransitionInProgress = true
     STATE.tracking.transitionStartTime = Spring.GetTimer()
-
     return true
 end
 

@@ -1,9 +1,9 @@
 return {
   ["armcom"] = {
-    HEIGHT = 25,
-    FORWARD = -175,
+    HEIGHT = 35,
+    FORWARD = -75,
     ROTATION = 0,
-    SIDE = 15,
+    SIDE = 0,
   },
   ["cordemon"] = {
     HEIGHT = 110,
@@ -35,17 +35,17 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
-  ["armlab"] = {
-    HEIGHT = 0,
-    FORWARD = -5,
-    ROTATION = 0,
-    SIDE = 0,
-  },
   ["armfast"] = {
     HEIGHT = 55,
     FORWARD = 185,
     ROTATION = 0,
     SIDE = -40,
+  },
+  ["armlab"] = {
+    HEIGHT = 0,
+    FORWARD = -5,
+    ROTATION = 0,
+    SIDE = 0,
   },
   ["armmav"] = {
     HEIGHT = 55,
@@ -95,17 +95,17 @@ return {
     ROTATION = 0,
     SIDE = -20,
   },
-  ["armshltx"] = {
-    HEIGHT = 25,
-    FORWARD = -55,
-    ROTATION = 0,
-    SIDE = 20,
-  },
   ["corfav"] = {
     HEIGHT = 0,
     FORWARD = -75,
     ROTATION = 0,
     SIDE = 0,
+  },
+  ["armshltx"] = {
+    HEIGHT = 25,
+    FORWARD = -55,
+    ROTATION = 0,
+    SIDE = 20,
   },
   ["armsilo"] = {
     HEIGHT = 90,

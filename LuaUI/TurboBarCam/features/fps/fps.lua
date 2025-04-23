@@ -151,7 +151,7 @@ function FPSCamera.update()
     elseif STATE.tracking.fps.isFreeCameraActive then
         -- Free camera mode - controlled by mouse
         local rotation = FreeCam.updateMouseRotation(rotFactor)
-        FreeCam.updateUnitHeadingTracking(STATE.tracking.freeCam, STATE.tracking.unitID)
+        FreeCam.updateUnitHeadingTracking(STATE.tracking.unitID)
 
         -- Create camera state for free camera mode
         directionState = FreeCam.createCameraState(
@@ -365,32 +365,6 @@ function FPSCamera.adjustParams(params)
     FPSCameraUtils.adjustParams(params)
 end
 
-function FPSCamera.saveSettings(identifier)
-    STATE.tracking.offsets.fps[identifier] = {
-        height = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-        forward = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-        side = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-        rotation = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION,
-    }
-end
-
-function FPSCamera.loadSettings(identifier)
-    if STATE.tracking.offsets.fps[identifier] then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = STATE.tracking.offsets.fps[identifier].height
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = STATE.tracking.offsets.fps[identifier].forward
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = STATE.tracking.offsets.fps[identifier].side
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = STATE.tracking.offsets.fps[identifier].rotation
-        Log.trace("[FPS] Using previous settings")
-    else
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
-        Log.trace("[FPS] Using default settings")
-    end
-    FPSCameraUtils.ensureHeightIsSet()
-end
-
 function FPSCamera.toggleCombatMode()
     if Util.isTurboBarCamDisabled() then
         return
@@ -399,7 +373,7 @@ function FPSCamera.toggleCombatMode()
         return
     end
 
-    FPSCombatMode.setCombatMode(not STATE.tracking.fps.combatModeEnabled)
+    FPSCombatMode.toggleCombatMode()
 end
 
 return {

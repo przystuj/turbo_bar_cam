@@ -21,11 +21,19 @@ local SettingsManager = {}
 
 --- Initialize the settings manager
 function SettingsManager.initializePersistentStorage()
-    if STATE.settings.initialized then return end
+    if STATE.settings.initialized then
+        return
+    end
 
-    -- Create weapon settings storage (persistent)
-    STATE.settings.weaponSettings = PersistentStorage.new("weapon_settings", true)
-    STATE.settings.storages["weapon"] = STATE.settings.weaponSettings
+    -- Create FPS settings storages (persistent)
+    STATE.settings.fpsWeaponOffsets = PersistentStorage.new("fps_weapon_offsets", true)
+    STATE.settings.storages["fps_weapon"] = STATE.settings.fpsWeaponOffsets
+
+    STATE.settings.fpsPeaceOffsets = PersistentStorage.new("fps_peace_offsets", true)
+    STATE.settings.storages["fps_peace"] = STATE.settings.fpsPeaceOffsets
+
+    STATE.settings.fpsCombatOffsets = PersistentStorage.new("fps_combat_offsets", true)
+    STATE.settings.storages["fps_combat"] = STATE.settings.fpsCombatOffsets
 
     -- Create other in-memory storages here if needed
 
@@ -35,7 +43,9 @@ end
 
 --- Update function to be called in widget:Update
 function SettingsManager.update()
-    if not STATE.settings.initialized then return end
+    if not STATE.settings.initialized then
+        return
+    end
 
     for name, storage in pairs(STATE.settings.storages) do
         storage:update()
@@ -43,7 +53,9 @@ function SettingsManager.update()
 end
 
 function SettingsManager.shutdown()
-    if not STATE.settings.initialized then return end
+    if not STATE.settings.initialized then
+        return
+    end
 
     for name, storage in pairs(STATE.settings.storages) do
         storage:close()
@@ -77,10 +89,7 @@ function SettingsManager.saveModeSettings(mode, unitID)
     Log.trace(string.format("Saving settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
 
     if mode == 'fps' then
-        FeatureModules.FPSCamera.saveSettings(identifier)
-        if CONFIG.PERSISTENT_WEAPON_SETTINGS then
-            SettingsManager.saveWeaponSettings(unitID)
-        end
+        SettingsManager.saveFPSOffsets(unitID)
     elseif mode == 'orbit' then
         FeatureModules.OrbitingCamera.saveSettings(identifier)
     end
@@ -97,61 +106,85 @@ function SettingsManager.loadModeSettings(mode, unitID)
     Log.trace(string.format("Loading settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
 
     if mode == 'fps' then
-        FeatureModules.FPSCamera.loadSettings(identifier)
-        if CONFIG.PERSISTENT_WEAPON_SETTINGS then
-            SettingsManager.loadWeaponSettings(unitID)
-        end
+        SettingsManager.loadFPSOffsets(unitID)
     elseif mode == 'orbit' then
         FeatureModules.OrbitingCamera.loadSettings(identifier)
     end
 end
 
---- Saves weapon settings
+--- Saves FPS camera offsets
 ---@param unitId number Unit ID
-function SettingsManager.saveWeaponSettings(unitId)
-    if not STATE.settings.initialized then SettingsManager.initializePersistentStorage() end
-    if not Spring.ValidUnitID(unitId) then return end
+function SettingsManager.saveFPSOffsets(unitId)
+    if not STATE.settings.initialized then
+        SettingsManager.initializePersistentStorage()
+    end
+    if not Spring.ValidUnitID(unitId) then
+        return
+    end
 
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
     local unitName = unitDef.name
 
-    Log.trace("Saving weapon offsets for " .. unitName)
+    local function saveOffsets(mode, settingsSetter)
+        local offsets = CONFIG.CAMERA_MODES.FPS.OFFSETS[mode]
+        settingsSetter:set(unitName, {
+            FORWARD = offsets.FORWARD,
+            HEIGHT = offsets.HEIGHT,
+            SIDE = offsets.SIDE,
+            ROTATION = offsets.ROTATION
+        })
+    end
 
-    -- Set the current weapon settings in storage
-    STATE.settings.weaponSettings:set(unitName, {
-        FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
-        HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
-        SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
-        ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
-    })
+    saveOffsets("PEACE", STATE.settings.fpsPeaceOffsets)
+    saveOffsets("COMBAT", STATE.settings.fpsCombatOffsets)
+    saveOffsets("WEAPON", STATE.settings.fpsWeaponOffsets)
 
-    Log.trace("Updated settings for " .. unitName)
+    Log.trace("Updated FPS camera offsets for " .. unitName)
 end
 
---- Loads weapon settings for a specific unit
+--- Loads FPS camera offsets
 ---@param unitId number Unit ID
 ---@return boolean Success
-function SettingsManager.loadWeaponSettings(unitId)
-    if not STATE.settings.initialized then SettingsManager.initializePersistentStorage() end
+function SettingsManager.loadFPSOffsets(unitId)
+    if not STATE.settings.initialized then
+        SettingsManager.initializePersistentStorage()
+    end
 
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
-    local unitName = unitDef.name
-
-    -- Get settings for this unit if they exist
-    local settings = STATE.settings.weaponSettings:get(unitName)
-
-    if settings then
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD = settings.FORWARD
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT = settings.HEIGHT
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE = settings.SIDE
-        CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION = settings.ROTATION
-
-        Log.trace("Loaded weapon settings for " .. unitName)
-        return true
-    else
-        Log.trace("No weapon settings found for " .. unitName)
+    if not unitDef then
         return false
     end
+    local unitName = unitDef.name
+
+
+    local loaded = false
+
+    local function loadOffsets(mode, settingsGetter)
+        local settings = settingsGetter:get(unitName)
+        local offsets = CONFIG.CAMERA_MODES.FPS.OFFSETS[mode]
+        local defaults = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode]
+
+        if settings then
+            offsets.FORWARD = settings.FORWARD
+            offsets.HEIGHT = settings.HEIGHT
+            offsets.SIDE = settings.SIDE
+            offsets.ROTATION = settings.ROTATION
+            loaded = true
+            Log.trace("Loaded " .. mode:lower() .. " offsets for " .. unitName)
+        else
+            offsets.FORWARD = defaults.FORWARD
+            offsets.HEIGHT = defaults.HEIGHT
+            offsets.SIDE = defaults.SIDE
+            offsets.ROTATION = defaults.ROTATION
+            Log.trace("No " .. mode:lower() .. " offsets found for " .. unitName)
+        end
+    end
+
+    loadOffsets("PEACE", STATE.settings.fpsPeaceOffsets)
+    loadOffsets("COMBAT", STATE.settings.fpsCombatOffsets)
+    loadOffsets("WEAPON", STATE.settings.fpsWeaponOffsets)
+
+    return loaded
 end
 
 return {

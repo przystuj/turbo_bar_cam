@@ -49,30 +49,38 @@ end
 
 --- Calculate the height if it's not set
 function FPSCameraUtils.ensureHeightIsSet()
-    if CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT then
-        return
+    -- Set PEACE mode height if not set
+    if not CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT then
+        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID) + 30
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT = unitHeight
     end
-    local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID) + 30
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = unitHeight
+
+    -- Ensure COMBAT mode height is set (though it should have a default)
+    if not CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT.HEIGHT then
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.COMBAT.HEIGHT
+    end
+
+    -- Ensure WEAPON mode height is set (though it should have a default)
+    if not CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON.HEIGHT then
+        CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.WEAPON.HEIGHT
+    end
 end
 
---- Gets appropriate offsets based on whether the unit is attacking and which weapon is active
+--- Gets appropriate offsets based on current mode
 ---@return table offsets The offsets to apply
 function FPSCameraUtils.getAppropriateOffsets()
-    if STATE.tracking.fps.isAttacking then
-        return {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
-        }
+    -- In combat mode - check if actively attacking
+    if STATE.tracking.fps.combatModeEnabled then
+        if STATE.tracking.fps.isAttacking then
+            -- Weapon offsets - when actively targeting something
+            return CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON
+        else
+            -- Combat offsets - when in combat mode but not targeting
+            return CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT
+        end
     else
-        return {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
+        -- Peace mode - normal offsets
+        return CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE
     end
 end
 
@@ -169,6 +177,75 @@ function FPSCameraUtils.createCameraState(position, direction)
     }
 end
 
+--- Creates direction state based on unit's hull direction
+--- @param unitID number Unit ID
+--- @param offsets table Offsets to use
+--- @param rotFactor number Rotation smoothing factor
+--- @return table directionState Camera direction state
+function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
+    local front, _, _ = Spring.GetUnitVectors(unitID)
+    local frontX, frontY, frontZ = front[1], front[2], front[3]
+
+    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
+    local targetRx = 1.8
+    local targetRz = 0
+
+    -- Create camera direction state with smoothed values
+    return {
+        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
+    }
+end
+
+--- Creates direction state when actively firing at a target
+--- @param unitID number Unit ID
+--- @param targetPos table Target position
+--- @param weaponNum number|nil Weapon number
+--- @param rotFactor number Rotation smoothing factor
+--- @return table|nil directionState Camera direction state or nil if it fails
+function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponNum, rotFactor)
+    if not targetPos or not weaponNum then
+        return nil
+    end
+
+    -- Get the weapon position if available
+    local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+    if not posX or not destX then
+        return nil
+    end
+
+    -- We have valid weapon vectors
+    local weaponPos = { x = posX, y = posY, z = posZ }
+
+    -- Calculate direction to target (not weapon direction)
+    local dx = targetPos.x - posX
+    local dy = targetPos.y - posY
+    local dz = targetPos.z - posZ
+    local magnitude = math.sqrt(dx * dx + dy * dy + dz * dz)
+
+    if magnitude < 0.001 then
+        return nil
+    end
+
+    -- Normalize direction vector
+    dx, dy, dz = dx / magnitude, dy / magnitude, dz / magnitude
+
+    -- Store position and direction for other functions
+    STATE.tracking.fps.weaponPos = weaponPos
+    STATE.tracking.fps.weaponDir = { dx, dy, dz }
+    STATE.tracking.fps.activeWeaponNum = weaponNum
+
+    -- Get camera position with weapon offsets
+    local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
+
+    -- Create focusing direction to look at target
+    return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+end
+
 --- Handles normal FPS mode camera orientation
 --- @param unitID number Unit ID
 --- @param rotFactor number Rotation smoothing factor
@@ -176,10 +253,7 @@ end
 function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     -- Check if combat mode is enabled
     if STATE.tracking.fps.combatModeEnabled then
-        -- Set isAttacking to true so camera uses weapon offsets
-        STATE.tracking.fps.isAttacking = true
-
-        -- Check if the unit is actively attacking a target
+        -- Check if the unit is actively targeting something
         local targetPos, firingWeaponNum = FPSCombatMode.getTargetPosition(unitID)
 
         -- Try to create direction state based on targeting data
@@ -187,31 +261,18 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
                 unitID, targetPos, firingWeaponNum, rotFactor)
 
         if targetingState then
-            -- Successfully created targeting state, return it
+            -- Successfully created targeting state, unit is attacking
+            STATE.tracking.fps.isAttacking = true
             return targetingState
+        else
+            -- No valid target, but still in combat mode
+            STATE.tracking.fps.isAttacking = false
+            return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT, rotFactor)
         end
-
-        -- If targeting state creation failed, fall back to hull direction with weapon offsets
-        local weaponOffsets = {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION
-        }
-
-        return FPSCameraUtils.createHullDirectionState(unitID, weaponOffsets, rotFactor)
     else
-        -- Not in combat mode, use normal offsets
+        -- Normal mode - always ensure isAttacking is false
         STATE.tracking.fps.isAttacking = false
-
-        local normalOffsets = {
-            HEIGHT = CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT,
-            FORWARD = CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD,
-            SIDE = CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE,
-            ROTATION = CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION
-        }
-
-        return FPSCameraUtils.createHullDirectionState(unitID, normalOffsets, rotFactor)
+        return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE, rotFactor)
     end
 end
 
@@ -326,77 +387,7 @@ function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
     return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
 end
 
---- Creates direction state based on unit's hull direction
---- @param unitID number Unit ID
---- @param offsets table Offsets to use
---- @param rotFactor number Rotation smoothing factor
---- @return table directionState Camera direction state
-function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
-    local front, _, _ = Spring.GetUnitVectors(unitID)
-    local frontX, frontY, frontZ = front[1], front[2], front[3]
-
-    local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
-    local targetRx = 1.8
-    local targetRz = 0
-
-    -- Create camera direction state with smoothed values
-    return {
-        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
-    }
-end
-
---- Creates direction state when actively firing at a target
---- @param unitID number Unit ID
---- @param targetPos table Target position
---- @param weaponNum number|nil Weapon number
---- @param rotFactor number Rotation smoothing factor
---- @return table|nil directionState Camera direction state or nil if it fails
-function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponNum, rotFactor)
-    if not targetPos or not weaponNum then
-        return nil
-    end
-
-    -- Get the weapon position if available
-    local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
-    if not posX or not destX then
-        return nil
-    end
-
-    -- We have valid weapon vectors
-    local weaponPos = { x = posX, y = posY, z = posZ }
-
-    -- Calculate direction to target (not weapon direction)
-    local dx = targetPos.x - posX
-    local dy = targetPos.y - posY
-    local dz = targetPos.z - posZ
-    local magnitude = math.sqrt(dx*dx + dy*dy + dz*dz)
-
-    if magnitude < 0.001 then
-        return nil
-    end
-
-    -- Normalize direction vector
-    dx, dy, dz = dx/magnitude, dy/magnitude, dz/magnitude
-
-    -- Store position and direction for other functions
-    STATE.tracking.fps.weaponPos = weaponPos
-    STATE.tracking.fps.weaponDir = { dx, dy, dz }
-    STATE.tracking.fps.activeWeaponNum = weaponNum
-
-    -- Get camera position with weapon offsets
-    local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
-
-    -- Create focusing direction to look at target
-    return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
-end
-
----@see ModifiableParams
----@see Util#adjustParams
+--- Update adjustParams to handle the new offset structure
 function FPSCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
@@ -418,71 +409,81 @@ function FPSCameraUtils.adjustParams(params)
         return
     end
 
-    -- Determine if we're in weapon mode (attacking) or normal mode
-    local isAttacking = STATE.tracking.fps.isAttacking
-
     -- Parse the parameter string to check what's being modified
     local commandParts = {}
     for part in string.gmatch(params, "[^;]+") do
         table.insert(commandParts, part)
     end
 
-    -- Check if this is targeting weapon parameters or normal parameters
+    -- Check which mode's parameters are being adjusted
+    local hasPeaceParam = false
+    local hasCombatParam = false
     local hasWeaponParam = false
-    local hasNormalParam = false
 
     for i = 2, #commandParts do
         local paramPair = commandParts[i]
         local paramName = string.match(paramPair, "([^,]+),")
 
         if paramName then
-            if string.find(paramName, "^WEAPON_") then
+            if string.find(paramName, "^PEACE%.") then
+                hasPeaceParam = true
+            elseif string.find(paramName, "^COMBAT%.") then
+                hasCombatParam = true
+            elseif string.find(paramName, "^WEAPON%.") then
                 hasWeaponParam = true
-            elseif paramName == "HEIGHT" or paramName == "FORWARD" or
-                    paramName == "SIDE" or paramName == "ROTATION" then
-                hasNormalParam = true
             end
         end
     end
 
-    -- Filter out calls that don't match the current state
-    if isAttacking and hasNormalParam and not hasWeaponParam then
-        -- In attacking mode, trying to adjust normal parameters only
-        Log.trace("Ignoring normal parameter adjustment while in weapon (attacking) mode")
-        return
-    elseif not isAttacking and hasWeaponParam and not hasNormalParam then
-        -- In normal mode, trying to adjust weapon parameters only
-        Log.trace("Ignoring weapon parameter adjustment while in normal (non-attacking) mode")
-        return
-    end
-
-    -- If we get here, either:
-    -- 1. The parameter types match the current mode
-    -- 2. We're adjusting parameters that aren't mode-specific (like MOUSE_SENSITIVITY)
-    -- 3. We're adjusting both weapon and normal parameters (allow this to support hybrid adjustments)
-
-    if isAttacking then
-        Log.trace("Adjusting parameters in weapon (attacking) mode")
+    -- Determine current mode
+    local currentMode
+    if STATE.tracking.fps.combatModeEnabled then
+        if STATE.tracking.fps.isAttacking then
+            currentMode = "WEAPON"
+        else
+            currentMode = "COMBAT"
+        end
     else
-        Log.trace("Adjusting parameters in normal (non-attacking) mode")
+        currentMode = "PEACE"
     end
+
+    -- Filter out calls that don't match the current mode
+    if currentMode == "PEACE" and (hasCombatParam or hasWeaponParam) and not hasPeaceParam then
+        Log.info("In peace mode, only peace offsets can be adjusted. Use PEACE.HEIGHT, PEACE.FORWARD, etc.")
+        return
+    elseif currentMode == "COMBAT" and (hasPeaceParam or hasWeaponParam) and not hasCombatParam then
+        Log.info("In combat mode, only combat offsets can be adjusted. Use COMBAT.HEIGHT, COMBAT.FORWARD, etc.")
+        return
+    elseif currentMode == "WEAPON" and (hasPeaceParam or hasCombatParam) and not hasWeaponParam then
+        Log.info("When targeting, only weapon offsets can be adjusted. Use WEAPON.HEIGHT, WEAPON.FORWARD, etc.")
+        return
+    end
+
+    Log.trace("Adjusting " .. currentMode:lower() .. " parameters")
 
     -- Call the original adjustParams function
     Util.adjustParams(params, "FPS", function()
         FPSCameraUtils.resetOffsets()
     end)
 
+    -- Save appropriate settings based on what was modified
     SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
     return
 end
 
 --- Resets camera offsets to default values
----@return boolean success Whether offsets were reset successfully
 function FPSCameraUtils.resetOffsets()
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.HEIGHT
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.FORWARD
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.SIDE
-    CONFIG.CAMERA_MODES.FPS.OFFSETS.ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS.ROTATION
+    local function reset(mode)
+        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode].HEIGHT = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode].HEIGHT
+        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode].FORWARD = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode].FORWARD
+        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode].SIDE = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode].SIDE
+        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode].ROTATION = CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode].ROTATION
+    end
+
+    reset("PEACE")
+    reset("COMBAT")
+    reset("WEAPON")
+
     FPSCameraUtils.ensureHeightIsSet()
     Log.trace("Restored fps camera settings to defaults")
     return true

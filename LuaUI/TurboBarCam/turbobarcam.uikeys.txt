@@ -48,17 +48,39 @@ bind		Ctrl+numpad8	turbobarcam_fps_adjust_params add;HEIGHT,5
 bind		Ctrl+numpad5	turbobarcam_fps_adjust_params add;HEIGHT,-5
 bind		numpad6			turbobarcam_fps_adjust_params add;SIDE,5
 bind		numpad4			turbobarcam_fps_adjust_params add;SIDE,-5
-bind		numpad7			turbobarcam_fps_adjust_params add;ROTATION,-0.1
-bind		numpad9			turbobarcam_fps_adjust_params add;ROTATION,0.1
 bind		Ctrl+numpad1  	turbobarcam_fps_adjust_params reset
 bind		numpad*  	    turbobarcam_fps_clear_fixed_look_point
 bind		numpad/  		turbobarcam_fps_set_fixed_look_point
-bind		numpad8         turbobarcam_fps_adjust_params add;WEAPON_FORWARD,5
-bind		numpad5			turbobarcam_fps_adjust_params add;WEAPON_FORWARD,-5
-bind		numpad9	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,5
-bind		numpad7	        turbobarcam_fps_adjust_params add;WEAPON_HEIGHT,-5
-bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON_SIDE,5
-bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON_SIDE,-5
+
+// FPS PEACE MODE OFFSETS
+bind		numpad8         turbobarcam_fps_adjust_params add;PEACE.FORWARD,5
+bind		numpad5			turbobarcam_fps_adjust_params add;PEACE.FORWARD,-5
+bind		numpad9	        turbobarcam_fps_adjust_params add;PEACE.HEIGHT,5
+bind		numpad7	        turbobarcam_fps_adjust_params add;PEACE.HEIGHT,-5
+bind		numpad6			turbobarcam_fps_adjust_params add;PEACE.SIDE,5
+bind		numpad4			turbobarcam_fps_adjust_params add;PEACE.SIDE,-5
+bind		Ctrl+numpad7	turbobarcam_fps_adjust_params add;PEACE.ROTATION,0.1
+bind		Ctrl+numpad9	turbobarcam_fps_adjust_params add;PEACE.ROTATION,-0.1
+
+// FPS COMBAT MODE OFFSETS
+bind		numpad8         turbobarcam_fps_adjust_params add;COMBAT.FORWARD,5
+bind		numpad5			turbobarcam_fps_adjust_params add;COMBAT.FORWARD,-5
+bind		numpad9	        turbobarcam_fps_adjust_params add;COMBAT.HEIGHT,5
+bind		numpad7	        turbobarcam_fps_adjust_params add;COMBAT.HEIGHT,-5
+bind		numpad6			turbobarcam_fps_adjust_params add;COMBAT.SIDE,5
+bind		numpad4			turbobarcam_fps_adjust_params add;COMBAT.SIDE,-5
+bind		Ctrl+numpad7	turbobarcam_fps_adjust_params add;COMBAT.ROTATION,0.1
+bind		Ctrl+numpad9	turbobarcam_fps_adjust_params add;COMBAT.ROTATION,-0.1
+
+// FPS WEAPON OFFSETS
+bind		numpad8         turbobarcam_fps_adjust_params add;WEAPON.FORWARD,5
+bind		numpad5			turbobarcam_fps_adjust_params add;WEAPON.FORWARD,-5
+bind		numpad9	        turbobarcam_fps_adjust_params add;WEAPON.HEIGHT,5
+bind		numpad7	        turbobarcam_fps_adjust_params add;WEAPON.HEIGHT,-5
+bind		numpad6			turbobarcam_fps_adjust_params add;WEAPON.SIDE,5
+bind		numpad4			turbobarcam_fps_adjust_params add;WEAPON.SIDE,-5
+bind		Ctrl+numpad7	turbobarcam_fps_adjust_params add;WEAPON.ROTATION,0.1
+bind		Ctrl+numpad9	turbobarcam_fps_adjust_params add;WEAPON.ROTATION,-0.1
 
 // FPS Combat
 bind        End             turbobarcam_fps_toggle_combat_mode
