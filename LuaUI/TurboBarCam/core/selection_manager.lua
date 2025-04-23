@@ -42,7 +42,11 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
     -- Update tracking if it's enabled
     if STATE.tracking.mode and STATE.tracking.unitID ~= unitID then
-        SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+        -- Save settings for the old unit before switching
+        local oldIdentifier = SettingsManager.chooseIdentifier(STATE.tracking.mode, STATE.tracking.unitID)
+        if oldIdentifier then
+            SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+        end
 
         -- Reset projectile tracking when switching to a different unit
         if STATE.tracking.mode == 'fps' then
@@ -55,7 +59,12 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         STATE.tracking.unitID = unitID
         STATE.tracking.group.unitIDs = selectedUnits
 
-        SettingsManager.loadModeSettings(STATE.tracking.mode, unitID)
+        -- Load settings for the new unit
+        local newIdentifier = SettingsManager.chooseIdentifier(STATE.tracking.mode, unitID)
+        if newIdentifier then
+            SettingsManager.loadModeSettings(STATE.tracking.mode, unitID)
+        end
+
         Log.debug("Tracking switched to unit " .. unitID)
     end
 end

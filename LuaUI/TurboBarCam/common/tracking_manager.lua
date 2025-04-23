@@ -42,7 +42,6 @@ function TrackingManager.initializeTracking(mode, unitID)
 
     -- If we're already tracking this exact unit in the same mode, turn it off
     if STATE.tracking.mode == mode and STATE.tracking.unitID == unitID then
-        -- Save current settings before disabling
         SettingsManager.saveModeSettings(mode, unitID)
         TrackingManager.disableTracking()
         Log.debug(mode .. " camera detached")
@@ -174,6 +173,7 @@ function TrackingManager.startModeTransition(newMode)
     if STATE.tracking.mode == newMode then
         return false
     end
+    SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
     -- Disable projectile tracking when switching to a different mode
     if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching then

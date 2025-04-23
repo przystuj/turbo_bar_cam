@@ -303,15 +303,6 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
     return applyOffsets(unitPos, front, up, right)
 end
 
-function FPSCombatMode.saveWeaponSettings(unitId)
-    local unitDef = UnitDefs[Spring.GetUnitDefID(unitId)]
-    Log.info("Weapon offsets for " .. unitDef.name)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_FORWARD)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_HEIGHT)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_SIDE)
-    Log.info(CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON_ROTATION)
-end
-
 --- Switches between combat and normal modes
 --- @param enable boolean Whether to enable combat mode
 --- @param unitID number|nil The unit ID to use (defaults to STATE.tracking.unitID)
