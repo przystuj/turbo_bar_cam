@@ -114,8 +114,7 @@ function FPSCombatMode.clearWeaponSelection()
         STATE.tracking.fps.isAttacking = false
 
     end
-    Log.trace("Cleared weapon selection. Combat mode remains " ..
-            (STATE.tracking.fps.combatModeEnabled and "enabled" or "disabled") .. ".")
+    Log.info("Cleared weapon selection.")
 end
 
 function FPSCombatMode.clearAttackingState()

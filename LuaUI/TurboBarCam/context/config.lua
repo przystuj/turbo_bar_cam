@@ -82,13 +82,24 @@ if not WG.TurboBarCam.CONFIG then
                     }
                 },
                 SMOOTHING = {
-                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    -- PEACE mode smoothing (normal FPS view)
+                    PEACE = {
+                        POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                        ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    },
+
+                    -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
+                    COMBAT = {
+                        POSITION_FACTOR = 0.007,
+                        ROTATION_FACTOR = 0.007,
+                    },
+
+                    -- WEAPON mode smoothing (when actively firing at a target)
+                    WEAPON = {
+                        POSITION_FACTOR = 0.007,
+                        ROTATION_FACTOR = 0.007,
+                    }
                 },
-                DEFAULT_SMOOTHING = {
-                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                }
             },
 
             -- Orbit camera settings

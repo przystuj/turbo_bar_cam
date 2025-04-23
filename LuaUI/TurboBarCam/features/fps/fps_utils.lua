@@ -102,6 +102,7 @@ end
 ---@return table camPos Camera position with offsets applied
 function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     -- Get appropriate offsets for the current state
+    FPSCameraUtils.ensureHeightIsSet()
     local offsets = FPSCameraUtils.getAppropriateOffsets()
 
     -- Determine which vectors to use based on state
@@ -372,19 +373,27 @@ function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
         return CONFIG.MODE_TRANSITION_SMOOTHING
     end
 
-    local multiplier = 1
-    if STATE.tracking.fps.isAttacking then
-        multiplier = 5
+    -- Determine which mode we're in
+    local smoothingMode
+    if STATE.tracking.fps.combatModeEnabled then
+        if STATE.tracking.fps.isAttacking then
+            smoothingMode = "WEAPON"
+        else
+            smoothingMode = "COMBAT"
+        end
+    else
+        smoothingMode = "PEACE"
     end
 
+    -- Get the appropriate smoothing factor based on mode and type
     if smoothType == 'position' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].POSITION_FACTOR
     elseif smoothType == 'rotation' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING.ROTATION_FACTOR * multiplier
+        return CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].ROTATION_FACTOR
     end
 
-    -- Default
-    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.POSITION_FACTOR * multiplier
+    -- Default fallback (should never happen)
+    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.PEACE.POSITION_FACTOR
 end
 
 --- Update adjustParams to handle the new offset structure
@@ -449,13 +458,10 @@ function FPSCameraUtils.adjustParams(params)
 
     -- Filter out calls that don't match the current mode
     if currentMode == "PEACE" and (hasCombatParam or hasWeaponParam) and not hasPeaceParam then
-        Log.info("In peace mode, only peace offsets can be adjusted. Use PEACE.HEIGHT, PEACE.FORWARD, etc.")
         return
     elseif currentMode == "COMBAT" and (hasPeaceParam or hasWeaponParam) and not hasCombatParam then
-        Log.info("In combat mode, only combat offsets can be adjusted. Use COMBAT.HEIGHT, COMBAT.FORWARD, etc.")
         return
     elseif currentMode == "WEAPON" and (hasPeaceParam or hasCombatParam) and not hasWeaponParam then
-        Log.info("When targeting, only weapon offsets can be adjusted. Use WEAPON.HEIGHT, WEAPON.FORWARD, etc.")
         return
     end
 
@@ -466,7 +472,7 @@ function FPSCameraUtils.adjustParams(params)
         FPSCameraUtils.resetOffsets()
     end)
 
-    -- Save appropriate settings based on what was modified
+    -- Save appropriate settings
     SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
     return
 end

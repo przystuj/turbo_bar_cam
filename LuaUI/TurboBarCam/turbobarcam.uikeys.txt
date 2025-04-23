@@ -42,12 +42,6 @@ bind		numpad7			turbobarcam_orbit_adjust_params add;SPEED,-0.0001
 
 // FPS
 bind		numpad1			turbobarcam_toggle_fps_camera
-bind		numpad8         turbobarcam_fps_adjust_params add;FORWARD,15;HEIGHT,-3
-bind		numpad5			turbobarcam_fps_adjust_params add;FORWARD,-15;HEIGHT,3
-bind		Ctrl+numpad8	turbobarcam_fps_adjust_params add;HEIGHT,5
-bind		Ctrl+numpad5	turbobarcam_fps_adjust_params add;HEIGHT,-5
-bind		numpad6			turbobarcam_fps_adjust_params add;SIDE,5
-bind		numpad4			turbobarcam_fps_adjust_params add;SIDE,-5
 bind		Ctrl+numpad1  	turbobarcam_fps_adjust_params reset
 bind		numpad*  	    turbobarcam_fps_clear_fixed_look_point
 bind		numpad/  		turbobarcam_fps_set_fixed_look_point
