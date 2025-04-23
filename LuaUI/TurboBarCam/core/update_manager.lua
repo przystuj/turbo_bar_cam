@@ -14,6 +14,8 @@ local TrackingManager = CommonModules.TrackingManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
 ---@type Scheduler
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
+---@type SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -23,6 +25,8 @@ function UpdateManager.processCycle()
     if Util.isTurboBarCamDisabled() then
         return
     end
+
+    SettingsManager.update()
 
     Scheduler.handleSchedules()
 
