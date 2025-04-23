@@ -71,8 +71,6 @@ function CameraAnchor.focus(index)
         -- Instant camera jump
         local targetState = Util.deepCopy(STATE.anchors[index])
         -- Ensure the target state is in FPS mode
-        targetState.mode = 0
-        targetState.name = "fps"
         CameraManager.setCameraState(targetState, 0, "CameraAnchor.focus")
         Log.trace("Instantly jumped to camera anchor: " .. index)
         return true
@@ -138,13 +136,6 @@ function CameraAnchor.focusAndTrack(index)
 
     -- Create a specialized transition that maintains focus on the unit
     local startState = CameraManager.getCameraState("CameraAnchor.focusAndTrack")
-    local endState = Util.deepCopy(STATE.anchors[index])
-
-    -- Ensure both states are in FPS mode
-    startState.mode = 0
-    startState.name = "fps"
-    endState.mode = 0
-    endState.name = "fps"
 
     -- Enable tracking camera on the unit
     STATE.tracking.mode = 'unit_tracking'

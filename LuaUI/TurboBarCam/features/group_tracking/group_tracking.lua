@@ -585,11 +585,6 @@ function GroupTrackingCamera.update()
 
     -- Check if we're still in FPS mode
     local currentState = CameraManager.getCameraState("GroupTrackingCamera.update")
-    if currentState.mode ~= 0 then
-        currentState.mode = 0
-        currentState.name = "fps"
-        CameraManager.setCameraState(currentState, 0, "GroupTrackingCamera.update")
-    end
 
     -- Determine camera height
     local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6

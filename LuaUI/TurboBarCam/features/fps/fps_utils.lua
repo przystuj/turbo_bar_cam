@@ -158,9 +158,6 @@ end
 ---@return table cameraState Complete camera state object
 function FPSCameraUtils.createCameraState(position, direction)
     return {
-        mode = 0, -- FPS camera mode
-        name = "fps",
-
         -- Position
         px = position.x,
         py = position.y,
@@ -257,19 +254,20 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
         -- Check if the unit is actively targeting something
         local targetPos, firingWeaponNum = FPSCombatMode.getTargetPosition(unitID)
 
-        -- Try to create direction state based on targeting data
-        local targetingState = FPSCameraUtils.createTargetingDirectionState(
-                unitID, targetPos, firingWeaponNum, rotFactor)
+        if STATE.tracking.fps.isAttacking then
+            -- Try to create direction state based on targeting data
+            local targetingState = FPSCameraUtils.createTargetingDirectionState(
+                    unitID, targetPos, firingWeaponNum or STATE.tracking.fps.activeWeaponNum, rotFactor)
 
-        if targetingState then
-            -- Successfully created targeting state, unit is attacking
-            STATE.tracking.fps.isAttacking = true
-            return targetingState
-        else
-            -- No valid target, but still in combat mode
-            STATE.tracking.fps.isAttacking = false
-            return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT, rotFactor)
+            if targetingState then
+                -- Successfully created targeting state
+                return targetingState
+            end
         end
+
+        -- If we get here, we're in combat mode but not attacking (or couldn't create targeting state)
+        -- Use combat offset mode
+        return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT, rotFactor)
     else
         -- Normal mode - always ensure isAttacking is false
         STATE.tracking.fps.isAttacking = false

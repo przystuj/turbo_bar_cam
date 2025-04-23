@@ -2,10 +2,16 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type Scheduler
+local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
 
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+
+-- Constants for attack state management
+local ATTACK_STATE_DEBOUNCE_ID = "fps_attack_state_debounce"
+local ATTACK_STATE_COOLDOWN = 3.0  -- 1 second cooldown before disabling attack state
 
 ---@class FPSCombatMode
 local FPSCombatMode = {}
@@ -69,7 +75,13 @@ function FPSCombatMode.nextWeapon()
 
     -- Check if actively targeting something
     local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, STATE.tracking.fps.forcedWeaponNumber)
-    STATE.tracking.fps.isAttacking = (targetPos ~= nil)
+
+    -- Set attacking state with debounce cancellation (if we're newly attacking)
+    if targetPos then
+        FPSCombatMode.setAttackingState(true)
+    else
+        FPSCombatMode.setAttackingState(false)
+    end
 
     -- Use a smooth transition
     STATE.tracking.isModeTransitionInProgress = true
@@ -102,7 +114,8 @@ function FPSCombatMode.clearWeaponSelection()
                     if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
                         local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
                         if targetPos then
-                            STATE.tracking.fps.isAttacking = true
+                            -- Set attacking state with debounce cancellation
+                            FPSCombatMode.setAttackingState(true)
                             STATE.tracking.fps.activeWeaponNum = weaponNum
                             return
                         end
@@ -110,17 +123,55 @@ function FPSCombatMode.clearWeaponSelection()
                 end
             end
         end
-        -- No active targeting found
-        STATE.tracking.fps.isAttacking = false
 
+        -- If we reach here, no active targeting was found - start debounce for disabling attack state
+        FPSCombatMode.scheduleAttackStateDisable()
     end
+
     Log.info("Cleared weapon selection.")
 end
 
+--- Sets the attacking state with debounce handling
+--- @param isAttacking boolean Whether the unit is attacking
+function FPSCombatMode.setAttackingState(isAttacking)
+    if isAttacking then
+        -- If we're now attacking, cancel any scheduled disable
+        Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+
+        -- Only update state if it's changing
+        if not STATE.tracking.fps.isAttacking then
+            STATE.tracking.fps.isAttacking = true
+            Log.trace("Attack state enabled")
+        end
+    else
+        -- If not attacking now, schedule disabling after cooldown
+        FPSCombatMode.scheduleAttackStateDisable()
+    end
+end
+
+--- Schedules disabling of the attack state after a cooldown period
+function FPSCombatMode.scheduleAttackStateDisable()
+    -- Only schedule if currently in attacking state and not already scheduled
+    if STATE.tracking.fps.isAttacking and not Scheduler.isScheduled(ATTACK_STATE_DEBOUNCE_ID) then
+        Scheduler.debounce(function()
+            -- Only clear if we're still in combat mode
+            if STATE.tracking.fps.combatModeEnabled then
+                FPSCombatMode.clearAttackingState()
+                Log.trace("Attack state disabled after cooldown")
+            end
+        end, ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
+    end
+end
+
+--- Clear attacking state immediately (no debounce)
 function FPSCombatMode.clearAttackingState()
+    -- Cancel any pending attack state changes
+    Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+
     if not STATE.tracking.fps.isAttacking then
         return
     end
+
     STATE.tracking.fps.isAttacking = false
     STATE.tracking.fps.weaponPos = nil
     STATE.tracking.fps.weaponDir = nil
@@ -202,8 +253,8 @@ end
 --- @return number|nil weaponNum The weapon number that is firing at the target
 function FPSCombatMode.getCurrentAttackTarget(unitID)
     if not Spring.ValidUnitID(unitID) then
-        -- Reset attacking state when unit is invalid
-        FPSCombatMode.clearAttackingState()
+        -- Schedule disabling attack state when unit is invalid
+        FPSCombatMode.scheduleAttackStateDisable()
         return nil, nil
     end
 
@@ -211,17 +262,21 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
     local unitDef = UnitDefs[unitDefID]
 
     if not unitDef or not unitDef.weapons then
-        -- Reset attacking state when unit has no weapons
-        FPSCombatMode.clearAttackingState()
+        -- Schedule disabling attack state when unit has no weapons
+        FPSCombatMode.scheduleAttackStateDisable()
         return nil, nil
     end
 
     local targetPos, weaponNum = FPSCombatMode.chooseWeapon(unitID, unitDef)
 
-    -- If no target was found, reset attacking state
+    -- If no target was found, schedule disabling attack state
     if not targetPos then
-        FPSCombatMode.clearAttackingState()
+        FPSCombatMode.scheduleAttackStateDisable()
     else
+        -- We found a target, cancel any pending disable and ensure attacking state is on
+        Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+        STATE.tracking.fps.isAttacking = true
+
         -- Store the active weapon number for later use
         STATE.tracking.fps.activeWeaponNum = weaponNum
     end
@@ -345,7 +400,16 @@ function FPSCombatMode.setCombatMode(enable, unitID)
         local weaponNum = STATE.tracking.fps.forcedWeaponNumber
         if weaponNum then
             local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
-            STATE.tracking.fps.isAttacking = (targetPos ~= nil)
+
+            -- Set attacking state with proper debounce handling
+            if targetPos then
+                -- Unit is attacking - enable immediately
+                STATE.tracking.fps.isAttacking = true
+                Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+            else
+                -- Unit is not attacking - start with attacking false
+                STATE.tracking.fps.isAttacking = false
+            end
 
             -- Get weapon position and direction
             local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
@@ -371,7 +435,8 @@ function FPSCombatMode.setCombatMode(enable, unitID)
 
         Log.info("Combat mode enabled")
     else
-        -- Disable combat mode
+        -- Disable combat mode - immediately clear attacking state
+        Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
         STATE.tracking.fps.isAttacking = false
         STATE.tracking.fps.weaponPos = nil
         STATE.tracking.fps.weaponDir = nil

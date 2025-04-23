@@ -63,14 +63,7 @@ function UnitTrackingCamera.update()
         return
     end
 
-    -- Check if we're still in FPS mode
     local currentState = CameraManager.getCameraState("UnitTrackingCamera.update")
-    if currentState.mode ~= 0 then
-        -- Force back to FPS mode
-        currentState.mode = 0
-        currentState.name = "fps"
-        CameraManager.setCameraState(currentState, 0, "UnitTrackingCamera.update")
-    end
 
     -- Get unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)

@@ -124,17 +124,10 @@ function CameraAnchorUtils.generateSteps(startState, endState, numSteps)
             end
         end
 
-        -- Always keep FPS mode
-        statePatch.mode = 0
-        statePatch.name = "fps"
-
         steps[i] = statePatch
     end
 
-    -- Ensure the last step is exactly the end state but keep FPS mode
     steps[numSteps] = Util.deepCopy(endState)
-    steps[numSteps].mode = 0
-    steps[numSteps].name = "fps"
 
     return steps
 end
@@ -145,10 +138,6 @@ function CameraAnchorUtils.start(endState, duration)
     -- Generate transition steps for smooth transition
     local startState = CameraManager.getCameraState("CameraAnchorUtils.start")
     local numSteps = math.max(2, math.floor(duration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
-
-    -- Ensure the target state is in FPS mode
-    endState.mode = 0
-    endState.name = "fps"
 
     STATE.transition.steps = CameraAnchorUtils.generateSteps(startState, endState, numSteps)
     STATE.transition.currentStepIndex = 1
@@ -179,8 +168,6 @@ function CameraAnchorUtils.createPositionTransition(startPos, endPos, duration, 
         
         -- Create state patch
         local statePatch = {
-            mode = 0,
-            name = "fps",
             px = position.x,
             py = position.y,
             pz = position.z

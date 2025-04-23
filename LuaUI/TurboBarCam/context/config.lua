@@ -90,14 +90,14 @@ if not WG.TurboBarCam.CONFIG then
 
                     -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
                     COMBAT = {
-                        POSITION_FACTOR = 0.007,
-                        ROTATION_FACTOR = 0.007,
+                        POSITION_FACTOR = 0.01,
+                        ROTATION_FACTOR = 0.01,
                     },
 
                     -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
-                        POSITION_FACTOR = 0.007,
-                        ROTATION_FACTOR = 0.007,
+                        POSITION_FACTOR = 0.02,
+                        ROTATION_FACTOR = 0.005,
                     }
                 },
             },

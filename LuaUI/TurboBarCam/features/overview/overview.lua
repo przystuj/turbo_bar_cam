@@ -181,8 +181,6 @@ local function handleModeTransition(camState, currentHeight, userControllingView
 
     -- Prepare camera state patch using interpolated position and rotation
     local camStatePatch = {
-        mode = 0, -- Ensure FPS mode
-        name = "fps",
         px = interpolatedPos.x,
         py = currentHeight, -- Use the potentially zooming height calculated in update()
         pz = interpolatedPos.z,
@@ -234,8 +232,6 @@ local function updateRotationMode(currentHeight)
         -- IMPORTANT: The camera should stay EXACTLY at this position on the first frame
         -- We don't want any sudden jumps in position or rotation!
         local exactCamState = {
-            mode = 0,
-            name = "fps",
             px = exactPos.x,
             py = currentHeight, -- Use current height (may have changed)
             pz = exactPos.z,
@@ -317,8 +313,6 @@ local function updateRotationMode(currentHeight)
 
         -- Apply the camera state with this tiny change
         local camStatePatch = {
-            mode = 0,
-            name = "fps",
             px = newCamPos.x,
             py = newCamPos.y,
             pz = newCamPos.z,
@@ -364,8 +358,6 @@ local function updateRotationMode(currentHeight)
 
     -- Apply the rotation directly without smoothing when in rotation mode
     local camStatePatch = {
-        mode = 0,
-        name = "fps",
         px = newCamPos.x,
         py = newCamPos.y,
         pz = newCamPos.z,
@@ -426,7 +418,6 @@ local function updateNormalMode(camState, currentHeight)
 
     -- Prepare camera state patch
     local camStatePatch = {
-        mode = 0, name = "fps",
         px = camPos.x, py = camPos.y, pz = camPos.z, -- Use fixed position + current height
         dx = dx, dy = dy, dz = dz,
         rx = rx, ry = ry, rz = 0

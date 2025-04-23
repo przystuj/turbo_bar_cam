@@ -13,7 +13,7 @@ local MouseManager = {}
 function MouseManager.registerMode(modeName)
     if not STATE.mouse.registeredModes[modeName] then
         STATE.mouse.registeredModes[modeName] = true
-        Log.debug("Mouse input tracking registered for mode: " .. modeName)
+        Log.trace("Mouse input tracking registered for mode: " .. modeName)
     end
 end
 
@@ -42,10 +42,10 @@ local function registerCallback(eventType, modeName, callback)
     end
 
     STATE.mouse.callbacks[eventType][modeName] = callback
-    Log.debug("Registered " .. eventType .. " callback for mode: " .. modeName)
+    Log.trace("Registered " .. eventType .. " callback for mode: " .. modeName)
 end
 
-local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, currentGameTime)
+local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, currentTime)
     local isDownKey = "is" .. buttonKey .. "MouseDown"
     local pressStartKey = buttonKey:lower() .. "MousePressStartTime"
     local initialPressKey = "initialPress" .. buttonKey
@@ -56,14 +56,16 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
 
     local _, _, lmb, mmb, rmb = Spring.GetMouseState()
     local isDown = ({LMB = lmb, MMB = mmb, RMB = rmb})[buttonKey]
-    local lastClickTime = STATE.mouse[lastClickKey] or -math.huge
+    local lastClickTime = STATE.mouse[lastClickKey]
 
     if isDown and not STATE.mouse[isDownKey] then
+        -- Button just pressed
         STATE.mouse[isDownKey] = true
-        STATE.mouse[pressStartKey] = currentGameTime
+        STATE.mouse[pressStartKey] = currentTime
         STATE.mouse[initialPressKey] = { x = mouseX, y = mouseY }
 
-        if currentGameTime - lastClickTime < STATE.mouse.doubleClickThreshold then
+        -- Check for double click
+        if lastClickTime and Spring.DiffTimers(currentTime, lastClickTime) < STATE.mouse.doubleClickThreshold then
             STATE.mouse[clickCountKey] = 2
             STATE.mouse[isDoubleClickKey] = true
             fireCallbacks("onDouble" .. buttonKey, mouseX, mouseY)
@@ -72,13 +74,14 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
             STATE.mouse[isDoubleClickKey] = false
         end
 
-        STATE.mouse[lastClickKey] = currentGameTime
+        STATE.mouse[lastClickKey] = currentTime
 
     elseif isDown and STATE.mouse[isDownKey] then
+        -- Button being held down
         local dx = mouseX - STATE.mouse[initialPressKey].x
         local dy = mouseY - STATE.mouse[initialPressKey].y
         local dragDistance = math.sqrt(dx * dx + dy * dy)
-        local dragTime = currentGameTime - STATE.mouse[pressStartKey]
+        local dragTime = Spring.DiffTimers(currentTime, STATE.mouse[pressStartKey])
 
         if STATE.mouse[isDoubleClickKey] then
             fireCallbacks("onDoubleClickHold" .. buttonKey, mouseX, mouseY, dragTime)
@@ -86,6 +89,7 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
             fireCallbacks("onHold" .. buttonKey, mouseX, mouseY, dragTime)
         end
 
+        -- Check if drag should start or continue
         if not STATE.mouse[isDraggingKey] and (dragDistance > STATE.mouse.dragThreshold or dragTime > STATE.mouse.dragTimeThreshold) then
             STATE.mouse[isDraggingKey] = true
             STATE.mouse.lastDragX = mouseX
@@ -102,9 +106,10 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
         end
 
     elseif not isDown and STATE.mouse[isDownKey] then
+        -- Button just released
         local wasDoubleClick = STATE.mouse[isDoubleClickKey]
         local wasDragging = STATE.mouse[isDraggingKey]
-        local holdTime = currentGameTime - STATE.mouse[pressStartKey]
+        local holdTime = Spring.DiffTimers(currentTime, STATE.mouse[pressStartKey])
 
         if not wasDragging and not wasDoubleClick then
             fireCallbacks("on" .. buttonKey, mouseX, mouseY)
@@ -125,14 +130,14 @@ function MouseManager.update()
     end
 
     local mouseX, mouseY, lmb, mmb, rmb = Spring.GetMouseState()
-    local currentGameTime = Spring.GetGameSeconds()
+    local currentTime = Spring.GetTimer()
 
     STATE.mouse.lastMouseX = mouseX
     STATE.mouse.lastMouseY = mouseY
 
-    processMouseButton("LMB", "Left", mouseX, mouseY, currentGameTime)
-    processMouseButton("MMB", "Middle", mouseX, mouseY, currentGameTime)
-    processMouseButton("RMB", "Right", mouseX, mouseY, currentGameTime)
+    processMouseButton("LMB", "Left", mouseX, mouseY, currentTime)
+    processMouseButton("MMB", "Middle", mouseX, mouseY, currentTime)
+    processMouseButton("RMB", "Right", mouseX, mouseY, currentTime)
 end
 
 -- MMB handlers

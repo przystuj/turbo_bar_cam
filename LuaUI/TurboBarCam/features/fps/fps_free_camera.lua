@@ -116,8 +116,6 @@ function FreeCam.createCameraState(position, rotation, lastCamDir, lastRotation,
 
     -- Create camera state with smoothed directions
     local camState = {
-        mode = 0,
-        name = "fps",
         -- Position
         px = position.x,
         py = position.y,

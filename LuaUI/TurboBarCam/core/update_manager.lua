@@ -16,6 +16,8 @@ local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -91,7 +93,8 @@ end
 
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode()
-    -- First handle active transitions, which override normal camera updates
+    CameraManager.setCameraState({ mode = 0, name = "fps" }, 0, "UpdateManager.forceFpsMode")
+
     if STATE.transition.active then
         Features.CameraAnchor.update()
     else
