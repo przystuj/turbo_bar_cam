@@ -102,7 +102,7 @@ function CameraManager.getCameraState(source)
     })
 
     local currentTime = os.clock()
-    local timeSinceLastRefresh = currentTime - CameraManager.cache.lastRefreshTime
+    local timeSinceLastRefresh = currentTime - (CameraManager.cache.lastRefreshTime or 0)
 
     -- Check if we need to refresh the cached state
     if CameraManager.cache.dirtyFlag or

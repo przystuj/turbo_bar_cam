@@ -62,7 +62,6 @@ function widget:Initialize()
     end
     WG.TurboBarCam.handleCameraBroadcastEvent = function(cameraState)
         Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
-        --Spring.SendCommands("viewfps")
     end
 
     Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)

@@ -74,6 +74,9 @@ function FPSCamera.toggle()
         selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             Spring.SelectUnitArray(selectedUnits)
+            local x, _ , z = Spring.GetUnitPosition(selectedUnits[1])
+            CameraManager.setCameraState(CameraCommons.getDefaultUnitView(x, z), 1, "FPSCamera.disable")
+            -- todo make it smooth
         end
 
         return
@@ -374,6 +377,10 @@ function FPSCamera.toggleCombatMode()
     end
 
     FPSCombatMode.toggleCombatMode()
+end
+
+function FPSCamera.handleSelectNewUnit()
+    FPSCombatMode.clearAttackingState()
 end
 
 return {

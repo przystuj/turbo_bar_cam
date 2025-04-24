@@ -86,41 +86,8 @@ function WidgetControl.switchToFpsCamera()
 
     if #selectedUnits > 0 then
         local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
-
-        local fpsState = {
-            mode = 0, -- FPS camera mode
-            name = "fps",
-            fov = 45
-        }
-
-        -- Get map dimensions and calculate camera parameters
-        local cameraHeight = 1280
-        local offsetDistance = 1024
-        local lookdownAngle = 2.4
-
-        -- Set common camera properties
-        fpsState.px = x
-        fpsState.py = cameraHeight
-        fpsState.rx = lookdownAngle
-        fpsState.ry = 0
-
-        -- Check if forward position would exceed map boundaries
-        local forwardPosition = z + offsetDistance
-        if forwardPosition >= Game.mapSizeZ * 0.95 then
-            -- 95% safety margin
-            -- Position camera behind the unit instead
-            fpsState.pz = z - offsetDistance
-            fpsState.ry = fpsState.ry + math.pi -- Rotate 180 degrees
-            Log.trace("Boundary detected, positioning camera behind unit")
-        else
-            -- Normal positioning in front of unit
-            fpsState.pz = forwardPosition
-            Log.trace("Normal positioning in front of unit")
-        end
-
-        Log.trace("Camera height: " .. cameraHeight)
-        Log.trace("Offset distance: " .. offsetDistance)
-        Spring.SetCameraState(fpsState, 1)
+        local fpsState = CameraCommons.getDefaultUnitView(x, z)
+        CameraManager.setCameraState(fpsState, 1, "WidgetControl.switchToFpsCamera")
     end
     Spring.SendCommands("viewfps")
 end

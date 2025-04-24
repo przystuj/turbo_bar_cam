@@ -84,20 +84,20 @@ if not WG.TurboBarCam.CONFIG then
                 SMOOTHING = {
                     -- PEACE mode smoothing (normal FPS view)
                     PEACE = {
-                        POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                        ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                        POSITION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
+                        ROTATION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
                     },
 
                     -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
                     COMBAT = {
-                        POSITION_FACTOR = 0.01,
-                        ROTATION_FACTOR = 0.01,
+                        POSITION_FACTOR = 0.03,
+                        ROTATION_FACTOR = 0.03,
                     },
 
                     -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
                         POSITION_FACTOR = 0.02,
-                        ROTATION_FACTOR = 0.005,
+                        ROTATION_FACTOR = 0.009,
                     }
                 },
             },
@@ -218,8 +218,8 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Default adjustments (for reset)
                 DEFAULT_ADJUSTMENTS = {
-                    EXTRA_DISTANCE = 0,
-                    EXTRA_HEIGHT = 0,
+                    EXTRA_DISTANCE = 2445,
+                    EXTRA_HEIGHT = 815,
                     ORBIT_OFFSET = 0,
                 },
 
@@ -234,10 +234,10 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Default smoothing values (for reset)
                 DEFAULT_SMOOTHING = {
-                    POSITION = 0.05,
-                    ROTATION = 0.005,
-                    STABLE_POSITION = 0.005,
-                    STABLE_ROTATION = 0.005,
+                    POSITION = 0.08,
+                    ROTATION = 0.02,
+                    STABLE_POSITION = 0.035,
+                    STABLE_ROTATION = 0.02,
                     TRACKING_FACTOR = 0.1,
                 },
 

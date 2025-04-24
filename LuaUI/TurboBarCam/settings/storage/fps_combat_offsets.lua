@@ -1,9 +1,15 @@
 return {
-  ["armmav"] = {
-    HEIGHT = 200,
-    FORWARD = -340,
-    SIDE = 0,
+  ["armmex"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
     ROTATION = 0,
+    SIDE = 0,
+  },
+  ["corlab"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    ROTATION = 0,
+    SIDE = 0,
   },
   ["armcom"] = {
     HEIGHT = 85,
@@ -11,37 +17,19 @@ return {
     ROTATION = 0,
     SIDE = 15,
   },
-  ["armflea"] = {
-    HEIGHT = 50,
-    FORWARD = -70,
-    SIDE = 10,
-    ROTATION = 0,
-  },
   ["corbw"] = {
     HEIGHT = 35,
     FORWARD = -165,
     ROTATION = 0,
     SIDE = 0,
   },
-  ["armck"] = {
-    HEIGHT = 35,
-    FORWARD = -75,
-    ROTATION = 0,
-    SIDE = 0,
-  },
-  ["corgeo"] = {
-    HEIGHT = 35,
-    FORWARD = -75,
-    ROTATION = 0,
-    SIDE = 0,
-  },
-  ["corfav"] = {
+  ["armca"] = {
     HEIGHT = 35,
     FORWARD = -75,
     SIDE = 0,
     ROTATION = 0,
   },
-  ["armpw"] = {
+  ["corck"] = {
     HEIGHT = 35,
     FORWARD = -75,
     ROTATION = 0,
@@ -53,9 +41,27 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
-  ["corwolv"] = {
-    HEIGHT = 75,
-    FORWARD = -125,
+  ["armrock"] = {
+    HEIGHT = 85,
+    FORWARD = -140,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["armck"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    SIDE = 0,
+    ROTATION = 0,
+  },
+  ["armflea"] = {
+    HEIGHT = 50,
+    FORWARD = -70,
+    SIDE = 10,
+    ROTATION = 0,
+  },
+  ["armfig"] = {
+    HEIGHT = 55,
+    FORWARD = -240,
     ROTATION = 0,
     SIDE = 0,
   },
@@ -65,22 +71,64 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
+  ["corcan"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    SIDE = 0,
+    ROTATION = 0,
+  },
+  ["corsumo"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    SIDE = 0,
+    ROTATION = 0,
+  },
+  ["corgeo"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["armpw"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["armmav"] = {
+    HEIGHT = 140,
+    FORWARD = -200,
+    SIDE = 0,
+    ROTATION = 0,
+  },
+  ["corwolv"] = {
+    HEIGHT = 75,
+    FORWARD = -125,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["corfav"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    SIDE = 0,
+    ROTATION = 0,
+  },
   ["corcom"] = {
-    HEIGHT = 35,
-    FORWARD = -75,
-    SIDE = 0,
-    ROTATION = 0,
-  },
-  ["armmex"] = {
-    HEIGHT = 35,
-    FORWARD = -75,
+    HEIGHT = 155,
+    FORWARD = -370,
     ROTATION = 0,
     SIDE = 0,
   },
-  ["armrock"] = {
+  ["armfboy"] = {
     HEIGHT = 85,
-    FORWARD = -140,
+    FORWARD = -160,
     ROTATION = 0,
     SIDE = 0,
+  },
+  ["corllt"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
+    SIDE = 0,
+    ROTATION = 0,
   },
 }

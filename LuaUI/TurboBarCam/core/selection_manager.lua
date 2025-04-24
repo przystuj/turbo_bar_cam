@@ -2,13 +2,14 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type FPSCamera
+local FPSCamera = VFS.Include("LuaUI/TurboBarCam/features/fps/fps.lua").FPSCamera
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local TrackingManager = CommonModules.TrackingManager
 
 ---@class SelectionManager
 local SelectionManager = {}
@@ -48,8 +49,8 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
             SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
         end
 
-        -- Reset projectile tracking when switching to a different unit
         if STATE.tracking.mode == 'fps' then
+            FPSCamera.handleSelectNewUnit()
             STATE.tracking.fps.lastUnitProjectileID = nil
             STATE.tracking.fps.projectileTrackingEnabled = false
             STATE.tracking.fps.lastProjectilePosition = nil

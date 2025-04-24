@@ -1,5 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
+---@type Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -190,6 +192,37 @@ function CameraCommons.convertSpringToFPSCameraState(camState)
     fpsState.vz = camState.vz or 0
 
     return fpsState
+end
+
+function CameraCommons.getDefaultUnitView(x, z)
+    local camState = {
+        mode = 0, -- FPS camera mode
+        name = "fps",
+        fov = 45
+    }
+
+    local cameraHeight = 1280
+    local offsetDistance = 1024
+    local lookdownAngle = 2.4
+
+    -- Set common camera properties
+    camState.px = x
+    camState.py = cameraHeight
+    camState.rx = lookdownAngle
+    camState.ry = 0
+
+    -- Check if forward position would exceed map boundaries
+    local forwardPosition = z + offsetDistance
+    if forwardPosition >= Game.mapSizeZ * 0.95 then
+        camState.pz = z - offsetDistance
+        camState.ry = camState.ry + math.pi -- Rotate 180 degrees
+        Log.trace("Boundary detected, positioning camera behind unit")
+    else
+        -- Normal positioning in front of unit
+        camState.pz = forwardPosition
+        Log.trace("Normal positioning in front of unit")
+    end
+    return camState
 end
 
 return {

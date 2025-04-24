@@ -241,7 +241,14 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
     local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
 
     -- Create focusing direction to look at target
-    return CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+    local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+
+    -- Log rotation changes when we have a valid direction state
+    if directionState then
+        FPSCombatMode.logRotationChange(directionState.rx, directionState.ry, directionState.rz)
+    end
+
+    return directionState
 end
 
 --- Handles normal FPS mode camera orientation
@@ -313,7 +320,9 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     if not STATE.tracking.fps.targetUnitID then
         Log.trace("Camera will follow unit but look at fixed point")
     else
-        Log.trace("Camera will follow unit but look at unit " .. STATE.tracking.fps.targetUnitID)
+        local targetName = FPSCombatMode.getUnitName(STATE.tracking.fps.targetUnitID)
+        Log.trace("Camera will follow unit but look at unit " .. STATE.tracking.fps.targetUnitID ..
+                " (" .. targetName .. ")")
     end
 
     return true

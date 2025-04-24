@@ -62,6 +62,15 @@ if not WG.TurboBarCam.STATE then
                 lastProjectilePosition = nil,
                 combatModeEnabled = false,
                 useLookAtTarget = false,
+                lastTargetPos = nil, -- Last valid target position - for smooth transition when targets change
+                lastTargetUnitID = nil, -- Last targeted unit ID
+                lastTargetUnitName = nil, -- Last targeted unit name
+                lastTargetType = nil, -- Last target type (1 = unit, 2 = ground)
+                lastRotationRx = nil, -- Last camera rotation X (pitch)
+                lastRotationRy = nil, -- Last camera rotation Y (yaw)
+                initialTargetAcquisitionTime = nil, -- When the current target was first acquired
+                targetRotationHistory = {}, -- History of rotation changes for the current target
+                rotationChangeThreshold = 0.05, -- Threshold for logging rotation changes (in radians)
 
                 -- Free camera state
                 freeCam = {

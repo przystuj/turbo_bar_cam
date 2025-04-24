@@ -92,12 +92,14 @@ bind		numpad5			turbobarcam_overview_change_height -1
 
 // Group Unit Tracking
 bind		numpad0  		turbobarcam_toggle_group_tracking_camera
-bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15;EXTRA_HEIGHT,5
-bind		numpad8			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,-15;EXTRA_HEIGHT,-5
+bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15
+bind		numpad8			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,-15
+bind		Ctrl+numpad8	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,5
+bind		Ctrl+numpad5	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,-5
 bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.1
 bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
-bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.ROTATION,-0.001;SMOOTHING.STABLE_POSITION,-0.002;SMOOTHING.STABLE_ROTATION,-0.001
-bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.ROTATION,0.001;SMOOTHING.STABLE_POSITION,0.002;SMOOTHING.STABLE_ROTATION,0.001
+bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.STABLE_POSITION,-0.002
+bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.STABLE_POSITION,0.002
 bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset
 
 // Projectile tracking
