@@ -6,6 +6,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 ---@type FPSCombatMode
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
+---@type FPSTargetingUtils
+local FPSTargetingUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_targeting_utils.lua").FPSTargetingUtils
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -156,7 +158,7 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
 
     -- Apply air target repositioning if needed
     if STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
-        cameraPos = FPSCombatMode.handleAirTargetRepositioning(
+        cameraPos = FPSTargetingUtils.handleAirTargetRepositioning(
                 cameraPos,
                 STATE.tracking.fps.lastTargetPos,
                 originalPosition
