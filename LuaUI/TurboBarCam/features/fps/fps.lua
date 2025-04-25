@@ -96,10 +96,10 @@ function FPSCamera.toggle()
 
         FPSTargetingSmoothing.configure({
             rotationConstraint = true,
-            targetPrediction = false, -- Enable this if you want to lead targets
-            cloudBlendFactor = 0.85,
-            maxRotationRate = 0.07,
-            rotationDamping = 0.85
+            targetPrediction = false,
+            cloudBlendFactor = 0.9,
+            maxRotationRate = 0.05,
+            rotationDamping = 0.9
         })
 
         Log.trace("FPS camera attached to unit " .. unitID)

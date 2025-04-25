@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type FPSTargetingUtils
+local FPSTargetingUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_targeting_utils.lua").FPSTargetingUtils
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -37,7 +39,7 @@ local function ensureTargetSmoothingState()
             targetSwitchCount = 0,
             lastStatusLogTime = currentTime,
             currentTargetKey = nil,
-            targetAimOffset = {x=0, y=0, z=0},
+            targetAimOffset = { x = 0, y = 0, z = 0 },
             targetPrediction = {
                 enabled = false,
                 velocityX = 0,
@@ -70,7 +72,9 @@ end
 --- Updates the target history with the current target
 --- @param targetPos table Target position {x, y, z}
 function FPSTargetingSmoothing.updateTargetHistory(targetPos)
-    if not targetPos then return end
+    if not targetPos then
+        return
+    end
 
     ensureTargetSmoothingState()
     local state = STATE.tracking.fps.targetSmoothing
@@ -121,7 +125,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
 
     -- Add current target to history
     table.insert(state.targetHistory, {
-        pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
+        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
         key = targetKey,
         time = currentTime
     })
@@ -244,11 +248,20 @@ function FPSTargetingSmoothing.calculateCloudCenter()
             end
         end
 
+        -- Add a maximum cloud radius to prevent large jumps
+        local MAX_CLOUD_RADIUS = 150  -- Maximum allowed cloud radius
         state.cloudRadius = math.sqrt(maxDistSq)
+
+        if state.cloudRadius > MAX_CLOUD_RADIUS then
+            state.cloudRadius = MAX_CLOUD_RADIUS
+            Log.trace(string.format("Cloud radius clamped to maximum (%d)", MAX_CLOUD_RADIUS))
+        end
+
         state.cloudCenter = center
 
         -- Log cloud updates periodically
-        if state.useCloudTargeting and Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
+        if state.useCloudTargeting and state.lastCloudUpdateTime and
+                Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
             Log.debug(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
                     center.x, center.y, center.z, state.cloudRadius))
             state.lastCloudUpdateTime = currentTime
@@ -267,9 +280,46 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
     ensureTargetSmoothingState()
     local state = STATE.tracking.fps.targetSmoothing
 
-    -- If cloud targeting is active, blend between actual target and cloud center
+    -- Get unit position
+    local unitPos = nil
+    if STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
+        local x, y, z = Spring.GetUnitPosition(STATE.tracking.unitID)
+        unitPos = { x = x, y = y, z = z }
+    end
+
+    -- For aerial targets, check if we have tracking data from FPSTargetingUtils
+    local isAerialTarget = unitPos and targetPos.y > (unitPos.y + 80)
+    local targetData = nil
+
+    if isAerialTarget then
+        -- Get the target tracking data from your existing system
+        local targetKey = string.format("%.0f_%.0f_%.0f",
+                math.floor(targetPos.x), math.floor(targetPos.y), math.floor(targetPos.z))
+
+        if STATE.tracking.fps.targetTracking and STATE.tracking.fps.targetTracking[targetKey] then
+            targetData = STATE.tracking.fps.targetTracking[targetKey]
+
+            -- Process aerial target using your velocity data
+            local smoothedAerialPos = FPSTargetingSmoothing.processAerialTarget(
+                    targetPos, unitPos, targetData)
+
+            -- If cloud targeting is also active, blend between cloud and aerial tracking
+            if state.useCloudTargeting and state.cloudCenter then
+                local blend = CLOUD_BLEND_FACTOR * 0.8  -- Reduced cloud influence for aerial targets
+                return {
+                    x = smoothedAerialPos.x * (1 - blend) + state.cloudCenter.x * blend,
+                    y = smoothedAerialPos.y * (1 - blend) + state.cloudCenter.y * blend,
+                    z = smoothedAerialPos.z * (1 - blend) + state.cloudCenter.z * blend
+                }
+            else
+                return smoothedAerialPos
+            end
+        end
+    end
+    -- Regular cloud targeting for non-aerial targets
     if state.useCloudTargeting and state.cloudCenter then
-        local blend = CLOUD_BLEND_FACTOR  -- 85% cloud, 15% actual target
+        -- Apply smoothing/interpolation between actual target and cloud center
+        local blend = CLOUD_BLEND_FACTOR
 
         -- Store previous cloud center for smoothing
         if not state.previousCloudCenter then
@@ -279,9 +329,8 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
                 z = state.cloudCenter.z
             }
         end
-
-        -- Smooth the cloud center (temporal smoothing)
-        local cloudSmoothFactor = 0.1  -- How quickly cloud center can move
+        -- Apply smooth transitioning for cloud center
+        local cloudSmoothFactor = 0.05  -- Base smoothing factor (slower)
         local smoothedCloudX = state.previousCloudCenter.x +
                 (state.cloudCenter.x - state.previousCloudCenter.x) * cloudSmoothFactor
         local smoothedCloudY = state.previousCloudCenter.y +
@@ -296,9 +345,9 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
 
         -- Blend between actual target and smoothed cloud center
         return {
-            x = targetPos.x * (1-blend) + smoothedCloudX * blend,
-            y = targetPos.y * (1-blend) + smoothedCloudY * blend,
-            z = targetPos.z * (1-blend) + smoothedCloudZ * blend
+            x = targetPos.x * (1 - blend) + smoothedCloudX * blend,
+            y = targetPos.y * (1 - blend) + smoothedCloudY * blend,
+            z = targetPos.z * (1 - blend) + smoothedCloudZ * blend
         }
     end
 
@@ -377,9 +426,36 @@ function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
     local yawDiff = CameraCommons.normalizeAngle(desiredYaw - state.rotationConstraint.lastYaw)
     local pitchDiff = desiredPitch - state.rotationConstraint.lastPitch
 
-    -- Constrain to maximum rotation rate
-    local maxRate = state.rotationConstraint.maxRotationRate
-    local dampingFactor = state.rotationConstraint.damping
+    -- Apply adaptive constraints based on rate of change
+    local baseMaxRate = state.rotationConstraint.maxRotationRate
+    local baseDampingFactor = state.rotationConstraint.damping
+    local maxRate = baseMaxRate
+    local dampingFactor = baseDampingFactor
+
+    -- Track rotation velocity for adaptive constraint
+    if not state.rotationConstraint.yawVelocity then
+        state.rotationConstraint.yawVelocity = 0
+        state.rotationConstraint.pitchVelocity = 0
+        state.rotationConstraint.lastYawDiff = 0
+        state.rotationConstraint.lastPitchDiff = 0
+        state.rotationConstraint.consecutiveChanges = 0
+    end
+
+    -- Update rotation velocity estimate
+    local yawAcceleration = math.abs(yawDiff) - math.abs(state.rotationConstraint.lastYawDiff)
+    state.rotationConstraint.lastYawDiff = yawDiff
+
+    -- If rotation is accelerating, apply stronger constraints
+    if yawAcceleration > 0.01 then
+        state.rotationConstraint.consecutiveChanges = state.rotationConstraint.consecutiveChanges + 1
+        if state.rotationConstraint.consecutiveChanges > 5 then
+            -- Apply stronger constraints when consistent rotation acceleration is detected
+            maxRate = baseMaxRate * 0.7
+            dampingFactor = baseDampingFactor * 1.2
+        end
+    else
+        state.rotationConstraint.consecutiveChanges = math.max(0, state.rotationConstraint.consecutiveChanges - 1)
+    end
 
     -- Apply constraints with damping
     if math.abs(yawDiff) > maxRate then
@@ -392,9 +468,13 @@ function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
         pitchDiff = pitchDiff * dampingFactor
     end
 
-    -- Calculate new constrained values
-    local constrainedYaw = state.rotationConstraint.lastYaw + yawDiff
-    local constrainedPitch = state.rotationConstraint.lastPitch + pitchDiff
+    -- Calculate new constrained values with additional inertia
+    local inertiaDamping = 0.85 -- How much previous motion affects current motion
+    state.rotationConstraint.yawVelocity = state.rotationConstraint.yawVelocity * inertiaDamping + yawDiff * (1 - inertiaDamping)
+    state.rotationConstraint.pitchVelocity = state.rotationConstraint.pitchVelocity * inertiaDamping + pitchDiff * (1 - inertiaDamping)
+
+    local constrainedYaw = state.rotationConstraint.lastYaw + state.rotationConstraint.yawVelocity
+    local constrainedPitch = state.rotationConstraint.lastPitch + state.rotationConstraint.pitchVelocity
 
     -- Update last values for next frame
     state.rotationConstraint.lastYaw = constrainedYaw
@@ -455,6 +535,77 @@ function FPSTargetingSmoothing.configure(settings)
     end
 
     Log.info("Target smoothing settings updated")
+end
+
+-- In fps_targeting_smoothing.lua, add this function:
+function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetData)
+    -- Use the existing velocity data that's already being tracked
+    local velocityX = targetData.velocityX or 0
+    local velocityY = targetData.velocityY or 0
+    local velocityZ = targetData.velocityZ or 0
+    local speed = targetData.speed or 0
+
+    -- Initialize aerial tracking data in targetSmoothing if not already present
+    if not STATE.tracking.fps.targetSmoothing.aerialTracking then
+        STATE.tracking.fps.targetSmoothing.aerialTracking = {
+            smoothedPosition = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+            lastUpdateTime = Spring.GetTimer(),
+            trajectoryPredictionEnabled = true,
+            positionHistory = {}
+        }
+    end
+
+    local aerial = STATE.tracking.fps.targetSmoothing.aerialTracking
+
+    -- Add to position history
+    table.insert(aerial.positionHistory, {
+        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+        time = Spring.GetTimer()
+    })
+
+    -- Keep history at reasonable size
+    while #aerial.positionHistory > 30 do
+        table.remove(aerial.positionHistory, 1)
+    end
+
+    -- Detect if target is moving in a circular pattern
+    local isCircular = #aerial.positionHistory >= 10 and FPSTargetingUtils.detectCircularMotion(aerial.positionHistory)
+
+    -- Adjust smoothing based on movement pattern
+    local smoothFactor = 0.08 -- Default
+
+    if isCircular then
+        -- Much stronger smoothing for circular patterns
+        smoothFactor = 0.03
+        Log.trace("Circular aerial motion detected - using stronger smoothing")
+    elseif targetData.isMovingFast then
+        -- Fast-moving targets need stronger prediction but not too much smoothing
+        smoothFactor = 0.06
+        Log.trace("Fast aerial motion detected - using prediction")
+    end
+
+    -- Apply trajectory prediction for fast-moving targets
+    local predictedPos = targetPos
+    if aerial.trajectoryPredictionEnabled and speed > 50 then
+        -- Look ahead time depends on speed
+        local lookAheadTime = math.min(0.4, speed / 600)
+
+        predictedPos = {
+            x = targetPos.x + velocityX * lookAheadTime,
+            y = targetPos.y + velocityY * lookAheadTime,
+            z = targetPos.z + velocityZ * lookAheadTime
+        }
+    end
+
+    -- Smooth the position
+    aerial.smoothedPosition = {
+        x = aerial.smoothedPosition.x + (predictedPos.x - aerial.smoothedPosition.x) * smoothFactor,
+        y = aerial.smoothedPosition.y + (predictedPos.y - aerial.smoothedPosition.y) * smoothFactor,
+        z = aerial.smoothedPosition.z + (predictedPos.z - aerial.smoothedPosition.z) * smoothFactor
+    }
+
+    aerial.lastUpdateTime = Spring.GetTimer()
+    return aerial.smoothedPosition
 end
 
 return {

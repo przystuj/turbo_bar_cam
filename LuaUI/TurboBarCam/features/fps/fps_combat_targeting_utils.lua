@@ -594,6 +594,30 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
     end
 end
 
+-- Add to FPSTargetingUtils
+function FPSTargetingUtils.detectCircularMotion(history)
+    local directionChanges = 0
+    local lastDx, lastDz = 0, 0
+
+    for i = 2, #history do
+        local dx = history[i].pos.x - history[i-1].pos.x
+        local dz = history[i].pos.z - history[i-1].pos.z
+
+        if lastDx ~= 0 and lastDz ~= 0 then
+            -- Calculate cross product to detect direction change
+            local cross = lastDx * dz - lastDz * dx
+            if math.abs(cross) > 0.1 then
+                directionChanges = directionChanges + 1
+            end
+        end
+
+        lastDx, lastDz = dx, dz
+    end
+
+    -- If we have multiple direction changes, likely circular
+    return directionChanges >= 4
+end
+
 return {
     FPSTargetingUtils = FPSTargetingUtils
 }
