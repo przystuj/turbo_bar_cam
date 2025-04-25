@@ -337,6 +337,13 @@ function Util.pointsWithinDistance(point1, point2, threshold)
     return distSq <= threshold^2
 end
 
+function Util.getUnitVectors(unitID)
+    local x, y, z = Spring.GetUnitPosition(unitID)
+    local front, up, right = Spring.GetUnitVectors(unitID)
+
+    return { x = x, y = y, z = z }, front, up, right
+end
+
 -- Export to global scope
 return {
     Util = Util

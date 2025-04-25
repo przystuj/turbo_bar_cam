@@ -1,4 +1,10 @@
 return {
+  ["armbanth"] = {
+    FORWARD = -225,
+    HEIGHT = 90,
+    ROTATION = 0,
+    SIDE = -55,
+  },
   ["armca"] = {
     FORWARD = 0,
     HEIGHT = 0,
@@ -18,10 +24,10 @@ return {
     SIDE = 10,
   },
   ["armfast"] = {
-    FORWARD = 185,
-    HEIGHT = 55,
+    FORWARD = -105,
+    HEIGHT = -110,
     ROTATION = 0,
-    SIDE = -40,
+    SIDE = -5,
   },
   ["armfboy"] = {
     FORWARD = -80,
@@ -101,6 +107,12 @@ return {
     ROTATION = 0,
     SIDE = -20,
   },
+  ["armthor"] = {
+    FORWARD = -220,
+    HEIGHT = 50,
+    ROTATION = 0,
+    SIDE = 0,
+  },
   ["armthund"] = {
     FORWARD = -5,
     HEIGHT = 0,
@@ -108,10 +120,10 @@ return {
     SIDE = 0,
   },
   ["armvang"] = {
-    FORWARD = -55,
-    HEIGHT = 25,
+    FORWARD = -85,
+    HEIGHT = 45,
     ROTATION = 0,
-    SIDE = 20,
+    SIDE = 0,
   },
   ["corack"] = {
     FORWARD = 0,
@@ -121,7 +133,7 @@ return {
   },
   ["corak"] = {
     FORWARD = -130,
-    HEIGHT = 105,
+    HEIGHT = 50,
     ROTATION = 0,
     SIDE = 0,
   },
@@ -162,8 +174,8 @@ return {
     SIDE = 0,
   },
   ["cordemon"] = {
-    FORWARD = -120,
-    HEIGHT = 110,
+    FORWARD = -260,
+    HEIGHT = 40,
     ROTATION = 0,
     SIDE = -25,
   },
@@ -209,6 +221,18 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
+  ["cormort"] = {
+    FORWARD = -115,
+    HEIGHT = 0,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["corpyro"] = {
+    FORWARD = -135,
+    HEIGHT = 85,
+    ROTATION = 0,
+    SIDE = 0,
+  },
   ["corrad"] = {
     FORWARD = 0,
     HEIGHT = 0,
@@ -246,8 +270,8 @@ return {
     SIDE = 0,
   },
   ["corsumo"] = {
-    FORWARD = 0,
-    HEIGHT = 0,
+    FORWARD = -115,
+    HEIGHT = 10,
     ROTATION = 0,
     SIDE = 0,
   },

@@ -25,15 +25,6 @@ function CameraAnchorUtils.easeInOutCubic(t)
     end
 end
 
---- Linear interpolation between two values
----@param a number Start value
----@param b number End value
----@param t number Interpolation factor (0.0-1.0)
----@return number interpolated value
-function CameraAnchorUtils.lerp(a, b, t)
-    return a + (b - a) * t
-end
-
 --- Interpolates between two angles along the shortest path
 ---@param a number Start angle (in radians)
 ---@param b number End angle (in radians)
@@ -101,19 +92,19 @@ function CameraAnchorUtils.generateSteps(startState, endState, numSteps)
         local statePatch = {}
 
         -- Core position parameters
-        statePatch.px = CameraAnchorUtils.lerp(startState.px, endState.px, easedT)
-        statePatch.py = CameraAnchorUtils.lerp(startState.py, endState.py, easedT)
-        statePatch.pz = CameraAnchorUtils.lerp(startState.pz, endState.pz, easedT)
+        statePatch.px = CameraCommons.lerp(startState.px, endState.px, easedT)
+        statePatch.py = CameraCommons.lerp(startState.py, endState.py, easedT)
+        statePatch.pz = CameraCommons.lerp(startState.pz, endState.pz, easedT)
 
         -- Core direction parameters
-        statePatch.dx = CameraAnchorUtils.lerp(startState.dx, endState.dx, easedT)
-        statePatch.dy = CameraAnchorUtils.lerp(startState.dy, endState.dy, easedT)
-        statePatch.dz = CameraAnchorUtils.lerp(startState.dz, endState.dz, easedT)
+        statePatch.dx = CameraCommons.lerp(startState.dx, endState.dx, easedT)
+        statePatch.dy = CameraCommons.lerp(startState.dy, endState.dy, easedT)
+        statePatch.dz = CameraCommons.lerp(startState.dz, endState.dz, easedT)
 
         -- Camera specific parameters (non-rotational)
         for _, param in ipairs(cameraParams) do
             if startState[param] ~= nil and endState[param] ~= nil then
-                statePatch[param] = CameraAnchorUtils.lerp(startState[param], endState[param], easedT)
+                statePatch[param] = CameraCommons.lerp(startState[param], endState[param], easedT)
             end
         end
 
@@ -161,9 +152,9 @@ function CameraAnchorUtils.createPositionTransition(startPos, endPos, duration, 
 
         -- Interpolate position
         local position = {
-            x = CameraAnchorUtils.lerp(startPos.px, endPos.px, easedT),
-            y = CameraAnchorUtils.lerp(startPos.py, endPos.py, easedT),
-            z = CameraAnchorUtils.lerp(startPos.pz, endPos.pz, easedT)
+            x = CameraCommons.lerp(startPos.px, endPos.px, easedT),
+            y = CameraCommons.lerp(startPos.py, endPos.py, easedT),
+            z = CameraCommons.lerp(startPos.pz, endPos.pz, easedT)
         }
         
         -- Create state patch

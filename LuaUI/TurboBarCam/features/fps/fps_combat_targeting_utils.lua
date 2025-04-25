@@ -28,16 +28,16 @@ local TARGET_SWITCH_THRESHOLD = 0.3  -- Time threshold (seconds) to detect rapid
 local function ensureGlobalState()
     if not STATE.tracking.fps.targetingGlobal then
         STATE.tracking.fps.targetingGlobal = {
-            targetHistory = {},        -- Recent target positions
-            cloudCenter = nil,         -- Center of the target cloud
-            cloudRadius = 0,           -- Radius of the target cloud
+            targetHistory = {}, -- Recent target positions
+            cloudCenter = nil, -- Center of the target cloud
+            cloudRadius = 0, -- Radius of the target cloud
             useCloudTargeting = false, -- Whether to use cloud targeting
-            cloudStartTime = nil,      -- When cloud targeting began
+            cloudStartTime = nil, -- When cloud targeting began
             lastCloudUpdateTime = Spring.GetTimer(),
             highActivityDetected = false,
-            activityLevel = 0,         -- Measure of targeting activity (0-1)
+            activityLevel = 0, -- Measure of targeting activity (0-1)
             lastTargetSwitchTime = Spring.GetTimer(),
-            targetSwitchCount = 0,     -- Number of target switches in short period
+            targetSwitchCount = 0, -- Number of target switches in short period
             lastStatusLogTime = Spring.GetTimer(),
             stateInitialized = true
         }
@@ -203,7 +203,7 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
         if not using_cached_target and targetData.frameCounter % 3 == 0 then
             -- Update position history when we have real position data
             table.insert(targetData.positionHistory, {
-                pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
+                pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
                 time = currentTime
             })
 
@@ -273,7 +273,7 @@ local function updateTargetHistory(targetPos, targetKey)
 
     -- Add current target to history
     table.insert(globalState.targetHistory, {
-        pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
+        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
         key = targetKey,
         time = currentTime
     })
@@ -350,9 +350,9 @@ local function getEffectiveTargetPosition(targetPos)
         -- Apply some smoothing/interpolation between actual target and cloud center
         local blend = CLOUD_BLEND_FACTOR  -- 70% cloud, 30% actual target
         return {
-            x = targetPos.x * (1-blend) + globalState.cloudCenter.x * blend,
-            y = targetPos.y * (1-blend) + globalState.cloudCenter.y * blend,
-            z = targetPos.z * (1-blend) + globalState.cloudCenter.z * blend
+            x = targetPos.x * (1 - blend) + globalState.cloudCenter.x * blend,
+            y = targetPos.y * (1 - blend) + globalState.cloudCenter.y * blend,
+            z = targetPos.z * (1 - blend) + globalState.cloudCenter.z * blend
         }
     end
 
@@ -411,7 +411,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
     local dx = effectiveTarget.x - unitPos.x
     local dy = heightDiff
     local dz = effectiveTarget.z - unitPos.z
-    local horizontalDist = math.sqrt(dx*dx + dz*dz)
+    local horizontalDist = math.sqrt(dx * dx + dz * dz)
     local verticalAngle = math.atan2(dy, horizontalDist)
 
     -- Update target velocity
@@ -420,6 +420,27 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
     -- Determine if we need to activate air targeting adjustments (with hysteresis)
     local activationAngle = targetData.airAdjustmentActive
             and DEACTIVATION_ANGLE or ACTIVATION_ANGLE
+
+    -- NEW: Check if we are in a stabilized camera state
+    -- If we are, be more conservative with air adjustments to prevent jumps
+    if STATE.tracking.fps.stableCamPos and STATE.tracking.fps.targetSmoothing and
+            STATE.tracking.fps.targetSmoothing.activityLevel > 0.5 then
+        -- Higher threshold during stabilization to prevent camera jumps
+        activationAngle = activationAngle * 1.3
+
+        -- If we were not previously in air adjustment mode,
+        -- require a significantly steeper angle to activate during stabilization
+        if not targetData.airAdjustmentActive then
+            activationAngle = activationAngle * 1.5
+        end
+
+        -- Log this modified behavior
+        if not targetData.lastStabilizedAdjustmentLog or
+                Spring.DiffTimers(currentTime, targetData.lastStabilizedAdjustmentLog) > 2.0 then
+            Log.debug("Using higher air adjustment threshold during stabilization")
+            targetData.lastStabilizedAdjustmentLog = currentTime
+        end
+    end
 
     -- Skip adjustment if target is moving too fast upward and we're not already tracking it
     if targetData.isMovingUpFast and not targetData.airAdjustmentActive then
@@ -443,8 +464,13 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
 
         -- Calculate adjustment based on angle
         -- Higher angle = stronger adjustment
-        local angleRatio = math.min((verticalAngle - ACTIVATION_ANGLE) / (math.pi/2 - ACTIVATION_ANGLE), 1.0)
+        local angleRatio = math.min((verticalAngle - ACTIVATION_ANGLE) / (math.pi / 2 - ACTIVATION_ANGLE), 1.0)
         local adjustmentFactor = 0.3 + (angleRatio * 0.4)  -- Range from 0.3 to 0.7
+
+        -- NEW: Reduce adjustment factor during stabilization to avoid jarring movements
+        if STATE.tracking.fps.stableCamPos then
+            adjustmentFactor = adjustmentFactor * 0.7
+        end
 
         -- Determine if we're very close to the target (directly underneath)
         local isCloseToTarget = horizontalDist < 300
@@ -458,6 +484,11 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
             if isVeryCloseToTarget then
                 distanceAdjustment = 1.7  -- Even more aggressive when very close
             end
+        end
+
+        -- NEW: Reduce distance adjustment during stabilization
+        if STATE.tracking.fps.stableCamPos then
+            distanceAdjustment = distanceAdjustment * 0.8
         end
 
         -- For high targets, focus more on moving back to keep unit in view
@@ -484,18 +515,38 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         local moveUp = math.min(heightDiff * upRatio * adjustmentFactor, 90)  -- Reduced maximum height
         local moveBack = math.min(horizontalDist * backRatio * adjustmentFactor, 220)  -- Increased maximum back distance
 
-        -- For high targets, ensure substantial back movement
-        if isHighTargetMode then
-            moveBack = math.max(moveBack, 120)  -- Ensure minimum back movement for high targets
+        -- NEW: When using camera stabilization, apply changes more gradually
+        if STATE.tracking.fps.stableCamPos and targetData.lastAdjustedPosition then
+            -- Get last adjusted position
+            local lastPos = targetData.lastAdjustedPosition
 
-            -- Special case for very close targets - ensure maximum back distance
-            if isVeryCloseToTarget then
-                moveBack = math.max(moveBack, 300)  -- More back when very close
-                moveUp = math.min(moveUp, 40)  -- Much less up when very close
-            elseif isCloseToTarget then
-                moveBack = math.max(moveBack, 200)  -- More back when close
-                moveUp = math.min(moveUp, 50)  -- Less up when close
+            -- Calculate gradual movement toward new adjustment (50% blend by default)
+            local blendFactor = 0.2
+
+            -- Calculate blended adjustments
+            local lastMoveUp = y - position.y
+            local newMoveUp = moveUp
+            moveUp = lastMoveUp + (newMoveUp - lastMoveUp) * blendFactor
+
+            -- Calculate horizontal movement components
+            if horizontalDist > 0.001 then
+                local horNormX = dx / horizontalDist
+                local horNormZ = dz / horizontalDist
+
+                -- Calculate new position without adjustments first
+                local newX = x - horNormX * moveBack
+                local newZ = z - horNormZ * moveBack
+
+                -- Blend with previous position
+                x = lastPos.x + (newX - lastPos.x) * blendFactor
+                z = lastPos.z + (newZ - lastPos.z) * blendFactor
+                y = y + moveUp
             end
+
+            -- Store adjusted position for next frame
+            targetData.lastAdjustedPosition = {x = x, y = y, z = z}
+
+            return {x = x, y = y, z = z}
         end
 
         -- Apply vertical adjustment
@@ -509,17 +560,15 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
             z = z - horNormZ * moveBack
         end
 
+        -- Store adjusted position for next frame
+        targetData.lastAdjustedPosition = {x = x, y = y, z = z}
+
         -- Enhanced logging with more details - but only once per second
         if Spring.DiffTimers(currentTime, targetData.lastVelocityLogTime) > 1.0 then
             Log.trace(string.format(
-                    "Air target adjustment: up=%.1f, back=%.1f, angle=%.2f, dist=%.1f, v=%.1f, vy=%.1f%s%s%s%s%s",
-                    moveUp, moveBack, verticalAngle, horizontalDist, targetData.speed, targetData.ySpeed,
-                    isHighTargetMode and ", HIGH" or "",
-                    isVeryCloseToTarget and ", VERY_CLOSE" or (isCloseToTarget and ", CLOSE" or ""),
-                    targetData.isMovingUpFast and ", FAST_UP" or "",
-                    using_cached_target and ", CACHED" or "",
-                    STATE.tracking.fps.targetingGlobal.useCloudTargeting and ", CLOUD" or ""
-            ))
+                    "Air target adjustment: up=%.1f, back=%.1f, angle=%.2f, dist=%.1f, stabilized=%s",
+                    moveUp, moveBack, verticalAngle, horizontalDist,
+                    STATE.tracking.fps.stableCamPos and "true" or "false"))
         end
 
         return { x = x, y = y, z = z }
@@ -535,6 +584,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
 
         -- No longer meets criteria for adjustment
         targetData.airAdjustmentActive = false
+        targetData.lastAdjustedPosition = nil
         return position
     end
 end
@@ -545,8 +595,8 @@ function FPSTargetingUtils.detectCircularMotion(history)
     local lastDx, lastDz = 0, 0
 
     for i = 2, #history do
-        local dx = history[i].pos.x - history[i-1].pos.x
-        local dz = history[i].pos.z - history[i-1].pos.z
+        local dx = history[i].pos.x - history[i - 1].pos.x
+        local dz = history[i].pos.z - history[i - 1].pos.z
 
         if lastDx ~= 0 and lastDz ~= 0 then
             -- Calculate cross product to detect direction change

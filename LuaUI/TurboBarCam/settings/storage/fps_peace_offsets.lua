@@ -1,4 +1,10 @@
 return {
+  ["armbanth"] = {
+    FORWARD = -300,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
   ["armca"] = {
     FORWARD = -300,
     HEIGHT = 130,
@@ -13,6 +19,12 @@ return {
   },
   ["armcom"] = {
     FORWARD = -320,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["armfast"] = {
+    FORWARD = -300,
     HEIGHT = 130,
     ROTATION = 0,
     SIDE = 0,
@@ -65,6 +77,18 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
+  ["armthor"] = {
+    FORWARD = -300,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["armvang"] = {
+    FORWARD = -300,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
   ["corak"] = {
     FORWARD = -300,
     HEIGHT = 130,
@@ -101,6 +125,12 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
+  ["cordemon"] = {
+    FORWARD = -300,
+    HEIGHT = 151,
+    ROTATION = 0,
+    SIDE = 0,
+  },
   ["cordrag"] = {
     FORWARD = -300,
     HEIGHT = 130,
@@ -127,6 +157,18 @@ return {
   },
   ["corllt"] = {
     FORWARD = -300,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["cormort"] = {
+    FORWARD = -300,
+    HEIGHT = 130,
+    ROTATION = 0,
+    SIDE = 0,
+  },
+  ["corpyro"] = {
+    FORWARD = -265,
     HEIGHT = 130,
     ROTATION = 0,
     SIDE = 0,

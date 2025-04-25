@@ -18,6 +18,7 @@ local FPSCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_utils.lua
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
 ---@type FPSTargetingSmoothing
 local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
+
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
@@ -114,7 +115,7 @@ function FPSCamera.update()
     end
 
     -- Get unit position and vectors
-    local unitPos, front, up, right = FPSCameraUtils.getUnitVectors(STATE.tracking.unitID)
+    local unitPos, front, up, right = Util.getUnitVectors(STATE.tracking.unitID)
 
     -- Apply offsets to get camera position
     local camPos = FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
@@ -178,10 +179,6 @@ function FPSCamera.update()
         -- Normal FPS mode - follow unit orientation
         directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
     end
-
-    -- todo
-    -- fov increase on rapid movement. when camera should rotate only in orbit, necer move thorugh unit
-
 
     -- Apply camera state and update tracking for next frame
     if directionState then

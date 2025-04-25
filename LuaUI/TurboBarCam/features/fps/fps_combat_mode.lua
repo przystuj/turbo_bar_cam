@@ -17,28 +17,6 @@ local ATTACK_STATE_COOLDOWN = 1.5
 ---@class FPSCombatMode
 local FPSCombatMode = {}
 
---- Gets the name of a unit from its unitDefID
---- @param unitID number The unit ID
---- @return string name The unit name or "Unknown"
-function FPSCombatMode.getUnitName(unitID)
-    if not Spring.ValidUnitID(unitID) then
-        return "Invalid unit"
-    end
-
-    local unitDefID = Spring.GetUnitDefID(unitID)
-    if not unitDefID then
-        return "Unknown unit"
-    end
-
-    local unitDef = UnitDefs[unitDefID]
-    if not unitDef then
-        return "Unknown unit type"
-    end
-
-    -- Return the unit's human-readable name
-    return unitDef.name or "Unnamed unit"
-end
-
 --- Calculates the angle difference between two rotations
 --- @param oldRy number Old rotation Y (yaw)
 --- @param newRy number New rotation Y (yaw)
@@ -110,7 +88,8 @@ function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType,
 
         -- Add unit information if it's a unit target
         if targetType == 1 and targetUnitID then
-            local unitName = FPSCombatMode.getUnitName(targetUnitID)
+            local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
+            local unitName = unitDef and unitDef.name or "Unnamed unit"
             targetInfo = " (Unit: " .. unitName .. ", ID: " .. targetUnitID .. ")"
             STATE.tracking.fps.lastTargetUnitName = unitName
             STATE.tracking.fps.lastTargetUnitID = targetUnitID
@@ -370,11 +349,11 @@ function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
     if not (targetType and targetType > 0 and target) then
         return nil, nil, nil -- No valid target for this weapon
     end
-
-    local newTargetPos = nil
+    local newTargetPos
 
     -- Determine position based on target type
-    if targetType == 1 then -- Unit target
+    if targetType == 1 then
+        -- Unit target
         targetUnitID = target -- The 'target' is the unitID itself
         if Spring.ValidUnitID(targetUnitID) then
             local x, y, z = Spring.GetUnitPosition(targetUnitID)
@@ -383,7 +362,8 @@ function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
             targetUnitID = nil -- Target unit is invalid
             targetType = nil
         end
-    elseif targetType == 2 then -- Ground target
+    elseif targetType == 2 then
+        -- Ground target
         newTargetPos = { x = target[1], y = target[2], z = target[3] }
         targetUnitID = nil -- Ground targets don't have a unit ID
     else
@@ -396,20 +376,47 @@ function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
         return nil, nil, nil
     end
 
-    -- *** Target Switch Detection Logic ***
+    local isNewTarget = FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
+
+    -- Update the globally tracked last target info *after* comparison and potential transition trigger
+    STATE.tracking.fps.lastTargetPos = newTargetPos
+    STATE.tracking.fps.lastTargetType = targetType
+    STATE.tracking.fps.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
+    if targetUnitID then
+        local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
+        STATE.tracking.fps.lastTargetUnitName = unitDef and unitDef.name or "Unnamed unit"
+    end
+
+    -- Return the determined target position for the specific weapon
+    return newTargetPos, isNewTarget, targetUnitID, targetType
+end
+
+function FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
     local isNewTarget = false
     local oldTargetUnitID = STATE.tracking.fps.lastTargetUnitID
     local oldTargetPos = STATE.tracking.fps.lastTargetPos
 
-    if targetUnitID then -- Prioritize Unit ID for comparison
+    -- If no old target data, this is definitely a new target
+    if not oldTargetPos then
+        return true
+    end
+
+    if targetUnitID then
+        -- Prioritize Unit ID for comparison (most accurate)
         if targetUnitID ~= oldTargetUnitID then
             isNewTarget = true
         end
-    elseif newTargetPos and oldTargetPos then -- Compare position for non-unit or changed targets
+    elseif newTargetPos and oldTargetPos then
+        -- Compare position for non-unit or changed targets
         local dx = newTargetPos.x - oldTargetPos.x
         local dy = newTargetPos.y - oldTargetPos.y
         local dz = newTargetPos.z - oldTargetPos.z
-        if (dx*dx + dy*dy + dz*dz) > (25*25) then -- Threshold: > 25 units moved significantly
+        local distanceSquared = dx * dx + dy * dy + dz * dz
+
+        -- Use a higher threshold to reduce sensitivity
+        -- Now we use 200*200=40000 (significantly higher)
+        if distanceSquared > (200 * 200) then
+            -- Threshold: > 200 units moved significantly
             isNewTarget = true
             -- If switching to a ground target, clear the last unit ID state
             -- Check explicitly if the *old* target was a unit and the new one is ground
@@ -417,61 +424,20 @@ function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
                 STATE.tracking.fps.lastTargetUnitID = nil
             end
         end
-    elseif newTargetPos and not oldTargetPos then -- Gained a target when previously had none
+    elseif newTargetPos and not oldTargetPos then
+        -- Gained a target when previously had none
         isNewTarget = true
     end
 
-    -- If a new target is detected, trigger the transition
-    if isNewTarget and not STATE.tracking.fps.isTargetSwitchTransition then
-        local trackedUnitID = STATE.tracking.unitID
-        if trackedUnitID and Spring.ValidUnitID(trackedUnitID) then
-            local unitPos, _, up, _ = FPSCameraUtils.getUnitVectors(trackedUnitID)
-
-            -- Store previous direction vector (weapon aim or unit front)
-            if STATE.tracking.fps.weaponDir then
-                STATE.tracking.fps.previousWeaponDir = { STATE.tracking.fps.weaponDir[1], STATE.tracking.fps.weaponDir[2], STATE.tracking.fps.weaponDir[3] }
-            else
-                local _, frontVec, _, _ = Spring.GetUnitVectors(trackedUnitID)
-                if frontVec then
-                    STATE.tracking.fps.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
-                else
-                    STATE.tracking.fps.previousWeaponDir = {0,0,1} -- Fallback
-                end
-            end
-
-            -- Calculate the camera's relative position *before* the switch happened
-            -- Need valid up vector, provide fallback if necessary
-            local validUp = up or {0,1,0}
-            local prevCamPosWorld = FPSCameraUtils.applyFPSOffsets(unitPos, STATE.tracking.fps.previousWeaponDir, validUp, nil) -- Pass old direction
-
-            STATE.tracking.fps.previousCamPosRelative = CameraCommons.vectorSubtract(prevCamPosWorld, unitPos)
-
-            -- Start the transition
-            STATE.tracking.fps.isTargetSwitchTransition = true
-            STATE.tracking.fps.targetSwitchStartTime = Spring.GetTimer()
-            Log.info("Target switch detected via getWeaponTargetPosition, starting camera transition.")
-
-            -- Signal rotation constraints to reset
-            if STATE.tracking.fps.targetSmoothing and STATE.tracking.fps.targetSmoothing.rotationConstraint then
-                STATE.tracking.fps.targetSmoothing.rotationConstraint.resetForSwitch = true
-                Log.debug("Signaling rotation constraint reset.")
-            end
-        end
+    -- If this is a new target, make sure we store it in previousTargetPos for the transition system
+    if isNewTarget and not STATE.tracking.fps.previousTargetPos then
+        STATE.tracking.fps.previousTargetPos = oldTargetPos
     end
 
-    -- Update the globally tracked last target info *after* comparison and potential transition trigger
-    STATE.tracking.fps.lastTargetPos = newTargetPos
-    STATE.tracking.fps.lastTargetType = targetType
-    STATE.tracking.fps.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
-    if targetUnitID then STATE.tracking.fps.lastTargetUnitName = FPSCombatMode.getUnitName(targetUnitID) end
-
-    -- Return the determined target position for the specific weapon
-    return newTargetPos, targetUnitID, targetType
+    return isNewTarget
 end
 
 function FPSCombatMode.chooseWeapon(unitID, unitDef)
-    local bestTarget, bestWeaponNum
-
     -- If we have a forced weapon number, only check that specific weapon
     if STATE.tracking.fps.forcedWeaponNumber then
         local weaponNum = STATE.tracking.fps.forcedWeaponNumber
@@ -479,10 +445,10 @@ function FPSCombatMode.chooseWeapon(unitID, unitDef)
         -- Verify that this weapon exists for the unit
         if unitDef.weapons[weaponNum] then
             -- Get target for forced weapon
-            local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+            local targetPos, isNewTarget = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
 
             if targetPos then
-                return targetPos, weaponNum
+                return targetPos, weaponNum, isNewTarget
             end
 
             -- If we get here with a forced weapon but no target, we still return the forced weapon number
@@ -495,18 +461,12 @@ function FPSCombatMode.chooseWeapon(unitID, unitDef)
     for weaponNum, weaponData in pairs(unitDef.weapons) do
         -- ignoring low range weapons because they probably aren't real weapons
         if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
-            local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
-
+            local targetPos, isNewTarget = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
             if targetPos then
-                bestTarget = targetPos
-                bestWeaponNum = weaponNum
-                -- Found a valid target, no need to check more weapons
-                break
+                return targetPos, weaponNum, isNewTarget
             end
         end
     end
-
-    return bestTarget, bestWeaponNum
 end
 
 --- Checks if unit is currently attacking a target (even without explicit command)
@@ -529,7 +489,7 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
         return nil, nil
     end
 
-    local targetPos, weaponNum = FPSCombatMode.chooseWeapon(unitID, unitDef)
+    local targetPos, weaponNum, isNewTarget = FPSCombatMode.chooseWeapon(unitID, unitDef)
 
     -- If no target was found, but we have a last target position and we're in attacking state
     if not targetPos and STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
@@ -555,25 +515,7 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
         STATE.tracking.fps.lastTargetPos = targetPos
     end
 
-    return targetPos, weaponNum
-end
-
---- Checks if unit has a target (from any source) and returns target position if valid
---- @param unitID number Unit ID to check
---- @return table|nil targetPos Position of the target or nil if no valid target
---- @return number|nil weaponNum The weapon number that is firing at the target (if applicable)
-function FPSCombatMode.getTargetPosition(unitID)
-    if not Spring.ValidUnitID(unitID) then
-        return nil, nil
-    end
-
-    -- Check for current attack target (autonomous attack)
-    local autoTarget, weaponNum = FPSCombatMode.getCurrentAttackTarget(unitID)
-    if autoTarget then
-        return autoTarget, weaponNum
-    end
-
-    return nil, nil
+    return targetPos, weaponNum, isNewTarget
 end
 
 --- Gets camera position for a unit, optionally using weapon position
@@ -723,49 +665,6 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     STATE.tracking.isModeTransitionInProgress = true
     STATE.tracking.transitionStartTime = Spring.GetTimer()
     return true
-end
-
---- Gets minimum height for camera position
---- @param unitID number The unit ID
---- @return number minHeight Minimum height above ground
-function FPSCombatMode.getMinimumCameraHeight(unitID)
-    if not Spring.ValidUnitID(unitID) then
-        return 50 -- Default fallback
-    end
-
-    -- Get unit height
-    local unitDefID = Spring.GetUnitDefID(unitID)
-    local unitDef = UnitDefs[unitDefID]
-    if not unitDef then
-        return 50
-    end
-
-    -- Use half of the unit height as minimum (or a fixed value if that's too small)
-    local baseUnitHeight = unitDef.height or 0
-    return math.max(baseUnitHeight * 0.5, 50) -- At least half unit height or 50 units
-end
-
---- Ensures camera doesn't go below minimum height
---- @param position table Camera position {x, y, z}
---- @param unitID number The unit ID
---- @return table adjustedPos Position with height constraint applied
-function FPSCombatMode.enforceMinimumHeight(position, unitID)
-    if not position then
-        return position
-    end
-
-    local minHeight = FPSCombatMode.getMinimumCameraHeight(unitID)
-    local x, y, z = position.x, position.y, position.z
-
-    -- Get ground height at the position
-    local groundHeight = Spring.GetGroundHeight(x, z)
-
-    -- Ensure camera is at least minHeight above ground
-    if y < (groundHeight + minHeight) then
-        y = groundHeight + minHeight
-    end
-
-    return {x = x, y = y, z = z}
 end
 
 return {

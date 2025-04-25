@@ -22,6 +22,15 @@ function CameraCommons.normalizeVector(v)
 end
 function CameraCommons.dotProduct(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0) end
 
+--- Linear interpolation between two values
+---@param a number Start value
+---@param b number End value
+---@param t number Interpolation factor (0.0-1.0)
+---@return number interpolated value
+function CameraCommons.lerp(a, b, t)
+    return a + (b - a) * t
+end
+
 --- Checks if a transition has completed
 ---@return boolean hasCompleted True if transition is complete
 function CameraCommons.isTransitionComplete()
@@ -297,6 +306,12 @@ function CameraCommons.slerpVectors(vStart, vEnd, t)
 
     -- Scale the interpolated direction by the interpolated magnitude
     return CameraCommons.vectorMultiply(interpolatedDir, interpolatedMag)
+end
+
+function CameraCommons.lerpCubic(a, b, t)
+    -- Cubic ease-in function: faster at start, smoother at end
+    local cubicT = t * t * t
+    return a + (b - a) * cubicT
 end
 
 return {
