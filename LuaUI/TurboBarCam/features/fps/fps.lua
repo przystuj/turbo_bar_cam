@@ -97,7 +97,7 @@ function FPSCamera.toggle()
         FPSTargetingSmoothing.configure({
             rotationConstraint = true,
             targetPrediction = false, -- Enable this if you want to lead targets
-            cloudBlendFactor = 0.7,
+            cloudBlendFactor = 0.85,
             maxRotationRate = 0.07,
             rotationDamping = 0.85
         })

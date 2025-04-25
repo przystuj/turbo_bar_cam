@@ -76,9 +76,15 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
     local state = STATE.tracking.fps.targetSmoothing
     local currentTime = Spring.GetTimer()
 
-    -- Make sure lastStatusLogTime is initialized
+    -- Ensure all timer values are initialized
+    if not state.lastTargetSwitchTime then
+        state.lastTargetSwitchTime = currentTime
+    end
     if not state.lastStatusLogTime then
         state.lastStatusLogTime = currentTime
+    end
+    if not state.lastCloudUpdateTime then
+        state.lastCloudUpdateTime = currentTime
     end
 
     -- Create a key for this target
@@ -90,7 +96,10 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
         state.currentTargetKey = targetKey
 
         -- Track time between target switches
-        local timeSinceLastSwitch = Spring.DiffTimers(currentTime, state.lastTargetSwitchTime)
+        local timeSinceLastSwitch = 0
+        if state.lastTargetSwitchTime then
+            timeSinceLastSwitch = Spring.DiffTimers(currentTime, state.lastTargetSwitchTime)
+        end
 
         -- Increment switch count if this was a rapid switch
         if timeSinceLastSwitch < TARGET_SWITCH_THRESHOLD then
@@ -106,13 +115,13 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
             -- Reset counter if switches aren't happening rapidly
             state.targetSwitchCount = 1
         end
+
         state.lastTargetSwitchTime = currentTime
     end
 
-
     -- Add current target to history
     table.insert(state.targetHistory, {
-        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+        pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
         key = targetKey,
         time = currentTime
     })
@@ -120,7 +129,11 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
     -- Remove old targets
     local i = 1
     while i <= #state.targetHistory do
-        local timeDiff = Spring.DiffTimers(currentTime, state.targetHistory[i].time)
+        local timeDiff = 0
+        if state.targetHistory[i].time then
+            timeDiff = Spring.DiffTimers(currentTime, state.targetHistory[i].time)
+        end
+
         if timeDiff > TARGET_HISTORY_DURATION then
             table.remove(state.targetHistory, i)
         else
@@ -149,20 +162,29 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
     state.activityLevel = math.max(historySizeFactor, switchFactor)
 
     -- Update high activity flag
-    if state.activityLevel >= 0.8 and not state.highActivityDetected then
+    if state.activityLevel >= 0.7 and not state.highActivityDetected then
         state.highActivityDetected = true
         Log.info("High targeting activity detected - enabling cloud targeting")
         state.cloudStartTime = currentTime
-    elseif state.activityLevel < 0.4 and state.highActivityDetected then
-        state.highActivityDetected = false
-        Log.info("Targeting activity normalized - disabling cloud targeting")
-        state.cloudStartTime = nil
+
+        -- Add a minimum duration for cloud targeting (3 seconds)
+        state.minCloudDuration = Spring.GetTimer()
+    elseif state.activityLevel < 0.3 and state.highActivityDetected then
+        -- Only disable if minimum duration has passed
+        local hasMinDurationPassed = not state.minCloudDuration or
+                Spring.DiffTimers(currentTime, state.minCloudDuration) > 3.0
+
+        if hasMinDurationPassed then
+            state.highActivityDetected = false
+            Log.info("Targeting activity normalized - disabling cloud targeting")
+            state.cloudStartTime = nil
+        end
     end
 
     -- Periodically log status
     if Spring.DiffTimers(currentTime, state.lastStatusLogTime) > 1.0 then
         if state.activityLevel > 0.5 then
-            Log.trace(string.format("Targeting activity: %.2f (%d unique targets, %d rapid switches)",
+            Log.debug(string.format("Targeting activity: %.2f (%d unique targets, %d rapid switches)",
                     state.activityLevel, uniqueTargetCount, state.targetSwitchCount))
         end
         state.lastStatusLogTime = currentTime
@@ -227,7 +249,7 @@ function FPSTargetingSmoothing.calculateCloudCenter()
 
         -- Log cloud updates periodically
         if state.useCloudTargeting and Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
-            Log.trace(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
+            Log.debug(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
                     center.x, center.y, center.z, state.cloudRadius))
             state.lastCloudUpdateTime = currentTime
         end
@@ -247,11 +269,36 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
 
     -- If cloud targeting is active, blend between actual target and cloud center
     if state.useCloudTargeting and state.cloudCenter then
-        local blend = CLOUD_BLEND_FACTOR  -- 70% cloud, 30% actual target
+        local blend = CLOUD_BLEND_FACTOR  -- 85% cloud, 15% actual target
+
+        -- Store previous cloud center for smoothing
+        if not state.previousCloudCenter then
+            state.previousCloudCenter = {
+                x = state.cloudCenter.x,
+                y = state.cloudCenter.y,
+                z = state.cloudCenter.z
+            }
+        end
+
+        -- Smooth the cloud center (temporal smoothing)
+        local cloudSmoothFactor = 0.1  -- How quickly cloud center can move
+        local smoothedCloudX = state.previousCloudCenter.x +
+                (state.cloudCenter.x - state.previousCloudCenter.x) * cloudSmoothFactor
+        local smoothedCloudY = state.previousCloudCenter.y +
+                (state.cloudCenter.y - state.previousCloudCenter.y) * cloudSmoothFactor
+        local smoothedCloudZ = state.previousCloudCenter.z +
+                (state.cloudCenter.z - state.previousCloudCenter.z) * cloudSmoothFactor
+
+        -- Update previous cloud center for next frame
+        state.previousCloudCenter.x = smoothedCloudX
+        state.previousCloudCenter.y = smoothedCloudY
+        state.previousCloudCenter.z = smoothedCloudZ
+
+        -- Blend between actual target and smoothed cloud center
         return {
-            x = targetPos.x * (1 - blend) + state.cloudCenter.x * blend,
-            y = targetPos.y * (1 - blend) + state.cloudCenter.y * blend,
-            z = targetPos.z * (1 - blend) + state.cloudCenter.z * blend
+            x = targetPos.x * (1-blend) + smoothedCloudX * blend,
+            y = targetPos.y * (1-blend) + smoothedCloudY * blend,
+            z = targetPos.z * (1-blend) + smoothedCloudZ * blend
         }
     end
 
@@ -277,7 +324,10 @@ function FPSTargetingSmoothing.predictTargetPosition(targetPos, targetUnitID)
     end
 
     local currentTime = Spring.GetTimer()
-    local timeDiff = Spring.DiffTimers(currentTime, state.targetPrediction.lastUpdateTime)
+    local timeDiff = 0
+    if state.targetPrediction.lastUpdateTime then
+        timeDiff = Spring.DiffTimers(currentTime, state.targetPrediction.lastUpdateTime)
+    end
 
     -- Only update velocity every ~0.1 seconds
     if targetUnitID and Spring.ValidUnitID(targetUnitID) and timeDiff > 0.1 then
