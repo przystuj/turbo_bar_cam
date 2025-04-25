@@ -540,6 +540,85 @@ function FPSCameraUtils.resetOffsets()
     return true
 end
 
+--- Applies FPS camera offsets to unit position, handling target switch transitions
+---@param position table Unit position {x, y, z}
+---@param front table Unit Front vector
+---@param up table Unit Up vector
+---@param right table Unit Right vector
+---@return table camPos Final Camera position with offsets and transitions applied
+function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
+    FPSCameraUtils.ensureHeightIsSet()
+    local offsets = FPSCameraUtils.getAppropriateOffsets()
+    local unitPos = {x = position.x, y = position.y, z = position.z} -- Store original unit center
+
+    -- Determine CURRENT weapon direction (or unit front if not aiming)
+    local currentAimDir = front -- Default to unit front
+    local weaponBasePos = unitPos -- Default base for offset is unit center
+    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.weaponDir then
+        -- Use weapon direction and position if available
+        if STATE.tracking.fps.weaponPos then weaponBasePos = STATE.tracking.fps.weaponPos end
+        currentAimDir = STATE.tracking.fps.weaponDir
+    end
+
+    -- Calculate the TARGET relative camera position based on CURRENT state
+    local targetCamPosRelative = { x = 0, y = 0, z = 0 }
+    local currentRight = calculateRightVector(currentAimDir, up) -- Calculate right vector based on aim dir
+
+    -- Apply offsets relative to ZERO initially (we add unitPos later)
+    -- Note: This calculates the OFFSET vector from the weaponBasePos/unitPos
+    if offsets.HEIGHT ~= 0 then targetCamPosRelative = CameraCommons.vectorAdd(targetCamPosRelative, CameraCommons.vectorMultiply(up, offsets.HEIGHT)) end
+    if offsets.FORWARD ~= 0 then targetCamPosRelative = CameraCommons.vectorAdd(targetCamPosRelative, CameraCommons.vectorMultiply(currentAimDir, offsets.FORWARD)) end
+    if offsets.SIDE ~= 0 then targetCamPosRelative = CameraCommons.vectorAdd(targetCamPosRelative, CameraCommons.vectorMultiply(currentRight, offsets.SIDE)) end
+
+    local finalCamPosWorld -- This will be the final calculated world position
+
+    -- Check if we are in a target switch transition
+    if STATE.tracking.fps.isTargetSwitchTransition then
+        local now = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(now, STATE.tracking.fps.targetSwitchStartTime or now)
+        local transitionDuration = STATE.tracking.fps.targetSwitchDuration or 0.4
+        local progress = math.min(1.0, elapsed / transitionDuration)
+
+        if progress < 1.0 then
+            -- Interpolate: Use SLERP for the relative position vector
+            local startRelativePos = STATE.tracking.fps.previousCamPosRelative
+            local endRelativePos = targetCamPosRelative -- Calculated above based on current state
+
+            -- Use CameraCommons.slerpVectors
+            local interpolatedRelativePos = CameraCommons.slerpVectors(startRelativePos, endRelativePos, progress)
+
+            -- Add the interpolated relative position back to the CURRENT unit position
+            finalCamPosWorld = CameraCommons.vectorAdd(unitPos, interpolatedRelativePos)
+
+            -- Optional: Log progress
+            -- Log.trace("Target switch transition - Progress: " .. string.format("%.2f", progress))
+        else
+            -- Transition finished this frame
+            STATE.tracking.fps.isTargetSwitchTransition = false
+            -- Final position is the target position (calculated normally)
+            finalCamPosWorld = CameraCommons.vectorAdd(unitPos, targetCamPosRelative)
+            Log.info("Target switch transition finished.")
+        end
+    else
+        -- Not in transition, final position is simply the target position
+        finalCamPosWorld = CameraCommons.vectorAdd(unitPos, targetCamPosRelative)
+    end
+
+    -- Apply minimum height constraint (to the final world position)
+    finalCamPosWorld = FPSCombatMode.enforceMinimumHeight(finalCamPosWorld, STATE.tracking.unitID)
+
+    -- Apply air target repositioning if needed (to the final world position)
+    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
+        finalCamPosWorld = FPSTargetingUtils.handleAirTargetRepositioning(
+                finalCamPosWorld,
+                STATE.tracking.fps.lastTargetPos,
+                unitPos -- Pass original unit position for reference
+        )
+    end
+
+    return finalCamPosWorld
+end
+
 return {
     FPSCameraUtils = FPSCameraUtils
 }

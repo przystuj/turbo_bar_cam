@@ -344,6 +344,20 @@ end
 function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
     ensureTargetSmoothingState()
     local state = STATE.tracking.fps.targetSmoothing
+    local fpsState = STATE.tracking.fps -- Access FPS state
+
+    -- *** Reset constraints state on target switch signal ***
+    if state.rotationConstraint.resetForSwitch then
+        Log.debug("Resetting rotation constraints state now.")
+        state.rotationConstraint.lastYaw = nil -- Force reinitialization on next valid run
+        state.rotationConstraint.lastPitch = nil
+        state.rotationConstraint.yawVelocity = 0
+        state.rotationConstraint.pitchVelocity = 0
+        state.rotationConstraint.lastYawDiff = 0
+        state.rotationConstraint.lastPitchDiff = 0
+        state.rotationConstraint.consecutiveChanges = 0
+        state.rotationConstraint.resetForSwitch = false -- Consume the signal
+    end
 
     -- Skip constraint if not enabled
     if not state.rotationConstraint.enabled then
@@ -352,9 +366,15 @@ function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
 
     -- Initialize last values if needed
     if not state.rotationConstraint.lastYaw then
-        state.rotationConstraint.lastYaw = desiredYaw
-        state.rotationConstraint.lastPitch = desiredPitch
-        return desiredYaw, desiredPitch
+        -- Don't initialize if a reset just happened and we haven't processed a frame yet
+        if state.rotationConstraint.resetForSwitch == false then
+            state.rotationConstraint.lastYaw = desiredYaw
+            state.rotationConstraint.lastPitch = desiredPitch
+            return desiredYaw, desiredPitch
+        else
+            -- Still waiting for first valid frame after reset
+            return desiredYaw, desiredPitch -- Return desired angles directly during reset frame
+        end
     end
 
     -- Calculate angle differences

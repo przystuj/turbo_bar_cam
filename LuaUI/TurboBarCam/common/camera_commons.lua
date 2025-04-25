@@ -9,6 +9,19 @@ local CONFIG = WidgetContext.CONFIG
 ---@class CameraCommons
 local CameraCommons = {}
 
+-- Vector Helper Functions
+function CameraCommons.vectorAdd(v1, v2) return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) } end
+function CameraCommons.vectorSubtract(v1, v2) return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) } end
+function CameraCommons.vectorMultiply(v, scalar) return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar } end
+function CameraCommons.vectorMagnitudeSq(v) local x,y,z = v.x or 0, v.y or 0, v.z or 0 return x*x+y*y+z*z end
+function CameraCommons.vectorMagnitude(v) return math.sqrt(CameraCommons.vectorMagnitudeSq(v)) end
+function CameraCommons.normalizeVector(v)
+    local mag = CameraCommons.vectorMagnitude(v)
+    if mag > 0.0001 then return CameraCommons.vectorMultiply(v, 1 / mag) end
+    return { x = 0, y = 0, z = 0 }
+end
+function CameraCommons.dotProduct(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0) end
+
 --- Checks if a transition has completed
 ---@return boolean hasCompleted True if transition is complete
 function CameraCommons.isTransitionComplete()
@@ -223,6 +236,67 @@ function CameraCommons.getDefaultUnitView(x, z)
         Log.trace("Normal positioning in front of unit")
     end
     return camState
+end
+
+--- Performs Spherical Linear Interpolation between two 3D vectors (positions/offsets relative to a center)
+--- Treats vectors as points on a sphere for interpolation path, lerps magnitude separately.
+---@param vStart table Start vector {x, y, z}
+---@param vEnd table End vector {x, y, z}
+---@param t number Interpolation factor (0.0 to 1.0)
+---@return table Interpolated vector {x, y, z}
+function CameraCommons.slerpVectors(vStart, vEnd, t)
+    local magStart = CameraCommons.vectorMagnitude(vStart)
+    local magEnd = CameraCommons.vectorMagnitude(vEnd)
+
+    -- Handle edge cases: zero vectors, identical vectors, or near-zero magnitude
+    local startMagSq = CameraCommons.vectorMagnitudeSq(vStart)
+    local endMagSq = CameraCommons.vectorMagnitudeSq(vEnd)
+    local vectorsAreSame = (math.abs(vStart.x - vEnd.x) < 0.001 and math.abs(vStart.y - vEnd.y) < 0.001 and math.abs(vStart.z - vEnd.z) < 0.001)
+
+    if startMagSq < 0.0001 or endMagSq < 0.0001 or vectorsAreSame then
+        -- Fallback to LERP for position if vectors are too small, identical, or one is zero
+        return {
+            x = CameraCommons.lerp(vStart.x or 0, vEnd.x or 0, t),
+            y = CameraCommons.lerp(vStart.y or 0, vEnd.y or 0, t),
+            z = CameraCommons.lerp(vStart.z or 0, vEnd.z or 0, t)
+        }
+    end
+
+    local vStartNorm = CameraCommons.normalizeVector(vStart)
+    local vEndNorm = CameraCommons.normalizeVector(vEnd)
+
+    -- Calculate the angle between the normalized vectors
+    local dot = CameraCommons.dotProduct(vStartNorm, vEndNorm)
+    dot = math.max(-1.0, math.min(1.0, dot)) -- Clamp for potential floating point inaccuracies
+    local theta_0 = math.acos(dot) -- Total angle between vectors
+
+    -- If angle is very small, linear interpolation is fine (and avoids division by zero in sin)
+    if math.abs(theta_0) < 0.01 then
+        return {
+            x = CameraCommons.lerp(vStart.x or 0, vEnd.x or 0, t),
+            y = CameraCommons.lerp(vStart.y or 0, vEnd.y or 0, t),
+            z = CameraCommons.lerp(vStart.z or 0, vEnd.z or 0, t)
+        }
+    end
+
+    local sin_theta_0 = math.sin(theta_0)
+    local theta = theta_0 * t -- Angle for interpolation step
+
+    -- Calculate scale factors using the SLERP formula
+    local scaleStart = math.sin(theta_0 * (1.0 - t)) / sin_theta_0
+    local scaleEnd = math.sin(theta) / sin_theta_0
+
+    -- Calculate interpolated direction (normalized vectors scaled and added)
+    local interpolatedDir = CameraCommons.vectorAdd(
+            CameraCommons.vectorMultiply(vStartNorm, scaleStart),
+            CameraCommons.vectorMultiply(vEndNorm, scaleEnd)
+    )
+
+    -- Interpolate magnitude linearly
+    local interpolatedMag = CameraCommons.lerp(magStart, magEnd, t)
+
+    -- Scale the interpolated direction by the interpolated magnitude
+    return CameraCommons.vectorMultiply(interpolatedDir, interpolatedMag)
 end
 
 return {

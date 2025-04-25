@@ -71,6 +71,13 @@ if not WG.TurboBarCam.STATE then
                 initialTargetAcquisitionTime = nil, -- When the current target was first acquired
                 targetRotationHistory = {}, -- History of rotation changes for the current target
                 rotationChangeThreshold = 0.05, -- Threshold for logging rotation changes (in radians)
+                -- Target Switch Transition State
+                isTargetSwitchTransition = false,
+                targetSwitchStartTime = nil,
+                targetSwitchDuration = 0.4, -- Duration of the switch transition in seconds (adjust as needed)
+                previousWeaponDir = { x = 0, y = 0, z = 0 }, -- Weapon/Unit direction *before* the switch
+                previousCamPosRelative = { x = 0, y = 0, z = 0 }, -- Camera position relative to unit center *before* switch offsets were calculated
+                -- (Optional: Add previousTargetDirection if needed for rotation smoothing logic)
 
                 -- Free camera state
                 freeCam = {

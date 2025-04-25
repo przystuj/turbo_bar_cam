@@ -356,39 +356,117 @@ function FPSCombatMode.clearAttackingState()
     STATE.tracking.fps.targetRotationHistory = {} -- Clear rotation history
 end
 
---- Extracts target position from a weapon target
+--- Extracts target position from a weapon target and detects target switches.
 ---@param unitID number The unit ID
 ---@param weaponNum number The weapon number
 ---@return table|nil targetPos The target position or nil if no valid target
+---@return number|nil targetUnitID The ID of the target unit, if applicable
+---@return number|nil targetType The type of target (1=unit, 2=ground)
 function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
-    -- Get weapon target
-    local targetType, _, target = Spring.GetUnitWeaponTarget(unitID, weaponNum)
+    -- Get weapon target info from Spring
+    local targetType, targetUnitID, target = Spring.GetUnitWeaponTarget(unitID, weaponNum)
 
     -- Check if weapon has a proper target
     if not (targetType and targetType > 0 and target) then
-        return nil
+        return nil, nil, nil -- No valid target for this weapon
     end
 
-    local targetPos
+    local newTargetPos = nil
 
-    -- Unit target
-    if targetType == 1 then
-        if Spring.ValidUnitID(target) then
-            local x, y, z = Spring.GetUnitPosition(target)
-            targetPos = { x = x, y = y, z = z }
-
-            -- Add logging for unit target
-            FPSCombatMode.logTargetAcquisition(targetPos, target, targetType, weaponNum)
+    -- Determine position based on target type
+    if targetType == 1 then -- Unit target
+        targetUnitID = target -- The 'target' is the unitID itself
+        if Spring.ValidUnitID(targetUnitID) then
+            local x, y, z = Spring.GetUnitPosition(targetUnitID)
+            newTargetPos = { x = x, y = y, z = z }
+        else
+            targetUnitID = nil -- Target unit is invalid
+            targetType = nil
         end
-        -- Ground target
-    elseif targetType == 2 then
-        targetPos = { x = target[1], y = target[2], z = target[3] }
-
-        -- Add logging for ground target
-        FPSCombatMode.logTargetAcquisition(targetPos, nil, targetType, weaponNum)
+    elseif targetType == 2 then -- Ground target
+        newTargetPos = { x = target[1], y = target[2], z = target[3] }
+        targetUnitID = nil -- Ground targets don't have a unit ID
+    else
+        targetType = nil -- Unknown target type
+        targetUnitID = nil
     end
 
-    return targetPos
+    -- If we couldn't determine a valid position or type, return nil
+    if not newTargetPos or not targetType then
+        return nil, nil, nil
+    end
+
+    -- *** Target Switch Detection Logic ***
+    local isNewTarget = false
+    local oldTargetUnitID = STATE.tracking.fps.lastTargetUnitID
+    local oldTargetPos = STATE.tracking.fps.lastTargetPos
+
+    if targetUnitID then -- Prioritize Unit ID for comparison
+        if targetUnitID ~= oldTargetUnitID then
+            isNewTarget = true
+        end
+    elseif newTargetPos and oldTargetPos then -- Compare position for non-unit or changed targets
+        local dx = newTargetPos.x - oldTargetPos.x
+        local dy = newTargetPos.y - oldTargetPos.y
+        local dz = newTargetPos.z - oldTargetPos.z
+        if (dx*dx + dy*dy + dz*dz) > (25*25) then -- Threshold: > 25 units moved significantly
+            isNewTarget = true
+            -- If switching to a ground target, clear the last unit ID state
+            -- Check explicitly if the *old* target was a unit and the new one is ground
+            if oldTargetUnitID and targetType == 2 then
+                STATE.tracking.fps.lastTargetUnitID = nil
+            end
+        end
+    elseif newTargetPos and not oldTargetPos then -- Gained a target when previously had none
+        isNewTarget = true
+    end
+
+    -- If a new target is detected, trigger the transition
+    if isNewTarget and not STATE.tracking.fps.isTargetSwitchTransition then
+        local trackedUnitID = STATE.tracking.unitID
+        if trackedUnitID and Spring.ValidUnitID(trackedUnitID) then
+            local unitPos, _, up, _ = FPSCameraUtils.getUnitVectors(trackedUnitID)
+
+            -- Store previous direction vector (weapon aim or unit front)
+            if STATE.tracking.fps.weaponDir then
+                STATE.tracking.fps.previousWeaponDir = { STATE.tracking.fps.weaponDir[1], STATE.tracking.fps.weaponDir[2], STATE.tracking.fps.weaponDir[3] }
+            else
+                local _, frontVec, _, _ = Spring.GetUnitVectors(trackedUnitID)
+                if frontVec then
+                    STATE.tracking.fps.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
+                else
+                    STATE.tracking.fps.previousWeaponDir = {0,0,1} -- Fallback
+                end
+            end
+
+            -- Calculate the camera's relative position *before* the switch happened
+            -- Need valid up vector, provide fallback if necessary
+            local validUp = up or {0,1,0}
+            local prevCamPosWorld = FPSCameraUtils.applyFPSOffsets(unitPos, STATE.tracking.fps.previousWeaponDir, validUp, nil) -- Pass old direction
+
+            STATE.tracking.fps.previousCamPosRelative = CameraCommons.vectorSubtract(prevCamPosWorld, unitPos)
+
+            -- Start the transition
+            STATE.tracking.fps.isTargetSwitchTransition = true
+            STATE.tracking.fps.targetSwitchStartTime = Spring.GetTimer()
+            Log.info("Target switch detected via getWeaponTargetPosition, starting camera transition.")
+
+            -- Signal rotation constraints to reset
+            if STATE.tracking.fps.targetSmoothing and STATE.tracking.fps.targetSmoothing.rotationConstraint then
+                STATE.tracking.fps.targetSmoothing.rotationConstraint.resetForSwitch = true
+                Log.debug("Signaling rotation constraint reset.")
+            end
+        end
+    end
+
+    -- Update the globally tracked last target info *after* comparison and potential transition trigger
+    STATE.tracking.fps.lastTargetPos = newTargetPos
+    STATE.tracking.fps.lastTargetType = targetType
+    STATE.tracking.fps.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
+    if targetUnitID then STATE.tracking.fps.lastTargetUnitName = FPSCombatMode.getUnitName(targetUnitID) end
+
+    -- Return the determined target position for the specific weapon
+    return newTargetPos, targetUnitID, targetType
 end
 
 function FPSCombatMode.chooseWeapon(unitID, unitDef)
