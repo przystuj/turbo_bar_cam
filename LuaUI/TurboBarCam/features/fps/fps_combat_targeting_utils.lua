@@ -264,61 +264,6 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
     end
 end
 
---- Calculates the center of the target cloud
-local function calculateCloudCenter()
-    local globalState = STATE.tracking.fps.targetingGlobal
-    if #globalState.targetHistory < MIN_TARGETS_FOR_CLOUD then
-        return
-    end
-
-    -- Calculate the centroid of all recent targets
-    local sumX, sumY, sumZ = 0, 0, 0
-    local count = 0
-
-    -- Give more weight to more recent targets
-    local currentTime = Spring.GetTimer()
-
-    for _, target in ipairs(globalState.targetHistory) do
-        local timeDiff = Spring.DiffTimers(currentTime, target.time)
-        local weight = 1.0 - (timeDiff / TARGET_HISTORY_DURATION)
-        weight = weight * weight  -- Square for stronger recency bias
-
-        sumX = sumX + target.pos.x * weight
-        sumY = sumY + target.pos.y * weight
-        sumZ = sumZ + target.pos.z * weight
-        count = count + weight
-    end
-
-    if count > 0 then
-        local center = {
-            x = sumX / count,
-            y = sumY / count,
-            z = sumZ / count
-        }
-
-        -- Calculate cloud radius
-        local maxDistSq = 0
-        for _, target in ipairs(globalState.targetHistory) do
-            local dx = target.pos.x - center.x
-            local dy = target.pos.y - center.y
-            local dz = target.pos.z - center.z
-            local distSq = dx*dx + dy*dy + dz*dz
-            if distSq > maxDistSq then
-                maxDistSq = distSq
-            end
-        end
-
-        globalState.cloudRadius = math.sqrt(maxDistSq)
-        globalState.cloudCenter = center
-
-        if globalState.useCloudTargeting and Spring.DiffTimers(currentTime, globalState.lastCloudUpdateTime) > 1.0 then
-            Log.trace(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
-                    center.x, center.y, center.z, globalState.cloudRadius))
-            globalState.lastCloudUpdateTime = currentTime
-        end
-    end
-end
-
 --- Updates the global target history for cloud targeting
 --- @param targetPos table The current target position
 --- @param targetKey string The target key
@@ -390,7 +335,7 @@ local function updateTargetHistory(targetPos, targetKey)
 
     -- Calculate cloud center if needed
     if globalState.useCloudTargeting then
-        calculateCloudCenter()
+        FPSTargetingUtils.calculateCloudCenter()
     end
 end
 
@@ -616,6 +561,70 @@ function FPSTargetingUtils.detectCircularMotion(history)
 
     -- If we have multiple direction changes, likely circular
     return directionChanges >= 4
+end
+
+--- Calculates the center of the target cloud
+function FPSTargetingUtils.calculateCloudCenter()
+    local state = STATE.tracking.fps.targetSmoothing
+
+    if #state.targetHistory < MIN_TARGETS_FOR_CLOUD then
+        return
+    end
+
+    -- Calculate the centroid of all recent targets with time weighting
+    local sumX, sumY, sumZ = 0, 0, 0
+    local count = 0
+    local currentTime = Spring.GetTimer()
+
+    for _, target in ipairs(state.targetHistory) do
+        local timeDiff = Spring.DiffTimers(currentTime, target.time)
+        local weight = 1.0 - (timeDiff / TARGET_HISTORY_DURATION)
+        weight = weight * weight  -- Square for stronger recency bias
+
+        sumX = sumX + target.pos.x * weight
+        sumY = sumY + target.pos.y * weight
+        sumZ = sumZ + target.pos.z * weight
+        count = count + weight
+    end
+
+    if count > 0 then
+        local center = {
+            x = sumX / count,
+            y = sumY / count,
+            z = sumZ / count
+        }
+
+        -- Calculate cloud radius (distance to furthest target)
+        local maxDistSq = 0
+        for _, target in ipairs(state.targetHistory) do
+            local dx = target.pos.x - center.x
+            local dy = target.pos.y - center.y
+            local dz = target.pos.z - center.z
+            local distSq = dx * dx + dy * dy + dz * dz
+            if distSq > maxDistSq then
+                maxDistSq = distSq
+            end
+        end
+
+        -- Add a maximum cloud radius to prevent large jumps
+        local MAX_CLOUD_RADIUS = 150  -- Maximum allowed cloud radius
+        state.cloudRadius = math.sqrt(maxDistSq)
+
+        if state.cloudRadius > MAX_CLOUD_RADIUS then
+            state.cloudRadius = MAX_CLOUD_RADIUS
+            Log.trace(string.format("Cloud radius clamped to maximum (%d)", MAX_CLOUD_RADIUS))
+        end
+
+        state.cloudCenter = center
+
+        -- Log cloud updates periodically
+        if state.useCloudTargeting and state.lastCloudUpdateTime and
+                Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
+            Log.debug(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
+                    center.x, center.y, center.z, state.cloudRadius))
+            state.lastCloudUpdateTime = currentTime
+        end
+    end
 end
 
 return {

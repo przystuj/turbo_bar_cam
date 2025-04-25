@@ -200,72 +200,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
 
     -- Calculate cloud center if needed
     if state.useCloudTargeting then
-        FPSTargetingSmoothing.calculateCloudCenter()
-    end
-end
-
---- Calculates the center of the target cloud
-function FPSTargetingSmoothing.calculateCloudCenter()
-    ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
-
-    if #state.targetHistory < MIN_TARGETS_FOR_CLOUD then
-        return
-    end
-
-    -- Calculate the centroid of all recent targets with time weighting
-    local sumX, sumY, sumZ = 0, 0, 0
-    local count = 0
-    local currentTime = Spring.GetTimer()
-
-    for _, target in ipairs(state.targetHistory) do
-        local timeDiff = Spring.DiffTimers(currentTime, target.time)
-        local weight = 1.0 - (timeDiff / TARGET_HISTORY_DURATION)
-        weight = weight * weight  -- Square for stronger recency bias
-
-        sumX = sumX + target.pos.x * weight
-        sumY = sumY + target.pos.y * weight
-        sumZ = sumZ + target.pos.z * weight
-        count = count + weight
-    end
-
-    if count > 0 then
-        local center = {
-            x = sumX / count,
-            y = sumY / count,
-            z = sumZ / count
-        }
-
-        -- Calculate cloud radius (distance to furthest target)
-        local maxDistSq = 0
-        for _, target in ipairs(state.targetHistory) do
-            local dx = target.pos.x - center.x
-            local dy = target.pos.y - center.y
-            local dz = target.pos.z - center.z
-            local distSq = dx * dx + dy * dy + dz * dz
-            if distSq > maxDistSq then
-                maxDistSq = distSq
-            end
-        end
-
-        -- Add a maximum cloud radius to prevent large jumps
-        local MAX_CLOUD_RADIUS = 150  -- Maximum allowed cloud radius
-        state.cloudRadius = math.sqrt(maxDistSq)
-
-        if state.cloudRadius > MAX_CLOUD_RADIUS then
-            state.cloudRadius = MAX_CLOUD_RADIUS
-            Log.trace(string.format("Cloud radius clamped to maximum (%d)", MAX_CLOUD_RADIUS))
-        end
-
-        state.cloudCenter = center
-
-        -- Log cloud updates periodically
-        if state.useCloudTargeting and state.lastCloudUpdateTime and
-                Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
-            Log.debug(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
-                    center.x, center.y, center.z, state.cloudRadius))
-            state.lastCloudUpdateTime = currentTime
-        end
+        FPSTargetingUtils.calculateCloudCenter()
     end
 end
 
@@ -548,7 +483,7 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     -- Initialize aerial tracking data in targetSmoothing if not already present
     if not STATE.tracking.fps.targetSmoothing.aerialTracking then
         STATE.tracking.fps.targetSmoothing.aerialTracking = {
-            smoothedPosition = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+            smoothedPosition = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
             lastUpdateTime = Spring.GetTimer(),
             trajectoryPredictionEnabled = true,
             positionHistory = {}
@@ -559,7 +494,7 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
 
     -- Add to position history
     table.insert(aerial.positionHistory, {
-        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
+        pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
         time = Spring.GetTimer()
     })
 
@@ -568,10 +503,18 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
         table.remove(aerial.positionHistory, 1)
     end
 
-    -- Detect if target is moving in a circular pattern
-    local isCircular = #aerial.positionHistory >= 10 and FPSTargetingUtils.detectCircularMotion(aerial.positionHistory)
+    -- Calculate relative position to unit
+    local heightDiff = targetPos.y - unitPos.y
+    local dx = targetPos.x - unitPos.x
+    local dz = targetPos.z - unitPos.z
+    local horizontalDist = math.sqrt(dx*dx + dz*dz)
+    local verticalAngle = math.atan2(heightDiff, horizontalDist)
 
-    -- Adjust smoothing based on movement pattern
+    -- Detect if target is moving in a circular pattern
+    local isCircular = #aerial.positionHistory >= 10 and
+            FPSTargetingUtils.detectCircularMotion(aerial.positionHistory)
+
+    -- Adjust smoothing based on movement pattern and position relative to unit
     local smoothFactor = 0.08 -- Default
 
     if isCircular then
@@ -584,11 +527,28 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
         Log.trace("Fast aerial motion detected - using prediction")
     end
 
+    -- Further adjust smoothing based on target's position relative to unit
+    if verticalAngle > 0.8 then  -- Target is nearly overhead
+        smoothFactor = smoothFactor * 0.7  -- Even stronger smoothing for overhead targets
+        Log.trace("Overhead target - applying stronger smoothing")
+    end
+
+    -- For targets that are very close and high above, increase smoothing even more
+    if horizontalDist < 200 and heightDiff > 200 then
+        smoothFactor = smoothFactor * 0.6
+        Log.trace("Close overhead target - applying maximum smoothing")
+    end
+
     -- Apply trajectory prediction for fast-moving targets
     local predictedPos = targetPos
     if aerial.trajectoryPredictionEnabled and speed > 50 then
-        -- Look ahead time depends on speed
+        -- Look ahead time depends on speed and position
         local lookAheadTime = math.min(0.4, speed / 600)
+
+        -- For targets circling directly overhead, reduce prediction
+        if isCircular and verticalAngle > 0.7 then
+            lookAheadTime = lookAheadTime * 0.5
+        end
 
         predictedPos = {
             x = targetPos.x + velocityX * lookAheadTime,

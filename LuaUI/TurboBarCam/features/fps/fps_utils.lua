@@ -213,7 +213,7 @@ function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
         dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
         rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
         ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor)
+        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor),
     }
 end
 
@@ -302,6 +302,7 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
             -- Try to create direction state based on targeting data
             local targetingState = FPSCameraUtils.createTargetingDirectionState(
                     unitID, targetPos, firingWeaponNum or STATE.tracking.fps.activeWeaponNum, rotFactor)
+            targetingState.fov = 90
 
             if targetingState then
                 -- Successfully created targeting state

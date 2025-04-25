@@ -96,7 +96,7 @@ function FPSCamera.toggle()
 
         FPSTargetingSmoothing.configure({
             rotationConstraint = true,
-            targetPrediction = false,
+            targetPrediction = true,
             cloudBlendFactor = 0.9,
             maxRotationRate = 0.05,
             rotationDamping = 0.9
@@ -178,6 +178,10 @@ function FPSCamera.update()
         -- Normal FPS mode - follow unit orientation
         directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
     end
+
+    -- todo
+    -- fov increase on rapid movement. when camera should rotate only in orbit, necer move thorugh unit
+
 
     -- Apply camera state and update tracking for next frame
     if directionState then
