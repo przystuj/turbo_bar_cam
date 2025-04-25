@@ -16,6 +16,8 @@ local FreeCam = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_free_camera.lua"
 local FPSCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_utils.lua").FPSCameraUtils
 ---@type FPSCombatMode
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
+---@type FPSTargetingSmoothing
+local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
@@ -91,6 +93,14 @@ function FPSCamera.toggle()
         -- Initialize combat mode state to false
         STATE.tracking.fps.combatModeEnabled = false
         STATE.tracking.fps.forcedWeaponNumber = nil
+
+        FPSTargetingSmoothing.configure({
+            rotationConstraint = true,
+            targetPrediction = false, -- Enable this if you want to lead targets
+            cloudBlendFactor = 0.7,
+            maxRotationRate = 0.07,
+            rotationDamping = 0.85
+        })
 
         Log.trace("FPS camera attached to unit " .. unitID)
     end

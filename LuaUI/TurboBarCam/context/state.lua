@@ -80,6 +80,36 @@ if not WG.TurboBarCam.STATE then
                     targetRy = nil, -- Target rotation Y (yaw)
                     lastUnitHeading = nil -- Last unit heading for rotation tracking
                 },
+
+                targetSmoothing = {
+                    targetHistory = {},        -- Recent target positions with timestamps
+                    cloudCenter = nil,         -- Calculated center of the target cloud
+                    cloudRadius = 0,           -- Radius of the target cloud
+                    useCloudTargeting = false, -- Whether to use cloud targeting
+                    cloudStartTime = nil,      -- When cloud targeting began
+                    lastCloudUpdateTime = nil,
+                    highActivityDetected = false,
+                    activityLevel = 0,         -- Measure of targeting activity (0-1)
+                    lastTargetSwitchTime = nil,
+                    targetSwitchCount = 0,     -- Number of target switches in short period
+                    lastStatusLogTime = nil,
+                    currentTargetKey = nil,    -- Current target identifier
+                    targetAimOffset = {x=0, y=0, z=0}, -- Aim offset for leading targets
+                    targetPrediction = {       -- Target movement prediction
+                        enabled = false,
+                        velocityX = 0,
+                        velocityY = 0,
+                        velocityZ = 0,
+                        lastUpdateTime = nil
+                    },
+                    rotationConstraint = {     -- Constraint for rotation changes
+                        enabled = true,
+                        maxRotationRate = 0.07,  -- Maximum rotation rate (radians per update)
+                        lastYaw = nil,          -- Last yaw angle
+                        lastPitch = nil,        -- Last pitch angle
+                        damping = 0.8           -- Damping factor (higher = more constraint)
+                    }
+                },
             },
 
             projectile = {

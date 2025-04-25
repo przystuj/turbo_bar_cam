@@ -8,6 +8,8 @@ local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager
 local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
 ---@type FPSTargetingUtils
 local FPSTargetingUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_targeting_utils.lua").FPSTargetingUtils
+---@type FPSTargetingSmoothing
+local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -235,6 +237,14 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
     -- We have valid weapon vectors
     local weaponPos = { x = posX, y = posY, z = posZ }
 
+    -- Apply target smoothing here - this is the key addition!
+    -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
+    local processedTarget = FPSTargetingSmoothing.processTarget(targetPos, STATE.tracking.fps.lastTargetUnitID)
+
+    if processedTarget then
+        targetPos = processedTarget
+    end
+
     -- Calculate direction to target (not weapon direction)
     local dx = targetPos.x - posX
     local dy = targetPos.y - posY
@@ -258,6 +268,17 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
 
     -- Create focusing direction to look at target
     local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+
+    -- Apply rotation constraints to prevent too rapid rotation
+    if directionState and STATE.tracking.fps.isAttacking then
+        -- Get the constrained rotation values
+        local constrainedYaw, constrainedPitch = FPSTargetingSmoothing.constrainRotationRate(
+                directionState.ry, directionState.rx)
+
+        -- Apply the constrained values
+        directionState.ry = constrainedYaw
+        directionState.rx = constrainedPitch
+    end
 
     -- Log rotation changes when we have a valid direction state
     if directionState then
