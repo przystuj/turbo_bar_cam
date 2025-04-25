@@ -28,15 +28,17 @@ end
 
 --- Initialize the persistent storage by loading from file
 function PersistentStorage:initialize()
-    if self.isInitialized then return end
-    
+    if self.isInitialized then
+        return
+    end
+
     if self.isPersistent then
         self:load()
     end
-    
+
     self.isInitialized = true
     self.isDirty = false
-    
+
     if self.isPersistent then
         Log.debug("Initialized persistent storage: " .. self.filepath)
     else
@@ -50,7 +52,7 @@ function PersistentStorage:load()
         self.data = {}
         return self.data
     end
-    
+
     local success, result
     success, result = pcall(function()
         return VFS.Include(self.filepath)
@@ -77,23 +79,39 @@ function PersistentStorage:save(force)
         self.lastSaveTime = os.clock()
         return
     end
-    
+
     local currentTime = os.clock()
-    
+
     -- Only save if dirty and enough time has passed, or forced
-    if (not self.isDirty and not force) or 
-       (not force and (currentTime - self.lastSaveTime) < self.saveInterval) then
+    if (not self.isDirty and not force) or
+            (not force and (currentTime - self.lastSaveTime) < self.saveInterval) then
         return
     end
-    
-    -- Convert data table to string with return statement
+
+    -- Get keys and sort them alphabetically
+    local keys = {}
+    for key in pairs(self.data) do
+        table.insert(keys, key)
+    end
+    table.sort(keys)
+
+    -- Convert data table to string with return statement using sorted keys
     local content = "return {\n"
-    for key, value in pairs(self.data) do
+    for _, key in ipairs(keys) do
+        -- Use ipairs for ordered iteration
+        local value = self.data[key]
         if type(value) == "table" then
             content = content .. string.format('  ["%s"] = {\n', key)
-            for k, v in pairs(value) do
+            -- Also sort keys within nested tables if necessary
+            local nestedKeys = {}
+            for k in pairs(value) do
+                table.insert(nestedKeys, k)
+            end
+            table.sort(nestedKeys)
+            for _, k in ipairs(nestedKeys) do
+                local v = value[k]
                 if type(v) == "string" then
-                    content = content .. string.format('    %s = "%s",\n', k, tostring(v))
+                    content = content .. string.format('    %s = "%s",\n', k, tostring(v):gsub("\"", "\\\""))
                 else
                     content = content .. string.format('    %s = %s,\n', k, tostring(v))
                 end
@@ -101,7 +119,7 @@ function PersistentStorage:save(force)
             content = content .. "  },\n"
         else
             if type(value) == "string" then
-                content = content .. string.format('  ["%s"] = "%s",\n', key, tostring(value))
+                content = content .. string.format('  ["%s"] = "%s",\n', key, tostring(value):gsub("\"", "\\\""))
             else
                 content = content .. string.format('  ["%s"] = %s,\n', key, tostring(value))
             end
