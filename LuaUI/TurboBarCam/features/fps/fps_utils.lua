@@ -107,6 +107,7 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
 
     -- Determine which vectors to use based on state
     local frontVec, upVec, rightVec
+    local originalPosition = {x = position.x, y = position.y, z = position.z}
 
     if STATE.tracking.fps.isAttacking and STATE.tracking.fps.weaponDir then
         position = STATE.tracking.fps.weaponPos
@@ -129,7 +130,6 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     local upX, upY, upZ = upVec[1], upVec[2], upVec[3]
     local rightX, rightY, rightZ = rightVec[1], rightVec[2], rightVec[3]
 
-
     -- Apply offsets along all vectors
     if offsets.HEIGHT ~= 0 then
         x = x + upX * offsets.HEIGHT
@@ -149,7 +149,21 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
         z = z + rightZ * offsets.SIDE
     end
 
-    return { x = x, y = y, z = z }
+    local cameraPos = {x = x, y = y, z = z}
+
+    -- Apply minimum height constraint
+    cameraPos = FPSCombatMode.enforceMinimumHeight(cameraPos, STATE.tracking.unitID)
+
+    -- Apply air target repositioning if needed
+    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
+        cameraPos = FPSCombatMode.handleAirTargetRepositioning(
+                cameraPos,
+                STATE.tracking.fps.lastTargetPos,
+                originalPosition
+        )
+    end
+
+    return cameraPos
 end
 
 --- Creates a basic camera state object with the specified position and direction

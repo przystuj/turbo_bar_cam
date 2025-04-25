@@ -647,6 +647,209 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     return true
 end
 
+--- Handles air target camera positioning adjustments
+--- @param position table Camera position {x, y, z}
+--- @param targetPos table Target position {x, y, z}
+--- @param unitPos table Base unit position {x, y, z}
+--- @return table adjustedPos Adjusted camera position {x, y, z}
+function FPSCombatMode.handleAirTargetRepositioning(position, targetPos, unitPos)
+    if not position or not targetPos then
+        return position
+    end
+
+    -- Set buffer zones to prevent jittering
+    local AIR_HEIGHT_THRESHOLD = 80  -- Increased from 100 to add buffer
+    local ACTIVATION_ANGLE = 0.5     -- Lowered from 0.6 to activate sooner
+    local DEACTIVATION_ANGLE = 0.4   -- Hysteresis buffer to prevent jittering
+
+    -- Cache our adjusted position state to prevent jittering
+    if not STATE.tracking.fps.airAdjustmentActive then
+        STATE.tracking.fps.airAdjustmentActive = false
+    end
+
+    -- Store original position for reference
+    local x, y, z = position.x, position.y, position.z
+
+    -- Check if target is significantly above the unit (air unit)
+    local heightDiff = targetPos.y - unitPos.y
+
+    -- Early exit if target isn't significantly above unit
+    if heightDiff <= AIR_HEIGHT_THRESHOLD then
+        STATE.tracking.fps.airAdjustmentActive = false
+        return position
+    end
+
+    -- Calculate angle to target in vertical plane
+    local dx = targetPos.x - unitPos.x
+    local dy = heightDiff
+    local dz = targetPos.z - unitPos.z
+    local horizontalDist = math.sqrt(dx * dx + dz * dz)
+    local verticalAngle = math.atan2(dy, horizontalDist)
+
+    -- Calculate target velocity if we have previous position
+    local isMovingFast = false
+    local speedThreshold = 15  -- Units per frame threshold
+
+    if STATE.tracking.fps.lastTargetPrevPos then
+        local prevPos = STATE.tracking.fps.lastTargetPrevPos
+        local dt = 1 / 30  -- Assuming 30 fps
+
+        local moveX = (targetPos.x - prevPos.x) / dt
+        local moveY = (targetPos.y - prevPos.y) / dt
+        local moveZ = (targetPos.z - prevPos.z) / dt
+
+        local speed = math.sqrt(moveX * moveX + moveY * moveY + moveZ * moveZ)
+        isMovingFast = speed > speedThreshold
+
+        -- If target is moving fast upward, flag it
+        local isMovingUpFast = moveY > speedThreshold * 0.7
+        STATE.tracking.fps.targetMovingUpFast = isMovingUpFast
+    end
+
+    -- Save current position for next frame velocity calculation
+    STATE.tracking.fps.lastTargetPrevPos = {
+        x = targetPos.x,
+        y = targetPos.y,
+        z = targetPos.z
+    }
+
+    -- Determine if we need to activate air targeting adjustments (with hysteresis)
+    local activationAngle = STATE.tracking.fps.airAdjustmentActive
+            and DEACTIVATION_ANGLE or ACTIVATION_ANGLE
+
+    -- Skip adjustment if target is moving too fast upward and we're not already tracking it
+    if STATE.tracking.fps.targetMovingUpFast and not STATE.tracking.fps.airAdjustmentActive then
+        return position
+    end
+
+    -- If angle is steep enough, adjust camera position
+    if verticalAngle > activationAngle then
+        STATE.tracking.fps.airAdjustmentActive = true
+
+        -- Calculate adjustment based on angle
+        -- Higher angle = stronger adjustment
+        local angleRatio = math.min((verticalAngle - ACTIVATION_ANGLE) / (math.pi / 2 - ACTIVATION_ANGLE), 1.0)
+        local adjustmentFactor = 0.3 + (angleRatio * 0.4)  -- Range from 0.3 to 0.7
+
+        -- Determine if we're very close to the target (directly underneath)
+        local isCloseToTarget = horizontalDist < 300
+        local isVeryCloseToTarget = horizontalDist < 200
+        local isHighTargetMode = verticalAngle > 0.8  -- ~45 degrees
+
+        -- Distance-based adjustment - more aggressive repositioning when close
+        local distanceAdjustment = 1.0
+        if isCloseToTarget then
+            distanceAdjustment = 1.4  -- More aggressive when close
+            if isVeryCloseToTarget then
+                distanceAdjustment = 1.7  -- Even more aggressive when very close
+            end
+        end
+
+        -- For high targets, focus more on moving back to keep unit in view
+        local upRatio, backRatio
+
+        -- When directly underneath, move much more back and less up
+        if isVeryCloseToTarget and verticalAngle > 1.3 then
+            -- Almost overhead
+            -- Closest and steepest case - much more backward
+            upRatio = 0.15  -- Minimal upward movement
+            backRatio = 1.5 * distanceAdjustment  -- Maximize backward movement
+        elseif isHighTargetMode then
+            -- High target mode: prioritize moving back to keep unit in view
+            upRatio = math.min(verticalAngle * 0.25, 0.3) * (isCloseToTarget and 0.7 or 1.0)  -- Reduced upward when close
+            backRatio = (0.9 + (angleRatio * 0.3)) * distanceAdjustment  -- Range from 0.9 to 1.2 * adjustment
+        else
+            -- Normal mode: still favor back movement
+            upRatio = math.min(verticalAngle * 0.35, 0.4)  -- Reduced upward movement
+            backRatio = (0.8 + (angleRatio * 0.3)) * distanceAdjustment  -- Range from 0.8 to 1.1 * adjustment
+        end
+
+        -- Apply the adjustment factor to both movements
+        -- Calculate distance to move camera
+        local moveUp = math.min(heightDiff * upRatio * adjustmentFactor, 90)  -- Reduced maximum height
+        local moveBack = math.min(horizontalDist * backRatio * adjustmentFactor, 220)  -- Increased maximum back distance
+
+        -- For high targets, ensure substantial back movement
+        if isHighTargetMode then
+            moveBack = math.max(moveBack, 120)  -- Ensure minimum back movement for high targets
+            -- Special case for very close targets - ensure maximum back distance
+            if isVeryCloseToTarget then
+                moveBack = math.max(moveBack, 300)  -- More back when very close
+                moveUp = math.min(moveUp, 40)  -- Much less up when very close
+            elseif isCloseToTarget then
+                moveBack = math.max(moveBack, 200)  -- More back when close
+                moveUp = math.min(moveUp, 50)  -- Less up when close
+            end
+        end
+
+        -- Apply vertical adjustment
+        y = y + moveUp
+
+        -- Apply backward movement along the horizontal vector to target
+        if horizontalDist > 0.001 then
+            local horNormX = dx / horizontalDist
+            local horNormZ = dz / horizontalDist
+            x = x - horNormX * moveBack
+            z = z - horNormZ * moveBack
+        end
+
+        -- Store the adjustments we made for debugging
+        STATE.tracking.fps.airAdjustmentAmount = { up = moveUp, back = moveBack }
+
+        Log.trace(string.format("Air target adjustment: up=%.1f, back=%.1f, angle=%.2f",
+                moveUp, moveBack, verticalAngle))
+
+        return { x = x, y = y, z = z }
+    else
+        -- No longer meets criteria for adjustment
+        STATE.tracking.fps.airAdjustmentActive = false
+        return position
+    end
+end
+
+--- Gets minimum height for camera position
+--- @param unitID number The unit ID
+--- @return number minHeight Minimum height above ground
+function FPSCombatMode.getMinimumCameraHeight(unitID)
+    if not Spring.ValidUnitID(unitID) then
+        return 50 -- Default fallback
+    end
+
+    -- Get unit height
+    local unitDefID = Spring.GetUnitDefID(unitID)
+    local unitDef = UnitDefs[unitDefID]
+    if not unitDef then
+        return 50
+    end
+
+    -- Use half of the unit height as minimum (or a fixed value if that's too small)
+    local baseUnitHeight = unitDef.height or 0
+    return math.max(baseUnitHeight * 0.5, 50) -- At least half unit height or 50 units
+end
+
+--- Ensures camera doesn't go below minimum height
+--- @param position table Camera position {x, y, z}
+--- @param unitID number The unit ID
+--- @return table adjustedPos Position with height constraint applied
+function FPSCombatMode.enforceMinimumHeight(position, unitID)
+    if not position then
+        return position
+    end
+
+    local minHeight = FPSCombatMode.getMinimumCameraHeight(unitID)
+    local x, y, z = position.x, position.y, position.z
+
+    -- Get ground height at the position
+    local groundHeight = Spring.GetGroundHeight(x, z)
+
+    -- Ensure camera is at least minHeight above ground
+    if y < (groundHeight + minHeight) then
+        y = groundHeight + minHeight
+    end
+
+    return { x = x, y = y, z = z }
+end
+
 return {
     FPSCombatMode = FPSCombatMode
 }
