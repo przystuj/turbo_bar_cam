@@ -173,9 +173,9 @@ return {
     SIDE = 0,
     ROTATION = 0,
   },
-  ["armfboy"] = {
-    HEIGHT = 50,
-    FORWARD = -80,
+  ["corgeo"] = {
+    HEIGHT = 35,
+    FORWARD = -75,
     ROTATION = 0,
     SIDE = 0,
   },
@@ -185,11 +185,11 @@ return {
     ROTATION = 0,
     SIDE = 20,
   },
-  ["corgeo"] = {
-    HEIGHT = 35,
-    FORWARD = -75,
+  ["armshltx"] = {
+    HEIGHT = 25,
+    FORWARD = -55,
     ROTATION = 0,
-    SIDE = 0,
+    SIDE = 20,
   },
   ["armpw"] = {
     HEIGHT = 55,
@@ -197,11 +197,11 @@ return {
     ROTATION = 0,
     SIDE = -140,
   },
-  ["armshltx"] = {
-    HEIGHT = 25,
-    FORWARD = -55,
+  ["armfboy"] = {
+    HEIGHT = 50,
+    FORWARD = -80,
     ROTATION = 0,
-    SIDE = 20,
+    SIDE = 0,
   },
   ["corwolv"] = {
     HEIGHT = 535,

@@ -59,7 +59,7 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
-  ["armflea"] = {
+  ["corcrwh"] = {
     HEIGHT = 130,
     FORWARD = -300,
     SIDE = 0,
@@ -71,11 +71,11 @@ return {
     ROTATION = 0,
     SIDE = 0,
   },
-  ["corsumo"] = {
+  ["corgeo"] = {
     HEIGHT = 130,
     FORWARD = -300,
-    SIDE = 0,
     ROTATION = 0,
+    SIDE = 0,
   },
   ["corcan"] = {
     HEIGHT = 130,
@@ -83,11 +83,11 @@ return {
     SIDE = 0,
     ROTATION = 0,
   },
-  ["corgeo"] = {
+  ["corsumo"] = {
     HEIGHT = 130,
     FORWARD = -300,
-    ROTATION = 0,
     SIDE = 0,
+    ROTATION = 0,
   },
   ["armfboy"] = {
     HEIGHT = 130,
@@ -131,7 +131,7 @@ return {
     SIDE = 0,
     ROTATION = 0,
   },
-  ["corcrwh"] = {
+  ["armflea"] = {
     HEIGHT = 130,
     FORWARD = -300,
     SIDE = 0,
