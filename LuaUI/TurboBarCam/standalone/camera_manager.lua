@@ -49,7 +49,7 @@ function CameraManager.toggleZoom()
     }
     local camState = CameraManager.getCameraState("WidgetControl.toggleZoom")
     local fov = cycle[camState.fov]
-    Spring.SetCameraState({fov = fov}, 1)
+    Spring.SetCameraState({ fov = fov }, 1)
     --CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.toggleZoom")
 end
 

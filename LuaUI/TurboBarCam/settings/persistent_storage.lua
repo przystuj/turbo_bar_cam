@@ -88,44 +88,71 @@ function PersistentStorage:save(force)
         return
     end
 
-    -- Get keys and sort them alphabetically
-    local keys = {}
-    for key in pairs(self.data) do
-        table.insert(keys, key)
-    end
-    table.sort(keys)
+    -- A function to serialize a table to a string with proper formatting
+    local function serializeTable(tbl, indent)
+        indent = indent or 0
+        local spaces = string.rep("  ", indent)
+        local content = "{\n"
 
-    -- Convert data table to string with return statement using sorted keys
-    local content = "return {\n"
-    for _, key in ipairs(keys) do
-        -- Use ipairs for ordered iteration
-        local value = self.data[key]
-        if type(value) == "table" then
-            content = content .. string.format('  ["%s"] = {\n', key)
-            -- Also sort keys within nested tables if necessary
-            local nestedKeys = {}
-            for k in pairs(value) do
-                table.insert(nestedKeys, k)
-            end
-            table.sort(nestedKeys)
-            for _, k in ipairs(nestedKeys) do
-                local v = value[k]
-                if type(v) == "string" then
-                    content = content .. string.format('    %s = "%s",\n', k, tostring(v):gsub("\"", "\\\""))
-                else
-                    content = content .. string.format('    %s = %s,\n', k, tostring(v))
-                end
-            end
-            content = content .. "  },\n"
-        else
-            if type(value) == "string" then
-                content = content .. string.format('  ["%s"] = "%s",\n', key, tostring(value):gsub("\"", "\\\""))
+        -- Process numeric keys first (for arrays)
+        local numericKeys = {}
+        local stringKeys = {}
+
+        for k in pairs(tbl) do
+            if type(k) == "number" then
+                table.insert(numericKeys, k)
             else
-                content = content .. string.format('  ["%s"] = %s,\n', key, tostring(value))
+                table.insert(stringKeys, k)
             end
         end
+
+        table.sort(numericKeys)
+        table.sort(stringKeys)
+
+        -- Process numeric indices first (for arrays)
+        for _, key in ipairs(numericKeys) do
+            local value = tbl[key]
+            content = content .. spaces .. "  "
+
+            if type(value) == "table" then
+                content = content .. serializeTable(value, indent + 1)
+            elseif type(value) == "string" then
+                content = content .. string.format('"%s"', tostring(value):gsub("\"", "\\\""))
+            else
+                content = content .. tostring(value)
+            end
+            content = content .. ",\n"
+        end
+
+        -- Then process string keys
+        for _, key in ipairs(stringKeys) do
+            local value = tbl[key]
+            content = content .. spaces .. "  "
+
+            -- Format the key
+            if type(key) == "string" then
+                content = content .. string.format('["%s"] = ', key)
+            else
+                content = content .. string.format("[%s] = ", tostring(key))
+            end
+
+            -- Format the value
+            if type(value) == "table" then
+                content = content .. serializeTable(value, indent + 1)
+            elseif type(value) == "string" then
+                content = content .. string.format('"%s"', tostring(value):gsub("\"", "\\\""))
+            else
+                content = content .. tostring(value)
+            end
+            content = content .. ",\n"
+        end
+
+        content = content .. spaces .. "}"
+        return content
     end
-    content = content .. "}"
+
+    -- Convert data table to string with return statement
+    local content = "return " .. serializeTable(self.data)
 
     -- Save to file
     local file = io.open(self.filepath, "w")

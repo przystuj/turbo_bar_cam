@@ -25,7 +25,6 @@ function SettingsManager.initializePersistentStorage()
         return
     end
 
-    -- Create FPS settings storages (persistent)
     STATE.settings.fpsWeaponOffsets = PersistentStorage.new("fps_weapon_offsets", true)
     STATE.settings.storages["fps_weapon"] = STATE.settings.fpsWeaponOffsets
 
@@ -35,7 +34,8 @@ function SettingsManager.initializePersistentStorage()
     STATE.settings.fpsCombatOffsets = PersistentStorage.new("fps_combat_offsets", true)
     STATE.settings.storages["fps_combat"] = STATE.settings.fpsCombatOffsets
 
-    -- Create other in-memory storages here if needed
+    STATE.settings["camera_presets"] = PersistentStorage.new("camera_presets", true)
+    STATE.settings.storages["camera_presets"] = STATE.settings["camera_presets"]
 
     STATE.settings.initialized = true
     Log.info("SettingsManager initialized")
@@ -44,10 +44,10 @@ end
 --- Update function to be called in widget:Update
 function SettingsManager.update()
     if not STATE.settings.initialized then
-        return
+        SettingsManager.initializePersistentStorage()
     end
 
-    for name, storage in pairs(STATE.settings.storages) do
+    for _, storage in pairs(STATE.settings.storages) do
         storage:update()
     end
 end
@@ -156,7 +156,6 @@ function SettingsManager.loadFPSOffsets(unitId)
     end
     local unitName = unitDef.name
 
-
     local loaded = false
 
     local function loadOffsets(mode, settingsGetter)
@@ -185,6 +184,24 @@ function SettingsManager.loadFPSOffsets(unitId)
     loadOffsets("WEAPON", STATE.settings.fpsWeaponOffsets)
 
     return loaded
+end
+
+function SettingsManager.saveUserSetting(name, id, data)
+    if not STATE.settings[name] then
+        Log.warn("Settings not initialized: " .. name)
+        return false
+    end
+    Log.debug(data)
+    STATE.settings[name]:set(id, data)
+    return true
+end
+
+function SettingsManager.loadUserSetting(name, id)
+    if not STATE.settings[name] then
+        Log.warn("Settings not initialized: " .. name)
+        return nil
+    end
+    return STATE.settings[name]:get(id)
 end
 
 return {

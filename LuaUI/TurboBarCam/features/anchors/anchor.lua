@@ -6,6 +6,10 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraAnchorUtils
 local CameraAnchorUtils = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_utils.lua").CameraAnchorUtils
+---@type CameraAnchorQueues
+local CameraAnchorQueues = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_queues.lua").CameraAnchorQueues
+---@type CameraAnchorPersistence
+local CameraAnchorPersistence = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_persistence.lua").CameraAnchorPersistence
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -77,7 +81,7 @@ function CameraAnchor.focus(index)
     end
 
     -- Start transition
-    CameraAnchorUtils.start(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
+    CameraAnchorUtils.startTransitionToAnchor(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
     STATE.transition.currentAnchorIndex = index
     Log.trace("Loading camera anchor: " .. index)
     return true
@@ -195,6 +199,77 @@ function CameraAnchor.update()
     end
 end
 
+function CameraAnchor.addToQueue(anchorParams)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorQueues.addToQueue(anchorParams)
+end
+
+function CameraAnchor.setQueue(anchorParams)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorQueues.setQueue(anchorParams)
+end
+
+function CameraAnchor.clearQueue()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorQueues.clearQueue()
+end
+
+---@see EasingFunctions
+---@see SpeedProfiles
+function CameraAnchor.startQueue(id, speedProfile, easingFn)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    if id then
+        if not CameraAnchorPersistence.loadFromFile(id) then
+            Log.warn("No queue with id " .. id .. " found for this map")
+            return false
+        end
+        if speedProfile then
+            CameraAnchorQueues.applySpeedControl(speedProfile, easingFn)
+        end
+    end
+    return CameraAnchorQueues.startQueue()
+end
+
+function CameraAnchor.updateQueue()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorQueues.updateQueue()
+end
+
+function CameraAnchor.save(id, includeQueue)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorPersistence.saveToFile(id, includeQueue)
+end
+
+function CameraAnchor.load(id)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorPersistence.loadFromFile(id)
+end
+
+function CameraAnchor.debugQueue()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+    return CameraAnchorPersistence.describeQueue()
+end
+
+function CameraAnchor.applySpeedControl(speedControls, easingFunc)
+    return CameraAnchorQueues.applySpeedControl(speedControls, easingFunc)
+end
+
 ---@see ModifiableParams
 ---@see Util#adjustParams
 function CameraAnchor.adjustParams(params)
@@ -202,7 +277,17 @@ function CameraAnchor.adjustParams(params)
         return
     end
 
-    Util.adjustParams(params, 'ANCHOR', function() CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2 end)
+    Util.adjustParams(params, 'ANCHOR', function()
+        CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2
+    end)
+end
+
+function CameraAnchor.stopQueue()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    return CameraAnchorQueues.stopQueue()
 end
 
 return {

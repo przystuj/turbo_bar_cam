@@ -87,9 +87,10 @@ function WidgetControl.switchToFpsCamera()
     if #selectedUnits > 0 then
         local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
         local fpsState = CameraCommons.getDefaultUnitView(x, z)
-        CameraManager.setCameraState(fpsState, 1, "WidgetControl.switchToFpsCamera")
+        Spring.SetCameraState(fpsState, 1)
     end
     Spring.SendCommands("viewfps")
+    Spring.SetCameraState({ fov = 45 }, 1)
 end
 
 function WidgetControl.toggleDebug()

@@ -344,6 +344,107 @@ function Util.getUnitVectors(unitID)
     return { x = x, y = y, z = z }, front, up, right
 end
 
+--- Performs Hermite spline interpolation between two points with tangent vectors
+--- This version is specialized for camera path interpolation with continuity preservation
+---@param p0 table Start position with px,py,pz (or x,y,z)
+---@param p1 table End position with px,py,pz (or x,y,z)
+---@param v0 table Start tangent vector with x,y,z
+---@param v1 table End tangent vector with x,y,z
+---@param t number Interpolation factor (0-1)
+---@return table result Interpolated position with x,y,z
+function Util.hermiteInterpolate(p0, p1, v0, v1, t)
+    -- Special handling for segment boundaries to preserve velocity
+    -- At t=0 and t=1, we want to ensure the derivative matches the tangent exactly
+    if t <= 0 then return {x = p0.px or p0.x, y = p0.py or p0.y, z = p0.pz or p0.z} end
+    if t >= 1 then return {x = p1.px or p1.x, y = p1.py or p1.y, z = p1.pz or p1.z} end
+
+    -- Hermite basis functions
+    -- h00: position influence from p0
+    -- h10: tangent influence from v0
+    -- h01: position influence from p1
+    -- h11: tangent influence from v1
+    local t2 = t * t
+    local t3 = t2 * t
+    local h00 = 2*t3 - 3*t2 + 1
+    local h10 = t3 - 2*t2 + t
+    local h01 = -2*t3 + 3*t2
+    local h11 = t3 - t2
+
+    -- Use px, py, pz if available, otherwise fall back to x, y, z
+    local p0x = p0.px or p0.x
+    local p0y = p0.py or p0.y
+    local p0z = p0.pz or p0.z
+
+    local p1x = p1.px or p1.x
+    local p1y = p1.py or p1.y
+    local p1z = p1.pz or p1.z
+
+    -- Calculate interpolated value, applying basis functions
+    local result = {
+        x = h00 * p0x + h10 * v0.x + h01 * p1x + h11 * v1.x,
+        y = h00 * p0y + h10 * v0.y + h01 * p1y + h11 * v1.y,
+        z = h00 * p0z + h10 * v0.z + h01 * p1z + h11 * v1.z
+    }
+
+    -- Check for NaN values (can occur with certain tangent combinations)
+    if result.x ~= result.x or result.y ~= result.y or result.z ~= result.z then
+        Log.warn("NaN detected in Hermite interpolation")
+        -- Fall back to linear interpolation if Hermite produces NaN
+        result.x = (1-t) * p0x + t * p1x
+        result.y = (1-t) * p0y + t * p1y
+        result.z = (1-t) * p0z + t * p1z
+    end
+
+    return result
+end
+
+Util.TimeHelpers = {}
+
+--- Converts elapsed seconds to normalized time (0-1)
+---@param elapsedSeconds number Time elapsed in seconds
+---@param totalDuration number Total duration in seconds
+---@return number normalizedTime Time as a 0-1 value
+function Util.TimeHelpers.normalizeTime(elapsedSeconds, totalDuration)
+    if totalDuration <= 0 then return 1 end
+    return math.min(1, math.max(0, elapsedSeconds / totalDuration))
+end
+
+--- Converts normalized time (0-1) to seconds
+---@param normalizedTime number Normalized time (0-1)
+---@param totalDuration number Total duration in seconds
+---@return number seconds Time in seconds
+function Util.TimeHelpers.denormalizeTime(normalizedTime, totalDuration)
+    return normalizedTime * totalDuration
+end
+
+--- Converts step index to normalized time (0-1)
+---@param stepIndex number Current step index
+---@param totalSteps number Total number of steps
+---@return number normalizedTime Time as a 0-1 value
+function Util.TimeHelpers.stepToNormalizedTime(stepIndex, totalSteps)
+    if totalSteps <= 1 then return 1 end
+    return math.min(1, math.max(0, (stepIndex - 1) / (totalSteps - 1)))
+end
+
+--- Converts normalized time (0-1) to the closest step index
+---@param normalizedTime number Normalized time (0-1)
+---@param totalSteps number Total number of steps
+---@return number stepIndex The closest step index
+function Util.TimeHelpers.normalizedTimeToStep(normalizedTime, totalSteps)
+    if totalSteps <= 1 then return 1 end
+    local stepIndexF = 1 + normalizedTime * (totalSteps - 1)
+    return math.min(totalSteps, math.max(1, math.floor(stepIndexF + 0.5)))
+end
+
+--- Gets current normalized progress from timers
+---@param startTime number Timer value when the transition/animation started
+---@param duration number Duration in seconds
+---@return number normalizedTime Current time as a 0-1 value
+function Util.TimeHelpers.getTimerProgress(startTime, duration)
+    local elapsed = Spring.DiffTimers(Spring.GetTimer(), startTime)
+    return Util.TimeHelpers.normalizeTime(elapsed, duration)
+end
+
 -- Export to global scope
 return {
     Util = Util

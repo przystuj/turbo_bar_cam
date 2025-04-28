@@ -10,6 +10,12 @@ if not WG.TurboBarCam.STATE then
         -- Camera anchors
         anchors = {},
         lastUsedAnchor = nil,
+        anchorQueue = {
+            active = false,
+            queue = nil,
+            currentTime = 0,
+            startTime = 0,
+        },
 
         scheduler = {schedules = {}},
 

@@ -163,6 +163,13 @@ function TrackingManager.disableTracking()
         STATE.tracking.fps.freeCam.targetRy = nil
         STATE.tracking.fps.freeCam.lastUnitHeading = nil
     end
+
+    if STATE.anchorQueue then
+        STATE.anchorQueue.active = false
+        STATE.anchorQueue.currentStep = 1
+        STATE.anchorQueue.stepStartTime = 0
+    end
+
 end
 
 --- Starts a mode transition

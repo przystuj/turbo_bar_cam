@@ -95,7 +95,9 @@ end
 function UpdateManager.updateCameraMode()
     Spring.SendCommands("viewfps")
 
-    if STATE.transition.active then
+    if STATE.anchorQueue and STATE.anchorQueue.active then
+        Features.CameraAnchor.updateQueue()
+    elseif STATE.transition.active then
         Features.CameraAnchor.update()
     else
         -- Normal camera updates based on current mode
