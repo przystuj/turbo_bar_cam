@@ -8,7 +8,7 @@ TurboBarCam provides a comprehensive camera control system with multiple special
 
 ## Features
 
-- **Camera Anchors**: Save and recall camera positions with smooth transitions
+- **Camera Anchors**: Save and recall camera positions with smooth transitions and chaining
 - **FPS Camera**: View the game from a unit's perspective with adjustable offsets, free camera control, and fixed point tracking
 - **Tracking Camera**: Follow selected units while maintaining your preferred viewing angle
 - **Orbiting Camera**: Circle around units with adjustable speed and height
@@ -57,12 +57,13 @@ keyload     luaui/TurboBarCam/turbobarcam.uikeys.txt
 | PageUp | Toggle FOV/zoom |
 | **Camera Anchors** |
 | Ctrl+F1 to F4 | Set camera anchor 1-4 |
-| Shift+F1 to F4 | Focus and track anchor 1-4 |
+| Shift+F1 to F4 | Focus anchor 1-4 |
+| Ctrl+Shift+F1 to F4 | Focus and track anchor 1-4 |
 | Ctrl+Shift+Numpad -/+ | Adjust anchor duration |
 | **Single Unit Tracking** |
 | Numpad 3 | Toggle tracking camera |
-| Ctrl+Numpad 3 | Reset tracking parameters |
 | Numpad 8/5 | Adjust height (+/-) |
+| Ctrl+Numpad 3 | Reset tracking parameters |
 | **Orbit Camera** |
 | Numpad 2 | Toggle orbiting camera |
 | Numpad 5/8 | Adjust height and distance |
@@ -72,31 +73,54 @@ keyload     luaui/TurboBarCam/turbobarcam.uikeys.txt
 | Numpad 1 | Toggle FPS camera |
 | Numpad 8/5 | Move forward/backward |
 | Numpad 4/6 | Move left/right |
-| Numpad 7/9 | Rotate left/right |
-| Ctrl+Numpad 8/5 | Adjust height |
-| Ctrl+Numpad 1 | Reset FPS parameters |
+| Numpad 7/9 | Adjust height |
+| Ctrl+Numpad 7/9 | Rotate camera |
 | Numpad * | Clear fixed look point |
 | Numpad / | Set fixed look point |
-| Delete | Clear weapon selection |
+| End | Toggle combat mode |
 | PageDown | Next weapon |
-| **Spectator Groups** |
-| Ctrl+Insert | Set spectator group 1 |
-| Insert | Select spectator group 1 |
+| Ctrl+PageDown | Clear weapon selection |
+| Ctrl+Numpad 1 | Reset FPS parameters |
 | **Overview Camera** |
-| Home | Toggle overview |
-| Insert | Move camera |
-| Delete | Change zoom |
+| PageUp | Toggle overview |
+| Numpad 8/5 | Change zoom level |
 | **Group Tracking** |
 | Numpad 0 | Toggle group tracking |
-| Numpad 5/8 | Adjust distance/height |
+| Numpad 5/8 | Adjust distance |
+| Ctrl+Numpad 8/5 | Adjust height |
 | Numpad 4/6 | Adjust orbit offset |
 | Numpad 7/9 | Adjust smoothing |
 | Ctrl+Numpad 0 | Reset group tracking |
-| **Projectile Tracking** |
-| End | Toggle projectile camera |
+| **Projectile Camera** |
+| Delete | Follow projectile (moving camera) |
+| Insert | Track projectile (static camera) |
 | Numpad 8/5 | Adjust distance |
 | Numpad 7/9 | Adjust look ahead |
 | Numpad 4/6 | Adjust height |
+
+### Unbound Actions
+
+The following actions are available but not bound to keys by default:
+
+1. **General**
+    - `turbobarcam_debug` - Toggle debug level
+
+2. **FPS Camera**
+    - `turbobarcam_fps_toggle_free_cam` - Toggle free camera mode in FPS view
+
+3. **Anchor Queue System**
+    - `turbobarcam_anchor_queue_set` - Set a new camera queue
+    - `turbobarcam_anchor_queue_add` - Add to existing camera queue
+    - `turbobarcam_anchor_queue_reset` - Clear camera queue
+    - `turbobarcam_anchor_queue_start` - Start camera queue playback
+    - `turbobarcam_anchor_queue_save` - Save camera queue to file
+    - `turbobarcam_anchor_queue_load` - Load camera queue from file
+    - `turbobarcam_anchor_queue_debug` - Print debug info for current queue
+    - `turbobarcam_anchor_queue_speed` - Adjust queue time curve
+    - `turbobarcam_anchor_queue_stop` - Stop camera queue playback
+
+4. **Overview Camera**
+    - `turbobarcam_overview_move_camera` - Move overview camera to target
 
 ## Parameter Adjustment System
 
@@ -114,90 +138,76 @@ Where:
 
 ### Key Adjustable Parameters
 
-#### FPS Camera
-- `HEIGHT`: Camera height above unit
-- `FORWARD`: Forward/backward offset
-- `SIDE`: Left/right offset
-- `ROTATION`: Horizontal rotation in radians
-- `WEAPON_FORWARD/HEIGHT/SIDE`: Weapon position offsets
+**FPS Camera**
+- PEACE.HEIGHT/FORWARD/SIDE/ROTATION: Normal view offsets
+- COMBAT.HEIGHT/FORWARD/SIDE/ROTATION: Combat mode offsets
+- WEAPON.HEIGHT/FORWARD/SIDE/ROTATION: Active firing offsets
+- MOUSE_SENSITIVITY: Mouse look sensitivity
 
-#### Orbit Camera
-- `HEIGHT`: Camera height above unit
-- `DISTANCE`: Orbit radius
-- `SPEED`: Orbit speed in radians per frame
+**Orbit Camera**
+- HEIGHT: Camera height
+- DISTANCE: Orbit radius
+- SPEED: Rotation speed (-0.005 to 0.005)
 
-#### Unit Tracking
-- `HEIGHT`: Look-at point height offset
+**Unit Tracking**
+- HEIGHT: Look-at height offset (-2000 to 2000)
 
-#### Group Tracking
-- `EXTRA_DISTANCE`: Additional distance beyond calculated value
-- `EXTRA_HEIGHT`: Additional height beyond calculated
-- `ORBIT_OFFSET`: Orbit angle offset
-- `SMOOTHING`: Various smoothing parameters
+**Group Tracking**
+- EXTRA_DISTANCE: Additional distance (-1000 to 3000)
+- EXTRA_HEIGHT: Additional height (-1000 to 3000)
+- ORBIT_OFFSET: Angle offset (-3.14 to 3.14 rad)
+- SMOOTHING.POSITION/ROTATION: Camera smoothing
+- SMOOTHING.STABLE_POSITION/ROTATION: Stability smoothing
 
-#### Anchor
-- `DURATION`: Transition time in seconds
+**Anchor**
+- DURATION: Transition time
 
-#### Projectile Camera
-- `DISTANCE`: Distance from projectile
-- `HEIGHT`: Height above projectile
-- `LOOK_AHEAD`: Forward tracking distance
+**Projectile Camera**
+- DISTANCE: Camera distance (0 to 1000)
+- HEIGHT: Camera height (-1000 to 1000)
+- LOOK_AHEAD: Forward tracking distance (0 to 1000)
 
-## Example Adjustments
-
+Examples:
 ```
-/turbobarcam_fps_adjust_params add;HEIGHT,10;FORWARD,-20
-```
-Increases camera height by 10 and moves it back by 20.
-
-```
+/turbobarcam_fps_adjust_params add;PEACE.HEIGHT,10;PEACE.FORWARD,-20
 /turbobarcam_orbit_adjust_params add;SPEED,0.0002
-```
-Increases orbit speed.
-
-```
+/turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITION,0.05
 /turbobarcam_fps_adjust_params reset
 ```
-Resets all FPS camera parameters to defaults.
 
-## Camera Modes Overview
+# Camera Queue Quick Guide
 
-### Camera Anchors
-Save positions and transition between them. Use with tracking for advanced spectating.
+## Save Camera Positions
+- `/turbobarcam_anchor_set 1` - Save current camera position as anchor 1
+- `/turbobarcam_anchor_set 2` - Save another position as anchor 2
+- Continue with anchors 3-9 as needed
 
-### FPS Camera
-Attaches to a unit for a first-person perspective with adjustable offsets and angles. Supports weapon selection for combat view.
+## Create Camera Path
+Use queue notation: `anchor_id,transition_time;anchor_id,transition_time;anchor_id`
 
-### Tracking Camera
-Follows a unit while maintaining your viewing angle.
+Example: `/turbobarcam_anchor_queue_set 1,3;2,5;3`
+- Start at anchor 1
+- Move to anchor 2 in 3 seconds
+- Move to anchor 3 in 5 seconds
 
-### Orbiting Camera
-Circles around a unit at configurable speed and height.
+## Queue Controls
+- `/turbobarcam_anchor_queue_start` - Start camera movement
+- `/turbobarcam_anchor_queue_stop` - Stop movement
+- `/turbobarcam_anchor_queue_speed dramatic` - Apply speed profile
+- `/turbobarcam_anchor_queue_reset` - Clear the queue
 
-### Group Tracking Camera
-Follows multiple units, calculating center of mass and ideal viewing distance.
+## Save/Load to File (saved per map)
+- `/turbobarcam_anchor_queue_save mypath` - Save queue
+- `/turbobarcam_anchor_queue_load mypath` - Load queue
+- `/turbobarcam_anchor_queue_start mypath dramatic` - Load, override profile, and start
 
-### Overview Camera
-Strategic top-down view with zoom levels and cursor-based rotation.
-
-### Projectile Camera
-Follows projectiles fired from units, with configurable distance and angle.
-
-## Spectator Features
-
-Create and manage unit groups for quickly switching between tracked units:
-
+## Build Queue Incrementally
 ```
-/turbobarcam_spec_unit_group set 1    # Save selected units as group 1
-/turbobarcam_spec_unit_group select 1 # Select all units from group 1
+/turbobarcam_anchor_queue_reset
+/turbobarcam_anchor_queue_add 1,3
+/turbobarcam_anchor_queue_add 2,5
+/turbobarcam_anchor_queue_add 3
 ```
-
-## Tips
-
-- Bind different actions for different modes to the same key
-- Camera anchors with different transition durations create cinematic effects
-- FPS camera settings are remembered per unit type
-- Set anchor transition duration to 0 for instant camera jumps
 
 ---
 

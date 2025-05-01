@@ -62,7 +62,7 @@ function CameraAnchorUtils.calculateGlobalTangentVectors(points)
     local tangents = {}
     local tension = 0.7  -- Higher tension for more continuous curves
 
-    Log.info("Calculating global tangent vectors for " .. #points .. " points")
+    Log.debug("Calculating global tangent vectors for " .. #points .. " points")
 
     for i = 1, #points do
         if i == 1 then
@@ -263,7 +263,7 @@ function CameraAnchorUtils.createPathTransition(points)
     end
 
     -- Debug log the points
-    Log.info("Creating path transition with " .. #points .. " points")
+    Log.debug("Creating path transition with " .. #points .. " points")
 
     -- Calculate global tangent vectors using the comprehensive function
     local globalTangents = CameraAnchorUtils.calculateGlobalTangentVectors(points)
@@ -377,8 +377,10 @@ function CameraAnchorUtils.createPathTransition(points)
 
     -- Finalize path and debug
     CameraAnchorUtils.finalizePath(pathInfo)
-    CameraAnchorUtils.debugPathExecution(pathInfo)
-    CameraAnchorUtils.debugPathStructure(pathInfo)
+    if CONFIG.DEBUG.LOG_LEVEL ~= "INFO" then
+        CameraAnchorUtils.debugPathExecution(pathInfo)
+        CameraAnchorUtils.debugPathStructure(pathInfo)
+    end
     return pathInfo
 end
 
@@ -428,7 +430,7 @@ end
 
 --- Debug function to check if tangents are causing velocity issues
 ---@param pathInfo table Path information structure
-function CameraAnchorUtils.checkTangentVelocity(pathInfo)
+function CameraAnchorUtils.checkTangentVelocity(pathInfo) -- todo
     Log.info("\n=== TANGENT VELOCITY CHECK ===")
 
     for i = 1, #pathInfo.points do

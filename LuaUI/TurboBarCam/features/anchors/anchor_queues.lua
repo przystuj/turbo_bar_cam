@@ -312,12 +312,12 @@ function CameraAnchorQueues.applySpeedControl(speedControls, easingFunc)
 
     -- Log what we did
     if type(speedControls) == "string" then
-        Log.info(string.format("Applied '%s' speed profile%s",
+        Log.debug(string.format("Applied '%s' speed profile%s",
                 speedControls,
                 easingFunc and (", with " .. tostring(easingFunc) .. " easing") or "")
         )
     else
-        Log.info(string.format("Applied custom speed control%s",
+        Log.debug(string.format("Applied custom speed control%s",
                 easingFunc and (", with " .. tostring(easingFunc) .. " easing") or "")
         )
     end
@@ -356,7 +356,7 @@ function CameraAnchorQueues.startQueue()
     STATE.anchorQueue.stepStartTime = Spring.GetTimer()
     STATE.anchorQueue.startTime = Spring.GetTimer()
 
-    Log.info(string.format("Started queue with %d points, %d steps",
+    Log.debug(string.format("Started queue with %d points, %d steps",
             #STATE.anchorQueue.points, #STATE.anchorQueue.queue.steps))
 
     return true
@@ -442,7 +442,7 @@ function CameraAnchorQueues.updateQueue()
 
         -- Log final statistics
         local totalTime = Spring.DiffTimers(Spring.GetTimer(), STATE.anchorQueue.startTime)
-        Log.info(string.format("Queue execution completed in %.2f seconds", totalTime))
+        Log.debug(string.format("Queue execution completed in %.2f seconds", totalTime))
         return false
     end
 

@@ -51,7 +51,7 @@ function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc
     -- Remap all step times
     AnchorTimeControl.remapStepTimes(pathInfo, timeMap)
 
-    Log.info(string.format("Applied time reparameterization with %d control points%s",
+    Log.debug(string.format("Applied time reparameterization with %d control points%s",
             #speedControls, easing and " and " .. tostring(easingFunc) .. " easing" or ""))
     return pathInfo
 end

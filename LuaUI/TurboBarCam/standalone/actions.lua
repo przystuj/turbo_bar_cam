@@ -92,12 +92,6 @@ function Actions.fpsActions()
                 FeatureModules.FPSCamera.nextWeapon()
                 return true
             end)
-
-    Actions.registerAction("turbobarcam_fps_follow_projectile", 'tp',
-            function()
-                FeatureModules.FPSCamera.toggleFollowProjectile()
-                return true
-            end)
 end
 
 
