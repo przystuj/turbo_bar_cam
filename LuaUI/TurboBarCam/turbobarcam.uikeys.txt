@@ -123,5 +123,3 @@ bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,5
 bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-5
 bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
 bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5
-
-bind        sc_]            turbobarcam_toggle_point_orbit
