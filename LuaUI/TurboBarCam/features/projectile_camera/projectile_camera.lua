@@ -22,7 +22,7 @@ if not STATE.projectileWatching then
         watchedUnitID = nil,
         previousMode = nil, -- Store previous mode to return to
         impactTimer = nil, -- Timer for impact timeout
-        impactTimeout = 3.0, -- Wait x seconds after impact
+        impactTimeout = 1.5, -- Wait x seconds after impact
         impactPosition = nil, -- Last known position for impact view
         cameraMode = "follow" -- "follow" or "static"
     }
@@ -213,8 +213,8 @@ function ProjectileCamera.checkAndActivate()
     if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
         Log.trace("watchedUnitID", STATE.projectileWatching.watchedUnitID)
         -- Check if timeout has elapsed
-        local currentTime = Spring.GetGameSeconds()
-        local elapsed = currentTime - STATE.projectileWatching.impactTimer
+        local currentTime = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(currentTime, STATE.projectileWatching.impactTimer)
 
         if elapsed >= STATE.projectileWatching.impactTimeout then
             Log.trace("Impact timeout elapsed, returning to previous mode: " .. tostring(STATE.projectileWatching.previousMode))
@@ -382,7 +382,7 @@ function ProjectileCamera.update()
     if (not currentProjectile or not currentProjectile.lastPosition) and STATE.tracking.projectile.selectedProjectileID then
         if not STATE.projectileWatching.impactTimer then
             Log.trace("Selected projectile no longer exists, starting impact timeout timer")
-            STATE.projectileWatching.impactTimer = Spring.GetGameSeconds()
+            STATE.projectileWatching.impactTimer = Spring.GetTimer()
         end
 
         -- If we have a saved impact position, look at it
