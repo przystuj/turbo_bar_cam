@@ -14,18 +14,21 @@ local Log = CommonModules.Log
 ---@class CameraQuickControls
 local CameraQuickControls = {}
 
+local function togglePointOrbit()
+    -- Only handle if no other mode is active or we're toggling an existing mode
+    if not STATE.tracking.mode or STATE.tracking.mode == 'orbit' then
+        Features.OrbitingCamera.togglePointOrbit()
+    end
+end
+
 -- Initialization function - registers global mouse controls
 function CameraQuickControls.initialize()
-    -- Register with mouse manager for global controls (no mode)
     MouseManager.registerMode('global')
+    MouseManager.registerMode('orbit')
 
     -- Middle mouse button (MMB) for orbit point tracking
-    MouseManager.onMMB('global', function(x, y)
-        -- Only handle if no other mode is active or we're toggling an existing mode
-        if not STATE.tracking.mode or STATE.tracking.mode == 'orbit' then
-            Features.OrbitingCamera.togglePointOrbit()
-        end
-    end)
+    MouseManager.onMMB('global', togglePointOrbit)
+    MouseManager.onMMB('orbit', togglePointOrbit)
 
     Log.info("Camera quick controls initialized")
 end

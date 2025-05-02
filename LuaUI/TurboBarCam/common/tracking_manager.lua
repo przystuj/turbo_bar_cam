@@ -50,11 +50,7 @@ function TrackingManager.initializeTracking(mode, target, targetType)
 
     -- Check if we're already tracking this exact target in the same mode
     if STATE.tracking.mode == mode and validType == STATE.tracking.targetType then
-        if (validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID) or
-                (validType == STATE.TARGET_TYPES.POINT and STATE.tracking.targetPoint and
-                        validTarget.x == STATE.tracking.targetPoint.x and
-                        validTarget.z == STATE.tracking.targetPoint.z) then
-
+        if validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID then
             SettingsManager.saveModeSettings(mode, STATE.tracking.unitID)
             TrackingManager.disableTracking()
             Log.debug(mode .. " camera detached")

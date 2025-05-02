@@ -19,9 +19,7 @@ end
 
 local function shouldProcessInput()
     for modeName, _ in pairs(STATE.mouse.registeredModes) do
-        if modeName == "global" and not STATE.tracking.mode then
-            return true
-        elseif not Util.isModeDisabled(modeName) then
+        if not Util.isModeDisabled(modeName) then
             return true
         end
     end
@@ -145,6 +143,10 @@ end
 -- MMB handlers
 MouseManager.onMMB = function(modeName, callback)
     registerCallback("onMMB", modeName, callback)
+end
+
+MouseManager.onDoubleMMB = function(modeName, callback)
+    registerCallback("onDoubleMMB", modeName, callback)
 end
 
 MouseManager.onDragStartMMB = function(modeName, callback)

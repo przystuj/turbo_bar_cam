@@ -108,8 +108,10 @@ end
 
 ---@param mode 'fps'|'unit_tracking'|'orbit'|'overview'
 function Util.isModeDisabled(mode)
-    if STATE.tracking.mode ~= mode then
-        Log.trace(string.format("Mode %s must be enabled first. Current mode: %s", mode, tostring(STATE.tracking.mode)))
+    if mode == "global" and STATE.tracking.mode then
+        return true
+    end
+    if mode ~= "global" and STATE.tracking.mode ~= mode then
         return true
     end
 end
