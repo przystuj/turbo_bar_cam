@@ -47,11 +47,6 @@ function OrbitCameraUtils.adjustParams(params)
     if Util.isModeDisabled("orbit") then
         return
     end
-    -- Make sure we have a unit to orbit around
-    if not STATE.tracking.unitID then
-        Log.trace("No unit is being orbited")
-        return
-    end
 
     Util.adjustParams(params, "ORBIT", function() OrbitCameraUtils.resetSettings() end)
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
