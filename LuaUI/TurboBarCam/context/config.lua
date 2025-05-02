@@ -186,8 +186,8 @@ if not WG.TurboBarCam.CONFIG then
                 HEIGHT = 100,
 
                 -- Default look ahead distance
-                DEFAULT_LOOK_AHEAD = 500,
-                LOOK_AHEAD = 500,
+                DEFAULT_LOOK_AHEAD = 5,
+                LOOK_AHEAD = 5,
 
                 -- Timeout for tracking lost projectiles (seconds)
                 TIMEOUT = 2.0,
@@ -196,7 +196,7 @@ if not WG.TurboBarCam.CONFIG then
                 SMOOTHING = {
                     POSITION_FACTOR = 0.2,
                     ROTATION_FACTOR = 0.1,
-                    INTERPOLATION_FACTOR = 0.7
+                    INTERPOLATION_FACTOR = 0.05
                 },
                 DEFAULT_SMOOTHING = {
                     POSITION_FACTOR = 0.3,

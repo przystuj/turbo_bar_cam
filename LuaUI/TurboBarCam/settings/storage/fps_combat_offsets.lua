@@ -239,6 +239,12 @@ return {
     ["ROTATION"] = 0,
     ["SIDE"] = 0,
   },
+  ["corshiva"] = {
+    ["FORWARD"] = -75,
+    ["HEIGHT"] = 35,
+    ["ROTATION"] = 0,
+    ["SIDE"] = 0,
+  },
   ["corstorm"] = {
     ["FORWARD"] = -75,
     ["HEIGHT"] = 35,
