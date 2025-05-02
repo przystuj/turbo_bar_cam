@@ -1,6 +1,13 @@
 if not WG.TurboBarCam.STATE then
     ---@class WidgetState
     WG.TurboBarCam.STATE = {
+        -- Target types
+        TARGET_TYPES = {
+            UNIT = "UNIT",
+            POINT = "POINT",
+            NONE = "NONE"
+        },
+
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
@@ -32,7 +39,11 @@ if not WG.TurboBarCam.STATE then
         tracking = {
             -- Current mode
             mode = nil, -- 'fps', 'unit_tracking', 'orbit', 'overview'
+            targetType = nil, -- 'UNIT', 'POINT', or 'NONE'
             unitID = nil, -- Current tracked unit
+            targetPoint = nil, -- {x, y, z} coordinates for point tracking
+            lastTargetPoint = nil, -- Last known position of the target (for fallback)
+
             offsets = { fps = {}, orbit = {}, projectile_camera = {} }, -- Store mode settings
 
             -- Grace period

@@ -137,6 +137,12 @@ return {
     ["ROTATION"] = 0,
     ["SIDE"] = 0,
   },
+  ["corcat"] = {
+    ["FORWARD"] = -300,
+    ["HEIGHT"] = 130,
+    ["ROTATION"] = 0,
+    ["SIDE"] = 0,
+  },
   ["corck"] = {
     ["FORWARD"] = -300,
     ["HEIGHT"] = 130,

@@ -14,6 +14,40 @@ local Util = {}
 
 local lastThrottledExecutionTimes = {}
 
+--- Gets world position at mouse cursor
+---@return table|nil point World coordinates {x,y,z} or nil if outside map
+function Util.getCursorWorldPosition()
+    local mx, my = Spring.GetMouseState()
+    local _, pos = Spring.TraceScreenRay(mx, my, true)
+    if pos then
+        return {x = pos[1], y = pos[2], z = pos[3]}
+    end
+    return nil
+end
+
+--- Validates and normalizes a tracking target
+---@param target any The target to validate (unitID or {x,y,z})
+---@return any normalizedTarget Validated target (unitID or {x,y,z})
+---@return string targetType Target type ('UNIT', 'POINT', or 'NONE')
+function Util.validateTarget(target)
+    -- Check if target is a unit ID
+    if type(target) == "number" then
+        if Spring.ValidUnitID(target) then
+            return target, STATE.TARGET_TYPES.UNIT
+        end
+        return nil, STATE.TARGET_TYPES.NONE
+    end
+
+    -- Check if target is a point
+    if type(target) == "table" and target.x and target.z then
+        -- Ensure y coordinate is present
+        target.y = target.y or Spring.GetGroundHeight(target.x, target.z)
+        return target, STATE.TARGET_TYPES.POINT
+    end
+
+    return nil, STATE.TARGET_TYPES.NONE
+end
+
 --- Checks if a value exists in an array
 ---@param tbl table The array to search in
 ---@param value any The value to search for

@@ -15,45 +15,75 @@ local STATE = WidgetContext.STATE
 ---@class TrackingManager
 local TrackingManager = {}
 
---- Initializes unit tracking
----@param mode string Tracking mode ('fps', 'unit_tracking', 'fixed_point', 'orbit')
----@param unitID number|nil Unit ID to track (optional)
+--- Initializes tracking
+---@param mode string Tracking mode ('fps', 'unit_tracking', 'orbit', 'overview')
+---@param target any The target to track (unitID number or point table {x,y,z})
+---@param targetType string|nil Target type (optional, will be auto-detected if nil)
 ---@return boolean success Whether tracking was initialized successfully
-function TrackingManager.initializeTracking(mode, unitID)
+function TrackingManager.initializeTracking(mode, target, targetType)
     if Util.isTurboBarCamDisabled() then
-        return
+        return false
     end
 
-    -- If no unit provided, use first selected unit
-    if not unitID then
+    -- Validate and normalize the target
+    local validTarget, validType
+    if targetType then
+        -- Use the provided type
+        validTarget = target
+        validType = targetType
+    else
+        -- Auto-detect target type
+        validTarget, validType = Util.validateTarget(target)
+    end
+
+    -- If target validation failed, try to get a unit from selection
+    if validType == STATE.TARGET_TYPES.NONE then
         local selectedUnits = Spring.GetSelectedUnits()
-        if #selectedUnits == 0 then
-            Log.debug("No unit selected for " .. mode .. " view")
+        if #selectedUnits > 0 then
+            validTarget = selectedUnits[1]
+            validType = STATE.TARGET_TYPES.UNIT
+        else
+            Log.debug("No valid target for " .. mode .. " view")
             return false
         end
-        unitID = selectedUnits[1]
     end
 
-    -- Check if it's a valid unit
-    if not Spring.ValidUnitID(unitID) then
-        Log.trace("Invalid unit ID for " .. mode .. " view")
-        return false
-    end
+    -- Check if we're already tracking this exact target in the same mode
+    if STATE.tracking.mode == mode then
+        if (validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID) or
+                (validType == STATE.TARGET_TYPES.POINT and STATE.tracking.targetPoint and
+                        validTarget.x == STATE.tracking.targetPoint.x and
+                        validTarget.z == STATE.tracking.targetPoint.z) then
 
-    -- If we're already tracking this exact unit in the same mode, turn it off
-    if STATE.tracking.mode == mode and STATE.tracking.unitID == unitID then
-        SettingsManager.saveModeSettings(mode, unitID)
-        TrackingManager.disableTracking()
-        Log.debug(mode .. " camera detached")
-        return false
+            SettingsManager.saveModeSettings(mode, STATE.tracking.unitID)
+            TrackingManager.disableTracking()
+            Log.debug(mode .. " camera detached")
+            return false
+        end
     end
 
     -- Begin mode transition from previous mode
     TrackingManager.startModeTransition(mode)
-    STATE.tracking.unitID = unitID
-    SettingsManager.loadModeSettings(mode, unitID)
 
-    -- refresh unit command bar to add custom command
+    -- Set the appropriate tracking target fields
+    STATE.tracking.targetType = validType
+
+    if validType == STATE.TARGET_TYPES.UNIT then
+        STATE.tracking.unitID = validTarget
+        -- Store the initial position as the target point too
+        local x, y, z = Spring.GetUnitPosition(validTarget)
+        STATE.tracking.targetPoint = {x = x, y = y, z = z}
+        STATE.tracking.lastTargetPoint = {x = x, y = y, z = z}
+        SettingsManager.loadModeSettings(mode, validTarget)
+    else -- POINT
+        STATE.tracking.targetPoint = validTarget
+        STATE.tracking.lastTargetPoint = Util.deepCopy(validTarget)
+        STATE.tracking.unitID = nil
+        -- For point tracking, we can use a generic identifier
+        SettingsManager.loadModeSettings(mode, "point")
+    end
+
+    -- refresh unit command bar to add custom command if needed
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
 end
@@ -83,7 +113,16 @@ end
 
 --- Disables tracking and resets tracking state
 function TrackingManager.disableTracking()
-    SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+        SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+    elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
+        SettingsManager.saveModeSettings(STATE.tracking.mode, "point")
+    end
+
+    -- Clear target tracking fields
+    STATE.tracking.targetType = STATE.TARGET_TYPES.NONE
+    STATE.tracking.targetPoint = nil
+    STATE.tracking.lastTargetPoint = nil
 
     -- Clean up projectile camera state if active
     if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching then
@@ -213,6 +252,37 @@ function TrackingManager.startModeTransition(newMode)
 
     TrackingManager.updateTrackingState(STATE.tracking.transitionStartState)
     return true
+end
+
+--- Gets the current tracking target
+---@param requestedType string|nil Optional type to filter by
+---@return any target The current target (unitID or point)
+---@return string targetType The type of the target
+function TrackingManager.getTrackingTarget(requestedType)
+    -- If we have a specific requested type, check for it
+    if requestedType then
+        if requestedType == STATE.TARGET_TYPES.UNIT and STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+            return STATE.tracking.unitID, STATE.TARGET_TYPES.UNIT
+        elseif requestedType == STATE.TARGET_TYPES.POINT then
+            if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
+                return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
+            elseif STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT and STATE.tracking.targetPoint then
+                -- For unit targets, we can still return the point if requested
+                return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
+            end
+        end
+        -- Requested type not available
+        return nil, STATE.TARGET_TYPES.NONE
+    end
+
+    -- No specific type requested, return whatever we have
+    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+        return STATE.tracking.unitID, STATE.TARGET_TYPES.UNIT
+    elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
+        return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
+    end
+
+    return nil, STATE.TARGET_TYPES.NONE
 end
 
 return {
