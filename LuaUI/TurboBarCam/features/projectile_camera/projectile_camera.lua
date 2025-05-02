@@ -678,14 +678,29 @@ function ProjectileCamera.applyProjectileCameraState(smoothedCamPos, smoothedTar
     TrackingManager.updateTrackingState(directionState)
 end
 
+function ProjectileCamera.easeOutCubic(t)
+    local t2 = t - 1
+    return t2 * t2 * t2 + 1
+end
+
 function ProjectileCamera.getSmoothingFactors()
     local posFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.POSITION_FACTOR
     local rotFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
 
     if STATE.tracking.isModeTransitionInProgress then
-        -- Use a special transition factor during mode changes
-        posFactor = CONFIG.MODE_TRANSITION_SMOOTHING
-        rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING
+        -- Calculate transition progress
+        local now = Spring.GetTimer()
+        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+        local progress = math.min(1, elapsed / CONFIG.TRANSITION.MODE_TRANSITION_DURATION)
+
+        -- Apply easing function to get a smoother interpolation factor
+        local easedProgress = ProjectileCamera.easeOutCubic(progress)
+
+        -- Interpolate between transition smoothing and normal smoothing
+        -- Start with MODE_TRANSITION_SMOOTHING and gradually approach normal smoothing
+        local transitionFactor = CONFIG.MODE_TRANSITION_SMOOTHING / 10
+        posFactor = transitionFactor + (posFactor - transitionFactor) * easedProgress
+        rotFactor = transitionFactor + (rotFactor - transitionFactor) * easedProgress
     end
 
     return posFactor, rotFactor
