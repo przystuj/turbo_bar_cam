@@ -49,7 +49,7 @@ function TrackingManager.initializeTracking(mode, target, targetType)
     end
 
     -- Check if we're already tracking this exact target in the same mode
-    if STATE.tracking.mode == mode then
+    if STATE.tracking.mode == mode and validType == STATE.tracking.targetType then
         if (validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID) or
                 (validType == STATE.TARGET_TYPES.POINT and STATE.tracking.targetPoint and
                         validTarget.x == STATE.tracking.targetPoint.x and
@@ -72,10 +72,11 @@ function TrackingManager.initializeTracking(mode, target, targetType)
         STATE.tracking.unitID = validTarget
         -- Store the initial position as the target point too
         local x, y, z = Spring.GetUnitPosition(validTarget)
-        STATE.tracking.targetPoint = {x = x, y = y, z = z}
-        STATE.tracking.lastTargetPoint = {x = x, y = y, z = z}
+        STATE.tracking.targetPoint = { x = x, y = y, z = z }
+        STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
         SettingsManager.loadModeSettings(mode, validTarget)
-    else -- POINT
+    else
+        -- POINT
         STATE.tracking.targetPoint = validTarget
         STATE.tracking.lastTargetPoint = Util.deepCopy(validTarget)
         STATE.tracking.unitID = nil

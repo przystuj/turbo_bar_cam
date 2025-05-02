@@ -56,7 +56,13 @@ function UpdateManager.handleTrackingGracePeriod()
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
 
-        -- If grace period expired (1 second), disable tracking
+        -- Skip grace period for point tracking
+        if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
+            STATE.tracking.graceTimer = Spring.GetTimer()
+            return false
+        end
+
+        -- If grace period expired (1 second), disable tracking for unit targets
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
             TrackingManager.disableTracking()
             Log.debug("Camera tracking disabled - no units selected")

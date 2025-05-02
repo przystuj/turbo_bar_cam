@@ -19,7 +19,9 @@ end
 
 local function shouldProcessInput()
     for modeName, _ in pairs(STATE.mouse.registeredModes) do
-        if not Util.isModeDisabled(modeName) then
+        if modeName == "global" and not STATE.tracking.mode then
+            return true
+        elseif not Util.isModeDisabled(modeName) then
             return true
         end
     end
@@ -55,7 +57,7 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
     local isDraggingKey = "isDragging" .. buttonKey
 
     local _, _, lmb, mmb, rmb = Spring.GetMouseState()
-    local isDown = ({LMB = lmb, MMB = mmb, RMB = rmb})[buttonKey]
+    local isDown = ({ LMB = lmb, MMB = mmb, RMB = rmb })[buttonKey]
     local lastClickTime = STATE.mouse[lastClickKey]
 
     if isDown and not STATE.mouse[isDownKey] then

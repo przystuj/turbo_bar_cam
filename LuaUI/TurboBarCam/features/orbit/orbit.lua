@@ -91,18 +91,6 @@ function OrbitingCamera.togglePointOrbit(point)
         end
     end
 
-    -- If we're already tracking this exact point in Orbiting mode, turn it off
-    if STATE.tracking.mode == 'orbit' and
-            STATE.tracking.targetType == STATE.TARGET_TYPES.POINT and
-            STATE.tracking.targetPoint and
-            STATE.tracking.targetPoint.x == point.x and
-            STATE.tracking.targetPoint.z == point.z then
-
-        TrackingManager.disableTracking()
-        Log.trace("Orbiting camera detached from point")
-        return
-    end
-
     -- Initialize the tracking system
     if TrackingManager.initializeTracking('orbit', point, STATE.TARGET_TYPES.POINT) then
         -- Initialize orbit angle based on current camera position

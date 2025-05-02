@@ -4,6 +4,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+---@type CameraQuickControls
+local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua").CameraQuickControls
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -30,6 +32,7 @@ function WidgetControl.enable()
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
     STATE.enabled = true
     WidgetControl.switchToFpsCamera()
+    CameraQuickControls.initialize()
     Log.debug("Enabled")
 end
 
@@ -56,6 +59,7 @@ function WidgetControl.disable()
     end
 
     STATE.enabled = false
+    CameraQuickControls.shutdown()
     Log.debug("Disabled")
 end
 
