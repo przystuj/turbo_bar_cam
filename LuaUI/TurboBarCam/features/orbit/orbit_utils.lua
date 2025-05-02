@@ -15,13 +15,13 @@ local TrackingManager = CommonModules.TrackingManager
 local OrbitCameraUtils = {}
 
 --- Calculates camera position on orbit path
----@param unitPos table Unit position {x, y, z}
+---@param targetPos table Target position {x, y, z}
 ---@return table camPos Camera position {x, y, z}
-function OrbitCameraUtils.calculateOrbitPosition(unitPos)
+function OrbitCameraUtils.calculateOrbitPosition(targetPos)
     return {
-        x = unitPos.x + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.sin(STATE.tracking.orbit.angle),
-        y = unitPos.y + CONFIG.CAMERA_MODES.ORBIT.HEIGHT,
-        z = unitPos.z + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.cos(STATE.tracking.orbit.angle)
+        x = targetPos.x + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.sin(STATE.tracking.orbit.angle),
+        y = targetPos.y + CONFIG.CAMERA_MODES.ORBIT.HEIGHT,
+        z = targetPos.z + CONFIG.CAMERA_MODES.ORBIT.DISTANCE * math.cos(STATE.tracking.orbit.angle)
     }
 end
 
@@ -29,8 +29,13 @@ function OrbitCameraUtils.ensureHeightIsSet()
     if CONFIG.CAMERA_MODES.ORBIT.HEIGHT then
         return
     end
-    local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
-    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
+
+    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
+    else
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = 1000
+    end
 end
 
 ---@see ModifiableParams

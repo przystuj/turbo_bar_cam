@@ -225,6 +225,11 @@ function Actions.orbitActions()
                 FeatureModules.OrbitingCamera.adjustParams(params)
                 return false
             end)
+    Actions.registerAction("turbobarcam_toggle_point_orbit", 'tp',
+            function()
+                FeatureModules.OrbitingCamera.togglePointOrbit()
+                return true
+            end)
 end
 
 

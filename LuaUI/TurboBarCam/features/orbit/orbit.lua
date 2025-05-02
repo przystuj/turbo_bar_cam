@@ -25,6 +25,11 @@ function OrbitingCamera.toggle(unitID)
         return
     end
 
+    local pointTrackingEnabled = false
+    if STATE.tracking.mode == 'orbit' and STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
+        pointTrackingEnabled = true
+    end
+
     -- If no unitID provided, use the first selected unit
     if not unitID then
         local selectedUnits = Spring.GetSelectedUnits()
@@ -32,6 +37,9 @@ function OrbitingCamera.toggle(unitID)
             unitID = selectedUnits[1]
         else
             Log.debug("No unit selected for Orbiting view")
+            if pointTrackingEnabled then
+                TrackingManager.disableTracking()
+            end
             return
         end
     end
@@ -39,11 +47,14 @@ function OrbitingCamera.toggle(unitID)
     -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
         Log.trace("Invalid unit ID for Orbiting view")
+        if pointTrackingEnabled then
+            TrackingManager.disableTracking()
+        end
         return
     end
 
     -- If we're already tracking this exact unit in Orbiting mode, turn it off
-    if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID then
+    if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID and STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
         TrackingManager.disableTracking()
         Log.trace("Orbiting camera detached")
         return
@@ -64,30 +75,95 @@ function OrbitingCamera.toggle(unitID)
 
 end
 
+--- Toggles orbiting camera mode around a point
+---@param point table|nil Optional position {x,y,z} to orbit around
+function OrbitingCamera.togglePointOrbit(point)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    -- If no point provided, use cursor position
+    if not point then
+        point = Util.getCursorWorldPosition()
+        if not point then
+            Log.debug("Couldn't get cursor position for Orbiting view")
+            return
+        end
+    end
+
+    -- If we're already tracking this exact point in Orbiting mode, turn it off
+    if STATE.tracking.mode == 'orbit' and
+            STATE.tracking.targetType == STATE.TARGET_TYPES.POINT and
+            STATE.tracking.targetPoint and
+            STATE.tracking.targetPoint.x == point.x and
+            STATE.tracking.targetPoint.z == point.z then
+
+        TrackingManager.disableTracking()
+        Log.trace("Orbiting camera detached from point")
+        return
+    end
+
+    -- Initialize the tracking system
+    if TrackingManager.initializeTracking('orbit', point, STATE.TARGET_TYPES.POINT) then
+        -- Initialize orbit angle based on current camera position
+        local camState = CameraManager.getCameraState("OrbitingCamera.togglePointOrbit")
+
+        -- Calculate current angle based on camera position relative to point
+        STATE.tracking.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
+
+        Log.trace(string.format("Orbiting camera attached to point at (%.1f, %.1f, %.1f)",
+                point.x, point.y, point.z))
+    end
+end
+
 --- Updates the orbit camera's position and rotation
 function OrbitingCamera.update()
-    if STATE.tracking.mode ~= 'orbit' or not STATE.tracking.unitID then
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if Util.isModeDisabled("orbit") then
         return
     end
 
-    -- Check if unit still exists
-    if not Spring.ValidUnitID(STATE.tracking.unitID) then
-        Log.trace("Unit no longer exists")
-        TrackingManager.disableTracking()
-        return
-    end
+    -- Get target position based on target type
+    local targetPos
 
-    -- Get unit position
-    local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
+    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+        -- Check if unit still exists
+        if not Spring.ValidUnitID(STATE.tracking.unitID) then
+            Log.trace("Unit no longer exists, switching to point tracking")
+
+            -- Switch to point tracking using last known position
+            if STATE.tracking.lastTargetPoint then
+                STATE.tracking.targetType = STATE.TARGET_TYPES.POINT
+                STATE.tracking.targetPoint = STATE.tracking.lastTargetPoint
+                STATE.tracking.unitID = nil
+
+                -- Use the last target point for this update
+                targetPos = STATE.tracking.targetPoint
+            else
+                -- No position info available, disable tracking
+                TrackingManager.disableTracking()
+                return
+            end
+        else
+            -- Unit exists, get its position
+            local x, y, z = Spring.GetUnitPosition(STATE.tracking.unitID)
+            targetPos = { x = x, y = y, z = z }
+
+            -- Update last target point for fallback
+            STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
+        end
+    else
+        -- Point tracking
+        targetPos = STATE.tracking.targetPoint
+    end
 
     -- Update orbit angle
     STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED
 
     -- Calculate camera position on the orbit circle
-    local camPos = OrbitCameraUtils.calculateOrbitPosition({ x = unitX, y = unitY, z = unitZ })
-
-    -- Create camera state looking at the unit
-    local targetPos = { x = unitX, y = unitY, z = unitZ }
+    local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
 
     -- Determine smoothing factor based on whether we're in a mode transition
     local smoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
