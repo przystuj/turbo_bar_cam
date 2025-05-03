@@ -660,19 +660,20 @@ function GroupTrackingCamera.update()
     end
 
     -- Apply orbit-style camera adjustments
-    local newCamPos = TrackingUtils.applyCameraAdjustments(
-            center,
-            newCameraDir,
-            targetDistance,
-            targetHeight
-    )
+    local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
+    local totalHeight = targetHeight + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
 
-    -- Get current camera position for smooth transition
+    local newCamPos = {
+        x = center.x + (newCameraDir.x * totalDistance),
+        y = totalHeight,
+        z = center.z + (newCameraDir.z * totalDistance)
+    }
+
+    -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
     -- Determine smoothing factors based on stable mode
     local posFactor, rotFactor
-
     if STATE.tracking.group.inStableMode then
         posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION
         rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION
@@ -681,12 +682,17 @@ function GroupTrackingCamera.update()
         rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
     end
 
-    -- Apply smoothing
-    local smoothedPos = {
-        x = CameraCommons.smoothStep(camPos.x, newCamPos.x, posFactor),
-        y = CameraCommons.smoothStep(camPos.y, newCamPos.y, posFactor),
-        z = CameraCommons.smoothStep(camPos.z, newCamPos.z, posFactor)
-    }
+    -- Apply smoothing with spherical interpolation for significant direction changes
+    local smoothedPos
+    if CameraCommons.shouldUseSphericalInterpolation(camPos, newCamPos, center) then
+        smoothedPos = CameraCommons.sphericalInterpolate(center, camPos, newCamPos, posFactor, true)
+    else
+        smoothedPos = {
+            x = CameraCommons.smoothStep(camPos.x, newCamPos.x, posFactor),
+            y = CameraCommons.smoothStep(camPos.y, newCamPos.y, posFactor),
+            z = CameraCommons.smoothStep(camPos.z, newCamPos.z, posFactor)
+        }
+    end
 
     -- Calculate look direction to center using the smoothed position
     local camStatePatch = CameraCommons.focusOnPoint(smoothedPos, center, posFactor, rotFactor, 1.8)

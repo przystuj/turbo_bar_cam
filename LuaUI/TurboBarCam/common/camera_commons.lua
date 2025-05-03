@@ -10,17 +10,32 @@ local CONFIG = WidgetContext.CONFIG
 local CameraCommons = {}
 
 -- Vector Helper Functions
-function CameraCommons.vectorAdd(v1, v2) return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) } end
-function CameraCommons.vectorSubtract(v1, v2) return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) } end
-function CameraCommons.vectorMultiply(v, scalar) return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar } end
-function CameraCommons.vectorMagnitudeSq(v) local x,y,z = v.x or 0, v.y or 0, v.z or 0 return x*x+y*y+z*z end
-function CameraCommons.vectorMagnitude(v) return math.sqrt(CameraCommons.vectorMagnitudeSq(v)) end
+function CameraCommons.vectorAdd(v1, v2)
+    return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
+end
+function CameraCommons.vectorSubtract(v1, v2)
+    return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) }
+end
+function CameraCommons.vectorMultiply(v, scalar)
+    return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar }
+end
+function CameraCommons.vectorMagnitudeSq(v)
+    local x, y, z = v.x or 0, v.y or 0, v.z or 0
+    return x * x + y * y + z * z
+end
+function CameraCommons.vectorMagnitude(v)
+    return math.sqrt(CameraCommons.vectorMagnitudeSq(v))
+end
 function CameraCommons.normalizeVector(v)
     local mag = CameraCommons.vectorMagnitude(v)
-    if mag > 0.0001 then return CameraCommons.vectorMultiply(v, 1 / mag) end
+    if mag > 0.0001 then
+        return CameraCommons.vectorMultiply(v, 1 / mag)
+    end
     return { x = 0, y = 0, z = 0 }
 end
-function CameraCommons.dotProduct(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0) end
+function CameraCommons.dotProduct(v1, v2)
+    return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
+end
 
 --- Linear interpolation between two values
 ---@param a number Start value
@@ -29,6 +44,116 @@ function CameraCommons.dotProduct(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1
 ---@return number interpolated value
 function CameraCommons.lerp(a, b, t)
     return a + (b - a) * t
+end
+
+function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, preserveHeight)
+    -- If preserveHeight is true, we'll maintain the Y component's relative position
+    local preserveY = preserveHeight or false
+
+    -- Calculate vectors from center
+    local startVec = CameraCommons.vectorSubtract(startPos, center)
+    local endVec = CameraCommons.vectorSubtract(endPos, center)
+
+    -- Save initial heights if preserving
+    local startRelativeY = startVec.y
+    local endRelativeY = endVec.y
+
+    -- For height preservation, use XZ plane for spherical calculation
+    if preserveY then
+        -- Zero out Y components for direction calculation
+        startVec.y = 0
+        endVec.y = 0
+    end
+
+    -- Get the distances (in XZ plane if preserving height)
+    local startDist = CameraCommons.vectorMagnitude(startVec)
+    local endDist = CameraCommons.vectorMagnitude(endVec)
+
+    -- Normalize vectors
+    local startDir = CameraCommons.normalizeVector(startVec)
+    local endDir = CameraCommons.normalizeVector(endVec)
+
+    -- Calculate dot product
+    local dot = CameraCommons.dotProduct(startDir, endDir)
+    dot = math.max(-0.99, math.min(0.99, dot)) -- Clamp to avoid numerical issues
+
+    -- If vectors are nearly identical or factor is 1, use linear interpolation
+    if dot > 0.99 or factor >= 1 then
+        return {
+            x = startPos.x + (endPos.x - startPos.x) * factor,
+            y = startPos.y + (endPos.y - startPos.y) * factor,
+            z = startPos.z + (endPos.z - startPos.z) * factor
+        }
+    end
+
+    -- Calculate angle and slerp weights
+    local angle = math.acos(dot)
+    local sinAngle = math.sin(angle)
+
+    local w1 = math.sin((1 - factor) * angle) / sinAngle
+    local w2 = math.sin(factor * angle) / sinAngle
+
+    -- Interpolate direction
+    local resultDir = {
+        x = startDir.x * w1 + endDir.x * w2,
+        y = startDir.y * w1 + endDir.y * w2,
+        z = startDir.z * w1 + endDir.z * w2
+    }
+    resultDir = CameraCommons.normalizeVector(resultDir)
+
+    -- Interpolate distance
+    local resultDist = startDist * (1 - factor) + endDist * factor
+
+    -- Calculate interpolated position
+    local result = {
+        x = center.x + resultDir.x * resultDist,
+        y = 0, -- Will be set below
+        z = center.z + resultDir.z * resultDist
+    }
+
+    -- Handle Y component based on preserveHeight option
+    if preserveY then
+        -- Linearly interpolate the relative height
+        local relativeY = startRelativeY * (1 - factor) + endRelativeY * factor
+        result.y = center.y + relativeY
+    else
+        -- Use spherical interpolation for Y as well
+        result.y = center.y + resultDir.y * resultDist
+    end
+
+    return result
+end
+
+function CameraCommons.shouldUseSphericalInterpolation(currentPos, targetPos, center)
+    -- Calculate direction vectors from center (in XZ plane)
+    local currentVec = {
+        x = currentPos.x - center.x,
+        z = currentPos.z - center.z
+    }
+    local newVec = {
+        x = targetPos.x - center.x,
+        z = targetPos.z - center.z
+    }
+
+    -- Normalize 2D vectors
+    local currentLength = math.sqrt(currentVec.x * currentVec.x + currentVec.z * currentVec.z)
+    local newLength = math.sqrt(newVec.x * newVec.x + newVec.z * newVec.z)
+
+    if currentLength > 0.001 and newLength > 0.001 then
+        currentVec.x = currentVec.x / currentLength
+        currentVec.z = currentVec.z / currentLength
+
+        newVec.x = newVec.x / newLength
+        newVec.z = newVec.z / newLength
+
+        -- Calculate dot product
+        local dot = currentVec.x * newVec.x + currentVec.z * newVec.z
+
+        -- Return true if angle is significant (dot < 0.7 is roughly > 45 degrees)
+        return dot < 0.7
+    end
+
+    return false
 end
 
 --- Checks if a transition has completed
@@ -205,8 +330,12 @@ function CameraCommons.convertSpringToFPSCameraState(camState)
     fpsState.rz = 0
 
     -- Normalize ry to keep it in the range [-π, π]
-    while fpsState.ry > math.pi do fpsState.ry = fpsState.ry - 2 * math.pi end
-    while fpsState.ry < -math.pi do fpsState.ry = fpsState.ry + 2 * math.pi end
+    while fpsState.ry > math.pi do
+        fpsState.ry = fpsState.ry - 2 * math.pi
+    end
+    while fpsState.ry < -math.pi do
+        fpsState.ry = fpsState.ry + 2 * math.pi
+    end
 
     -- Copy any additional properties that might be needed
     fpsState.vx = camState.vx or 0

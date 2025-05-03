@@ -77,7 +77,7 @@ function FPSCamera.toggle()
         selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             Spring.SelectUnitArray(selectedUnits)
-            local x, _ , z = Spring.GetUnitPosition(selectedUnits[1])
+            local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
             CameraManager.setCameraState(CameraCommons.getDefaultUnitView(x, z), 1, "FPSCamera.disable")
             -- todo make it smooth
         end
@@ -140,12 +140,19 @@ function FPSCamera.update()
         STATE.tracking.isModeTransitionInProgress = false
     end
 
-    -- Smooth camera position
-    local smoothedPos = {
-        x = CameraCommons.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, posFactor),
-        y = CameraCommons.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, posFactor),
-        z = CameraCommons.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, posFactor)
-    }
+    -- Apply smoothing with spherical interpolation for significant direction changes
+    local center = { x = unitPos.x, y = unitPos.y, z = unitPos.z }
+    local smoothedPos
+
+    if CameraCommons.shouldUseSphericalInterpolation(STATE.tracking.lastCamPos, camPos, center) then
+        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.tracking.lastCamPos, camPos, posFactor, true)
+    else
+        smoothedPos = {
+            x = CameraCommons.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, posFactor),
+            y = CameraCommons.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, posFactor),
+            z = CameraCommons.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, posFactor)
+        }
+    end
 
     -- Handle different camera orientation modes
     local directionState
