@@ -443,7 +443,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.lastCameraDir = { x = dx, z = dz }
 
     -- Calculate look direction to center
-    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.TRACKING_FACTOR, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION_FACTOR)
+    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.TRACKING_FACTOR, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION_FACTOR, 1.8)
 
     -- Initialize tracking state with this position
 
@@ -689,7 +689,7 @@ function GroupTrackingCamera.update()
     }
 
     -- Calculate look direction to center using the smoothed position
-    local camStatePatch = CameraCommons.focusOnPoint(smoothedPos, center, posFactor, rotFactor)
+    local camStatePatch = CameraCommons.focusOnPoint(smoothedPos, center, posFactor, rotFactor, 1.8)
 
     -- Update camera state
     STATE.tracking.lastCamPos.x = camStatePatch.px

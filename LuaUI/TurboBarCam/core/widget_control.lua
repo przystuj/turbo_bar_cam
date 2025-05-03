@@ -59,7 +59,6 @@ function WidgetControl.disable()
     end
 
     STATE.enabled = false
-    CameraQuickControls.shutdown()
     Log.debug("Disabled")
 end
 

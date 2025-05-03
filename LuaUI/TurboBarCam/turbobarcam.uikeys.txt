@@ -108,11 +108,16 @@ bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15
 bind		numpad8			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,-15
 bind		Ctrl+numpad8	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,5
 bind		Ctrl+numpad5	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,-5
-bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.1
-bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
+bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.1
+bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
 bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.STABLE_POSITION,-0.002
 bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.STABLE_POSITION,0.002
 bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset
+
+// set max values to stabilise camera position
+bind		Ctrl+numpad9	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITION,0.2;SMOOTHING.STABLE_POSITION,0.2;SMOOTHING.ROTATION,0.2;SMOOTHING.STABLE_ROTATION,0.2
+// set low values for floaty cam, good for recording clips
+bind		Ctrl+numpad7	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITION,0.03;SMOOTHING.STABLE_POSITION,0.03;SMOOTHING.ROTATION,0.03;SMOOTHING.STABLE_ROTATION,0.03
 
 // Projectile tracking
 bind		Delete      	turbobarcam_projectile_camera_follow

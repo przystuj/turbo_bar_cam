@@ -221,7 +221,7 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Default adjustments (for reset)
                 DEFAULT_ADJUSTMENTS = {
-                    EXTRA_DISTANCE = 2445,
+                    EXTRA_DISTANCE = 1200,
                     EXTRA_HEIGHT = 815,
                     ORBIT_OFFSET = 0,
                 },
@@ -237,10 +237,10 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Default smoothing values (for reset)
                 DEFAULT_SMOOTHING = {
-                    POSITION = 0.08,
-                    ROTATION = 0.02,
-                    STABLE_POSITION = 0.035,
-                    STABLE_ROTATION = 0.02,
+                    POSITION = 0.03,
+                    ROTATION = 0.03,
+                    STABLE_POSITION = 0.03,
+                    STABLE_ROTATION = 0.03,
                     TRACKING_FACTOR = 0.1,
                 },
 
@@ -333,8 +333,8 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.GROUP_TRACKING,
         PARAM_NAMES = {
             -- Camera adjustments
-            EXTRA_DISTANCE = { -1000, 3000 }, -- Extra distance beyond calculated value
-            EXTRA_HEIGHT = { -1000, 3000 }, -- Extra height beyond calculated value
+            EXTRA_DISTANCE = { nil, nil }, -- Extra distance beyond calculated value
+            EXTRA_HEIGHT = { nil, nil }, -- Extra height beyond calculated value
             ORBIT_OFFSET = { -3.14, 3.14, "rad" }, -- Orbit offset angle in radians
 
             -- Smoothing factors

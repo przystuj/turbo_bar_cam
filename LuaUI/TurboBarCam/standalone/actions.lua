@@ -225,6 +225,7 @@ function Actions.orbitActions()
                 FeatureModules.OrbitingCamera.adjustParams(params)
                 return false
             end)
+
     Actions.registerAction("turbobarcam_toggle_point_orbit", 'tp',
             function()
                 FeatureModules.OrbitingCamera.togglePointOrbit()
@@ -243,7 +244,7 @@ function Actions.overviewActions()
     Actions.registerAction("turbobarcam_overview_change_height", 'tp',
             function(_, amount)
                 FeatureModules.TurboOverviewCamera.changeHeightAndMove(amount)
-                return true
+                return false
             end)
 
     -- Move camera to target
