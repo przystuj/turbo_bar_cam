@@ -197,9 +197,9 @@ function Actions.anchorActions()
                 return FeatureModules.CameraAnchor.debugQueue()
             end)
 
-    Actions.registerAction("turbobarcam_anchor_queue_speed", 'tp',
+    Actions.registerAction("turbobarcam_anchor_queue_speed", 't',
             function(_, _, args)
-                return FeatureModules.CameraAnchor.applySpeedControl(args[1], args[2])
+                return FeatureModules.CameraAnchor.addSpeedPoint(args[1], args[2], args[3])
             end)
 
     Actions.registerAction("turbobarcam_anchor_queue_stop", 'tp',

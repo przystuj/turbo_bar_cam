@@ -10,6 +10,8 @@ local CameraAnchorUtils = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor
 local CameraAnchorQueues = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_queues.lua").CameraAnchorQueues
 ---@type CameraAnchorPersistence
 local CameraAnchorPersistence = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_persistence.lua").CameraAnchorPersistence
+---@type AnchorTimeControl
+local AnchorTimeControl = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_time_control.lua").AnchorTimeControl
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -222,7 +224,7 @@ end
 
 ---@see EasingFunctions
 ---@see SpeedProfiles
-function CameraAnchor.startQueue(id, speedProfile, easingFn)
+function CameraAnchor.startQueue(id, easingFn)
     if Util.isTurboBarCamDisabled() then
         return false
     end
@@ -231,8 +233,8 @@ function CameraAnchor.startQueue(id, speedProfile, easingFn)
             Log.warn("No queue with id " .. id .. " found for this map")
             return false
         end
-        if speedProfile then
-            CameraAnchorQueues.applySpeedControl(speedProfile, easingFn)
+        if easingFn then
+            CameraAnchorQueues.applySpeedControl(easingFn)
         end
     end
     return CameraAnchorQueues.startQueue()
@@ -266,8 +268,8 @@ function CameraAnchor.debugQueue()
     return CameraAnchorPersistence.describeQueue()
 end
 
-function CameraAnchor.applySpeedControl(speedControls, easingFunc)
-    return CameraAnchorQueues.applySpeedControl(speedControls, easingFunc)
+function CameraAnchor.addSpeedPoint(position, factor, width)
+    return AnchorTimeControl.addSpeedPoint(position, factor, width)
 end
 
 ---@see ModifiableParams

@@ -1,28 +1,22 @@
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type EasingFunctions
 local EasingFunctions = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_easing_functions.lua").EasingFunctions
 
 local Log = CommonModules.Log
+local STATE = WidgetContext.STATE
 
 ---@class AnchorTimeControl
 local AnchorTimeControl = {}
 
 --- Apply speed control to a camera path
 ---@param pathInfo table Path information structure
----@param speedControls table|string Array of {time, speed} control points or preset name
+---@param speedControls table Array of {time, speed} control points
 ---@param easingFunc string|function Optional easing function name or function
 ---@return table pathInfo Updated path information
 function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc)
-    -- Handle preset names
-    if type(speedControls) == "string" then
-        speedControls = EasingFunctions.getPresetSpeedControls(speedControls)
-        if not speedControls then
-            Log.warn("Unknown speed control preset, using constant speed")
-            return pathInfo
-        end
-    end
-
     -- Validate speed controls
     if not speedControls or #speedControls < 2 then
         Log.warn("Invalid speed controls, using constant speed")
@@ -38,7 +32,7 @@ function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc
             easing = EasingFunctions[easingFunc]
             if not easing then
                 Log.warn("Unknown easing function '" .. easingFunc .. "', using linear")
-                easing = EasingFunctions.linear()
+                easing = EasingFunctions.linear
             end
         elseif type(easingFunc) == "function" then
             easing = easingFunc
@@ -56,7 +50,7 @@ function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc
     return pathInfo
 end
 
---- Build a time mapping from speed control points
+--- Build a time mapping from speed control points with improved interpolation
 ---@param speedControlPoints table Array of {time, speed} control points
 ---@param easingFunc function|nil Optional easing function to apply between control points
 ---@return table timeMap Time mapping information
@@ -76,7 +70,8 @@ function AnchorTimeControl.buildTimeMapping(speedControlPoints, easingFunc)
     local timeMap = {
         points = {},
         totalTime = 0,
-        easingFunc = easingFunc
+        easingFunc = easingFunc,
+        speedPoints = speedControlPoints -- Keep the reference for debugging
     }
 
     -- Add first mapping point
@@ -85,23 +80,31 @@ function AnchorTimeControl.buildTimeMapping(speedControlPoints, easingFunc)
         outputTime = 0
     })
 
-    -- Calculate time mapping for each segment
+    -- Use sub-segments for better integration
+    local numSegments = #speedControlPoints - 1
+    local segmentPoints = 10 -- Improved quality of integration
     local currentTime = 0
-    for i = 1, #speedControlPoints - 1 do
+
+    for i = 1, numSegments do
         local cp1 = speedControlPoints[i]
         local cp2 = speedControlPoints[i+1]
 
-        -- Calculate average speed in this segment
-        local avgSpeed = (cp1.speed + cp2.speed) / 2
-
-        -- Calculate how much progress we'd make at normal speed
         local normalProgress = cp2.time - cp1.time
+        local totalTimeForSegment = 0
 
-        -- Adjust for actual speed (slower speed = more time)
-        local actualProgress = normalProgress / avgSpeed
+        -- Integrate over smaller sub-segments for higher accuracy
+        for j = 1, segmentPoints do
+            local t = (j - 1) / (segmentPoints - 1)
+            -- Use cubic interpolation for smoother speed transitions
+            local segmentSpeed = cp1.speed + (cp2.speed - cp1.speed) *
+                    (3 * t * t - 2 * t * t * t)
+            totalTimeForSegment = totalTimeForSegment +
+                    (normalProgress / segmentPoints) / segmentSpeed
+        end
 
-        -- Add to time mapping
-        currentTime = currentTime + actualProgress
+        currentTime = currentTime + totalTimeForSegment
+
+        -- Add mapping point
         table.insert(timeMap.points, {
             inputTime = cp2.time,
             outputTime = currentTime
@@ -150,7 +153,7 @@ function AnchorTimeControl.remapStepTimes(pathInfo, timeMap)
     end
 end
 
---- Get remapped time based on time mapping
+--- Get remapped time based on time mapping with improved interpolation
 ---@param t number Normalized time (0-1)
 ---@param timeMap table Time mapping information
 ---@return number remappedTime Remapped normalized time (0-1)
@@ -190,107 +193,88 @@ function AnchorTimeControl.getRemappedTime(t, timeMap)
 end
 
 --- Create a speed control configuration for slowing down at specific points
----@param points table Array of waypoints
----@param slowdownFactor number|nil Speed reduction factor at waypoints (lower = slower)
----@param slowdownWidthBase number|nil Base width of slowdown zone around each waypoint (0-1)
----@param adaptiveWidth boolean|nil Whether to adapt width based on path length
+---@param position number Normalized position (0-1) where to apply slowdown
+---@param factor number Speed reduction factor (lower = slower)
+---@param width number|nil Width of slowdown zone
 ---@return table speedControls Speed control points
-function AnchorTimeControl.createSlowdownAtPoints(points, slowdownFactor, slowdownWidthBase, adaptiveWidth)
-    -- Default values
-    slowdownFactor = slowdownFactor or 0.3     -- 30% of normal speed
-    slowdownWidthBase = slowdownWidthBase or 0.2   -- 20% of path length as slowdown zone
-    adaptiveWidth = (adaptiveWidth ~= false)   -- Default to true
-
-    local speedControls = {}
-
-    -- Special case: if only 2 points, just go at constant speed
-    if #points <= 2 then
-        return {{time = 0, speed = 1}, {time = 1, speed = 1}}
+function AnchorTimeControl.addSpeedPoint(position, factor, width)
+    -- Validate state
+    if not STATE.anchorQueue or not STATE.anchorQueue.queue then
+        Log.warn("Cannot add slowdown - no active queue")
+        return nil
     end
 
-    -- Add first point
-    table.insert(speedControls, {time = 0, speed = 1})
+    local pathInfo = STATE.anchorQueue.queue
 
-    -- Calculate relative positions of points along the path
+    -- Default width
+    width = width or 0.2
+    local points = pathInfo.points
     local totalLength = 0
-    local pointPositions = {0} -- First point is at 0
-    local segmentLengths = {}
 
+    -- Calculate segment lengths and find total path length
+    local segmentLengths = {}
     for i = 2, #points do
         local p1 = points[i-1].state
         local p2 = points[i].state
 
-        -- Calculate distance
         local dist = math.sqrt(
                 (p2.px - p1.px)^2 +
                         (p2.py - p1.py)^2 +
                         (p2.pz - p1.pz)^2
         )
 
-        table.insert(segmentLengths, dist)
+        table.insert(segmentLengths, {
+            start = totalLength,
+            length = dist,
+            time = points[i-1].transitionTime
+        })
+
         totalLength = totalLength + dist
-        table.insert(pointPositions, totalLength)
     end
 
-    -- Normalize point positions to 0-1 range
-    for i = 1, #pointPositions do
-        pointPositions[i] = pointPositions[i] / totalLength
-    end
+    -- Convert normalized position to actual distance
+    local targetDist = position * totalLength
 
-    -- Calculate average segment length for adaptive width
-    local avgSegmentLength = totalLength / (#points - 1)
-
-    -- Create slowdown zones around intermediate points
-    for i = 2, #points - 1 do
-        local pointPos = pointPositions[i]
-
-        -- Calculate adaptive width if enabled
-        local slowdownWidth = slowdownWidthBase
-        if adaptiveWidth then
-            -- Get this point's adjacent segments
-            local prevSegLen = segmentLengths[i-1]
-            local nextSegLen = segmentLengths[i]
-
-            -- Use smaller of the two segments to determine width scale
-            local segScale = math.min(prevSegLen, nextSegLen) / avgSegmentLength
-
-            -- Scale width inversely to segment length (shorter segments get smaller width)
-            -- but clamp between 0.5-2 times the base width
-            local widthScale = math.max(0.5, math.min(2.0, 1.0 / segScale))
-            slowdownWidth = slowdownWidthBase * widthScale
-
-            -- Ensure width doesn't exceed available space
-            local maxWidth = math.min(pointPos, 1-pointPos) * 1.8  -- 90% of available space
-            slowdownWidth = math.min(slowdownWidth, maxWidth)
-
-            Log.debug(string.format("Point %d: adaptive width %.3f (segments: %.1f, %.1f, avg: %.1f)",
-                    i, slowdownWidth, prevSegLen, nextSegLen, avgSegmentLength))
+    -- Find segment containing this position
+    local targetSegment = nil
+    for i, segment in ipairs(segmentLengths) do
+        if targetDist >= segment.start and
+                targetDist <= segment.start + segment.length then
+            targetSegment = i
+            break
         end
+    end
 
-        -- Add speed control points around this waypoint
-        -- Start slowing down
+    -- Create speed control points
+    local speedControls = {}
+    table.insert(speedControls, {time = 0, speed = 1.0})
+
+    if targetSegment then
+        -- Calculate normalized position for slowdown
+        local segStart = segmentLengths[targetSegment].start
+        local segLength = segmentLengths[targetSegment].length
+        local normalizedPos = (targetDist - segStart) / segLength
+        normalizedPos = (normalizedPos + (targetSegment - 1)) / (#points - 1)
+
+        -- Add slowdown points
         table.insert(speedControls, {
-            time = math.max(0, pointPos - slowdownWidth/2),
-            speed = 1
+            time = math.max(0, normalizedPos - width/2),
+            speed = 1.0
         })
 
-        -- Slowest at the waypoint
         table.insert(speedControls, {
-            time = pointPos,
-            speed = slowdownFactor
+            time = normalizedPos,
+            speed = factor
         })
 
-        -- Return to normal speed
         table.insert(speedControls, {
-            time = math.min(1, pointPos + slowdownWidth/2),
-            speed = 1
+            time = math.min(1, normalizedPos + width/2),
+            speed = 1.0
         })
     end
 
-    -- Add final point
-    table.insert(speedControls, {time = 1, speed = 1})
+    table.insert(speedControls, {time = 1, speed = 1.0})
 
-    -- Sort and merge close control points
     return AnchorTimeControl.optimizeSpeedControls(speedControls)
 end
 
@@ -322,59 +306,6 @@ function AnchorTimeControl.optimizeSpeedControls(speedControls)
     end
 
     return optimized
-end
-
---- Creates a composite speed control by combining multiple effects
----@param baseControls table Base speed control (preset name or control points)
----@param slowdownPoints table Array of {position, factor, width} for slowdowns
----@param easingFunc string|function Optional global easing function
----@return table compositeControls Combined speed control
-function AnchorTimeControl.createCompositeSpeedControl(baseControls, slowdownPoints, easingFunc)
-    -- Get base controls if specified as preset
-    if type(baseControls) == "string" then
-        baseControls = EasingFunctions.getPresetSpeedControls(baseControls)
-        if not baseControls then
-            baseControls = {{time = 0, speed = 1}, {time = 1, speed = 1}}
-        end
-    elseif not baseControls or #baseControls < 2 then
-        baseControls = {{time = 0, speed = 1}, {time = 1, speed = 1}}
-    end
-
-    -- If no slowdown points, just return base controls
-    if not slowdownPoints or #slowdownPoints == 0 then
-        return baseControls, easingFunc
-    end
-
-    -- Copy base controls
-    local composite = {}
-    for _, point in ipairs(baseControls) do
-        table.insert(composite, {time = point.time, speed = point.speed})
-    end
-
-    -- Add slowdown points
-    for _, slowdown in ipairs(slowdownPoints) do
-        local pos = slowdown.position
-        local factor = slowdown.factor or 0.3
-        local width = slowdown.width or 0.2
-
-        -- Add control points for this slowdown
-        table.insert(composite, {
-            time = math.max(0, pos - width/2),
-            speed = 1 * slowdown.baseSpeed or 1
-        })
-
-        table.insert(composite, {
-            time = pos,
-            speed = factor * (slowdown.baseSpeed or 1)
-        })
-
-        table.insert(composite, {
-            time = math.min(1, pos + width/2),
-            speed = 1 * (slowdown.baseSpeed or 1)
-        })
-    end
-
-    return AnchorTimeControl.optimizeSpeedControls(composite), easingFunc
 end
 
 return {
