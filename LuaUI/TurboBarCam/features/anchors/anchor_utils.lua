@@ -55,91 +55,321 @@ function CameraAnchorUtils.normalizeAngle(angle)
     return angle
 end
 
---- Calculate global tangent vectors for all waypoints to ensure C1 continuity
----@param points table Array of waypoints
----@return table tangents Array of tangent vectors (one per point)
-function CameraAnchorUtils.calculateGlobalTangentVectors(points)
+--- Calculates distance between two camera state positions
+---@param state1 table First camera state
+---@param state2 table Second camera state
+---@return number distance Distance between positions
+function CameraAnchorUtils.getPositionDistance(state1, state2)
+    local pos1 = { x = state1.px, y = state1.py, z = state1.pz }
+    local pos2 = { x = state2.px, y = state2.py, z = state2.pz }
+    return CameraCommons.vectorMagnitude(CameraCommons.vectorSubtract(pos2, pos1))
+end
+
+--- Scales a tangent vector appropriately for camera transitions
+---@param tangent table Tangent vector with x,y,z components
+---@param transitionTime number Duration of transition in seconds
+---@param distance number Distance between points
+---@return table scaledTangent Properly scaled tangent vector
+function CameraAnchorUtils.scaleTangentForTransition(tangent, transitionTime, distance)
+    -- Get base tangent magnitude
+    local magnitude = CameraCommons.vectorMagnitude(tangent)
+
+    if magnitude < 0.001 then
+        return { x = 0, y = 0, z = 0 }
+    end
+
+    -- Calculate velocity factors
+    -- Minimum velocity to maintain at waypoints (prevents stopping)
+    local minVelocity = 20
+
+    -- Base desired velocity (distance/time with a minimum)
+    local baseVelocity = math.max(minVelocity, distance / math.max(0.1, transitionTime))
+
+    -- Scale tangent to maintain consistent velocity through waypoints
+    -- Use a velocity-based approach instead of direct time scaling
+    local targetMagnitude = baseVelocity * 0.5  -- Half the segment velocity for smooth transition
+
+    -- Ensure minimum magnitude to prevent stopping at waypoints
+    targetMagnitude = math.max(targetMagnitude, minVelocity)
+
+    -- Scale the tangent
+    local scaleFactor = targetMagnitude / magnitude
+    return {
+        x = tangent.x * scaleFactor,
+        y = tangent.y * scaleFactor,
+        z = tangent.z * scaleFactor
+    }
+end
+
+--- Calculates global tangent vectors for a continuous path
+---@param points table Array of path points with position data
+---@return table tangents Array of tangent vectors
+function CameraAnchorUtils.calculateContinuousPathTangents(points)
     local tangents = {}
-    local tension = 0.7  -- Higher tension for more continuous curves
 
-    Log.debug("Calculating global tangent vectors for " .. #points .. " points")
+    -- Handle simple cases
+    if #points <= 1 then
+        return {{x = 0, y = 0, z = 0}}
+    elseif #points == 2 then
+        -- Simple case: just use direction vector
+        local direction = CameraCommons.vectorSubtract(
+                {x = points[2].state.px, y = points[2].state.py, z = points[2].state.pz},
+                {x = points[1].state.px, y = points[1].state.py, z = points[1].state.pz}
+        )
+        local dist = CameraCommons.vectorMagnitude(direction)
+        local scaled = CameraCommons.vectorMultiply(direction, 0.5)
+        return {scaled, scaled}
+    end
 
+    -- For each point, calculate a tangent based on its neighbors
     for i = 1, #points do
+        local tangent = {x = 0, y = 0, z = 0}
+
         if i == 1 then
-            -- First point: use direction to next point
-            if #points > 1 then
-                local p0 = points[i].state
-                local p1 = points[i + 1].state
-
-                tangents[i] = {
-                    x = (p1.px - p0.px) * tension,
-                    y = (p1.py - p0.py) * tension,
-                    z = (p1.pz - p0.pz) * tension
-                }
-            else
-                tangents[i] = { x = 0, y = 0, z = 0 }
-            end
+            -- First point: use forward difference
+            tangent = CameraCommons.vectorSubtract(
+                    {x = points[2].state.px, y = points[2].state.py, z = points[2].state.pz},
+                    {x = points[1].state.px, y = points[1].state.py, z = points[1].state.pz}
+            )
         elseif i == #points then
-            -- Last point: use direction from previous point
-            local pn = points[i].state
-            local pn1 = points[i - 1].state
-
-            tangents[i] = {
-                x = (pn.px - pn1.px) * tension,
-                y = (pn.py - pn1.py) * tension,
-                z = (pn.pz - pn1.pz) * tension
-            }
+            -- Last point: use backward difference
+            tangent = CameraCommons.vectorSubtract(
+                    {x = points[#points].state.px, y = points[#points].state.py, z = points[#points].state.pz},
+                    {x = points[#points-1].state.px, y = points[#points-1].state.py, z = points[#points-1].state.pz}
+            )
         else
-            -- Interior point: For continuous movement, calculate the tangent that keeps the camera moving through the point
-            local prev = points[i - 1].state
-            local curr = points[i].state
-            local next = points[i + 1].state
+            -- Interior points: use Catmull-Rom approach (average of segments)
+            local prev = {x = points[i-1].state.px, y = points[i-1].state.py, z = points[i-1].state.pz}
+            local curr = {x = points[i].state.px, y = points[i].state.py, z = points[i].state.pz}
+            local next = {x = points[i+1].state.px, y = points[i+1].state.py, z = points[i+1].state.pz}
 
-            -- Calculate the through-vector from previous to next point
-            local throughX = next.px - prev.px
-            local throughY = next.py - prev.py
-            local throughZ = next.pz - prev.pz
-
-            -- Normalize the through-vector
-            local throughMag = math.sqrt(throughX^2 + throughY^2 + throughZ^2)
-            if throughMag > 0.001 then
-                throughX = throughX / throughMag
-                throughY = throughY / throughMag
-                throughZ = throughZ / throughMag
-            end
-
-            -- Calculate incoming and outgoing segment lengths
-            local inDist = math.sqrt((curr.px - prev.px)^2 + (curr.py - prev.py)^2 + (curr.pz - prev.pz)^2)
-            local outDist = math.sqrt((next.px - curr.px)^2 + (next.py - curr.py)^2 + (next.pz - curr.pz)^2)
-
-            -- Weight the tangent by the shorter segment to maintain velocity
-            local segmentScale = math.min(inDist, outDist)
-
-            -- Use the through-vector scaled by the segment distance to maintain velocity
-            tangents[i] = {
-                x = throughX * segmentScale * tension,
-                y = throughY * segmentScale * tension,
-                z = throughZ * segmentScale * tension
-            }
-
-            -- Ensure minimum velocity at waypoints
-            local tangentMag = math.sqrt(tangents[i].x^2 + tangents[i].y^2 + tangents[i].z^2)
-            if tangentMag < 100 then -- Increased minimum threshold
-                -- Scale up the tangent to maintain minimum velocity
-                local scale = 100 / (tangentMag + 0.001)
-                tangents[i].x = tangents[i].x * scale
-                tangents[i].y = tangents[i].y * scale
-                tangents[i].z = tangents[i].z * scale
-            end
+            -- Calculate catmull-rom tangent (weighted average of adjacent segments)
+            tangent = CameraCommons.vectorSubtract(next, prev)
+            -- Scale by 0.5 for Catmull-Rom parameterization
+            tangent = CameraCommons.vectorMultiply(tangent, 0.5)
         end
 
-        -- Log tangent information
-        local mag = math.sqrt(tangents[i].x^2 + tangents[i].y^2 + tangents[i].z^2)
-        Log.debug(string.format("Point %d tangent: (%.3f, %.3f, %.3f), magnitude: %.3f",
-                i, tangents[i].x, tangents[i].y, tangents[i].z, mag))
+        -- Scale the tangent magnitude to a reasonable value
+        -- For Catmull-Rom splines, it should be around half the segment length
+        local magThreshold = 0.0001  -- Avoid division by zero
+        local tangentMag = CameraCommons.vectorMagnitude(tangent)
+
+        if tangentMag > magThreshold then
+            -- Scale tangent to prevent stopping at waypoints
+            local scaledMag = 0
+
+            if i == 1 then
+                -- First point: use distance to next point
+                local dist = CameraAnchorUtils.getPositionDistance(points[i].state, points[i+1].state)
+                scaledMag = dist * 0.5
+            elseif i == #points then
+                -- Last point: use distance from previous point
+                local dist = CameraAnchorUtils.getPositionDistance(points[i-1].state, points[i].state)
+                scaledMag = dist * 0.5
+            else
+                -- Interior points: use average of adjacent segments
+                local prevDist = CameraAnchorUtils.getPositionDistance(points[i-1].state, points[i].state)
+                local nextDist = CameraAnchorUtils.getPositionDistance(points[i].state, points[i+1].state)
+                scaledMag = (prevDist + nextDist) * 0.5
+            end
+
+            -- Ensure minimum tangent length (prevents stopping at waypoints)
+            scaledMag = math.max(scaledMag, 30)
+
+            -- Scale tangent to desired magnitude
+            tangent = CameraCommons.vectorMultiply(tangent, scaledMag / tangentMag)
+        end
+
+        tangents[i] = tangent
     end
 
     return tangents
+end
+
+--- Generate steps for a path segment between two points
+---@param pathInfo table Path information structure to add steps to
+---@param p0 table Starting waypoint
+---@param p1 table Ending waypoint
+---@param startTime number Starting time for this segment
+---@return number endTime Ending time after generating steps
+function CameraAnchorUtils.generateSegmentSteps(pathInfo, p0, p1, startTime)
+    local transitionTime = p0.transitionTime or 0
+    local currentTime = startTime
+
+    if transitionTime <= 0 then
+        return currentTime
+    end
+
+    -- Calculate segment distance
+    local distance = CameraAnchorUtils.getPositionDistance(p0.state, p1.state)
+
+    -- Calculate steps based on configuration
+    local numSteps = math.max(2, math.floor(transitionTime * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
+
+    -- Scale tangents properly for this segment
+    local v0 = CameraAnchorUtils.scaleTangentForTransition(p0.tangent, transitionTime, distance)
+    local v1 = CameraAnchorUtils.scaleTangentForTransition(p1.tangent, transitionTime, distance)
+
+    -- Generate steps for this segment
+    for j = 1, numSteps do
+        local t = (j - 1) / (numSteps - 1)
+
+        -- Use existing hermite interpolation
+        local pos = Util.hermiteInterpolate(p0.state, p1.state, v0, v1, t)
+
+        -- Create camera state
+        local rx, ry = Util.hermiteInterpolateRotation(
+                p0.state.rx or 0, p0.state.ry or 0,
+                p1.state.rx or 0, p1.state.ry or 0,
+                { rx = (p1.state.rx - p0.state.rx) / transitionTime,
+                  ry = (p1.state.ry - p0.state.ry) / transitionTime },
+                { rx = (p1.state.rx - p0.state.rx) / transitionTime,
+                  ry = (p1.state.ry - p0.state.ry) / transitionTime },
+                t
+        )
+
+        -- Calculate camera direction from rotation
+        local cosRx = math.cos(rx)
+        local dx = math.sin(ry) * cosRx
+        local dy = math.sin(rx)
+        local dz = math.cos(ry) * cosRx
+
+        local state = {
+            mode = 0,
+            name = "fps",
+            px = pos.x,
+            py = pos.y,
+            pz = pos.z,
+            rx = rx,
+            ry = ry,
+            rz = 0,
+            dx = dx,
+            dy = dy,
+            dz = dz
+        }
+
+        local stepTime = currentTime + (j - 1) * transitionTime / (numSteps - 1)
+
+        table.insert(pathInfo.steps, {
+            time = stepTime,
+            state = state
+        })
+    end
+
+    return currentTime + transitionTime
+end
+
+--- Creates a path transition with continuous motion through waypoints
+---@param points table Array of path points
+---@return table pathInfo Information about the generated path
+function CameraAnchorUtils.createPathTransition(points)
+    if #points < 2 then
+        Log.debug("Path requires at least 2 points")
+        return nil
+    end
+
+    Log.debug("Creating continuous path with " .. #points .. " points")
+
+    -- Calculate global tangent vectors using Catmull-Rom spline approach
+    local globalTangents = CameraAnchorUtils.calculateContinuousPathTangents(points)
+
+    -- Store tangents in points
+    for i, point in ipairs(points) do
+        point.tangent = globalTangents[i]
+    end
+
+    -- Initialize path info
+    local pathInfo = {
+        steps = {},
+        stepTimes = {},
+        totalDuration = 0,
+        points = points,
+        tangents = globalTangents
+    }
+
+    -- Generate path steps
+    local currentTime = 0
+
+    for i = 1, #points - 1 do
+        local transitionTime = points[i].transitionTime or 1.0
+        local numSteps = math.max(2, math.floor(transitionTime * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
+
+        -- Get position tangents
+        local v0 = points[i].tangent
+        local v1 = points[i+1].tangent
+
+        -- Calculate rotation tangents separately - this is the key fix
+        -- Use the difference in angles divided by transition time
+        local rotTangent0 = {
+            rx = (points[i+1].state.rx - points[i].state.rx) / transitionTime * 0.5,
+            ry = 0  -- Calculate below with normalization for yaw
+        }
+
+        -- Handle yaw (ry) carefully because it wraps around
+        local ry0 = CameraCommons.normalizeAngle(points[i].state.ry or 0)
+        local ry1 = CameraCommons.normalizeAngle(points[i+1].state.ry or 0)
+
+        -- Find shortest path for yaw
+        local diff = ry1 - ry0
+        if diff > math.pi then diff = diff - 2 * math.pi
+        elseif diff < -math.pi then diff = diff + 2 * math.pi end
+
+        rotTangent0.ry = diff / transitionTime * 0.5
+
+        -- Second point uses same tangent for continuous movement
+        local rotTangent1 = rotTangent0
+
+        for j = 1, numSteps do
+            local t = (j - 1) / (numSteps - 1)
+
+            -- Use Hermite interpolation for position
+            local pos = Util.hermiteInterpolate(points[i].state, points[i+1].state, v0, v1, t)
+
+            -- Use proper rotation interpolation with rotation-specific tangents
+            local rx, ry = Util.hermiteInterpolateRotation(
+                    points[i].state.rx or 0, points[i].state.ry or 0,
+                    points[i+1].state.rx or 0, points[i+1].state.ry or 0,
+                    rotTangent0, rotTangent1,
+                    t
+            )
+
+            -- Calculate camera direction from rotation
+            local cosRx = math.cos(rx)
+            local dx = math.sin(ry) * cosRx
+            local dy = math.sin(rx)
+            local dz = math.cos(ry) * cosRx
+
+            local state = {
+                mode = 0,
+                name = "fps",
+                px = pos.x,
+                py = pos.y,
+                pz = pos.z,
+                rx = rx,
+                ry = ry,
+                rz = 0,
+                dx = dx,
+                dy = dy,
+                dz = dz
+            }
+
+            local stepTime = currentTime + (j - 1) * transitionTime / (numSteps - 1)
+
+            table.insert(pathInfo.steps, {
+                time = stepTime,
+                state = state
+            })
+        end
+
+        currentTime = currentTime + transitionTime
+    end
+
+    pathInfo.totalDuration = currentTime
+
+    -- Finalize the path
+    CameraAnchorUtils.finalizePath(pathInfo)
+
+    return pathInfo
 end
 
 --- Generates a sequence of camera states for smooth transition
@@ -253,137 +483,6 @@ function CameraAnchorUtils.startTransitionToAnchor(endState, duration, interpola
     STATE.transition.active = true
 end
 
---- Modified createPathTransition with better continuity checks
----@param points table Array of path points
----@return table pathInfo Information about the generated path
-function CameraAnchorUtils.createPathTransition(points)
-    if #points < 2 then
-        Log.debug("Path requires at least 2 points")
-        return nil
-    end
-
-    -- Debug log the points
-    Log.debug("Creating path transition with " .. #points .. " points")
-
-    -- Calculate global tangent vectors using the comprehensive function
-    local globalTangents = CameraAnchorUtils.calculateGlobalTangentVectors(points)
-
-    -- Store tangents in points
-    for i, point in ipairs(points) do
-        point.tangent = globalTangents[i]
-    end
-
-    -- Initialize path info
-    local pathInfo = {
-        steps = {},
-        stepTimes = {},
-        totalDuration = 0,
-        points = points,
-        tangents = globalTangents
-    }
-
-    -- Generate steps along the entire path
-    local currentTime = 0
-
-    for i = 1, #points - 1 do
-        local p0 = points[i]
-        local p1 = points[i + 1]
-
-        local transitionTime = p0.transitionTime or 0
-        if transitionTime > 0 then
-            -- Calculate steps for this segment
-            local numSteps = math.max(2, math.floor(transitionTime * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
-
-            for j = 1, numSteps do
-                local t = (j - 1) / (numSteps - 1)
-
-                -- Don't ease at end points to maintain velocity
-                local easedT = t
-                if j > 1 and j < numSteps then
-                    easedT = EasingFunctions.linear(t)
-                end
-
-                -- Scale tangents by duration
-                local v0 = {
-                    x = p0.tangent.x * transitionTime,
-                    y = p0.tangent.y * transitionTime,
-                    z = p0.tangent.z * transitionTime
-                }
-
-                local v1 = {
-                    x = p1.tangent.x * transitionTime,
-                    y = p1.tangent.y * transitionTime,
-                    z = p1.tangent.z * transitionTime
-                }
-
-                -- Hermite interpolation for position
-                local pos = Util.hermiteInterpolate(p0.state, p1.state, v0, v1, easedT)
-
-                -- Hermite interpolation for rotation
-                -- Create rotation tangents by extracting rx/ry components
-                local rotTangent0 = {
-                    rx = p0.state.rx and (p1.state.rx - p0.state.rx) / transitionTime,
-                    ry = p0.state.ry and (p1.state.ry - p0.state.ry) / transitionTime
-                }
-
-                local rotTangent1 = {
-                    rx = p0.state.rx and (p1.state.rx - p0.state.rx) / transitionTime,
-                    ry = p0.state.ry and (p1.state.ry - p0.state.ry) / transitionTime
-                }
-
-                -- Use specialized rotation interpolation
-                local rx, ry = Util.hermiteInterpolateRotation(
-                        p0.state.rx or 0, p0.state.ry or 0,
-                        p1.state.rx or 0, p1.state.ry or 0,
-                        rotTangent0, rotTangent1, easedT
-                )
-
-                -- Calculate direction from the interpolated rx/ry
-                local cosRx = math.cos(rx)
-                local dx = math.sin(ry) * cosRx
-                local dy = math.sin(rx)
-                local dz = math.cos(ry) * cosRx
-
-                -- Create camera state
-                local state = {
-                    mode = 0,
-                    name = "fps",
-                    px = pos.x,
-                    py = pos.y,
-                    pz = pos.z,
-                    rx = rx,
-                    ry = ry,
-                    rz = 0,
-                    dx = dx,
-                    dy = dy,
-                    dz = dz
-                }
-
-                -- Calculate time for this step
-                local stepTime = currentTime + (j - 1) * transitionTime / (numSteps - 1)
-
-                table.insert(pathInfo.steps, {
-                    time = stepTime,
-                    state = state
-                })
-            end
-
-            -- Update current time
-            currentTime = currentTime + transitionTime
-        end
-    end
-
-    pathInfo.totalDuration = currentTime
-
-    -- Finalize path and debug
-    CameraAnchorUtils.finalizePath(pathInfo)
-    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
-        CameraAnchorUtils.debugPathExecution(pathInfo)
-        CameraAnchorUtils.debugPathStructure(pathInfo)
-    end
-    return pathInfo
-end
-
 --- Finalize path by sorting steps and adding step times
 ---@param pathInfo table Path information structure
 function CameraAnchorUtils.finalizePath(pathInfo)
@@ -406,31 +505,9 @@ function CameraAnchorUtils.finalizePath(pathInfo)
             #pathInfo.steps, pathInfo.totalDuration))
 end
 
-
---- Calculate velocity at each point for debugging
----@param points table Array of points
-function CameraAnchorUtils.debugVelocityAtPoints(points)
-    local velocities = {}
-
-    for i = 1, #points do
-        local tangent = points[i].tangent
-        local mag = math.sqrt((tangent.x or 0)^2 + (tangent.y or 0)^2 + (tangent.z or 0)^2)
-
-        velocities[i] = {
-            direction = tangent,
-            magnitude = mag
-        }
-
-        Log.debug(string.format("Point %d velocity: magnitude=%.3f, direction=(%.3f, %.3f, %.3f)",
-                i, mag, tangent.x, tangent.y, tangent.z))
-    end
-
-    return velocities
-end
-
 --- Debug function to check if tangents are causing velocity issues
 ---@param pathInfo table Path information structure
-function CameraAnchorUtils.checkTangentVelocity(pathInfo) -- todo
+function CameraAnchorUtils.checkTangentVelocity(pathInfo)
     Log.info("\n=== TANGENT VELOCITY CHECK ===")
 
     for i = 1, #pathInfo.points do
@@ -438,7 +515,7 @@ function CameraAnchorUtils.checkTangentVelocity(pathInfo) -- todo
         local tangent = point.tangent
 
         if tangent then
-            local mag = math.sqrt(tangent.x^2 + tangent.y^2 + tangent.z^2)
+            local mag = math.sqrt(tangent.x ^ 2 + tangent.y ^ 2 + tangent.z ^ 2)
             Log.info(string.format("Point %d tangent magnitude: %.3f", i, mag))
 
             if mag < 10 then
@@ -484,18 +561,19 @@ function CameraAnchorUtils.debugPathExecution(pathInfo)
                 z = (nextStep.state.pz - currentStep.state.pz) / dt
             }
 
-            local mag = math.sqrt(velocity.x^2 + velocity.y^2 + velocity.z^2)
+            local mag = math.sqrt(velocity.x ^ 2 + velocity.y ^ 2 + velocity.z ^ 2)
 
             -- Check if velocity drops to near zero at waypoints
-            if mag < 10 then  -- Threshold for "stopped"
+            if mag < 10 then
+                -- Threshold for "stopped"
                 Log.warn(string.format("Low velocity at step %d: %.3f units/sec", i, mag))
 
                 -- Check if this is near a waypoint
                 for j, point in ipairs(pathInfo.points) do
                     local dist = math.sqrt(
-                            (currentStep.state.px - point.state.px)^2 +
-                                    (currentStep.state.py - point.state.py)^2 +
-                                    (currentStep.state.pz - point.state.pz)^2
+                            (currentStep.state.px - point.state.px) ^ 2 +
+                                    (currentStep.state.py - point.state.py) ^ 2 +
+                                    (currentStep.state.pz - point.state.pz) ^ 2
                     )
                     if dist < 50 then
                         Log.warn(string.format("  Near waypoint %d!", j))
@@ -555,25 +633,28 @@ function CameraAnchorUtils.debugPathStructure(pathInfo)
                 local dt = pathInfo.stepTimes[closestStepIndex - 1] or 0.01
                 local velBefore = 0
 
-                if dt > 0.000001 then  -- Protect against division by tiny numbers
+                if dt > 0.000001 then
+                    -- Protect against division by tiny numbers
                     local dx = (currentStep.state.px or 0) - (prevStep.state.px or 0)
                     local dy = (currentStep.state.py or 0) - (prevStep.state.py or 0)
                     local dz = (currentStep.state.pz or 0) - (prevStep.state.pz or 0)
-                    velBefore = math.sqrt(dx*dx + dy*dy + dz*dz) / dt
+                    velBefore = math.sqrt(dx * dx + dy * dy + dz * dz) / dt
                 end
 
                 dt = pathInfo.stepTimes[closestStepIndex] or 0.01
                 local velAfter = 0
 
-                if dt > 0.000001 then  -- Protect against division by tiny numbers
+                if dt > 0.000001 then
+                    -- Protect against division by tiny numbers
                     local dx = (nextStep.state.px or 0) - (currentStep.state.px or 0)
                     local dy = (nextStep.state.py or 0) - (currentStep.state.py or 0)
                     local dz = (nextStep.state.pz or 0) - (currentStep.state.pz or 0)
-                    velAfter = math.sqrt(dx*dx + dy*dy + dz*dz) / dt
+                    velAfter = math.sqrt(dx * dx + dy * dy + dz * dz) / dt
                 end
 
                 -- Check for NaN values before logging
-                if velBefore ~= velBefore or velAfter ~= velAfter then  -- NaN check
+                if velBefore ~= velBefore or velAfter ~= velAfter then
+                    -- NaN check
                     Log.warn(string.format("  Point %d transition at step %d: vel before=NaN, vel after=NaN",
                             i + 1, closestStepIndex))
                 else
@@ -588,57 +669,6 @@ function CameraAnchorUtils.debugPathStructure(pathInfo)
     if pathInfo.speedControlSettings then
         Log.info("\nSpeed control active: " .. tostring(pathInfo.speedControlSettings))
     end
-end
-
-
-
---- Performs Hermite interpolation of camera rotations, handling the special case of angles
----@param rx0 number Start pitch angle
----@param ry0 number Start yaw angle
----@param rx1 number End pitch angle
----@param ry1 number End yaw angle
----@param v0 table Start tangent angles {rx, ry}
----@param v1 table End tangent angles {rx, ry}
----@param t number Interpolation factor (0-1)
----@return number rx Interpolated pitch angle
----@return number ry Interpolated yaw angle
-function Util.hermiteInterpolateRotation(rx0, ry0, rx1, ry1, v0, v1, t)
-    -- Special handling for segments to prevent rotation glitches
-    if t <= 0 then return rx0, ry0 end
-    if t >= 1 then return rx1, ry1 end
-
-    -- Handle pitch (rx) with standard Hermite interpolation
-    -- Pitch is constrained and doesn't wrap, so standard interpolation works
-    local t2 = t * t
-    local t3 = t2 * t
-
-    local h00 = 2*t3 - 3*t2 + 1
-    local h10 = t3 - 2*t2 + t
-    local h01 = -2*t3 + 3*t2
-    local h11 = t3 - t2
-
-    local rx = h00 * rx0 + h10 * (v0.rx or 0) + h01 * rx1 + h11 * (v1.rx or 0)
-
-    -- Handle yaw (ry) carefully because it wraps around
-    -- Normalize angles to handle wrap-around correctly
-    ry0 = CameraAnchorUtils.normalizeAngle(ry0)
-    ry1 = CameraAnchorUtils.normalizeAngle(ry1)
-
-    -- Find the shortest path for yaw
-    local diff = ry1 - ry0
-    if diff > math.pi then
-        diff = diff - 2 * math.pi
-    elseif diff < -math.pi then
-        diff = diff + 2 * math.pi
-    end
-
-    -- Apply Hermite with the adjusted difference
-    local ry = ry0 + h00 * 0 + h10 * (v0.ry or 0) + h01 * diff + h11 * (v1.ry or 0)
-
-    -- Normalize the final angle
-    ry = CameraAnchorUtils.normalizeAngle(ry)
-
-    return rx, ry
 end
 
 return {

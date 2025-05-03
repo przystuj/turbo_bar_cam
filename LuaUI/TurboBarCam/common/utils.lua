@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+---@type CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -419,6 +421,55 @@ function Util.hermiteInterpolate(p0, p1, v0, v1, t)
     end
 
     return result
+end
+
+--- Performs Hermite interpolation of camera rotations, handling the special case of angles
+---@param rx0 number Start pitch angle
+---@param ry0 number Start yaw angle
+---@param rx1 number End pitch angle
+---@param ry1 number End yaw angle
+---@param v0 table Start tangent angles {rx, ry}
+---@param v1 table End tangent angles {rx, ry}
+---@param t number Interpolation factor (0-1)
+---@return number rx Interpolated pitch angle
+---@return number ry Interpolated yaw angle
+function Util.hermiteInterpolateRotation(rx0, ry0, rx1, ry1, v0, v1, t)
+    -- Special handling for segment boundaries
+    if t <= 0 then return rx0, ry0 end
+    if t >= 1 then return rx1, ry1 end
+
+    -- Handle pitch (rx) with standard Hermite interpolation
+    -- Pitch is constrained and doesn't wrap, so standard interpolation works
+    local t2 = t * t
+    local t3 = t2 * t
+
+    local h00 = 2*t3 - 3*t2 + 1
+    local h10 = t3 - 2*t2 + t
+    local h01 = -2*t3 + 3*t2
+    local h11 = t3 - t2
+
+    local rx = h00 * rx0 + h10 * (v0.rx or 0) + h01 * rx1 + h11 * (v1.rx or 0)
+
+    -- Handle yaw (ry) carefully because it wraps around
+    -- Normalize angles to handle wrap-around correctly
+    ry0 = CameraCommons.normalizeAngle(ry0)
+    ry1 = CameraCommons.normalizeAngle(ry1)
+
+    -- Find the shortest path for yaw
+    local diff = ry1 - ry0
+    if diff > math.pi then
+        diff = diff - 2 * math.pi
+    elseif diff < -math.pi then
+        diff = diff + 2 * math.pi
+    end
+
+    -- Apply Hermite with the adjusted difference
+    local ry = ry0 + h00 * 0 + h10 * (v0.ry or 0) + h01 * diff + h11 * (v1.ry or 0)
+
+    -- Normalize the final angle
+    ry = CameraCommons.normalizeAngle(ry)
+
+    return rx, ry
 end
 
 Util.TimeHelpers = {}
