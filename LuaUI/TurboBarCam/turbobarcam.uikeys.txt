@@ -8,12 +8,6 @@ bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brillian
 bind		    Home      		    turbobarcam_toggle_zoom
 bind            Esc                 turbobarcam_stop_tracking
 
-// Anchors
-unbindkeyset 	Ctrl+F1
-unbindkeyset 	Ctrl+F2
-unbindkeyset 	Ctrl+F3
-unbindkeyset 	Ctrl+F4
-
 unbindkeyset	numpad2             moveback
 unbindkeyset	numpad6             moveright
 unbindkeyset	numpad4             moveleft
@@ -21,6 +15,12 @@ unbindkeyset	numpad8             moveforward
 unbindkeyset	numpad9             moveup
 unbindkeyset	numpad3             movedown
 unbindkeyset	numpad1             movefast
+
+// Anchors
+unbindkeyset 	Ctrl+F1
+unbindkeyset 	Ctrl+F2
+unbindkeyset 	Ctrl+F3
+unbindkeyset 	Ctrl+F4
 
 // todo, set_camera_anchor not working
 bind			Ctrl+F1				chain force set_camera_anchor 1 | turbobarcam_anchor_set 1
@@ -37,6 +37,8 @@ bind			Ctrl+Shift+F3		turbobarcam_anchor_focus_while_tracking 3
 bind			Ctrl+Shift+F4		turbobarcam_anchor_focus_while_tracking 4
 bind			Ctrl+Shift+numpad-	turbobarcam_anchor_adjust_params add;DURATION,-1
 bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
+bind			Ctrl+sc_[           turbobarcam_anchor_queue_add
+bind			Ctrl+sc_]           turbobarcam_anchor_queue_start
 
 // Single Unit Tracking
 bind		numpad3  		turbobarcam_toggle_tracking_camera

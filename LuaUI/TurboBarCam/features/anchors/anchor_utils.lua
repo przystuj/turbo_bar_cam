@@ -377,7 +377,7 @@ function CameraAnchorUtils.createPathTransition(points)
 
     -- Finalize path and debug
     CameraAnchorUtils.finalizePath(pathInfo)
-    if CONFIG.DEBUG.LOG_LEVEL ~= "INFO" then
+    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" then
         CameraAnchorUtils.debugPathExecution(pathInfo)
         CameraAnchorUtils.debugPathStructure(pathInfo)
     end

@@ -33,8 +33,9 @@ local function serializeAnchorsAndQueue(includeQueue)
     local data = {
         anchors = {},
         queue = nil,
-        speedControl = nil, -- Added field for speed control
-        easingFunction = nil    -- Added field for easing function
+        points = {}, -- Store all queue points
+        speedControl = nil,
+        easingFunction = nil
     }
 
     -- Serialize anchors
@@ -53,72 +54,33 @@ local function serializeAnchorsAndQueue(includeQueue)
     end
 
     -- Serialize queue if requested
-    if includeQueue and STATE.anchorQueue and STATE.anchorQueue.queue and STATE.anchorQueue.queue.points then
-        local queueString = ""
-        local isFirst = true
-
-        for i, point in ipairs(STATE.anchorQueue.queue.points) do
-            -- Skip the first point if it's just the starting position with no transition
-            if i == 1 and point.transitionTime == 0 and not point.slowdownFactor then
-                -- Skip
-            else
-                -- For anchors, check if any matches this point
-                local foundAnchor = false
-                for id, anchor in pairs(STATE.anchors) do
-                    -- Compare position to find matching anchor
-                    if math.abs(point.state.px - anchor.px) < 0.1 and
-                            math.abs(point.state.py - anchor.py) < 0.1 and
-                            math.abs(point.state.pz - anchor.pz) < 0.1 then
-                        -- Found matching anchor, add to queue string
-                        if not isFirst then
-                            queueString = queueString .. ";"
-                        end
-                        queueString = queueString .. tostring(id) .. "," ..
-                                tostring(point.transitionTime)
-
-                        -- Include slowdown parameters if present
-                        if point.slowdownFactor then
-                            queueString = queueString .. "," .. tostring(point.slowdownFactor)
-
-                            -- Include slowdown width if different from default
-                            if point.slowdownWidth and
-                                    point.slowdownWidth ~= CONFIG.CAMERA_MODES.ANCHOR.DEFAULT_SLOWDOWN_WIDTH then
-                                queueString = queueString .. "," .. tostring(point.slowdownWidth)
-                            end
-                        end
-
-                        isFirst = false
-                        foundAnchor = true
-                        break
-                    end
-                end
-
-                -- If no matching anchor was found, represent as position
-                if not foundAnchor then
-                    if not isFirst then
-                        queueString = queueString .. ";"
-                    end
-                    queueString = queueString .. "p," ..
-                            tostring(point.transitionTime)
-
-                    -- Include slowdown parameters if present
-                    if point.slowdownFactor then
-                        queueString = queueString .. "," .. tostring(point.slowdownFactor)
-
-                        -- Include slowdown width if different from default
-                        if point.slowdownWidth and
-                                point.slowdownWidth ~= CONFIG.CAMERA_MODES.ANCHOR.DEFAULT_SLOWDOWN_WIDTH then
-                            queueString = queueString .. "," .. tostring(point.slowdownWidth)
-                        end
-                    end
-
-                    isFirst = false
-                end
+    if includeQueue and STATE.anchorQueue and STATE.anchorQueue.points then
+        -- Save the actual points array with all properties
+        for i, point in ipairs(STATE.anchorQueue.points) do
+            if point.state then
+                data.points[tostring(i)] = {
+                    state = {
+                        px = point.state.px,
+                        py = point.state.py,
+                        pz = point.state.pz,
+                        rx = point.state.rx,
+                        ry = point.state.ry,
+                        rz = point.state.rz,
+                        dx = point.state.dx,
+                        dy = point.state.dy,
+                        dz = point.state.dz,
+                        mode = point.state.mode,
+                        name = point.state.name
+                    },
+                    transitionTime = point.transitionTime,
+                    slowdownFactor = point.slowdownFactor,
+                    slowdownWidth = point.slowdownWidth
+                }
             end
         end
 
-        -- Store queue string
-        data.queue = queueString
+        -- Store a simple queue marker - we'll restore from points directly
+        data.queue = "DIRECT_POINTS_ARRAY"
 
         -- Store speed control settings if present
         if STATE.anchorQueue.speedControlSettings then
@@ -174,14 +136,65 @@ local function deserializeAnchorsAndQueue(data)
     end
 
     -- Load queue if present
-    if data.queue and data.queue ~= "" then
+    if data.queue then
         -- Clear current queue
         CameraAnchorQueues.clearQueue()
 
-        -- Set the queue using the stored string
-        local success = CameraAnchorQueues.setQueue(data.queue)
-        if success then
-            Log.info("Loaded queue: " .. data.queue)
+        -- Check if we have a direct points array
+        if data.queue == "DIRECT_POINTS_ARRAY" and data.points and next(data.points) then
+            -- Initialize the queue structure
+            if not STATE.anchorQueue then
+                STATE.anchorQueue = {
+                    queue = nil,
+                    active = false,
+                    currentStep = 1,
+                    startTime = 0,
+                    stepStartTime = 0,
+                    points = {},
+                    speedControlSettings = nil,
+                    easingFunction = nil
+                }
+            end
+
+            -- Load points directly from the saved array
+            STATE.anchorQueue.points = {}
+
+            -- Sort indices to ensure order
+            local indices = {}
+            for idStr in pairs(data.points) do
+                table.insert(indices, tonumber(idStr))
+            end
+            table.sort(indices)
+
+            -- Load points in correct order
+            for _, idx in ipairs(indices) do
+                local pointData = data.points[tostring(idx)]
+                if pointData and pointData.state then
+                    table.insert(STATE.anchorQueue.points, {
+                        state = {
+                            px = pointData.state.px,
+                            py = pointData.state.py,
+                            pz = pointData.state.pz,
+                            rx = pointData.state.rx,
+                            ry = pointData.state.ry,
+                            rz = pointData.state.rz,
+                            dx = pointData.state.dx,
+                            dy = pointData.state.dy,
+                            dz = pointData.state.dz,
+                            mode = pointData.state.mode or 0,
+                            name = pointData.state.name or "fps"
+                        },
+                        transitionTime = pointData.transitionTime,
+                        slowdownFactor = pointData.slowdownFactor,
+                        slowdownWidth = pointData.slowdownWidth
+                    })
+                end
+            end
+
+            Log.info(string.format("Loaded queue with %d points directly from saved state", #STATE.anchorQueue.points))
+
+            -- Create the queue path
+            CameraAnchorQueues.updateQueuePath()
 
             -- Apply speed control settings if present
             if data.speedControl then
@@ -194,11 +207,32 @@ local function deserializeAnchorsAndQueue(data)
                     Log.warn("Cannot apply saved speed control - function not available")
                 end
             end
-        else
-            Log.warn("Failed to load queue: " .. data.queue)
-        end
 
-        return success
+            return true
+        else
+            -- This is a legacy format with a queue string
+            local success = CameraAnchorQueues.setQueue(data.queue)
+
+            if success then
+                Log.info("Loaded queue: " .. data.queue)
+
+                -- Apply speed control settings if present
+                if data.speedControl then
+                    if CameraAnchorQueues.applySpeedControl then
+                        -- Apply the saved speed control with easing function if available
+                        CameraAnchorQueues.applySpeedControl(data.speedControl, data.easingFunction)
+                        Log.debug("Applied saved speed control" ..
+                                (data.easingFunction and (" with " .. data.easingFunction .. " easing") or ""))
+                    else
+                        Log.warn("Cannot apply saved speed control - function not available")
+                    end
+                end
+            else
+                Log.warn("Failed to load queue: " .. data.queue)
+            end
+
+            return success
+        end
     end
 
     return true
@@ -220,9 +254,11 @@ function CameraAnchorPersistence.saveToFile(queueId, includeQueue)
         anchorCount = anchorCount + 1
     end
 
+    local nothingToSave = false
+
     if anchorCount == 0 then
         Log.warn("No anchors to save")
-        return false
+        nothingToSave = true
     end
 
     -- Check if we have a queue to save if requested
@@ -230,6 +266,7 @@ function CameraAnchorPersistence.saveToFile(queueId, includeQueue)
             not STATE.anchorQueue.queue.points or #STATE.anchorQueue.queue.points < 2) then
         Log.warn("No valid queue to save")
         includeQueue = false
+        nothingToSave = true
     end
 
     -- Serialize the data

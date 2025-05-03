@@ -18,11 +18,94 @@ local Log = CommonModules.Log
 ---@class CameraAnchorQueues
 local CameraAnchorQueues = {}
 
+--- Add a single camera state to the queue
+---@param state table Camera state to add
+---@param transitionTime number Transition time in seconds
+---@param slowdownFactor number|nil Optional slowdown factor
+---@param slowdownWidth number|nil Optional slowdown width
+---@param description string Description for logging
+local function addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, description)
+    if not state then
+        return
+    end
+
+    table.insert(STATE.anchorQueue.points, {
+        state = state,
+        transitionTime = transitionTime,
+        slowdownFactor = slowdownFactor,
+        slowdownWidth = slowdownWidth
+    })
+
+    Log.info(string.format("Added %s with transition time %.1f%s",
+            description,
+            transitionTime,
+            slowdownFactor and string.format(", slowdown %.2f", slowdownFactor) or ""))
+end
+
+--- Get anchor state from ID or current position
+---@param id number|string Anchor ID or "p" for current position
+---@return table|nil state Camera state or nil if not found
+---@return string description Description for logging
+local function getAnchorState(id)
+    if id == "p" then
+        return CameraManager.getCameraState("CameraAnchorQueues.getAnchorState"), "current position"
+    elseif STATE.anchors[id] then
+        return STATE.anchors[id], "anchor " .. id
+    else
+        Log.warn("No anchor found with ID: " .. id)
+        return nil, ""
+    end
+end
+
+--- Process a range of anchors
+---@param startId number|string Start anchor ID or "p" for current position
+---@param endId number|string End anchor ID or "p" for current position
+---@param transitionTime number Transition time in seconds
+---@param slowdownFactor number|nil Optional slowdown factor
+---@param slowdownWidth number|nil Optional slowdown width
+local function processAnchorRange(startId, endId, transitionTime, slowdownFactor, slowdownWidth)
+    -- Handle p-Y range
+    if startId == "p" then
+        -- Add current position first
+        local state, desc = getAnchorState("p")
+        addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, desc .. " from range")
+
+        -- Then add numerical anchors
+        for id = 1, endId do
+            state, desc = getAnchorState(id)
+            if state then
+                addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, desc .. " from range")
+            end
+        end
+        -- Handle X-p range
+    elseif endId == "p" then
+        -- Add numerical anchors first
+        for id = startId, 9 do
+            local state, desc = getAnchorState(id)
+            if state then
+                addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, desc .. " from range")
+            end
+        end
+
+        -- Then add current position
+        local state, desc = getAnchorState("p")
+        addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, desc .. " from range")
+        -- Handle X-Y range (both numeric)
+    else
+        for id = startId, endId do
+            local state, desc = getAnchorState(id)
+            if state then
+                addStateToQueue(state, transitionTime, slowdownFactor, slowdownWidth, desc .. " from range")
+            end
+        end
+    end
+end
+
 --- Parse a single anchor specification
 ---@param anchorSpec string Anchor specification string
 ---@param isLastPoint boolean Whether this is the last point in the queue
 ---@return table|nil anchor Parsed anchor data
-local function parseAnchorSpec(anchorSpec, isLastPoint)
+local function parseAnchorSpec(anchorSpec)
     -- Trim whitespace
     anchorSpec = anchorSpec:match("^%s*(.-)%s*$")
 
@@ -36,12 +119,49 @@ local function parseAnchorSpec(anchorSpec, isLastPoint)
         table.insert(parts, part:match("^%s*(.-)%s*$"))
     end
 
-    -- First part should be either a digit (anchor ID) or "p" (current position)
+    -- First part should be either:
+    -- - a digit (anchor ID)
+    -- - "p" (current position)
+    -- - range format "X-Y", "p-Y", or "X-p" (anchor range)
     local usePosition = false
+    local anchorRange = nil
     local anchorId = nil
 
     if parts[1] == "p" then
         usePosition = true
+    elseif parts[1]:match("^p%-%d+$") then
+        -- Range format: "p-Y"
+        local endId = parts[1]:match("p%-(%d+)")
+        endId = tonumber(endId)
+
+        if endId and endId >= 0 and endId <= 9 then
+            anchorRange = { start = "p", ["end"] = endId }
+        else
+            Log.warn("Invalid anchor range: " .. parts[1])
+            return nil
+        end
+    elseif parts[1]:match("^%d+%-p$") then
+        -- Range format: "X-p"
+        local startId = parts[1]:match("(%d+)%-p")
+        startId = tonumber(startId)
+
+        if startId and startId >= 0 and startId <= 9 then
+            anchorRange = { start = startId, ["end"] = "p" }
+        else
+            Log.warn("Invalid anchor range: " .. parts[1])
+            return nil
+        end
+    elseif parts[1]:match("^%d+%-%d+$") then
+        -- Range format: "X-Y"
+        local startId, endId = parts[1]:match("(%d+)%-(%d+)")
+        startId, endId = tonumber(startId), tonumber(endId)
+
+        if startId and endId and startId >= 0 and endId <= 9 and startId <= endId then
+            anchorRange = { start = startId, ["end"] = endId }
+        else
+            Log.warn("Invalid anchor range: " .. parts[1])
+            return nil
+        end
     else
         anchorId = tonumber(parts[1])
         if not anchorId or anchorId < 0 or anchorId > 9 then
@@ -50,12 +170,8 @@ local function parseAnchorSpec(anchorSpec, isLastPoint)
         end
     end
 
-    -- Extract transition time
-    -- Last point shouldn't have a transition time
-    local transitionTime = 0
-    if not isLastPoint then
-        transitionTime = tonumber(parts[2] or "0") or 0
-    end
+
+    local transitionTime = tonumber(parts[2] or tostring(CONFIG.CAMERA_MODES.ANCHOR.DURATION)) or CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
     -- Extract slowdown parameters (either factor or both factor and width)
     local slowdownFactor = nil
@@ -85,6 +201,7 @@ local function parseAnchorSpec(anchorSpec, isLastPoint)
     local result = {
         usePosition = usePosition,
         anchorId = anchorId,
+        anchorRange = anchorRange,
         transitionTime = transitionTime,
         slowdownFactor = slowdownFactor,
         slowdownWidth = slowdownWidth
@@ -104,16 +221,33 @@ local function ensureQueueInitialized()
             startTime = 0,
             stepStartTime = 0,
             points = {},
-            speedControlSettings = nil, -- Add speed control tracking
-            easingFunction = nil         -- Add easing function tracking
+            speedControlSettings = nil,
+            easingFunction = nil
         }
         return true
     end
     return false
 end
 
+--- Parse anchor parameter string into individual specs
+---@param anchorParams string Parameters string
+---@return table specs Array of parsed anchor specifications
+local function parseAnchorParams(anchorParams)
+    local specs = {}
+    if not anchorParams or anchorParams == "" then
+        -- If no params, add current position with default transition time
+        table.insert(specs, "p," .. CONFIG.CAMERA_MODES.ANCHOR.DURATION)
+        return specs
+    end
+
+    for spec in anchorParams:gmatch("[^;]+") do
+        table.insert(specs, spec)
+    end
+    return specs
+end
+
 --- Update the queue path without starting it
-local function updateQueuePath()
+function CameraAnchorQueues.updateQueuePath()
     if not STATE.anchorQueue or not STATE.anchorQueue.points or #STATE.anchorQueue.points < 2 then
         -- Not enough points for a path yet
         STATE.anchorQueue.queue = nil
@@ -136,17 +270,6 @@ local function updateQueuePath()
     return true
 end
 
---- Parse anchor parameter string into individual specs
----@param anchorParams string Parameters string
----@return table specs Array of parsed anchor specifications
-local function parseAnchorParams(anchorParams)
-    local specs = {}
-    for spec in anchorParams:gmatch("[^;]+") do
-        table.insert(specs, spec)
-    end
-    return specs
-end
-
 --- Add to the camera anchor queue
 ---@param anchorParams string Parameters for the queue
 ---@return boolean success Whether the queue was updated successfully
@@ -154,20 +277,9 @@ function CameraAnchorQueues.addToQueue(anchorParams)
     -- Initialize queue if needed
     ensureQueueInitialized()
 
-    -- If queue is empty, need to add start position first
-    if #STATE.anchorQueue.points == 0 then
-        -- Get current camera position
-        local currentState = CameraManager.getCameraState("CameraAnchorQueues.addToQueue")
-
-        -- Add first point with no transition
-        local startPoint = {
-            state = currentState,
-            transitionTime = 0,
-            slowdownFactor = nil,
-            slowdownWidth = nil
-        }
-
-        STATE.anchorQueue.points = { startPoint }
+    -- If queue is empty, initialize points array first
+    if not STATE.anchorQueue.points then
+        STATE.anchorQueue.points = {}
     end
 
     -- Parse the params to create anchor points
@@ -176,40 +288,43 @@ function CameraAnchorQueues.addToQueue(anchorParams)
     -- Process each spec and add to queue
     for i, spec in ipairs(specs) do
         -- Check if this is the last point in the set
-        local isLastPoint = (i == #specs)
-        local anchorData = parseAnchorSpec(spec, isLastPoint)
+        local anchorData = parseAnchorSpec(spec)
 
         if anchorData then
-            -- Get state based on anchor ID or current position
-            local anchorState = nil
-
-            if anchorData.usePosition then
-                anchorState = CameraManager.getCameraState("CameraAnchorQueues.addToQueue")
-            elseif STATE.anchors[anchorData.anchorId] then
-                anchorState = STATE.anchors[anchorData.anchorId]
-            else
-                Log.warn("No anchor found with ID: " .. anchorData.anchorId)
-            end
-
-            -- Add to queue only if anchorState is valid
-            if anchorState then
-                table.insert(STATE.anchorQueue.points, {
-                    state = anchorState,
-                    transitionTime = anchorData.transitionTime,
-                    slowdownFactor = anchorData.slowdownFactor,
-                    slowdownWidth = anchorData.slowdownWidth
-                })
-
-                Log.info(string.format("Added %s to queue with transition time %.1f%s",
-                        anchorData.usePosition and "current position" or ("anchor " .. anchorData.anchorId),
+            if anchorData.anchorRange then
+                -- Process the range using the helper function
+                processAnchorRange(
+                        anchorData.anchorRange.start,
+                        anchorData.anchorRange["end"],
                         anchorData.transitionTime,
-                        anchorData.slowdownFactor and string.format(", slowdown %.2f", anchorData.slowdownFactor) or ""))
+                        anchorData.slowdownFactor,
+                        anchorData.slowdownWidth
+                )
+            else
+                -- Handle single anchor or position
+                local state, desc
+                if anchorData.usePosition then
+                    state, desc = getAnchorState("p")
+                else
+                    state, desc = getAnchorState(anchorData.anchorId)
+                end
+
+                -- Add to queue if we got a valid state
+                if state then
+                    addStateToQueue(
+                            state,
+                            anchorData.transitionTime,
+                            anchorData.slowdownFactor,
+                            anchorData.slowdownWidth,
+                            desc
+                    )
+                end
             end
         end
     end
 
     -- Update the queue path whenever we add points
-    updateQueuePath()
+    CameraAnchorQueues.updateQueuePath()
 
     return true
 end
@@ -226,8 +341,8 @@ function CameraAnchorQueues.setQueue(anchorParams)
             currentStep = 1,
             stepStartTime = 0,
             points = {},
-            speedControlSettings = nil, -- Add speed control tracking
-            easingFunction = nil         -- Add easing function tracking
+            speedControlSettings = nil,
+            easingFunction = nil
         }
     else
         -- Clear existing queue but keep speed settings
@@ -236,27 +351,11 @@ function CameraAnchorQueues.setQueue(anchorParams)
         -- We deliberately keep speedControlSettings and easingFunction
     end
 
-    -- Get current camera state for first point
-    local currentState = CameraManager.getCameraState("CameraAnchorQueues.setQueue")
-
-    -- Add starting point with no transition
-    table.insert(STATE.anchorQueue.points, {
-        state = currentState,
-        transitionTime = 0,
-        slowdownFactor = nil,
-        slowdownWidth = nil
-    })
-
-    -- If no params, just return with the starting point
-    if not anchorParams or anchorParams == "" then
-        return true
-    end
-
     -- Add the specified anchor points
     local success = CameraAnchorQueues.addToQueue(anchorParams)
 
     -- Update the queue path after setting all points
-    updateQueuePath()
+    CameraAnchorQueues.updateQueuePath()
 
     return success
 end
@@ -271,8 +370,8 @@ function CameraAnchorQueues.clearQueue()
         STATE.anchorQueue.currentStep = 1
         STATE.anchorQueue.stepStartTime = 0
         STATE.anchorQueue.points = {}
-        STATE.anchorQueue.speedControlSettings = nil  -- Clear speed control
-        STATE.anchorQueue.easingFunction = nil        -- Clear easing function
+        STATE.anchorQueue.speedControlSettings = nil
+        STATE.anchorQueue.easingFunction = nil
     end
 
     Log.info("Queue cleared")
@@ -304,7 +403,7 @@ function CameraAnchorQueues.applySpeedControl(speedControls, easingFunc)
     else
         -- Try to create the queue path with at least 2 points
         if STATE.anchorQueue.points and #STATE.anchorQueue.points >= 2 then
-            updateQueuePath()
+            CameraAnchorQueues.updateQueuePath()
         else
             Log.warn("Not enough points to create queue path for speed control")
         end
@@ -341,7 +440,7 @@ function CameraAnchorQueues.startQueue()
 
     -- Ensure we have a queue path
     if not STATE.anchorQueue.queue then
-        updateQueuePath()
+        CameraAnchorQueues.updateQueuePath()
     end
 
     -- Final check if we still don't have a queue
@@ -358,54 +457,6 @@ function CameraAnchorQueues.startQueue()
 
     Log.debug(string.format("Started queue with %d points, %d steps",
             #STATE.anchorQueue.points, #STATE.anchorQueue.queue.steps))
-
-    return true
-end
-
---- Create slowdown points at waypoints
----@param slowdownFactor number Speed reduction factor (0-1)
----@param slowdownWidth number|nil Width of slowdown zones (0-1)
----@param adaptiveWidth boolean|nil Whether to use adaptive width based on segment length
----@return boolean success Whether slowdown was applied successfully
-function CameraAnchorQueues.createSlowdownAtPoints(slowdownFactor, slowdownWidth, adaptiveWidth)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-
-    -- Validate
-    if not STATE.anchorQueue or not STATE.anchorQueue.points or #STATE.anchorQueue.points < 3 then
-        Log.warn("Cannot apply slowdown - need at least 3 queue points")
-        return false
-    end
-
-    -- Ensure we have a queue path
-    if not STATE.anchorQueue.queue then
-        updateQueuePath()
-    end
-
-    -- Create and apply the slowdown
-    local speedControls = AnchorTimeControl.createSlowdownAtPoints(
-            STATE.anchorQueue.points,
-            slowdownFactor,
-            slowdownWidth,
-            adaptiveWidth
-    )
-
-    -- Store these settings for persistence
-    STATE.anchorQueue.speedControlSettings = speedControls
-
-    -- Apply to the queue
-    if STATE.anchorQueue.queue then
-        STATE.anchorQueue.queue = AnchorTimeControl.applySpeedControl(
-                STATE.anchorQueue.queue,
-                speedControls
-        )
-    end
-
-    Log.info(string.format("Applied slowdown at waypoints (factor: %.2f, %s width: %.2f)",
-            slowdownFactor or 0.3,
-            adaptiveWidth and "adaptive" or "fixed",
-            slowdownWidth or 0.2))
 
     return true
 end
@@ -542,75 +593,6 @@ function CameraAnchorQueues.updateQueue()
     end
 
     return STATE.anchorQueue.active
-end
-
--- Safe velocity calculation helper
-local function calculateStepVelocity(step1, step2, dt)
-    if not step1 or not step1.state or not step2 or not step2.state then
-        return 0
-    end
-
-    if not dt or dt <= 0.000001 then
-        return 0
-    end
-
-    local dx = (step2.state.px or 0) - (step1.state.px or 0)
-    local dy = (step2.state.py or 0) - (step1.state.py or 0)
-    local dz = (step2.state.pz or 0) - (step1.state.pz or 0)
-
-    return math.sqrt(dx * dx + dy * dy + dz * dz) / dt
-end
-
--- Add this to updateQueue to debug the actual execution
-function CameraAnchorQueues.debugQueueExecution()
-    if not STATE.anchorQueue or not STATE.anchorQueue.active then
-        return
-    end
-
-    -- Log when transitioning between segments
-    if STATE.anchorQueue.currentStep % 30 == 0 then
-        -- Log every 30 steps
-        local queue = STATE.anchorQueue.queue
-        if not queue or not queue.steps then
-            return
-        end
-
-        local currentStep = queue.steps[STATE.anchorQueue.currentStep]
-        if not currentStep or not currentStep.state then
-            return
-        end
-
-        -- Check for segment boundaries
-        for i, point in ipairs(queue.points) do
-            if point and point.state then
-                local dist = math.sqrt(
-                        (currentStep.state.px - point.state.px) ^ 2 +
-                                (currentStep.state.py - point.state.py) ^ 2 +
-                                (currentStep.state.pz - point.state.pz) ^ 2
-                )
-
-                if dist < 50 then
-                    Log.warn(string.format("Approaching segment boundary at point %d (dist: %.2f)",
-                            i, dist))
-
-                    -- Check velocity safely
-                    if STATE.anchorQueue.currentStep < #queue.steps then
-                        local nextStep = queue.steps[STATE.anchorQueue.currentStep + 1]
-                        local dt = queue.stepTimes[STATE.anchorQueue.currentStep] or 0.01
-
-                        local vel = calculateStepVelocity(currentStep, nextStep, dt)
-
-                        Log.warn(string.format("  Current velocity: %.3f units/sec", vel))
-
-                        -- Check if this is a significant slowdown
-                        if vel < 10 then
-                            Log.warn("  WARNING: Camera is slowing down significantly at waypoint!")
-                        end
-                    end
-                end
-            end
-        end
-    end
 end
 
 --- Stops the currently playing camera queue
