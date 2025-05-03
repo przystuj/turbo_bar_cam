@@ -6,6 +6,7 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local Features = VFS.Include("LuaUI/TurboBarCam/features.lua")
 
 local STATE = WidgetContext.STATE
+local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
@@ -16,8 +17,6 @@ local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -52,6 +51,10 @@ end
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
+    if CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION then
+        STATE.tracking.graceTimer = Spring.GetTimer()
+        return
+    end
     if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "overview" then
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
@@ -59,18 +62,16 @@ function UpdateManager.handleTrackingGracePeriod()
         -- Skip grace period for point tracking
         if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
             STATE.tracking.graceTimer = Spring.GetTimer()
-            return false
+            return
         end
 
         -- If grace period expired (1 second), disable tracking for unit targets
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
             TrackingManager.disableTracking()
             Log.debug("Camera tracking disabled - no units selected")
-            return true
+            return
         end
     end
-
-    return false
 end
 
 --- Checks if the player is currently spectating

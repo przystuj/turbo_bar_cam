@@ -48,9 +48,20 @@ function CameraManager.toggleZoom()
         [12] = 45
     }
     local camState = CameraManager.getCameraState("WidgetControl.toggleZoom")
-    local fov = cycle[camState.fov]
-    Spring.SetCameraState({ fov = fov }, 1)
-    --CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.toggleZoom")
+    local fov = cycle[camState.fov] or 45
+    CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.toggleZoom")
+end
+
+function CameraManager.setFov(fov)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+
+    local camState = CameraManager.getCameraState("WidgetControl.setFov")
+    if camState.fov == fov then
+        return
+    end
+    CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.setFov")
 end
 
 local function addToHistory(historyType, entry)

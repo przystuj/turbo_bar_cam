@@ -107,9 +107,20 @@ function WidgetControl.toggleDebug()
     return true
 end
 
+
+--- When spectating with Player Camera it mimics unit selection of the player
+--- When this is set to true then that behaviour is disabled
 function WidgetControl.toggleLockUnitSelection()
     STATE.allowPlayerCamUnitSelection = not STATE.allowPlayerCamUnitSelection
     Log.info("Unit selection is " .. (STATE.allowPlayerCamUnitSelection and "unlocked" or "locked"))
+    return true
+end
+
+--- By default when you track unit and you don't have anything selected then tracking is disabled after 1s
+--- This allows you to track units and then deselect it
+function WidgetControl.toggleRequireUnitSelection()
+    CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION = not CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION
+    Log.info("Tracking without selected unit is " .. (CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION and "enabled" or "disabled"))
     return true
 end
 

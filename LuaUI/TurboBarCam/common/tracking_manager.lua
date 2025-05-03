@@ -116,6 +116,9 @@ function TrackingManager.disableTracking()
         SettingsManager.saveModeSettings(STATE.tracking.mode, "point")
     end
 
+    STATE.transition.active = false
+    STATE.transition.currentAnchorIndex = nil
+
     -- Clear target tracking fields
     STATE.tracking.targetType = STATE.TARGET_TYPES.NONE
     STATE.tracking.targetPoint = nil

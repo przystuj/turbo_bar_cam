@@ -6,6 +6,7 @@ bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
 // Just in case kek
 bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
 bind		    Home      		    turbobarcam_toggle_zoom
+bind            Esc                 turbobarcam_stop_tracking
 
 // Anchors
 unbindkeyset 	Ctrl+F1
