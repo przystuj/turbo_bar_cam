@@ -7,6 +7,9 @@ local EasingFunctions = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_e
 
 local Log = CommonModules.Log
 local STATE = WidgetContext.STATE
+local CONFIG = WidgetContext.CONFIG
+local Util = CommonModules.Util
+local CameraCommons = CommonModules.CameraCommons
 
 ---@class AnchorTimeControl
 local AnchorTimeControl = {}
@@ -39,14 +42,14 @@ function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc
     -- Build time mapping with continuous speed transitions
     local timeMap = AnchorTimeControl.buildContinuousTimeMapping(speedControls, easing)
 
-    -- Remap all step times
-    pathInfo = AnchorTimeControl.remapPathTimes(pathInfo, timeMap)
+    -- Instead of just remapping times, regenerate steps with proper spacing
+    pathInfo = AnchorTimeControl.regeneratePathSteps(pathInfo, timeMap)
 
     -- Store the speed controls for future reference
     pathInfo.speedControls = speedControls
     pathInfo.easingFunction = easingFunc
 
-    Log.debug(string.format("Applied time control with %d speed points",
+    Log.debug(string.format("Applied time control with %d speed points and regenerated steps",
             #speedControls))
     return pathInfo
 end
@@ -92,38 +95,71 @@ function AnchorTimeControl.deriveSpeedFromTransitions(points)
         speed = segmentTimes[1] > 0 and segmentLengths[1]/segmentTimes[1] or 1.0
     })
 
-    -- Middle control points at waypoints
+    -- Middle control points at waypoints with proper transition regions
     for i = 1, #segmentLengths do
         currentLength = currentLength + segmentLengths[i]
-        currentTime = currentTime + segmentTimes[i]
 
-        -- Normalized position along the path
+        -- Normalized position along the path for this waypoint
         local normalizedPos = currentLength / totalLength
 
-        -- Speed at this point (average of incoming and outgoing if available)
+        -- Calculate speeds
         local inSpeed = segmentLengths[i] / segmentTimes[i]
         local outSpeed = (i < #segmentLengths) and
                 (segmentLengths[i+1] / segmentTimes[i+1]) or
                 inSpeed
 
-        -- Add control point with average speed
-        table.insert(speedControls, {
-            time = normalizedPos,
-            speed = (inSpeed + outSpeed) / 2
-        })
-
-        -- Add transition points halfway between waypoints for smoother transitions
+        -- If this isn't the last segment, create smooth transition between segments
         if i < #segmentLengths then
-            -- Halfway point between this and next waypoint
-            local halfwayPos = normalizedPos +
-                    (segmentLengths[i+1] / totalLength) / 2
+            -- Create 5 transition points BEFORE the waypoint for smooth approach
+            local transitionStart = normalizedPos - 0.15 -- Start transition 15% before waypoint
+            transitionStart = math.max(0.01, transitionStart) -- Ensure we don't go below 0
 
-            -- Weighted blend of speeds - creates transition region
-            local blendedSpeed = (inSpeed * 0.3) + (outSpeed * 0.7)
+            -- Generate transition points leading up to the waypoint
+            for j = 1, 5 do
+                local t = j / 5
+                local blendPos = transitionStart + (normalizedPos - transitionStart) * t
 
+                -- Cubic easing for speed transition - more weight to incoming speed near start
+                -- and more weight to average speed near waypoint
+                local blend = t * t * (3 - 2 * t)  -- Smooth step function
+                local blendedSpeed = inSpeed * (1 - blend) + ((inSpeed + outSpeed) / 2) * blend
+
+                table.insert(speedControls, {
+                    time = blendPos,
+                    speed = blendedSpeed
+                })
+            end
+
+            -- Add point exactly at the waypoint with average speed
             table.insert(speedControls, {
-                time = halfwayPos,
-                speed = blendedSpeed
+                time = normalizedPos,
+                speed = (inSpeed + outSpeed) / 2
+            })
+
+            -- Create 5 transition points AFTER the waypoint for smooth departure
+            local transitionEnd = normalizedPos + 0.15 -- End transition 15% after waypoint
+            transitionEnd = math.min(0.99, transitionEnd) -- Ensure we don't exceed 1
+
+            -- Generate transition points moving away from the waypoint
+            for j = 1, 5 do
+                local t = j / 5
+                local blendPos = normalizedPos + (transitionEnd - normalizedPos) * t
+
+                -- Cubic easing for speed transition - more weight to average at waypoint
+                -- and more weight to outgoing speed as we move away
+                local blend = t * t * (3 - 2 * t)  -- Smooth step function
+                local blendedSpeed = ((inSpeed + outSpeed) / 2) * (1 - blend) + outSpeed * blend
+
+                table.insert(speedControls, {
+                    time = blendPos,
+                    speed = blendedSpeed
+                })
+            end
+        else
+            -- For the last waypoint, just add the final point
+            table.insert(speedControls, {
+                time = normalizedPos,
+                speed = inSpeed -- Use incoming speed for last point
             })
         end
     end
@@ -214,13 +250,11 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
         local segmentDuration = segmentSize / math.max(0.001, avgSpeed)
         currentTime = currentTime + segmentDuration
 
-        -- Add mapping point at regular intervals
-        if i % 10 == 0 or i == numSegments then
-            table.insert(timeMap.points, {
-                inputTime = nextT,
-                outputTime = currentTime
-            })
-        end
+        -- Add mapping point at EVERY segment for maximum precision
+        table.insert(timeMap.points, {
+            inputTime = nextT,
+            outputTime = currentTime
+        })
     end
 
     -- Normalize the output times to 0-1 range
@@ -230,6 +264,219 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
     end
 
     return timeMap
+end
+
+--- Regenerates the path steps with even time distribution but positioned according to speed profile
+---@param pathInfo table Path information structure
+---@param timeMap table Time mapping information
+---@return table pathInfo Updated path information with redistributed steps
+function AnchorTimeControl.regeneratePathSteps(pathInfo, timeMap)
+    -- Original total duration
+    local originalDuration = pathInfo.totalDuration
+
+    -- Calculate desired number of steps based on duration and steps per second
+    local numSteps = math.max(
+            200, -- minimum number of steps for smooth movement
+            math.floor(originalDuration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND)
+    )
+
+    -- Recreate steps with even time distribution
+    local newSteps = {}
+    local stepTimeInterval = originalDuration / (numSteps - 1)
+
+    for i = 1, numSteps do
+        -- Even time distribution
+        local stepTime = (i - 1) * stepTimeInterval
+
+        -- Convert to normalized time (0-1)
+        local normalizedTime = stepTime / originalDuration
+
+        -- Find corresponding source time using the inverse of our time mapping
+        local sourceTime = AnchorTimeControl.inverseInterpolateTime(normalizedTime, timeMap)
+
+        -- Find the position at this source time by interpolating original path
+        local stepState = AnchorTimeControl.interpolatePathAtTime(pathInfo, sourceTime * originalDuration)
+
+        -- Add the new step
+        table.insert(newSteps, {
+            time = stepTime,
+            state = stepState
+        })
+    end
+
+    -- Replace steps with new evenly-distributed ones
+    pathInfo.steps = newSteps
+
+    -- Update step time differences
+    pathInfo.stepTimes = {}
+    for i = 1, #pathInfo.steps - 1 do
+        pathInfo.stepTimes[i] = pathInfo.steps[i+1].time - pathInfo.steps[i].time
+    end
+
+    -- Update last step time
+    if #pathInfo.steps > 0 then
+        pathInfo.stepTimes[#pathInfo.stepTimes] = 0.01
+    end
+
+    return pathInfo
+end
+
+--- Inverse interpolates time from output to input using time mapping
+---@param normalizedOutputTime number Normalized output time (0-1)
+---@param timeMap table Time mapping information
+---@return number normalizedInputTime Remapped input time (0-1)
+function AnchorTimeControl.inverseInterpolateTime(normalizedOutputTime, timeMap)
+    -- Handle edge cases
+    if normalizedOutputTime <= 0 then return 0 end
+    if normalizedOutputTime >= 1 then return 1 end
+
+    -- Find the segment in the time map
+    local segmentIndex = 1
+    for i = 1, #timeMap.points - 1 do
+        if normalizedOutputTime >= timeMap.points[i].outputTime and
+                normalizedOutputTime <= timeMap.points[i+1].outputTime then
+            segmentIndex = i
+            break
+        end
+    end
+
+    -- Get the output/input time ranges for this segment
+    local o1 = timeMap.points[segmentIndex].outputTime
+    local o2 = timeMap.points[segmentIndex+1].outputTime
+    local t1 = timeMap.points[segmentIndex].inputTime
+    local t2 = timeMap.points[segmentIndex+1].inputTime
+
+    -- Calculate segment progress
+    local segmentT = 0
+    if o2 > o1 then -- Avoid division by zero
+        segmentT = (normalizedOutputTime - o1) / (o2 - o1)
+    end
+
+    -- Map to input time
+    return t1 + (t2 - t1) * segmentT
+end
+
+--- Interpolates the path at a specific time
+---@param pathInfo table Path information structure
+---@param time number Time to interpolate at
+---@return table state Interpolated camera state
+function AnchorTimeControl.interpolatePathAtTime(pathInfo, time)
+    -- Handle edge cases
+    if time <= 0 then
+        return Util.deepCopy(pathInfo.steps[1].state)
+    end
+    if time >= pathInfo.totalDuration then
+        return Util.deepCopy(pathInfo.steps[#pathInfo.steps].state)
+    end
+
+    -- First attempt: Find waypoint segment that contains this time
+    -- This allows us to use proper Hermite spline interpolation with tangents
+    local segmentIndex = nil
+    local segmentT = 0
+    local segmentStartTime = 0
+
+    for i = 1, #pathInfo.points - 1 do
+        -- Calculate start time for this segment
+        local startTime = segmentStartTime
+        -- Calculate end time for this segment
+        local transitionTime = pathInfo.points[i].transitionTime or 0
+        local endTime = startTime + transitionTime
+
+        if time >= startTime and time <= endTime then
+            segmentIndex = i
+            -- Calculate normalized position in this segment
+            segmentT = transitionTime > 0 and (time - startTime) / transitionTime or 0
+            break
+        end
+
+        segmentStartTime = endTime
+    end
+
+    -- If we found a waypoint segment, use Hermite interpolation with tangents
+    if segmentIndex and pathInfo.points[segmentIndex].tangent and pathInfo.points[segmentIndex+1].tangent then
+        local p0 = pathInfo.points[segmentIndex].state
+        local p1 = pathInfo.points[segmentIndex+1].state
+        local v0 = pathInfo.points[segmentIndex].tangent
+        local v1 = pathInfo.points[segmentIndex+1].tangent
+
+        -- Use existing Hermite interpolation
+        local pos = Util.hermiteInterpolate(p0, p1, v0, v1, segmentT)
+
+        -- Handle rotation with special care
+        local rx, ry = Util.hermiteInterpolateRotation(
+                p0.rx or 0, p0.ry or 0,
+                p1.rx or 0, p1.ry or 0,
+                { rx = (p1.rx - p0.rx) / (pathInfo.points[segmentIndex].transitionTime or 1),
+                  ry = (p1.ry - p0.ry) / (pathInfo.points[segmentIndex].transitionTime or 1) },
+                { rx = (p1.rx - p0.rx) / (pathInfo.points[segmentIndex].transitionTime or 1),
+                  ry = (p1.ry - p0.ry) / (pathInfo.points[segmentIndex].transitionTime or 1) },
+                segmentT
+        )
+
+        -- Calculate camera direction from rotation
+        local cosRx = math.cos(rx)
+        local dx = math.sin(ry) * cosRx
+        local dy = math.sin(rx)
+        local dz = math.cos(ry) * cosRx
+
+        local state = {
+            mode = 0,
+            name = "fps",
+            px = pos.x,
+            py = pos.y,
+            pz = pos.z,
+            rx = rx,
+            ry = ry,
+            rz = 0,
+            dx = dx,
+            dy = dy,
+            dz = dz
+        }
+
+        return state
+    end
+
+    -- Fallback: find the steps that contain this time
+    local beforeStep = nil
+    local afterStep = nil
+    local stepT = 0
+
+    for i = 1, #pathInfo.steps - 1 do
+        if time >= pathInfo.steps[i].time and time <= pathInfo.steps[i+1].time then
+            beforeStep = pathInfo.steps[i]
+            afterStep = pathInfo.steps[i+1]
+
+            -- Calculate normalized position in this segment
+            local stepDuration = afterStep.time - beforeStep.time
+            stepT = stepDuration > 0 and (time - beforeStep.time) / stepDuration or 0
+            break
+        end
+    end
+
+    if not beforeStep or not afterStep then
+        Log.warn("Could not find steps for time: " .. time)
+        return Util.deepCopy(pathInfo.steps[1].state)
+    end
+
+    -- Perform linear interpolation between steps
+    local interpolatedState = {
+        mode = 0,
+        name = "fps",
+        px = CameraCommons.lerp(beforeStep.state.px, afterStep.state.px, stepT),
+        py = CameraCommons.lerp(beforeStep.state.py, afterStep.state.py, stepT),
+        pz = CameraCommons.lerp(beforeStep.state.pz, afterStep.state.pz, stepT),
+        rx = CameraAnchorUtils.lerpAngle(beforeStep.state.rx, afterStep.state.rx, stepT),
+        ry = CameraAnchorUtils.lerpAngle(beforeStep.state.ry, afterStep.state.ry, stepT),
+        rz = 0
+    }
+
+    -- Calculate direction from rotation
+    local cosRx = math.cos(interpolatedState.rx)
+    interpolatedState.dx = math.sin(interpolatedState.ry) * cosRx
+    interpolatedState.dy = math.sin(interpolatedState.rx)
+    interpolatedState.dz = math.cos(interpolatedState.ry) * cosRx
+
+    return interpolatedState
 end
 
 --- Remap all path times based on time mapping

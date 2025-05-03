@@ -170,7 +170,6 @@ local function parseAnchorSpec(anchorSpec)
         end
     end
 
-
     local transitionTime = tonumber(parts[2] or tostring(CONFIG.CAMERA_MODES.ANCHOR.DURATION)) or CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
     -- Extract slowdown parameters (either factor or both factor and width)
@@ -258,14 +257,12 @@ function CameraAnchorQueues.updateQueuePath()
     STATE.anchorQueue.queue = CameraAnchorUtils.createPathTransition(STATE.anchorQueue.points)
 
     -- Apply speed control settings if they exist
-    if STATE.anchorQueue.speedControlSettings then
-        STATE.anchorQueue.queue = AnchorTimeControl.applySpeedControl(
-                STATE.anchorQueue.queue,
-                STATE.anchorQueue.speedControlSettings,
-                STATE.anchorQueue.easingFunction
-        )
-        Log.debug("Applied saved speed control settings to queue")
-    end
+    STATE.anchorQueue.queue = AnchorTimeControl.applySpeedControl(
+            STATE.anchorQueue.queue,
+            STATE.anchorQueue.speedControlSettings,
+            STATE.anchorQueue.easingFunction
+    )
+    Log.debug("Applied saved speed control settings to queue")
 
     return true
 end
@@ -586,9 +583,9 @@ function CameraAnchorQueues.updateQueue()
                     #queue.steps
             )
 
-            Log.trace(string.format("Queue progress: %d/%d (%.1f%%)",
-                    STATE.anchorQueue.currentStep, #queue.steps,
-                    overallProgress * 100))
+            --Log.trace(string.format("Queue progress: %d/%d (%.1f%%)",
+            --        STATE.anchorQueue.currentStep, #queue.steps,
+            --        overallProgress * 100))
         end
     end
 

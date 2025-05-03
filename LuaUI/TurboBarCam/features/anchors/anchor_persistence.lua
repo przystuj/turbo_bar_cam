@@ -198,14 +198,10 @@ local function deserializeAnchorsAndQueue(data)
 
             -- Apply speed control settings if present
             if data.speedControl then
-                if CameraAnchorQueues.applySpeedControl then
-                    -- Apply the saved speed control with easing function if available
-                    CameraAnchorQueues.applySpeedControl(data.speedControl, data.easingFunction)
-                    Log.debug("Applied saved speed control" ..
-                            (data.easingFunction and (" with " .. data.easingFunction .. " easing") or ""))
-                else
-                    Log.warn("Cannot apply saved speed control - function not available")
-                end
+                -- Apply the saved speed control with easing function if available
+                CameraAnchorQueues.applySpeedControl(data.speedControl, data.easingFunction)
+                Log.debug("Applied saved speed control" ..
+                        (data.easingFunction and (" with " .. data.easingFunction .. " easing") or ""))
             end
 
             return true
@@ -691,6 +687,7 @@ function CameraAnchorPersistence.describeQueue()
     end
 
     Log.info("=================================")
+    Log.info(STATE.anchorQueue.queue)
 
     return true
 end

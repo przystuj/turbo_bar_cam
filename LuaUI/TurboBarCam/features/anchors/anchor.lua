@@ -269,7 +269,11 @@ function CameraAnchor.debugQueue()
 end
 
 function CameraAnchor.addSpeedPoint(position, factor, width)
-    return AnchorTimeControl.addSpeedPoint(position, factor, width)
+    local speedControls = AnchorTimeControl.addSpeedPoint(position, factor, width)
+    if speedControls then
+        return CameraAnchorQueues.applySpeedControl(speedControls)
+    end
+    return false
 end
 
 ---@see ModifiableParams
