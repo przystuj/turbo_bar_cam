@@ -27,16 +27,10 @@ function CameraQuickControls.initialize()
     MouseManager.registerMode('orbit')
 
     -- Middle mouse button (MMB) for orbit point tracking
-    MouseManager.onMMB('global', togglePointOrbit)
-    MouseManager.onMMB('orbit', togglePointOrbit)
+    MouseManager.onDoubleMMB('global', togglePointOrbit)
+    MouseManager.onDoubleMMB('orbit', togglePointOrbit)
 
     Log.info("Camera quick controls initialized")
-end
-
--- Cleanup function if needed
-function CameraQuickControls.shutdown()
-    -- Unregister mode if needed
-    -- MouseManager.unregisterMode('global')
 end
 
 return {
