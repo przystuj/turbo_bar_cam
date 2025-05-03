@@ -382,7 +382,7 @@ function CameraAnchorUtils.generateSteps(startState, endState, numSteps, interpo
     local steps = {}
 
     -- Use default interpolation if none provided
-    interpolationFunc = interpolationFunc or EasingFunctions.easeInOutCubic
+    interpolationFunc = interpolationFunc or EasingFunctions.easeInOut
 
     -- Camera parameters to interpolate
     local cameraParams = {
