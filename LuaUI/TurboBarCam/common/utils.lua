@@ -360,19 +360,6 @@ function Util.getUnitHeight(unitID)
     return unitDef.height or 200
 end
 
---- Check if two points are within a certain distance threshold
---- Distance is calculated on the x-z plane only (ignoring height)
----@param point1 table First point with x and z coordinates
----@param point2 table Second point with x and z coordinates
----@param threshold number Distance threshold
----@return boolean within Whether the points are within the threshold distance
-function Util.pointsWithinDistance(point1, point2, threshold)
-    if not point1 or not point2 then return false end
-
-    local distSq = (point1.x - point2.x)^2 + (point1.z - point2.z)^2
-    return distSq <= threshold^2
-end
-
 function Util.getUnitVectors(unitID)
     local x, y, z = Spring.GetUnitPosition(unitID)
     local front, up, right = Spring.GetUnitVectors(unitID)

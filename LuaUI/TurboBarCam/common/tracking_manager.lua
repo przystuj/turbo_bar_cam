@@ -254,37 +254,6 @@ function TrackingManager.startModeTransition(newMode)
     return true
 end
 
---- Gets the current tracking target
----@param requestedType string|nil Optional type to filter by
----@return any target The current target (unitID or point)
----@return string targetType The type of the target
-function TrackingManager.getTrackingTarget(requestedType)
-    -- If we have a specific requested type, check for it
-    if requestedType then
-        if requestedType == STATE.TARGET_TYPES.UNIT and STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-            return STATE.tracking.unitID, STATE.TARGET_TYPES.UNIT
-        elseif requestedType == STATE.TARGET_TYPES.POINT then
-            if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
-                return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
-            elseif STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT and STATE.tracking.targetPoint then
-                -- For unit targets, we can still return the point if requested
-                return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
-            end
-        end
-        -- Requested type not available
-        return nil, STATE.TARGET_TYPES.NONE
-    end
-
-    -- No specific type requested, return whatever we have
-    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-        return STATE.tracking.unitID, STATE.TARGET_TYPES.UNIT
-    elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
-        return STATE.tracking.targetPoint, STATE.TARGET_TYPES.POINT
-    end
-
-    return nil, STATE.TARGET_TYPES.NONE
-end
-
 return {
     TrackingManager = TrackingManager
 }
