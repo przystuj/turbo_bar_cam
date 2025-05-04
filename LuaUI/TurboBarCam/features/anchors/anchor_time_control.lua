@@ -752,6 +752,8 @@ function AnchorTimeControl.regeneratePathSteps(pathInfo, timeMap)
         pathInfo.stepTimes[#pathInfo.stepTimes] = 0.01
     end
 
+    pathInfo = AnchorTimeControl.smoothVelocityProfile(pathInfo)
+
     return pathInfo
 end
 
@@ -1041,6 +1043,193 @@ function AnchorTimeControl.optimizeSpeedControls(speedControls)
             mergeCount, #optimized))
 
     return optimized
+end
+
+-- Add this function to anchor_time_control.lua
+function AnchorTimeControl.smoothVelocityProfile(pathInfo)
+    Log.info("Applying post-process velocity smoothing...")
+
+    -- We need at least 3 steps for smoothing
+    if not pathInfo.steps or #pathInfo.steps < 3 then
+        return pathInfo
+    end
+
+    -- 1. Calculate all original velocities
+    local velocities = {}
+    for i = 2, #pathInfo.steps do
+        local prev = pathInfo.steps[i - 1]
+        local curr = pathInfo.steps[i]
+
+        -- Calculate distance
+        local dx = curr.state.px - prev.state.px
+        local dy = curr.state.py - prev.state.py
+        local dz = curr.state.pz - prev.state.pz
+        local dist = math.sqrt(dx ^ 2 + dy ^ 2 + dz ^ 2)
+
+        -- Calculate time
+        local dt = curr.time - prev.time
+
+        -- Calculate velocity
+        velocities[i - 1] = dt > 0.0001 and dist / dt or 0
+    end
+
+    -- 2. Find average velocity across entire path for reference
+    local totalVelocity = 0
+    for _, vel in ipairs(velocities) do
+        totalVelocity = totalVelocity + vel
+    end
+    local avgVelocity = totalVelocity / #velocities
+
+    -- 3. Apply a moving average with larger window at boundaries
+    local smoothedVelocities = {}
+
+    for i = 1, #velocities do
+        -- Use variable window size - larger at boundaries
+        local windowSize = 5  -- Default for middle
+
+        -- Increase window near boundaries
+        local distFromEdge = math.min(i, #velocities - i + 1)
+        if distFromEdge < 100 then
+            -- Gradually increase window size near edges
+            windowSize = windowSize + math.ceil((100 - distFromEdge) / 10)
+        end
+
+        -- Calculate weighted average with higher weight on normal velocities
+        local sum = 0
+        local totalWeight = 0
+
+        for j = math.max(1, i - windowSize), math.min(#velocities, i + windowSize) do
+            -- Use velocity but with weight inversely proportional to its deviation
+            local v = velocities[j]
+
+            -- Give more weight to velocities close to average
+            local weight = 1.0
+            if math.abs(v - avgVelocity) > avgVelocity * 0.5 then
+                -- Reduce weight for extreme velocities
+                weight = 0.5
+            end
+
+            -- Also prioritize closer samples
+            local distWeight = 1.0 - math.abs(j - i) / (windowSize + 1)
+            weight = weight * distWeight
+
+            sum = sum + v * weight
+            totalWeight = totalWeight + weight
+        end
+
+        if totalWeight > 0 then
+            smoothedVelocities[i] = sum / totalWeight
+        else
+            smoothedVelocities[i] = velocities[i]
+        end
+    end
+
+    -- 4. Apply a second pass specifically for edge handling
+    -- Special treatment for start and end with gradual ramp
+    local rampSize = 50  -- Adjust for more/less gradual start/end
+
+    -- Start ramp (gradually accelerate)
+    local startVel = smoothedVelocities[rampSize]
+    for i = 1, rampSize do
+        local factor = (i / rampSize) ^ 2  -- Quadratic ramp up
+        smoothedVelocities[i] = startVel * factor
+    end
+
+    -- End ramp (gradually decelerate)
+    local endVel = smoothedVelocities[#smoothedVelocities - rampSize]
+    for i = 0, rampSize - 1 do
+        local factor = ((rampSize - i) / rampSize) ^ 2  -- Quadratic ramp down
+        smoothedVelocities[#smoothedVelocities - i] = endVel * factor
+    end
+
+    -- 5. Reconstruct path positions based on smoothed velocities
+    -- Keep first point fixed
+    local fixedPoints = { pathInfo.steps[1] }
+
+    for i = 2, #pathInfo.steps do
+        local prev = fixedPoints[i - 1]
+        local curr = pathInfo.steps[i]
+        local dt = curr.time - prev.time
+
+        -- Get direction vector from original path
+        local dx = curr.state.px - prev.state.px
+        local dy = curr.state.py - prev.state.py
+        local dz = curr.state.pz - prev.state.pz
+        local dist = math.sqrt(dx ^ 2 + dy ^ 2 + dz ^ 2)
+
+        if dist > 0.001 then
+            -- Normalize direction vector
+            dx = dx / dist
+            dy = dy / dist
+            dz = dz / dist
+
+            -- Calculate new distance based on smoothed velocity
+            local newDist = smoothedVelocities[i - 1] * dt
+
+            -- Create new position
+            local newPos = {
+                px = prev.state.px + dx * newDist,
+                py = prev.state.py + dy * newDist,
+                pz = prev.state.pz + dz * newDist
+            }
+
+            -- Create new state with smoothed position
+            local newState = Util.deepCopy(curr.state)
+            newState.px = newPos.px
+            newState.py = newPos.py
+            newState.pz = newPos.pz
+
+            -- Calculate camera direction from rotation
+            local cosRx = math.cos(newState.rx)
+            newState.dx = math.sin(newState.ry) * cosRx
+            newState.dy = math.sin(newState.rx)
+            newState.dz = math.cos(newState.ry) * cosRx
+
+            table.insert(fixedPoints, {
+                time = curr.time,
+                state = newState
+            })
+        else
+            -- If distance is too small, just keep original point
+            table.insert(fixedPoints, curr)
+        end
+    end
+
+    -- 6. Special handling for end point to ensure we reach exact destination
+    -- Make sure the final position exactly matches the original target
+    local originalEnd = pathInfo.steps[#pathInfo.steps].state
+    if #fixedPoints > 0 then
+        local finalPoint = fixedPoints[#fixedPoints]
+        finalPoint.state.px = originalEnd.px
+        finalPoint.state.py = originalEnd.py
+        finalPoint.state.pz = originalEnd.pz
+
+        -- Also adjust the last few points to create a gradual approach
+        local blendSteps = 10
+        for i = math.max(1, #fixedPoints - blendSteps), #fixedPoints - 1 do
+            local factor = (i - (#fixedPoints - blendSteps)) / blendSteps
+            local invFactor = 1 - factor
+
+            -- Interpolate between smoothed position and a position on direct line to end
+            local directPos = {
+                px = originalEnd.px * factor + fixedPoints[#fixedPoints - blendSteps].state.px * invFactor,
+                py = originalEnd.py * factor + fixedPoints[#fixedPoints - blendSteps].state.py * invFactor,
+                pz = originalEnd.pz * factor + fixedPoints[#fixedPoints - blendSteps].state.pz * invFactor
+            }
+
+            -- Blend between smoothed and direct path
+            fixedPoints[i].state.px = fixedPoints[i].state.px * 0.5 + directPos.px * 0.5
+            fixedPoints[i].state.py = fixedPoints[i].state.py * 0.5 + directPos.py * 0.5
+            fixedPoints[i].state.pz = fixedPoints[i].state.pz * 0.5 + directPos.pz * 0.5
+
+        end
+
+    end
+
+    -- Replace path steps with smoothed version
+    pathInfo.steps = fixedPoints
+
+    return pathInfo
 end
 
 return {
