@@ -14,6 +14,10 @@ local CameraCommons = CommonModules.CameraCommons
 ---@class AnchorTimeControl
 local AnchorTimeControl = {}
 
+-- Safety velocity limits to prevent extreme speeds without affecting normal operation
+local MAX_VELOCITY = 5000  -- Maximum allowed velocity (prevents extreme speeds)
+local MIN_VELOCITY = 50    -- Minimum velocity (prevents stopping)
+
 --- Apply speed control to a camera path
 ---@param pathInfo table Path information structure
 ---@param speedControls table Array of {time, speed} control points
@@ -58,234 +62,96 @@ end
 ---@param points table Array of path points with transition times
 ---@return table speedControls Array of {time, speed} control points
 function AnchorTimeControl.deriveSpeedFromTransitions(points)
-    -- Analyze path segments to find extreme velocity changes that need special handling
-    local rawSegments = {}
+    local speedControls = {}
     local totalDist = 0
-    local totalTime = 0
+    local segmentDistances = {}
 
-    -- First calculate segment lengths, times, and segment velocities
+    -- First, calculate all segment distances
     for i = 2, #points do
         local p1 = points[i - 1].state
         local p2 = points[i].state
 
-        -- Calculate segment distance
         local dist = math.sqrt(
                 (p2.px - p1.px) ^ 2 +
                         (p2.py - p1.py) ^ 2 +
                         (p2.pz - p1.pz) ^ 2
         )
 
-        -- Get transition time
-        local time = points[i - 1].transitionTime or 1.0
-
-        -- Calculate raw speed
-        local speed = dist / math.max(0.01, time)
-
-        -- Store segment data
-        table.insert(rawSegments, {
-            index = i - 1,
-            startNdx = i - 1,
-            endNdx = i,
-            dist = dist,
-            time = time,
-            speed = speed
-        })
-
+        table.insert(segmentDistances, dist)
         totalDist = totalDist + dist
-        totalTime = totalTime + time
     end
 
-    -- Detect and analyze extreme velocity changes
-    Log.debug("Analyzing segment velocity changes:")
-    local extremeThreshold = 3.0 -- If next segment is 3x faster or slower, it's extreme
-    local extremeTransitions = {}
-
-    for i = 1, #rawSegments - 1 do
-        local current = rawSegments[i]
-        local next = rawSegments[i + 1]
-        local ratio = next.speed / current.speed
-
-        -- Use logarithmic difference to treat speedups and slowdowns equally
-        local logRatio = math.abs(math.log(ratio))
-
-        if logRatio > math.log(extremeThreshold) then
-            Log.debug(string.format("Extreme velocity change detected at segment %d->%d: %.1f -> %.1f (ratio: %.2f)",
-                    i, i + 1, current.speed, next.speed, ratio))
-
-            table.insert(extremeTransitions, {
-                segmentIndex = i,
-                nextIndex = i + 1,
-                ratio = ratio,
-                logRatio = logRatio
-            })
-        end
-    end
-
-    -- Create normalized waypoints with position along path
-    local waypoints = {}
+    -- Calculate normalized positions and speeds for each anchor
     local currentDist = 0
 
-    for i, segment in ipairs(rawSegments) do
-        if i == 1 then
-            -- First point
-            table.insert(waypoints, {
-                index = segment.startNdx,
-                position = 0,
-                speed = segment.speed
+    -- Add starting point with its speed
+    local firstSegmentTime = points[1].transitionTime or 1.0
+    local firstSegmentSpeed = segmentDistances[1] / firstSegmentTime
+    firstSegmentSpeed = math.max(MIN_VELOCITY, math.min(MAX_VELOCITY, firstSegmentSpeed))
+
+    table.insert(speedControls, {
+        time = 0,
+        speed = firstSegmentSpeed
+    })
+
+    -- Add interior points with their speeds
+    for i = 2, #points - 1 do
+        currentDist = currentDist + segmentDistances[i - 1]
+        local normalizedPos = currentDist / totalDist
+
+        local segmentTime = points[i].transitionTime or 1.0
+        local segmentSpeed = segmentDistances[i] / segmentTime
+        segmentSpeed = math.max(MIN_VELOCITY, math.min(MAX_VELOCITY, segmentSpeed))
+
+        table.insert(speedControls, {
+            time = normalizedPos,
+            speed = segmentSpeed
+        })
+    end
+
+    -- Add endpoint
+    table.insert(speedControls, {
+        time = 1.0,
+        speed = firstSegmentSpeed  -- End with same speed as start for smooth looping
+    })
+
+    -- Add extra control points for smooth transitions between speeds
+    local smoothedControls = {}
+    table.insert(smoothedControls, speedControls[1])  -- Keep first point unchanged
+
+    for i = 1, #speedControls - 1 do
+        local p1 = speedControls[i]
+        local p2 = speedControls[i + 1]
+
+        -- If there's a significant speed difference, add control points for smoother transition
+        local speedRatio = p2.speed / p1.speed
+        if speedRatio > 1.5 or speedRatio < 0.67 then
+            -- Add extra control points for a smooth transition
+            local segmentLength = p2.time - p1.time
+            local transitionLength = segmentLength * 0.4  -- Use 40% of segment for transition
+
+            -- Add a point at 20% of the way to the next point
+            local midTime1 = p1.time + transitionLength * 0.5
+            table.insert(smoothedControls, {
+                time = midTime1,
+                speed = p1.speed
+            })
+
+            -- Add a point at 80% of the way to the next point
+            local midTime2 = p2.time - transitionLength * 0.5
+            table.insert(smoothedControls, {
+                time = midTime2,
+                speed = p2.speed
             })
         end
 
-        -- Add ending point of segment
-        currentDist = currentDist + segment.dist
-        local normalizedPos = currentDist / totalDist
-
-        -- Special handling for last point to ensure it's exactly at 1.0
-        if i == #rawSegments then
-            normalizedPos = 1.0
-        end
-
-        table.insert(waypoints, {
-            index = segment.endNdx,
-            position = normalizedPos,
-            speed = i < #rawSegments and rawSegments[i + 1].speed or segment.speed
-        })
+        table.insert(smoothedControls, p2)
     end
 
-    -- Generate smooth speed profile with focus on extreme transitions
-    local speedControls = {}
-
-    -- Add starting point
-    table.insert(speedControls, {
-        time = 0,
-        speed = rawSegments[1].speed
-    })
-
-    -- For each waypoint (except first which we already added)
-    for i = 2, #waypoints do
-        local wp = waypoints[i]
-        local prevWp = waypoints[i - 1]
-
-        -- Check if this is part of an extreme transition
-        local isExtreme = false
-        local extremeTransition = nil
-
-        for _, et in ipairs(extremeTransitions) do
-            if et.segmentIndex == i - 1 then
-                isExtreme = true
-                extremeTransition = et
-                break
-            end
-        end
-
-        if isExtreme then
-            -- For extreme transitions, we need very gradual speed changes
-            -- This is the key improvement - we create a much longer, more gradual transition
-            -- that starts much earlier and finishes much later than before
-
-            -- Calculate the severity of the transition (more extreme = wider transition)
-            local severity = math.min(0.9, math.max(0.5, extremeTransition.logRatio / 4))
-
-            -- Create a very wide transition region
-            local startPos = math.max(0.01, prevWp.position)
-            local midPos = wp.position
-            local segmentWidth = midPos - startPos
-
-            -- Extend the transition region beyond the waypoint
-            local transitionStart = startPos + segmentWidth * (1 - severity)
-            local transitionEnd = math.min(0.99, midPos + segmentWidth * severity)
-
-            Log.debug(string.format("Creating extended transition from %.2f to %.2f for extreme change",
-                    transitionStart, transitionEnd))
-
-            -- Generate many points throughout the transition zone for a smoother curve
-            local numPoints = 40 -- Use significantly more points for extreme transitions
-            local prevSpeed = prevWp.speed
-            local nextSpeed = wp.speed
-
-            -- Create logarithmically spaced points for better handling of extreme changes
-            for j = 0, numPoints do
-                -- Use a logarithmic spacing for control points - more dense near the waypoint
-                local t
-                if j <= numPoints / 2 then
-                    -- First half - gradually approach the waypoint
-                    t = j / (numPoints / 2)
-                    t = t * t  -- quadratic ease-in
-                    local pos = transitionStart + (midPos - transitionStart) * t
-
-                    -- Calculate speed using a customized sigmoid transition
-                    -- This provides very gradual changes at the beginning and end
-                    local blend = AnchorTimeControl.sigmoidBlend(t, 0.2)
-                    local speed = prevSpeed * (1 - blend) + nextSpeed * blend
-
-                    table.insert(speedControls, {
-                        time = pos,
-                        speed = speed
-                    })
-                else
-                    -- Second half - gradually move away from waypoint
-                    t = (j - numPoints / 2) / (numPoints / 2)
-                    t = t * t  -- quadratic ease-in for second half
-                    local pos = midPos + (transitionEnd - midPos) * t
-
-                    -- Final deceleration/acceleration after the waypoint
-                    local blend = AnchorTimeControl.sigmoidBlend(0.5 + t / 2, 0.2)
-                    local speed = prevSpeed * (1 - blend) + nextSpeed * blend
-
-                    table.insert(speedControls, {
-                        time = pos,
-                        speed = speed
-                    })
-                end
-            end
-        else
-            -- For normal transitions, add fewer control points
-            local numPoints = 15
-            local segmentWidth = 0.3 -- 30% of the distance around waypoint
-            local transitionStart = math.max(0.01, wp.position - segmentWidth / 2)
-            local transitionEnd = math.min(0.99, wp.position + segmentWidth / 2)
-
-            for j = 0, numPoints do
-                local t = j / numPoints
-                local pos = transitionStart + (transitionEnd - transitionStart) * t
-
-                -- Cubic easing function for smoother transition
-                local blend = t * t * (3 - 2 * t)
-                local speed = prevWp.speed * (1 - blend) + wp.speed * blend
-
-                table.insert(speedControls, {
-                    time = pos,
-                    speed = speed
-                })
-            end
-        end
-    end
-
-    -- Make sure we have an endpoint
-    if speedControls[#speedControls].time < 1.0 then
-        table.insert(speedControls, {
-            time = 1.0,
-            speed = rawSegments[#rawSegments].speed
-        })
-    end
-
-    -- Apply multiple rounds of global smoothing to eliminate any remaining discontinuities
-    Log.debug(string.format("Generated %d raw speed control points", #speedControls))
-    speedControls = AnchorTimeControl.globalSpeedSmoothing(speedControls, 5)
-    Log.debug(string.format("Final smoothed speed control points: %d", #speedControls))
+    -- Apply global smoothing to eliminate any remaining discontinuities
+    speedControls = AnchorTimeControl.globalSpeedSmoothing(smoothedControls, 3)
 
     return speedControls
-end
-
---- Custom sigmoid blending function for ultra-smooth transitions
----@param t number Input parameter (0-1)
----@param steepness number Controls the steepness of the sigmoid
----@return number blend Blended value
-function AnchorTimeControl.sigmoidBlend(t, steepness)
-    -- Center the input around 0
-    local x = (t - 0.5) / steepness
-    -- Apply sigmoid function: 1/(1+e^-x)
-    local sigmoid = 1 / (1 + math.exp(-x))
-    return sigmoid
 end
 
 --- Apply global smoothing to speed curve
@@ -310,22 +176,15 @@ function AnchorTimeControl.globalSpeedSmoothing(speedControls, passes)
             local currSpeed = result[i].speed
             local nextSpeed = result[i + 1].speed
 
-            -- Weighted average with special handling for extreme differences
-            local maxChange = math.max(prevSpeed, nextSpeed) * 0.3
-            local targetSpeed = prevSpeed * 0.25 + currSpeed * 0.5 + nextSpeed * 0.25
+            -- Weighted average
+            local smoothedSpeed = prevSpeed * 0.25 + currSpeed * 0.5 + nextSpeed * 0.25
 
-            -- Limit maximum change per pass for extreme transitions
-            if math.abs(targetSpeed - currSpeed) > maxChange then
-                if targetSpeed > currSpeed then
-                    targetSpeed = currSpeed + maxChange
-                else
-                    targetSpeed = currSpeed - maxChange
-                end
-            end
+            -- Apply velocity limits
+            smoothedSpeed = math.max(MIN_VELOCITY, math.min(MAX_VELOCITY, smoothedSpeed))
 
             table.insert(smoothed, {
                 time = result[i].time,
-                speed = targetSpeed
+                speed = smoothedSpeed
             })
         end
 
@@ -365,7 +224,7 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
         speedControls = speedControls
     }
 
-    -- Create continuous speed function with improved interpolation
+    -- Create continuous speed function
     local speedFunction = function(t)
         -- Handle edge cases
         if t <= 0 then
@@ -390,14 +249,11 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
             segmentT = (t - p1.time) / (p2.time - p1.time)
         end
 
-        -- Use improved quintintic interpolation for smoother transitions
+        -- Use smooth cubic interpolation
         local t2 = segmentT * segmentT
         local t3 = t2 * segmentT
-        local t4 = t3 * segmentT
-        local t5 = t4 * segmentT
-
-        -- 6t^5 - 15t^4 + 10t^3 (improved smoothstep that's C2 continuous)
-        local easedT = 6 * t5 - 15 * t4 + 10 * t3
+        -- Cubic Hermite spline (smoothstep): 3t² - 2t³
+        local easedT = 3 * t2 - 2 * t3
 
         return p1.speed * (1 - easedT) + p2.speed * easedT
     end
@@ -408,30 +264,28 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
         outputTime = 0
     })
 
-    -- Use many more segments for accurate numerical integration
-    local numSegments = 300
+    -- Use smaller segments for accurate numerical integration
+    local numSegments = 100
     local segmentSize = 1.0 / numSegments
     local currentTime = 0
 
-    -- Calculate time mapping through numerical integration with enhanced accuracy
+    -- Calculate time mapping through numerical integration
     for i = 1, numSegments do
         local t = (i - 1) * segmentSize
         local nextT = i * segmentSize
 
-        -- Use Simpsons rule for better numerical integration
+        -- Get speeds at segment boundaries
         local speed1 = speedFunction(t)
         local speed2 = speedFunction(nextT)
-        local speedMid = speedFunction(t + segmentSize / 2)
 
-        -- Simpson's integration: (b-a)/6 * [f(a) + 4*f((a+b)/2) + f(b)]
-        local invSpeed1 = 1 / math.max(0.001, speed1)
-        local invSpeed2 = 1 / math.max(0.001, speed2)
-        local invSpeedMid = 1 / math.max(0.001, speedMid)
+        -- Use trapezoidal rule for integration
+        local avgSpeed = (speed1 + speed2) / 2
 
-        local segmentDuration = segmentSize / 6 * (invSpeed1 + 4 * invSpeedMid + invSpeed2)
+        -- Calculate segment duration (distance/speed)
+        local segmentDuration = segmentSize / math.max(0.001, avgSpeed)
         currentTime = currentTime + segmentDuration
 
-        -- Add mapping point for this segment
+        -- Add mapping point
         table.insert(timeMap.points, {
             inputTime = nextT,
             outputTime = currentTime
@@ -442,6 +296,14 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
     timeMap.totalTime = timeMap.points[#timeMap.points].outputTime
     for i = 1, #timeMap.points do
         timeMap.points[i].outputTime = timeMap.points[i].outputTime / timeMap.totalTime
+    end
+
+    -- Apply global easing function if provided
+    if easingFunc then
+        for i = 1, #timeMap.points do
+            local t = timeMap.points[i].outputTime
+            timeMap.points[i].outputTime = easingFunc(t)
+        end
     end
 
     return timeMap
@@ -457,15 +319,14 @@ function AnchorTimeControl.regeneratePathSteps(pathInfo, timeMap)
 
     -- Calculate desired number of steps based on duration and steps per second
     local numSteps = math.max(
-            400, -- use more steps for smoother motion
-            math.floor(originalDuration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND * 2)
+            300, -- minimum number of steps for smooth movement
+            math.floor(originalDuration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND)
     )
 
     -- Recreate steps with even time distribution
     local newSteps = {}
     local stepTimeInterval = originalDuration / (numSteps - 1)
 
-    -- Distribute steps with higher density at problem areas
     for i = 1, numSteps do
         -- Even time distribution
         local stepTime = (i - 1) * stepTimeInterval
@@ -539,19 +400,8 @@ function AnchorTimeControl.inverseInterpolateTime(normalizedOutputTime, timeMap)
         segmentT = (normalizedOutputTime - o1) / (o2 - o1)
     end
 
-    -- Apply easing function if available
-    if timeMap.easingFunc then
-        segmentT = timeMap.easingFunc(segmentT)
-    end
-
-    -- Map to input time with quintic interpolation for smoother transitions
-    local t2 = segmentT * segmentT
-    local t3 = t2 * segmentT
-    local t4 = t3 * segmentT
-    local t5 = t4 * segmentT
-    local easedT = 6 * t5 - 15 * t4 + 10 * t3
-
-    return t1 + (t2 - t1) * easedT
+    -- Map to input time with linear interpolation (keeps interpolation more stable)
+    return t1 + (t2 - t1) * segmentT
 end
 
 --- Interpolates the path at a specific time
@@ -698,7 +548,7 @@ function AnchorTimeControl.addSpeedPoint(position, factor, width)
     end
 
     -- Default width
-    width = width or 0.3
+    width = width or 0.2
 
     -- Transition region edges
     local startPos = math.max(0, position - width / 2)
@@ -718,39 +568,24 @@ function AnchorTimeControl.addSpeedPoint(position, factor, width)
         end
     end
 
-    -- Add control points for smooth transition - use more points for smoother effect
-    local numPoints = 15
-    for i = 0, numPoints do
-        local t = i / numPoints
-        local pos = startPos + (endPos - startPos) * t
+    -- Add control points for smooth transition
+    table.insert(speedControls, {
+        time = startPos,
+        speed = baseSpeed -- Original speed at start of transition
+    })
 
-        -- Quintic ease in/out for smoother speed change
-        local t2 = t * t
-        local t3 = t2 * t
-        local t4 = t3 * t
-        local t5 = t4 * t
-        local easedT = 6 * t5 - 15 * t4 + 10 * t3
+    table.insert(speedControls, {
+        time = position,
+        speed = baseSpeed * factor -- Modified speed at center
+    })
 
-        -- Speed adjustment with the eased blending
-        local speed
-        if t < 0.5 then
-            -- First half - ease from base speed to modified speed
-            local blend = easedT * 2 -- remap 0-0.5 to 0-1
-            speed = baseSpeed * (1 - blend) + (baseSpeed * factor) * blend
-        else
-            -- Second half - ease from modified speed back to base speed
-            local blend = (easedT - 0.5) * 2 -- remap 0.5-1 to 0-1
-            speed = (baseSpeed * factor) * (1 - blend) + baseSpeed * blend
-        end
+    table.insert(speedControls, {
+        time = endPos,
+        speed = baseSpeed -- Return to original speed
+    })
 
-        table.insert(speedControls, {
-            time = pos,
-            speed = speed
-        })
-    end
-
-    -- Apply global smoothing
-    return AnchorTimeControl.globalSpeedSmoothing(speedControls, 3)
+    -- Optimize and return
+    return AnchorTimeControl.optimizeSpeedControls(speedControls)
 end
 
 --- Optimize speed controls by merging very close points
@@ -763,7 +598,7 @@ function AnchorTimeControl.optimizeSpeedControls(speedControls)
     end)
 
     -- Merge threshold
-    local timeThreshold = 0.005
+    local timeThreshold = 0.01
 
     local optimized = {}
     local lastTime = -1
@@ -780,8 +615,8 @@ function AnchorTimeControl.optimizeSpeedControls(speedControls)
             })
             lastTime = point.time
         elseif #optimized > 0 then
-            -- Points are very close, use average speed for smoother result
-            optimized[#optimized].speed = (optimized[#optimized].speed + point.speed) / 2
+            -- Points are very close, use minimum speed for safety
+            optimized[#optimized].speed = math.min(optimized[#optimized].speed, point.speed)
         end
     end
 
