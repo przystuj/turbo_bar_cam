@@ -126,17 +126,21 @@ function CameraAnchorUtils.calculateContinuousPathTangents(points)
         local tangent = {x = 0, y = 0, z = 0}
 
         if i == 1 then
-            -- First point: use forward difference
+            -- First point: use forward difference with reduced magnitude for smoother start
             tangent = CameraCommons.vectorSubtract(
                     {x = points[2].state.px, y = points[2].state.py, z = points[2].state.pz},
                     {x = points[1].state.px, y = points[1].state.py, z = points[1].state.pz}
             )
+            -- Start with a smaller tangent to ease in
+            tangent = CameraCommons.vectorMultiply(tangent, 0.5) -- Reduce scale for gentler start
         elseif i == #points then
-            -- Last point: use backward difference
+            -- Last point: use backward difference with reduced magnitude for smoother end
             tangent = CameraCommons.vectorSubtract(
                     {x = points[#points].state.px, y = points[#points].state.py, z = points[#points].state.pz},
                     {x = points[#points-1].state.px, y = points[#points-1].state.py, z = points[#points-1].state.pz}
             )
+            -- End with a smaller tangent to ease out
+            tangent = CameraCommons.vectorMultiply(tangent, 0.5) -- Reduce scale for gentler end
         else
             -- Interior points: use Catmull-Rom approach (average of segments)
             local prev = {x = points[i-1].state.px, y = points[i-1].state.py, z = points[i-1].state.pz}

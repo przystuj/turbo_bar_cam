@@ -164,21 +164,21 @@ function AnchorTimeControl.applySpeedControl(pathInfo, speedControls, easingFunc
     end
 
     -- Get easing function if specified
-    local easing = nil
+    local easing = EasingFunctions.cameraCurve
     if easingFunc then
         if type(easingFunc) == "string" then
             Log.info("Using easing function: " .. easingFunc)
             easing = EasingFunctions[easingFunc]
             if not easing then
-                Log.warn("Unknown easing function '" .. easingFunc .. "', using linear")
-                easing = EasingFunctions.linear
+                Log.warn("Unknown easing function '" .. easingFunc .. "', using default")
+                easing = EasingFunctions.cameraCurve
             end
         elseif type(easingFunc) == "function" then
             Log.info("Using custom easing function")
             easing = easingFunc
         end
     else
-        Log.info("No easing function specified, using linear")
+        Log.info("No easing function specified, using default")
     end
 
     -- Build time mapping with continuous speed transitions
@@ -351,40 +351,39 @@ function AnchorTimeControl.deriveSpeedFromTransitions(points)
     -- Add extra control points for smooth transitions between speeds
     Log.info("--- ADDING TRANSITION CONTROL POINTS ---")
     local smoothedControls = {}
-    table.insert(smoothedControls, speedControls[1])  -- Keep first point unchanged
 
+    -- Add more transition points around anchor boundaries for smoother blending
+    local transitionPointCount = 3 -- Increase for even smoother transitions
+
+    -- Add first point
+    table.insert(smoothedControls, speedControls[1])
+
+    -- Process interior points with improved transitions
     for i = 1, #speedControls - 1 do
         local p1 = speedControls[i]
         local p2 = speedControls[i + 1]
+        local segmentLength = p2.time - p1.time
 
-        -- If there's a significant speed difference, add control points for smoother transition
-        local speedRatio = p2.speed / p1.speed
-        if speedRatio > 1.5 or speedRatio < 0.67 then
-            -- Add extra control points for a smooth transition
-            local segmentLength = p2.time - p1.time
-            local transitionLength = segmentLength * 0.4  -- Use 40% of segment for transition
+        if segmentLength > 0.1 then
+            -- Only add points for reasonably large segments
+            -- Add multiple transition points for smoother blending
+            -- Don't remove the last point to avoid issues
 
-            -- Add a point at 20% of the way to the next point
-            local midTime1 = p1.time + transitionLength * 0.5
-            table.insert(smoothedControls, {
-                time = midTime1,
-                speed = p1.speed
-            })
+            for j = 1, transitionPointCount - 1 do
+                local position = p1.time + (j / transitionPointCount) * segmentLength
+                local blend = j / transitionPointCount
+                -- Cubic blending function for smoother transition
+                local smoothBlend = blend * blend * (3 - 2 * blend)
+                local speed = p1.speed * (1 - smoothBlend) + p2.speed * smoothBlend
 
-            Log.info(string.format("Added transition point: pos=%.3f, speed=%.1f (keeping start speed)",
-                    midTime1, p1.speed))
-
-            -- Add a point at 80% of the way to the next point
-            local midTime2 = p2.time - transitionLength * 0.5
-            table.insert(smoothedControls, {
-                time = midTime2,
-                speed = p2.speed
-            })
-
-            Log.info(string.format("Added transition point: pos=%.3f, speed=%.1f (preparing for end speed)",
-                    midTime2, p2.speed))
+                table.insert(smoothedControls, {
+                    time = position,
+                    speed = speed
+                })
+            end
         end
 
+        -- Always add the endpoint
         table.insert(smoothedControls, p2)
     end
 
@@ -589,15 +588,37 @@ function AnchorTimeControl.buildContinuousTimeMapping(speedControls, easingFunc)
     -- Apply global easing function if provided
     if easingFunc then
         Log.info("Applying global easing function to time mapping")
+
+        -- First pre-process output times to ensure smooth derivatives at boundaries
+        local outputTimes = {}
+        for i = 1, #timeMap.points do
+            outputTimes[i] = timeMap.points[i].outputTime
+        end
+
+        -- Apply easing with boundary preservation
         for i = 1, #timeMap.points do
             local originalT = timeMap.points[i].outputTime
             local easedT = easingFunc(originalT)
-            timeMap.points[i].outputTime = easedT
+
+            -- Critical fix: Ensure first derivative is continuous at boundaries
+            -- by preserving the original slope at boundaries
+            if i <= 3 then
+                -- First few points: gradually blend from linear to eased
+                local blendFactor = (i - 1) / 3
+                easedT = originalT * (1 - blendFactor) + easedT * blendFactor
+            elseif i >= #timeMap.points - 2 then
+                -- Last few points: gradually blend from eased to linear
+                local blendFactor = (#timeMap.points - i) / 3
+                easedT = originalT * blendFactor + easedT * (1 - blendFactor)
+            end
+
+            -- Apply and ensure within bounds (for safety)
+            timeMap.points[i].outputTime = math.max(0, math.min(1, easedT))
 
             -- Log some sample points
             if i % 20 == 0 or i == 1 or i == #timeMap.points then
                 Log.info(string.format("Easing applied at point %d: %.3f -> %.3f",
-                        i, originalT, easedT))
+                        i, originalT, timeMap.points[i].outputTime))
             end
         end
     end
