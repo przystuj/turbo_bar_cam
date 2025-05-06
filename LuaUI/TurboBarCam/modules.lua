@@ -15,6 +15,7 @@
 ---@field TurboOverviewCamera TurboOverviewCamera
 ---@field GroupTrackingCamera GroupTrackingCamera
 ---@field ProjectileCamera ProjectileCamera
+---@field DollyCam DollyCam
 
 ---@class WidgetContext
 ---@field CONFIG WidgetConfig

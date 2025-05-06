@@ -22,7 +22,7 @@ local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager
 local UpdateManager = {}
 
 --- Processes the main update cycle
-function UpdateManager.processCycle()
+function UpdateManager.processCycle(dt)
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -45,7 +45,7 @@ function UpdateManager.processCycle()
     Features.ProjectileCamera.checkAndActivate()
 
     -- Handle camera updates based on current mode
-    UpdateManager.updateCameraMode()
+    UpdateManager.updateCameraMode(dt)
 end
 
 --- Handles tracking grace period
@@ -99,13 +99,15 @@ function UpdateManager.handleModeTransitions()
 end
 
 --- Updates the camera based on current mode
-function UpdateManager.updateCameraMode()
+function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
 
     if STATE.anchorQueue and STATE.anchorQueue.active then
         Features.CameraAnchor.updateQueue()
     elseif STATE.transition.active then
         Features.CameraAnchor.update()
+    elseif STATE.dollyCam.isNavigating then
+        Features.DollyCam.update(dt)
     else
         -- Normal camera updates based on current mode
         if STATE.tracking.mode == 'fps' then

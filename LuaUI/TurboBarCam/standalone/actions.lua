@@ -14,6 +14,7 @@ local w = widget
 --- Register all camera action handlers
 function Actions.registerAllActions()
     Actions.coreActions()
+    Actions.dollyCamActions()
     Actions.fpsActions()
     Actions.anchorActions()
     Actions.trackingCameraActions()
@@ -65,6 +66,57 @@ function Actions.coreActions()
                 CommonModules.TrackingManager.disableTracking()
                 return false
             end)
+end
+
+function Actions.dollyCamActions()
+    Actions.registerAction("turbobarcam_dollycam_add", 'tp',
+            function()
+                FeatureModules.DollyCam.addCurrentPositionToRoute()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_toggle_navigation", 'tp',
+            function()
+                FeatureModules.DollyCam.toggleNavigation()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_adjust_speed", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.adjustSpeed(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_set_direction", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.setDirection(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_save", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.saveRoute(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_load", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.loadRoute(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_alpha", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.setAlpha(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_test", 'tp',
+            function(_, param)
+                FeatureModules.DollyCam.test(param)
+                return true
+            end)
+
 end
 
 

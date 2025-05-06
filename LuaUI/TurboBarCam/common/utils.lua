@@ -472,6 +472,15 @@ function Util.hermiteInterpolateRotation(rx0, ry0, rx1, ry1, v0, v1, t)
     return rx, ry
 end
 
+function Util.getCleanMapName()
+    local mapName = Game.mapName
+
+    -- Remove version numbers at the end (patterns like 1.2.3 or V1.2.3)
+    local cleanName = mapName:gsub("%s+[vV]?%d+%.?%d*%.?%d*$", "")
+
+    return cleanName
+end
+
 Util.TimeHelpers = {}
 
 --- Converts elapsed seconds to normalized time (0-1)

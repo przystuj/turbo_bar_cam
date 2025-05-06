@@ -37,6 +37,9 @@ function SettingsManager.initializePersistentStorage()
     STATE.settings["camera_presets"] = PersistentStorage.new("camera_presets", true)
     STATE.settings.storages["camera_presets"] = STATE.settings["camera_presets"]
 
+    STATE.settings["dollycam"] = PersistentStorage.new("dollycam", true)
+    STATE.settings.storages["dollycam"] = STATE.settings["dollycam"]
+
     STATE.settings.initialized = true
     Log.info("SettingsManager initialized")
 end

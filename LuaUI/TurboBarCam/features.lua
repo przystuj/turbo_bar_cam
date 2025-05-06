@@ -14,6 +14,8 @@ local TurboOverviewCameraModule = VFS.Include("LuaUI/TurboBarCam/features/overvi
 local GroupTrackingCameraModule = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/group_tracking.lua")
 ---@type {ProjectileCamera: ProjectileCamera}
 local ProjectileCameraModule = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua")
+---@type {DollyCam: DollyCam}
+local DollyCam = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam.lua")
 
 ---@return FeatureModules
 return {
@@ -25,4 +27,5 @@ return {
     TurboOverviewCamera = TurboOverviewCameraModule.TurboOverviewCamera,
     GroupTrackingCamera = GroupTrackingCameraModule.GroupTrackingCamera,
     ProjectileCamera = ProjectileCameraModule.ProjectileCamera,
+    DollyCam = DollyCam.DollyCam,
 }

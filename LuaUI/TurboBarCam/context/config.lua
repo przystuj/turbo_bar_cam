@@ -31,7 +31,7 @@ if not WG.TurboBarCam.CONFIG then
                 DURATION = 2.0, -- Default transition duration (seconds)
                 STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
                 DWELL = {
-                    DEFAULT_SLOWDOWN_FACTOR = 0.1,  -- Default: Camera moves at 10% speed during "dwell" periods
+                    DEFAULT_SLOWDOWN_FACTOR = 0.1, -- Default: Camera moves at 10% speed during "dwell" periods
                 },
             },
 

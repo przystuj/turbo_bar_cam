@@ -72,12 +72,18 @@ function widget:SelectionChanged(selectedUnits)
     SelectionManager.handleSelectionChanged(selectedUnits)
 end
 
-function widget:Update()
-    UpdateManager.processCycle()
+function widget:Update(dt)
+    UpdateManager.processCycle(dt)
 end
 
 function widget:GameFrame(frame)
     ProjectileTracker.update(frame)
+end
+
+function widget:DrawWorld()
+    if Spring.IsGUIHidden() == false then
+        FeatureModules.DollyCam.draw()
+    end
 end
 
 function widget:Shutdown()

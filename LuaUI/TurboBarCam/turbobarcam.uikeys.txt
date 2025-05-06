@@ -37,8 +37,6 @@ bind			Ctrl+Shift+F3		turbobarcam_anchor_focus_while_tracking 3
 bind			Ctrl+Shift+F4		turbobarcam_anchor_focus_while_tracking 4
 bind			Ctrl+Shift+numpad-	turbobarcam_anchor_adjust_params add;DURATION,-1
 bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
-bind			Ctrl+sc_[           turbobarcam_anchor_queue_add
-bind			Ctrl+sc_]           turbobarcam_anchor_queue_start
 
 // Single Unit Tracking
 bind		numpad3  		turbobarcam_toggle_tracking_camera
@@ -131,3 +129,12 @@ bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,5
 bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-5
 bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
 bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5
+
+// Dolly Cam
+bind			Ctrl+sc_[           turbobarcam_dollycam_add
+bind			Ctrl+sc_]           turbobarcam_dollycam_toggle_navigation
+bind			Ctrl+sc_\           turbobarcam_dollycam_test
+bind			numpad8             turbobarcam_dollycam_adjust_speed 0.01
+bind			numpad5             turbobarcam_dollycam_adjust_speed -0.01
+bind			numpad4             turbobarcam_dollycam_set_direction -1
+bind			numpad6             turbobarcam_dollycam_set_direction 1

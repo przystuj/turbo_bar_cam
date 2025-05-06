@@ -24,7 +24,7 @@ if not WG.TurboBarCam.STATE then
             startTime = 0,
         },
 
-        scheduler = {schedules = {}},
+        scheduler = { schedules = {} },
 
         -- Camera transitions
         transition = {
@@ -106,19 +106,19 @@ if not WG.TurboBarCam.STATE then
                 },
 
                 targetSmoothing = {
-                    targetHistory = {},        -- Recent target positions with timestamps
-                    cloudCenter = nil,         -- Calculated center of the target cloud
-                    cloudRadius = 0,           -- Radius of the target cloud
+                    targetHistory = {}, -- Recent target positions with timestamps
+                    cloudCenter = nil, -- Calculated center of the target cloud
+                    cloudRadius = 0, -- Radius of the target cloud
                     useCloudTargeting = false, -- Whether to use cloud targeting
-                    cloudStartTime = nil,      -- When cloud targeting began
+                    cloudStartTime = nil, -- When cloud targeting began
                     lastCloudUpdateTime = nil,
                     highActivityDetected = false,
-                    activityLevel = 0,         -- Measure of targeting activity (0-1)
+                    activityLevel = 0, -- Measure of targeting activity (0-1)
                     lastTargetSwitchTime = nil,
-                    targetSwitchCount = 0,     -- Number of target switches in short period
+                    targetSwitchCount = 0, -- Number of target switches in short period
                     lastStatusLogTime = nil,
-                    currentTargetKey = nil,    -- Current target identifier
-                    targetAimOffset = {x=0, y=0, z=0}, -- Aim offset for leading targets
+                    currentTargetKey = nil, -- Current target identifier
+                    targetAimOffset = { x = 0, y = 0, z = 0 }, -- Aim offset for leading targets
                     targetPrediction = {       -- Target movement prediction
                         enabled = false,
                         velocityX = 0,
@@ -128,9 +128,9 @@ if not WG.TurboBarCam.STATE then
                     },
                     rotationConstraint = {     -- Constraint for rotation changes
                         enabled = true,
-                        maxRotationRate = 0.07,  -- Maximum rotation rate (radians per update)
-                        lastYaw = nil,          -- Last yaw angle
-                        lastPitch = nil,        -- Last pitch angle
+                        maxRotationRate = 0.07, -- Maximum rotation rate (radians per update)
+                        lastYaw = nil, -- Last yaw angle
+                        lastPitch = nil, -- Last pitch angle
                         damping = 0.8           -- Damping factor (higher = more constraint)
                     }
                 },
@@ -252,12 +252,24 @@ if not WG.TurboBarCam.STATE then
             lastDragY = nil,
 
             -- Configuration
-            doubleClickThreshold = 0.3,  -- seconds
-            dragThreshold = 30,           -- pixels
-            dragTimeThreshold = 0.15,    -- seconds
+            doubleClickThreshold = 0.3, -- seconds
+            dragThreshold = 30, -- pixels
+            dragTimeThreshold = 0.15, -- seconds
 
             -- Callback storage
             callbacks = {}
+        },
+
+        dollyCam = {
+            route = { points = {} },
+            isNavigating = false, -- Whether navigation is active
+            currentDistance = 0, -- Current position along path
+            targetSpeed = 0, -- Target speed (-1.0 to 1.0)
+            currentSpeed = 0, -- Current interpolated speed
+            maxSpeed = 800,
+            acceleration = 120,
+            alpha = 0.5,
+            visualizationEnabled = true
         }
     }
 end

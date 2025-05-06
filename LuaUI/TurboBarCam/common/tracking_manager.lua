@@ -209,6 +209,17 @@ function TrackingManager.disableTracking()
         STATE.anchorQueue.stepStartTime = 0
     end
 
+    STATE.dollyCam = {
+        route = { points = {} },
+        isNavigating = false, -- Whether navigation is active
+        currentDistance = 0, -- Current position along path
+        targetSpeed = 0, -- Target speed (-1.0 to 1.0)
+        currentSpeed = 0, -- Current interpolated speed
+        maxSpeed = 800,
+        acceleration = 120,
+        alpha = 1,
+        visualizationEnabled = true
+    }
 end
 
 --- Starts a mode transition
