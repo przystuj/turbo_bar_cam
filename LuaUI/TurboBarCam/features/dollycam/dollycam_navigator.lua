@@ -31,8 +31,9 @@ function DollyCamNavigator.startNavigation()
     -- Set the active route and state
     STATE.dollyCam.isNavigating = true
     STATE.dollyCam.currentDistance = 0
-    STATE.dollyCam.targetSpeed = 0.2
+    STATE.dollyCam.targetSpeed = 1
     STATE.dollyCam.currentSpeed = 0
+    STATE.dollyCam.direction = 1
 
     Log.info("[DollyCam] Started navigation")
     return true
@@ -48,12 +49,13 @@ function DollyCamNavigator.stopNavigation()
     STATE.dollyCam.isNavigating = false
     STATE.dollyCam.targetSpeed = 0
     STATE.dollyCam.currentSpeed = 0
+    STATE.dollyCam.direction = 1
 
     Log.info("[DollyCam] Stopped navigation")
 end
 
 -- Set the target speed for navigation
----@param speed number Target speed from -1.0 (full reverse) to 1.0 (full forward)
+---@param speed number Target speed from 0 to 1.0
 ---@return boolean success Whether speed was set
 function DollyCamNavigator.adjustSpeed(speed)
     if not STATE.dollyCam.isNavigating then
@@ -64,7 +66,7 @@ function DollyCamNavigator.adjustSpeed(speed)
     local newSpeed = STATE.dollyCam.targetSpeed + tonumber(speed)
 
     -- Clamp speed to valid range
-    newSpeed = math.max(-1.0, math.min(1.0, newSpeed))
+    newSpeed = math.max(0, math.min(1.0, newSpeed))
 
     STATE.dollyCam.targetSpeed = newSpeed
 
@@ -112,11 +114,11 @@ function DollyCamNavigator.update(deltaTime)
     end
 
     -- Smooth acceleration toward target speed
-    local speedDiff = STATE.dollyCam.targetSpeed - STATE.dollyCam.currentSpeed
+    local speedDiff = (STATE.dollyCam.targetSpeed * STATE.dollyCam.direction) - STATE.dollyCam.currentSpeed
     local accelStep = (STATE.dollyCam.acceleration * deltaTime) / STATE.dollyCam.maxSpeed
 
     if math.abs(speedDiff) <= accelStep then
-        STATE.dollyCam.currentSpeed = STATE.dollyCam.targetSpeed
+        STATE.dollyCam.currentSpeed = STATE.dollyCam.targetSpeed * STATE.dollyCam.direction
     else
         STATE.dollyCam.currentSpeed = STATE.dollyCam.currentSpeed +
                 accelStep * (speedDiff > 0 and 1 or -1)

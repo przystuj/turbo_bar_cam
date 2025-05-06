@@ -266,6 +266,7 @@ if not WG.TurboBarCam.STATE then
             currentDistance = 0, -- Current position along path
             targetSpeed = 0, -- Target speed (-1.0 to 1.0)
             currentSpeed = 0, -- Current interpolated speed
+            direction = 1, -- 1 = forward
             maxSpeed = 800,
             acceleration = 120,
             alpha = 0.5,

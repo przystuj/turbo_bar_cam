@@ -16,13 +16,29 @@ local DollyCamEditor = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam
 local DollyCamDataStructures = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_data_structures.lua").DollyCamDataStructures
 ---@type DollyCamVisualization
 local DollyCamVisualization = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_visualization.lua").DollyCamVisualization
+---@type DollyCamWaypointEditor
+local DollyCamWaypointEditor = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_waypoint_editor.lua").DollyCamWaypointEditor
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 
 local STATE = WidgetContext.STATE
 
+-- Initialize STATE.dollyCam if not already done
+STATE.dollyCam = STATE.dollyCam or {}
+STATE.dollyCam.isEditing = STATE.dollyCam.isEditing or false
+
 ---@class DollyCam
 local DollyCam = {}
+
+-- Define key constants
+DollyCam.KEYS = {
+    LEFT = 276,
+    RIGHT = 275,
+    UP = 273,
+    DOWN = 274,
+    PAGEUP = 280,
+    PAGEDOWN = 281
+}
 
 -- Add current camera position as a waypoint
 ---@return boolean success Whether the waypoint was added
@@ -53,7 +69,7 @@ function DollyCam.deleteWaypoint(routeId, waypointIndex)
         return false
     end
 
-    return DollyCamEditor.deleteWaypoint(routeId, waypointIndex)
+    return DollyCamEditor.deleteWaypoint(waypointIndex)
 end
 
 -- Update the DollyCam system state
@@ -144,22 +160,16 @@ function DollyCam.loadRoute(name)
     return name
 end
 
--- Set centripetal parameterization alpha value
----@param alpha number Alpha value (0.0-1.0)
----@return boolean success Whether alpha was set
-function DollyCam.setAlpha(alpha)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-
-    return DollyCamNavigator.setAlpha(tonumber(alpha))
-end
-
 -- Toggle navigation on a route
 ---@return boolean success Whether navigation was started
 function DollyCam.toggleNavigation()
     if Util.isTurboBarCamDisabled() then
         return false
+    end
+
+    -- If in editing mode, disable it before navigating
+    if STATE.dollyCam.isEditing then
+        DollyCamWaypointEditor.disable()
     end
 
     -- Stop navigating if active
@@ -185,7 +195,7 @@ function DollyCam.adjustSpeed(speed)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.warn("Cannot set speed: Not currently navigating")
+        Log.debug("Cannot set speed: Not currently navigating")
         return false
     end
 
@@ -201,7 +211,7 @@ function DollyCam.setDirection(direction)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.warn("Cannot set speed: Not currently navigating")
+        Log.debug("Cannot set direction: Not currently navigating")
         return false
     end
 
@@ -210,8 +220,36 @@ function DollyCam.setDirection(direction)
         return false
     end
 
-    STATE.dollyCam.targetSpeed = math.abs(STATE.dollyCam.targetSpeed) * tonumber(direction)
-    Log.debug("Speed set to " .. STATE.dollyCam.targetSpeed )
+    STATE.dollyCam.direction = tonumber(direction)
+    Log.debug("Direction set to " .. STATE.dollyCam.direction )
+end
+
+-- Toggle waypoint editor mode
+---@return boolean enabled Whether the editor was enabled
+function DollyCam.toggleWaypointEditor()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    -- If navigating, stop first
+    if STATE.dollyCam.isNavigating then
+        DollyCamNavigator.stopNavigation()
+    end
+
+    -- Toggle the waypoint editor
+    return DollyCamWaypointEditor.toggle()
+end
+
+-- Move selected waypoint along an axis
+---@param axis string Axis to move along: "x", "y", "z"
+---@param value number Amount to move (positive or negative)
+---@return boolean success Whether the waypoint was moved
+function DollyCam.moveSelectedWaypoint(axis, value)
+    if Util.isTurboBarCamDisabled() or not STATE.dollyCam.isEditing then
+        return false
+    end
+
+    return DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
 end
 
 -- todo remove at some point

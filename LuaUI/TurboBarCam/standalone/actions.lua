@@ -75,6 +75,18 @@ function Actions.dollyCamActions()
                 return true
             end)
 
+    Actions.registerAction("turbobarcam_dollycam_toggle_editor", 'tp',
+            function()
+                FeatureModules.DollyCam.toggleWaypointEditor()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_move_waypoint", 'tp',
+            function(_, _, args)
+                FeatureModules.DollyCam.moveSelectedWaypoint(args[1], args[2]) -- axis, value
+                return false
+            end)
+
     Actions.registerAction("turbobarcam_dollycam_toggle_navigation", 'tp',
             function()
                 FeatureModules.DollyCam.toggleNavigation()
@@ -84,13 +96,13 @@ function Actions.dollyCamActions()
     Actions.registerAction("turbobarcam_dollycam_adjust_speed", 'tp',
             function(_, param)
                 FeatureModules.DollyCam.adjustSpeed(param)
-                return true
+                return false
             end)
 
     Actions.registerAction("turbobarcam_dollycam_set_direction", 'tp',
             function(_, param)
                 FeatureModules.DollyCam.setDirection(param)
-                return true
+                return false
             end)
 
     Actions.registerAction("turbobarcam_dollycam_save", 'tp',
@@ -102,12 +114,6 @@ function Actions.dollyCamActions()
     Actions.registerAction("turbobarcam_dollycam_load", 'tp',
             function(_, param)
                 FeatureModules.DollyCam.loadRoute(param)
-                return true
-            end)
-
-    Actions.registerAction("turbobarcam_dollycam_alpha", 'tp',
-            function(_, param)
-                FeatureModules.DollyCam.setAlpha(param)
                 return true
             end)
 

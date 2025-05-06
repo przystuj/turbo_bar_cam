@@ -132,6 +132,13 @@ function MouseManager.update()
     local mouseX, mouseY, lmb, mmb, rmb = Spring.GetMouseState()
     local currentTime = Spring.GetTimer()
 
+    -- Fire mouse move event if position has changed
+    if mouseX ~= STATE.mouse.lastMouseX or mouseY ~= STATE.mouse.lastMouseY then
+        fireCallbacks("onMouseMove", mouseX, mouseY,
+                mouseX - (STATE.mouse.lastMouseX or mouseX),
+                mouseY - (STATE.mouse.lastMouseY or mouseY))
+    end
+
     STATE.mouse.lastMouseX = mouseX
     STATE.mouse.lastMouseY = mouseY
 
@@ -174,13 +181,20 @@ MouseManager.onReleaseRMB = function(modeName, callback)
     registerCallback("onReleaseRMB", modeName, callback)
 end
 
--- LMB (optional, add more if needed)
 MouseManager.onLMB = function(modeName, callback)
     registerCallback("onLMB", modeName, callback)
 end
 
+MouseManager.onRMB = function(modeName, callback)
+    registerCallback("onRMB", modeName, callback)
+end
+
 MouseManager.onReleaseLMB = function(modeName, callback)
     registerCallback("onReleaseLMB", modeName, callback)
+end
+
+MouseManager.onMouseMove = function(modeName, callback)
+    registerCallback("onMouseMove", modeName, callback)
 end
 
 return {

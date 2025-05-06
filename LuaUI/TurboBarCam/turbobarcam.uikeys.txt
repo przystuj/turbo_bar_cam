@@ -131,10 +131,15 @@ bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
 bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5
 
 // Dolly Cam
-bind			Ctrl+sc_[           turbobarcam_dollycam_add
+bind			Ctrl+sc_[           turbobarcam_dollycam_toggle_editor
 bind			Ctrl+sc_]           turbobarcam_dollycam_toggle_navigation
 bind			Ctrl+sc_\           turbobarcam_dollycam_test
-bind			numpad8             turbobarcam_dollycam_adjust_speed 0.01
-bind			numpad5             turbobarcam_dollycam_adjust_speed -0.01
-bind			numpad4             turbobarcam_dollycam_set_direction -1
-bind			numpad6             turbobarcam_dollycam_set_direction 1
+bind			numpad6             turbobarcam_dollycam_adjust_speed 0.1
+bind			numpad4             turbobarcam_dollycam_adjust_speed -0.1
+bind			numpad5             turbobarcam_dollycam_toggle_direction -1
+bind			numpad5             turbobarcam_dollycam_move_waypoint x -10
+bind			numpad8             turbobarcam_dollycam_move_waypoint x 10
+bind			Ctrl+numpad5        turbobarcam_dollycam_move_waypoint y -10
+bind			Ctrl+numpad8        turbobarcam_dollycam_move_waypoint y 10
+bind			numpad4             turbobarcam_dollycam_move_waypoint z -10
+bind			numpad6             turbobarcam_dollycam_move_waypoint z 10
