@@ -53,53 +53,78 @@ function DollyCamVisualization.toggle()
     return STATE.dollyCam.visualizationEnabled
 end
 
+-- Helper function to draw a single point
+---@param x number X coordinate
+---@param y number Y coordinate
+---@param z number Z coordinate
+---@param size number Point size
+---@param color table Color array {r, g, b, a}
+local function drawPoint(x, y, z, size, color)
+    gl.PointSize(size)
+    gl.Color(unpack(color))
+    gl.BeginEnd(GL.POINTS, function()
+        gl.Vertex(x, y, z)
+    end)
+end
+
+-- Helper function to draw a billboarded text label
+---@param x number X coordinate
+---@param y number Y coordinate
+---@param z number Z coordinate
+---@param text string Text to display
+---@param yOffset number Y offset for the text
+---@param size number Font size
+local function drawTextLabel(x, y, z, text, yOffset, size)
+    gl.PushMatrix()
+    gl.Translate(x, y + yOffset, z)
+    gl.Billboard()
+    gl.Text(text, 0, 0, size, "c")
+    gl.PopMatrix()
+end
+
+-- Helper function to draw a line
+---@param x1 number Start X coordinate
+---@param y1 number Start Y coordinate
+---@param z1 number Start Z coordinate
+---@param x2 number End X coordinate
+---@param y2 number End Y coordinate
+---@param z2 number End Z coordinate
+---@param color table Color array {r, g, b, a}
+---@param width number Line width
+local function drawLine(x1, y1, z1, x2, y2, z2, color, width)
+    gl.LineWidth(width or 1.0)
+    gl.Color(unpack(color))
+    gl.BeginEnd(GL.LINES, function()
+        gl.Vertex(x1, y1, z1)
+        gl.Vertex(x2, y2, z2)
+    end)
+    gl.LineWidth(1.0)
+end
+
 -- Draw a distance marker at a specific point on the path
 ---@param position table Position {x, y, z}
 ---@param distance number Distance along the path
 local function drawDistanceMarker(position, distance)
     -- Draw a small point
-    gl.PointSize(DollyCamVisualization.settings.pathPointSize * 1.5)
-    gl.Color(DollyCamVisualization.colors.distanceMarker)
-    gl.BeginEnd(GL.POINTS, function()
-        gl.Vertex(position.x, position.y, position.z)
-    end)
+    drawPoint(
+            position.x, position.y, position.z,
+            DollyCamVisualization.settings.pathPointSize * 1.5,
+            DollyCamVisualization.colors.distanceMarker
+    )
 
     -- Draw distance label
     if DollyCamVisualization.settings.drawWaypointLabels then
-        gl.PushMatrix()
-        gl.Translate(position.x, position.y + 10, position.z)
-        gl.Billboard()
-        gl.Text(string.format("%.0f", distance), 0, 0,
-                DollyCamVisualization.settings.distanceLabelSize, "c")
-        gl.PopMatrix()
+        drawTextLabel(
+                position.x, position.y, position.z,
+                string.format("%.0f", distance),
+                10,
+                DollyCamVisualization.settings.distanceLabelSize
+        )
     end
 end
 
--- Main draw function for visualization
-function DollyCamVisualization.draw()
-    if not STATE.dollyCam.visualizationEnabled then
-        return
-    end
-
-    if not STATE.dollyCam.route then
-        return
-    end
-
-    -- Find closest waypoint based on context
-    local closestWaypointIndex = nil
-
-    if STATE.dollyCam.isNavigating then
-        -- During navigation, highlight closest waypoint to current position
-        local currentPosition = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
-        if currentPosition then
-            closestWaypointIndex, _ = DollyCamPathPlanner.findClosestWaypoint(currentPosition)
-        end
-    elseif STATE.dollyCam.isEditing then
-        -- During editing, use hover/selection state from STATE
-        closestWaypointIndex = STATE.dollyCam.hoveredWaypointIndex
-    end
-
-    -- Draw waypoints
+-- Draw all waypoints
+local function drawWaypoints(closestWaypointIndex)
     for i, waypoint in ipairs(STATE.dollyCam.route.points) do
         local color = DollyCamVisualization.colors.waypoint
         local size = DollyCamVisualization.settings.waypointSize
@@ -120,172 +145,204 @@ function DollyCamVisualization.draw()
         end
 
         -- Draw waypoint marker
-        gl.PointSize(size)
-        gl.Color(color)
-        gl.BeginEnd(GL.POINTS, function()
-            gl.Vertex(waypoint.position.x, waypoint.position.y, waypoint.position.z)
-        end)
+        drawPoint(
+                waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                size, color
+        )
 
         -- Draw waypoint index text
         if DollyCamVisualization.settings.drawWaypointLabels then
-            gl.PushMatrix()
-            gl.Translate(waypoint.position.x, waypoint.position.y + 15, waypoint.position.z)
-            gl.Billboard()
-            gl.Text(tostring(i), 0, 0, DollyCamVisualization.settings.waypointLabelSize, "c")
-            gl.PopMatrix()
+            drawTextLabel(
+                    waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                    tostring(i), 15,
+                    DollyCamVisualization.settings.waypointLabelSize
+            )
         end
     end
+end
 
-    -- Draw path points
-    if STATE.dollyCam.route.path and #STATE.dollyCam.route.path > 0 then
-        -- Only draw a subset of points for performance
-        local step = math.max(1, math.floor(#STATE.dollyCam.route.path / DollyCamVisualization.settings.maxPathSegments))
-
-        gl.PointSize(DollyCamVisualization.settings.pathPointSize)
-        gl.Color(DollyCamVisualization.colors.path)
-
-        -- First pass: draw regular path points
-        gl.BeginEnd(GL.POINTS, function()
-            for i = 1, #STATE.dollyCam.route.path, step do
-                -- Skip the hovered path point, we'll draw it later
-                if not (STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex == i) then
-                    local point = STATE.dollyCam.route.path[i]
-                    gl.Vertex(point.x, point.y, point.z)
-                end
-            end
-        end)
-
-        -- Second pass: draw hovered path point if any
-        if STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex then
-            local hoveredPoint = STATE.dollyCam.route.path[STATE.dollyCam.hoveredPathPointIndex]
-            gl.PointSize(DollyCamVisualization.settings.hoveredPathPointSize)
-            gl.Color(DollyCamVisualization.colors.hoveredPathPoint)
-            gl.BeginEnd(GL.POINTS, function()
-                gl.Vertex(hoveredPoint.x, hoveredPoint.y, hoveredPoint.z)
-            end)
-        end
+-- Draw path points
+local function drawPathPoints()
+    if not (STATE.dollyCam.route.path and #STATE.dollyCam.route.path > 0) then
+        return
     end
 
-    -- Draw segment boundaries
-    if DollyCamVisualization.settings.drawSegmentBoundaries and #STATE.dollyCam.route.points > 1 then
-        local distance = 0
+    -- Only draw a subset of points for performance
+    local step = math.max(1, math.floor(#STATE.dollyCam.route.path / DollyCamVisualization.settings.maxPathSegments))
 
-        for i = 1, #STATE.dollyCam.route.segmentDistances do
-            -- Draw start marker
-            local startPos = DollyCamPathPlanner.getPositionAtDistance(distance)
-            if startPos and i > 1 then
-                -- Skip the very first marker which overlaps with waypoint
-                gl.PointSize(DollyCamVisualization.settings.pathPointSize * 2)
-                gl.Color(DollyCamVisualization.colors.pathSegmentStart)
-                gl.BeginEnd(GL.POINTS, function()
-                    gl.Vertex(startPos.x, startPos.y, startPos.z)
-                end)
-            end
-
-            -- Draw end marker
-            distance = distance + STATE.dollyCam.route.segmentDistances[i]
-            local endPos = DollyCamPathPlanner.getPositionAtDistance(distance)
-            if endPos and i < #STATE.dollyCam.route.segmentDistances then
-                -- Skip the very last marker which overlaps with waypoint
-                gl.PointSize(DollyCamVisualization.settings.pathPointSize * 2)
-                gl.Color(DollyCamVisualization.colors.pathSegmentEnd)
-                gl.BeginEnd(GL.POINTS, function()
-                    gl.Vertex(endPos.x, endPos.y, endPos.z)
-                end)
+    -- First pass: draw regular path points
+    gl.PointSize(DollyCamVisualization.settings.pathPointSize)
+    gl.Color(unpack(DollyCamVisualization.colors.path))
+    gl.BeginEnd(GL.POINTS, function()
+        for i = 1, #STATE.dollyCam.route.path, step do
+            -- Skip the hovered path point, we'll draw it later
+            if not (STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex == i) then
+                local point = STATE.dollyCam.route.path[i]
+                gl.Vertex(point.x, point.y, point.z)
             end
         end
+    end)
+
+    -- Second pass: draw hovered path point if any
+    if STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex then
+        local hoveredPoint = STATE.dollyCam.route.path[STATE.dollyCam.hoveredPathPointIndex]
+        drawPoint(
+                hoveredPoint.x, hoveredPoint.y, hoveredPoint.z,
+                DollyCamVisualization.settings.hoveredPathPointSize,
+                DollyCamVisualization.colors.hoveredPathPoint
+        )
+    end
+end
+
+-- Draw segment boundaries
+local function drawSegmentBoundaries()
+    if not DollyCamVisualization.settings.drawSegmentBoundaries or #STATE.dollyCam.route.points <= 1 then
+        return
     end
 
-    -- Draw distance markers
-    if DollyCamVisualization.settings.drawDistanceMarkers and STATE.dollyCam.route.totalDistance and STATE.dollyCam.route.totalDistance > 0 then
-        local interval = DollyCamVisualization.settings.distanceMarkerInterval
-        local markerCount = math.floor(STATE.dollyCam.route.totalDistance / interval)
+    local distance = 0
 
-        for i = 1, markerCount do
-            local markerDistance = i * interval
-            local markerPos = DollyCamPathPlanner.getPositionAtDistance(markerDistance)
+    for i = 1, #STATE.dollyCam.route.segmentDistances do
+        -- Draw start marker
+        local startPos = DollyCamPathPlanner.getPositionAtDistance(distance)
+        if startPos and i > 1 then
+            -- Skip the very first marker which overlaps with waypoint
+            drawPoint(
+                    startPos.x, startPos.y, startPos.z,
+                    DollyCamVisualization.settings.pathPointSize * 2,
+                    DollyCamVisualization.colors.pathSegmentStart
+            )
+        end
 
-            if markerPos then
-                drawDistanceMarker(markerPos, markerDistance)
-            end
+        -- Draw end marker
+        distance = distance + STATE.dollyCam.route.segmentDistances[i]
+        local endPos = DollyCamPathPlanner.getPositionAtDistance(distance)
+        if endPos and i < #STATE.dollyCam.route.segmentDistances then
+            -- Skip the very last marker which overlaps with waypoint
+            drawPoint(
+                    endPos.x, endPos.y, endPos.z,
+                    DollyCamVisualization.settings.pathPointSize * 2,
+                    DollyCamVisualization.colors.pathSegmentEnd
+            )
         end
     end
+end
 
-    -- Draw current position on path if navigating
-    if STATE.dollyCam.isNavigating then
-        local currentPos = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
+-- Draw distance markers
+local function drawDistanceMarkers()
+    if not (DollyCamVisualization.settings.drawDistanceMarkers and
+            STATE.dollyCam.route.totalDistance and
+            STATE.dollyCam.route.totalDistance > 0) then
+        return
+    end
 
-        if currentPos then
-            gl.PointSize(DollyCamVisualization.settings.currentPosSize)
-            gl.Color(DollyCamVisualization.colors.currentPosition)
-            gl.BeginEnd(GL.POINTS, function()
-                gl.Vertex(currentPos.x, currentPos.y, currentPos.z)
-            end)
+    local interval = DollyCamVisualization.settings.distanceMarkerInterval
+    local markerCount = math.floor(STATE.dollyCam.route.totalDistance / interval)
 
-            -- Draw a text label with current distance information
-            gl.PushMatrix()
-            gl.Translate(currentPos.x, currentPos.y + 20, currentPos.z)
-            gl.Billboard()
-            gl.Text(string.format("%.1f / %.1f (%.1f%%)",
+    for i = 1, markerCount do
+        local markerDistance = i * interval
+        local markerPos = DollyCamPathPlanner.getPositionAtDistance(markerDistance)
+
+        if markerPos then
+            drawDistanceMarker(markerPos, markerDistance)
+        end
+    end
+end
+
+-- Draw current position during navigation
+local function drawCurrentPosition()
+    if not STATE.dollyCam.isNavigating then
+        return
+    end
+
+    local currentPos = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
+    if not currentPos then
+        return
+    end
+
+    -- Draw position marker
+    drawPoint(
+            currentPos.x, currentPos.y, currentPos.z,
+            DollyCamVisualization.settings.currentPosSize,
+            DollyCamVisualization.colors.currentPosition
+    )
+
+    -- Draw text with current distance information
+    drawTextLabel(
+            currentPos.x, currentPos.y, currentPos.z,
+            string.format("%.1f / %.1f (%.1f%%)",
                     STATE.dollyCam.currentDistance,
                     STATE.dollyCam.route.totalDistance,
                     (STATE.dollyCam.currentDistance / STATE.dollyCam.route.totalDistance) * 100),
-                    0, 0, 12, "c")
-            gl.PopMatrix()
+            20, 12
+    )
 
-            -- Draw tangent if enabled
-            if DollyCamVisualization.settings.drawPathTangents then
-                local tangent = DollyCamPathPlanner.getPathTangentAtDistance(STATE.dollyCam.currentDistance)
+    -- Draw tangent if enabled
+    if DollyCamVisualization.settings.drawPathTangents then
+        local tangent = DollyCamPathPlanner.getPathTangentAtDistance(STATE.dollyCam.currentDistance)
 
-                if tangent then
-                    -- Draw tangent vector
-                    local tanLength = DollyCamVisualization.settings.directionLineLength
-                    gl.Color(1, 1, 0, 0.7)
-                    gl.LineWidth(2.0)
-                    gl.BeginEnd(GL.LINES, function()
-                        gl.Vertex(currentPos.x, currentPos.y, currentPos.z)
-                        gl.Vertex(
-                                currentPos.x + tangent.x * tanLength,
-                                currentPos.y + tangent.y * tanLength,
-                                currentPos.z + tangent.z * tanLength
-                        )
-                    end)
-                    gl.LineWidth(1.0)
-                end
-            end
+        if tangent then
+            -- Draw tangent vector
+            local tanLength = DollyCamVisualization.settings.directionLineLength
+            drawLine(
+                    currentPos.x, currentPos.y, currentPos.z,
+                    currentPos.x + tangent.x * tanLength,
+                    currentPos.y + tangent.y * tanLength,
+                    currentPos.z + tangent.z * tanLength,
+                    {1, 1, 0, 0.7}, 2.0
+            )
         end
     end
+end
 
-    -- Draw editor-specific visualizations
-    if STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypointIndex then
-        local selectedWaypoint = STATE.dollyCam.route.points[STATE.dollyCam.selectedWaypointIndex]
-
-        -- Draw movement axes for selected waypoint
-        gl.LineWidth(2.0)
-
-        -- X axis (red)
-        gl.Color(1.0, 0.0, 0.0, 0.7)
-        gl.BeginEnd(GL.LINES, function()
-            gl.Vertex(selectedWaypoint.position.x - 50, selectedWaypoint.position.y, selectedWaypoint.position.z)
-            gl.Vertex(selectedWaypoint.position.x + 50, selectedWaypoint.position.y, selectedWaypoint.position.z)
-        end)
-
-        -- Y axis (green)
-        gl.Color(0.0, 1.0, 0.0, 0.7)
-        gl.BeginEnd(GL.LINES, function()
-            gl.Vertex(selectedWaypoint.position.x, selectedWaypoint.position.y - 50, selectedWaypoint.position.z)
-            gl.Vertex(selectedWaypoint.position.x, selectedWaypoint.position.y + 50, selectedWaypoint.position.z)
-        end)
-
-        -- Z axis (blue)
-        gl.Color(0.0, 0.0, 1.0, 0.7)
-        gl.BeginEnd(GL.LINES, function()
-            gl.Vertex(selectedWaypoint.position.x, selectedWaypoint.position.y, selectedWaypoint.position.z - 50)
-            gl.Vertex(selectedWaypoint.position.x, selectedWaypoint.position.y, selectedWaypoint.position.z + 50)
-        end)
-
-        gl.LineWidth(1.0)
+-- Draw editor-specific visualizations
+local function drawEditorVisualizations()
+    if not (STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypointIndex) then
+        return
     end
+
+    local selectedWaypoint = STATE.dollyCam.route.points[STATE.dollyCam.selectedWaypointIndex]
+    local pos = selectedWaypoint.position
+    local axisLength = 50
+
+    -- Draw movement axes for selected waypoint
+    -- X axis (red)
+    drawLine(
+            pos.x - axisLength, pos.y, pos.z,
+            pos.x + axisLength, pos.y, pos.z,
+            {1.0, 0.0, 0.0, 0.7}, 2.0
+    )
+
+    -- Y axis (green)
+    drawLine(
+            pos.x, pos.y - axisLength, pos.z,
+            pos.x, pos.y + axisLength, pos.z,
+            {0.0, 1.0, 0.0, 0.7}, 2.0
+    )
+
+    -- Z axis (blue)
+    drawLine(
+            pos.x, pos.y, pos.z - axisLength,
+            pos.x, pos.y, pos.z + axisLength,
+            {0.0, 0.0, 1.0, 0.7}, 2.0
+    )
+end
+
+-- Main draw function for visualization
+function DollyCamVisualization.draw()
+    if not STATE.dollyCam.visualizationEnabled or not STATE.dollyCam.route then
+        return
+    end
+
+    local closestWaypointIndex = STATE.dollyCam.hoveredWaypointIndex
+
+    -- Draw all visualization elements
+    drawWaypoints(closestWaypointIndex)
+    drawPathPoints()
+    drawSegmentBoundaries()
+    drawDistanceMarkers()
+    drawCurrentPosition()
+    drawEditorVisualizations()
 end
 
 return {

@@ -99,9 +99,9 @@ function Actions.dollyCamActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_dollycam_set_direction", 'tp',
+    Actions.registerAction("turbobarcam_dollycam_toggle_direction", 'tp',
             function(_, param)
-                FeatureModules.DollyCam.setDirection(param)
+                FeatureModules.DollyCam.toggleDirection()
                 return false
             end)
 

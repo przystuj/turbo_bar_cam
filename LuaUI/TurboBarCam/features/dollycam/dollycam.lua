@@ -195,7 +195,7 @@ function DollyCam.adjustSpeed(speed)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.debug("Cannot set speed: Not currently navigating")
+        Log.trace("Cannot set speed: Not currently navigating")
         return false
     end
 
@@ -211,7 +211,7 @@ function DollyCam.setDirection(direction)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.debug("Cannot set direction: Not currently navigating")
+        Log.trace("Cannot set direction: Not currently navigating")
         return false
     end
 
@@ -221,6 +221,22 @@ function DollyCam.setDirection(direction)
     end
 
     STATE.dollyCam.direction = tonumber(direction)
+    Log.debug("Direction set to " .. STATE.dollyCam.direction )
+end
+
+-- Set navigation speed
+---@return boolean success Whether speed was set
+function DollyCam.toggleDirection()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    if not STATE.dollyCam.isNavigating then
+        Log.trace("Cannot set direction: Not currently navigating")
+        return false
+    end
+
+    STATE.dollyCam.direction = STATE.dollyCam.direction * -1
     Log.debug("Direction set to " .. STATE.dollyCam.direction )
 end
 

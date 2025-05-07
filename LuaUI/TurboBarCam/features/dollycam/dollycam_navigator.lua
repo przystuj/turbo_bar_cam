@@ -59,7 +59,7 @@ end
 ---@return boolean success Whether speed was set
 function DollyCamNavigator.adjustSpeed(speed)
     if not STATE.dollyCam.isNavigating then
-        Log.debug("Cannot set speed when not navigating")
+        Log.trace("Cannot set speed when not navigating")
         return false
     end
 

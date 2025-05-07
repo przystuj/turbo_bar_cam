@@ -55,7 +55,7 @@ function UpdateManager.handleTrackingGracePeriod()
         STATE.tracking.graceTimer = Spring.GetTimer()
         return
     end
-    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "overview" then
+    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "overview" and STATE.tracking.mode ~= "waypointEditor" then
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
 

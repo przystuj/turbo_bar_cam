@@ -98,70 +98,23 @@ function DollyCamWaypointEditor.updateMouseWorldPosition(mx, my)
     end
 end
 
--- Find closest waypoint to mouse cursor using improved methods
-function DollyCamWaypointEditor.findClosestWaypointToMouse()
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or #STATE.dollyCam.route.points == 0 then
+function DollyCamWaypointEditor.findClosestPointToMouse(points, getPositionFunc, screenThreshold)
+    if not points or #points == 0 then
         return nil, math.huge
     end
 
-    -- First, try the screen-space approach (most reliable)
+    -- Screen-space approach
     local closestIndex = nil
     local closestDist = math.huge
     local mouseX, mouseY = STATE.dollyCam.lastMouseScreenPos.x, STATE.dollyCam.lastMouseScreenPos.y
 
-    -- Loop through waypoints to find closest in screen space
-    for i, waypoint in ipairs(STATE.dollyCam.route.points) do
-        -- Convert waypoint position to screen coordinates
-        local screenX, screenY, visible = Spring.WorldToScreenCoords(
-                waypoint.position.x,
-                waypoint.position.y,
-                waypoint.position.z
-        )
+    -- Loop through points to find closest in screen space
+    for i, point in ipairs(points) do
+        -- Get position using the provided function
+        local x, y, z = getPositionFunc(point)
 
-        -- Only consider visible waypoints
-        if visible and screenX and screenY then
-            local dist = math.sqrt((screenX - mouseX)^2 + (screenY - mouseY)^2)
-
-            if dist < closestDist then
-                closestDist = dist
-                closestIndex = i
-            end
-        end
-    end
-
-    -- If we found a waypoint in screen space...
-    if closestIndex then
-        -- Use a screen-space threshold (in pixels)
-        local SCREEN_THRESHOLD = 30 -- pixels
-
-        if closestDist <= SCREEN_THRESHOLD then
-            return closestIndex, closestDist
-        end
-    end
-
-    -- No waypoint found
-    return nil, math.huge
-end
-
--- Find closest path point to mouse cursor using improved methods
-function DollyCamWaypointEditor.findClosestPathPointToMouse()
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.path or #STATE.dollyCam.route.path == 0 then
-        return nil, math.huge
-    end
-
-    -- First, try the screen-space approach (most reliable)
-    local closestIndex = nil
-    local closestDist = math.huge
-    local mouseX, mouseY = STATE.dollyCam.lastMouseScreenPos.x, STATE.dollyCam.lastMouseScreenPos.y
-
-    -- Loop through path points to find closest in screen space
-    for i, point in ipairs(STATE.dollyCam.route.path) do
         -- Convert point position to screen coordinates
-        local screenX, screenY, visible = Spring.WorldToScreenCoords(
-                point.x,
-                point.y,
-                point.z
-        )
+        local screenX, screenY, visible = Spring.WorldToScreenCoords(x, y, z)
 
         -- Only consider visible points
         if visible and screenX and screenY then
@@ -174,21 +127,41 @@ function DollyCamWaypointEditor.findClosestPathPointToMouse()
         end
     end
 
-    -- If we found a path point in screen space...
+    -- If we found a point in screen space...
     if closestIndex then
-        -- Use a screen-space threshold (in pixels)
-        local SCREEN_THRESHOLD = 20 -- pixels (smaller than waypoint threshold)
-
-        if closestDist <= SCREEN_THRESHOLD then
+        if closestDist <= screenThreshold then
             return closestIndex, closestDist
         end
     end
 
-    -- No path point found
+    -- No point found
     return nil, math.huge
 end
 
--- Handle mouse movement
+function DollyCamWaypointEditor.findClosestWaypointToMouse()
+    local getWaypointPosition = function(waypoint)
+        return waypoint.position.x, waypoint.position.y, waypoint.position.z
+    end
+
+    return DollyCamWaypointEditor.findClosestPointToMouse(
+            STATE.dollyCam.route and STATE.dollyCam.route.points,
+            getWaypointPosition,
+            30 -- SCREEN_THRESHOLD for waypoints
+    )
+end
+
+function DollyCamWaypointEditor.findClosestPathPointToMouse()
+    local getPathPointPosition = function(point)
+        return point.x, point.y, point.z
+    end
+
+    return DollyCamWaypointEditor.findClosestPointToMouse(
+            STATE.dollyCam.route and STATE.dollyCam.route.path,
+            getPathPointPosition,
+            20 -- SCREEN_THRESHOLD for path points
+    )
+end
+
 ---@param mx number Mouse X coordinate
 ---@param my number Mouse Y coordinate
 function DollyCamWaypointEditor.handleMouseMove(mx, my)
@@ -208,7 +181,6 @@ function DollyCamWaypointEditor.handleMouseMove(mx, my)
     end
 end
 
--- Handle left mouse button click
 function DollyCamWaypointEditor.handleLeftClick()
     -- If hovering over a waypoint, select it
     if STATE.dollyCam.hoveredWaypointIndex then
@@ -227,7 +199,6 @@ function DollyCamWaypointEditor.handleLeftClick()
     return false
 end
 
--- Handle middle mouse button click
 function DollyCamWaypointEditor.handleMiddleClick()
     -- For now, just add a waypoint at the current camera position
     local success, action = DollyCamEditor.addOrEditWaypointAtCurrentPosition()
@@ -239,7 +210,6 @@ function DollyCamWaypointEditor.handleMiddleClick()
     return success
 end
 
--- Handle right mouse button click
 function DollyCamWaypointEditor.handleRightClick()
     -- If hovering over a waypoint, delete it
     if STATE.dollyCam.hoveredWaypointIndex then
@@ -296,49 +266,55 @@ function DollyCamWaypointEditor.addWaypointAtPathPoint(pathPointIndex)
     if not STATE.dollyCam.route or not STATE.dollyCam.route.path or pathPointIndex < 1 or pathPointIndex > #STATE.dollyCam.route.path then
         return false
     end
-    
+
     -- Get the path point position
     local pathPoint = STATE.dollyCam.route.path[pathPointIndex]
-    
+
     -- Create a new waypoint at this position
     local position = {
         x = pathPoint.x,
         y = pathPoint.y,
         z = pathPoint.z
     }
-    
-    -- Find the best insertion index
+
+    -- Find which segment this path point belongs to
     local bestIndex = 1
-    local bestDistance = math.huge
-    
-    -- Calculate traversed distances to find best insertion point
-    local totalTraversed = 0
-    
-    for i, segmentDist in ipairs(STATE.dollyCam.route.segmentDistances) do
-        local midSegmentDistance = totalTraversed + segmentDist / 2
-        local distance = math.abs(midSegmentDistance - pathPointIndex * STATE.dollyCam.route.totalDistance / #STATE.dollyCam.route.path)
-        
-        if distance < bestDistance then
-            bestDistance = distance
-            bestIndex = i + 1
-        end
-        
-        totalTraversed = totalTraversed + segmentDist
+    local pathDistance = 0
+
+    -- Measure actual distance along the path to this point
+    for i = 1, pathPointIndex - 1 do
+        local p1 = STATE.dollyCam.route.path[i]
+        local p2 = STATE.dollyCam.route.path[i + 1]
+        local dx = p2.x - p1.x
+        local dy = p2.y - p1.y
+        local dz = p2.z - p1.z
+        pathDistance = pathDistance + math.sqrt(dx*dx + dy*dy + dz*dz)
     end
-    
+
+    -- Find which segment this distance belongs to
+    local totalDistance = 0
+    for i, segmentDist in ipairs(STATE.dollyCam.route.segmentDistances) do
+        totalDistance = totalDistance + segmentDist
+        if totalDistance >= pathDistance then
+            -- We've found the segment that contains this point
+            bestIndex = i + 1
+            break
+        end
+    end
+
     -- Create and insert the new waypoint
     local waypoint = DollyCamDataStructures.createWaypoint(position)
     table.insert(STATE.dollyCam.route.points, bestIndex, waypoint)
-    
+
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
-    
+
     -- Select the new waypoint
     DollyCamWaypointEditor.selectWaypoint(bestIndex)
-    
+
     Log.info(string.format("Added waypoint at path point %d at position (%.1f, %.1f, %.1f)",
             pathPointIndex, position.x, position.y, position.z))
-            
+
     return true
 end
 
