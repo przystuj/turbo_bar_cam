@@ -36,9 +36,13 @@ function DollyCamDataStructures.createWaypoint(position, tension)
             z = position.z
         },
         tension = tension or 0.5, -- Default tension value
-        time = nil -- Will be calculated during knot vector creation
+        time = nil, -- Will be calculated during knot vector creation
+        targetSpeed = 1.0, -- Default target speed
+        hasLookAt = false, -- Default to no lookAt
+        lookAtPoint = nil, -- Will be set if needed
+        lookAtUnitID = nil -- Will be set if tracking a unit
     }
-    
+
     return waypoint
 end
 
@@ -66,36 +70,51 @@ function DollyCamDataStructures.removeWaypoint(route, index)
     return true
 end
 
--- Serialize a route to a string for saving
----@return string serialized Serialized route data
 function DollyCamDataStructures.serializeRoute()
     local serialized = {
         points = {}
     }
-    
+
     for i, point in ipairs(STATE.dollyCam.route.points) do
-        serialized.points[i] = {
+        local pointData = {
             position = {
                 x = point.position.x,
                 y = point.position.y,
                 z = point.position.z
             },
-            tension = point.tension
+            tension = point.tension,
+            targetSpeed = point.targetSpeed
         }
+
+        -- Add lookAt properties if present
+        if point.hasLookAt then
+            pointData.hasLookAt = true
+
+            if point.lookAtPoint then
+                pointData.lookAtPoint = {
+                    x = point.lookAtPoint.x,
+                    y = point.lookAtPoint.y,
+                    z = point.lookAtPoint.z
+                }
+            end
+
+            if point.lookAtUnitID then
+                pointData.lookAtUnitID = point.lookAtUnitID
+            end
+        end
+
+        serialized.points[i] = pointData
     end
-    
+
     return serialized
 end
 
--- Deserialize a route from a string
----@param serialized string Serialized route data
----@return DollyCamRoute|nil route The deserialized route, or nil if invalid
 function DollyCamDataStructures.deserializeRoute(serialized)
     if not serialized then
         Log.warn("Failed to deserialize route data")
         return nil
     end
-    
+
     local route = {
         points = {},
         path = {},
@@ -104,7 +123,7 @@ function DollyCamDataStructures.deserializeRoute(serialized)
         segmentDistances = {},
         knotVector = {}
     }
-    
+
     for i, pointData in ipairs(serialized.points) do
         local point = {
             position = {
@@ -112,12 +131,29 @@ function DollyCamDataStructures.deserializeRoute(serialized)
                 y = pointData.position.y,
                 z = pointData.position.z
             },
-            tension = pointData.tension or 0.5
+            tension = pointData.tension or 0.5,
+            targetSpeed = pointData.targetSpeed or 1.0,
+            hasLookAt = pointData.hasLookAt or false
         }
-        
+
+        -- Deserialize lookAt properties if present
+        if pointData.hasLookAt then
+            if pointData.lookAtPoint then
+                point.lookAtPoint = {
+                    x = pointData.lookAtPoint.x,
+                    y = pointData.lookAtPoint.y,
+                    z = pointData.lookAtPoint.z
+                }
+            end
+
+            if pointData.lookAtUnitID then
+                point.lookAtUnitID = pointData.lookAtUnitID
+            end
+        end
+
         table.insert(route.points, point)
     end
-    
+
     return route
 end
 

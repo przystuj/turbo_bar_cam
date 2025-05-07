@@ -15,7 +15,7 @@ local DollyCamNavigator = {}
 
 -- Start navigation on a route
 ---@return boolean success Whether navigation was started
-function DollyCamNavigator.startNavigation()
+function DollyCamNavigator.startNavigation(noCamera)
     STATE.dollyCam.route = STATE.dollyCam.route or { points = {} }
 
     if #STATE.dollyCam.route.points < 2 then
@@ -34,6 +34,7 @@ function DollyCamNavigator.startNavigation()
     STATE.dollyCam.targetSpeed = 1
     STATE.dollyCam.currentSpeed = 0
     STATE.dollyCam.direction = 1
+    STATE.dollyCam.noCamera = noCamera
 
     Log.info("[DollyCam] Started navigation")
     return true
@@ -50,6 +51,7 @@ function DollyCamNavigator.stopNavigation()
     STATE.dollyCam.targetSpeed = 0
     STATE.dollyCam.currentSpeed = 0
     STATE.dollyCam.direction = 1
+    STATE.dollyCam.noCamera = false
 
     Log.info("[DollyCam] Stopped navigation")
 end
@@ -127,6 +129,9 @@ function DollyCamNavigator.update(deltaTime)
     -- Calculate distance to move
     local distanceChange = STATE.dollyCam.currentSpeed * STATE.dollyCam.maxSpeed * deltaTime
 
+    -- Previous distance for waypoint detection
+    local prevDistance = STATE.dollyCam.currentDistance
+
     -- Update position along the path
     STATE.dollyCam.currentDistance = STATE.dollyCam.currentDistance + distanceChange
 
@@ -138,6 +143,9 @@ function DollyCamNavigator.update(deltaTime)
         STATE.dollyCam.currentDistance = STATE.dollyCam.route.totalDistance
         STATE.dollyCam.currentSpeed = 0
     end
+
+    -- Check if we passed any waypoints and apply their properties
+    DollyCamNavigator.checkWaypointsPassed(prevDistance, STATE.dollyCam.currentDistance)
 
     -- Get position at current distance
     local positionData = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
@@ -153,7 +161,122 @@ function DollyCamNavigator.update(deltaTime)
         pz = positionData.z
     }
 
+    -- Apply lookAt if active
+    if STATE.dollyCam.activeLookAt then
+        local lookAtPos = nil
+
+        if STATE.dollyCam.activeLookAt.unitID then
+            -- Get unit position for lookAt
+            if Spring.ValidUnitID(STATE.dollyCam.activeLookAt.unitID) then
+                local x, y, z = Spring.GetUnitPosition(STATE.dollyCam.activeLookAt.unitID)
+                lookAtPos = { x = x, y = y, z = z }
+            end
+        elseif STATE.dollyCam.activeLookAt.point then
+            -- Use fixed point
+            lookAtPos = STATE.dollyCam.activeLookAt.point
+        end
+
+        if lookAtPos then
+            -- Calculate direction to lookAt target
+            local dx = lookAtPos.x - positionData.x
+            local dy = lookAtPos.y - positionData.y
+            local dz = lookAtPos.z - positionData.z
+
+            -- Calculate rotation angles
+            local dist = math.sqrt(dx * dx + dz * dz)
+            local ry = math.atan2(dx, dz)
+            local rx = -math.atan2(dy, dist)
+
+            -- Apply to camera state
+            camState.rx = rx
+            camState.ry = ry
+        end
+    end
+
+    if STATE.dollyCam.noCamera then
+        return
+    end
     CameraManager.setCameraState(camState, 0, "DollyCamNavigator.update")
+end
+
+
+function DollyCamNavigator.checkWaypointsPassed(prevDistance, currentDistance)
+    -- Skip if no route
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.points then
+        return
+    end
+
+    -- Calculate distances to each waypoint
+    local waypointDistances = {}
+    local cumulativeDistance = 0
+
+    for i, segmentDist in ipairs(STATE.dollyCam.route.segmentDistances) do
+        if i > 1 then
+            cumulativeDistance = cumulativeDistance + segmentDist
+            waypointDistances[i] = cumulativeDistance
+        end
+    end
+    waypointDistances[1] = 0 -- First waypoint is at distance 0
+    table.insert(waypointDistances, STATE.dollyCam.route.totalDistance) -- Last waypoint is at total distance
+
+    -- Check each waypoint to see if we passed it
+    for i, waypoint in ipairs(STATE.dollyCam.route.points) do
+        local waypointDist = waypointDistances[i]
+
+        -- Moving forward and passing a waypoint
+        if STATE.dollyCam.direction > 0 and
+                prevDistance < waypointDist and currentDistance >= waypointDist then
+            DollyCamNavigator.applyWaypointProperties(i)
+        end
+
+        -- Moving backward and passing a waypoint
+        if STATE.dollyCam.direction < 0 and
+                prevDistance > waypointDist and currentDistance <= waypointDist then
+
+            -- When moving backward, use the previous waypoint's speed (if available)
+            if i > 1 then
+                DollyCamNavigator.applyWaypointProperties(i - 1)
+            end
+        end
+    end
+end
+
+function DollyCamNavigator.applyWaypointProperties(waypointIndex)
+    local waypoint = STATE.dollyCam.route.points[waypointIndex]
+    if not waypoint then
+        return
+    end
+
+    -- Apply target speed if defined
+    if waypoint.targetSpeed then
+        STATE.dollyCam.targetSpeed = waypoint.targetSpeed
+        Log.debug(string.format("Waypoint %d: Set target speed to %.2f",
+                waypointIndex, waypoint.targetSpeed))
+    end
+
+    -- Apply lookAt if defined
+    if waypoint.hasLookAt then
+        if waypoint.lookAtUnitID and Spring.ValidUnitID(waypoint.lookAtUnitID) then
+            -- Setup unit tracking lookAt
+            STATE.dollyCam.activeLookAt = {
+                unitID = waypoint.lookAtUnitID,
+                point = nil
+            }
+            Log.debug(string.format("Waypoint %d: Set lookAt to track unit %d",
+                    waypointIndex, waypoint.lookAtUnitID))
+        elseif waypoint.lookAtPoint then
+            -- Setup fixed point lookAt
+            STATE.dollyCam.activeLookAt = {
+                unitID = nil,
+                point = waypoint.lookAtPoint
+            }
+            Log.debug(string.format("Waypoint %d: Set lookAt to fixed point (%.1f, %.1f, %.1f)",
+                    waypointIndex, waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z))
+        end
+    else
+        -- Disable lookAt if waypoint doesn't have it
+        STATE.dollyCam.activeLookAt = nil
+    end
 end
 
 return {

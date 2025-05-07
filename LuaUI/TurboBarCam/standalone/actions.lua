@@ -75,6 +75,18 @@ function Actions.dollyCamActions()
                 return true
             end)
 
+    Actions.registerAction("turbobarcam_dollycam_edit_lookat", 'tp',
+            function()
+                FeatureModules.DollyCam.setWaypointLookAtUnit()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_dollycam_edit_speed", 'tp',
+            function(_, params)
+                FeatureModules.DollyCam.setWaypointTargetSpeed(params)
+                return true
+            end)
+
     Actions.registerAction("turbobarcam_dollycam_toggle_editor", 'tp',
             function()
                 FeatureModules.DollyCam.toggleWaypointEditor()
@@ -88,8 +100,8 @@ function Actions.dollyCamActions()
             end)
 
     Actions.registerAction("turbobarcam_dollycam_toggle_navigation", 'tp',
-            function()
-                FeatureModules.DollyCam.toggleNavigation()
+            function(_, params)
+                FeatureModules.DollyCam.toggleNavigation(params)
                 return true
             end)
 

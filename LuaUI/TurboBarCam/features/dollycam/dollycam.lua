@@ -60,6 +60,22 @@ function DollyCam.addCurrentPositionToRoute()
     return success
 end
 
+function DollyCam.setWaypointLookAtUnit()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    DollyCamWaypointEditor.setWaypointLookAtUnit()
+end
+
+function DollyCam.setWaypointTargetSpeed(speed)
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
+end
+
 -- Delete a waypoint by index
 ---@param routeId string ID of the route to modify
 ---@param waypointIndex number Index of the waypoint to delete
@@ -162,7 +178,7 @@ end
 
 -- Toggle navigation on a route
 ---@return boolean success Whether navigation was started
-function DollyCam.toggleNavigation()
+function DollyCam.toggleNavigation(noCam)
     if Util.isTurboBarCamDisabled() then
         return false
     end
@@ -183,7 +199,7 @@ function DollyCam.toggleNavigation()
         TrackingManager.disableTracking()
     end
 
-    return DollyCamNavigator.startNavigation()
+    return DollyCamNavigator.startNavigation(noCam == "true" or false)
 end
 
 -- Set navigation speed

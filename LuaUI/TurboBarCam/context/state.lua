@@ -267,10 +267,11 @@ if not WG.TurboBarCam.STATE then
             targetSpeed = 0, -- Target speed (-1.0 to 1.0)
             currentSpeed = 0, -- Current interpolated speed
             direction = 1, -- 1 = forward
-            maxSpeed = 800,
-            acceleration = 120,
+            maxSpeed = 200,
+            acceleration = 50,
             alpha = 0.5,
-            visualizationEnabled = true
+            visualizationEnabled = true,
+            noCamera = false
         }
     }
 end

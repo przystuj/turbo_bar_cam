@@ -15,35 +15,44 @@ local DollyCamVisualization = {}
 
 -- Visualization colors
 DollyCamVisualization.colors = {
-    waypoint = { 1.0, 0.2, 0.2, 1.0 },           -- Red for waypoints
-    selectedWaypoint = { 1.0, 1.0, 0.2, 1.0 },   -- Yellow for selected waypoint
-    hoveredWaypoint = { 0.2, 1.0, 1.0, 1.0 },    -- Cyan for hovered waypoint
-    path = { 0.2, 0.7, 1.0, 0.6 },               -- Blue for path
-    hoveredPathPoint = { 0.2, 1.0, 0.7, 1.0 },   -- Light cyan for hovered path point
-    currentPosition = { 0.0, 1.0, 0.0, 1.0 },    -- Green for current position
+    waypoint = { 1.0, 0.2, 0.2, 1.0 }, -- Red for waypoints
+    selectedWaypoint = { 1.0, 1.0, 0.2, 1.0 }, -- Yellow for selected waypoint
+    hoveredWaypoint = { 0.2, 1.0, 1.0, 1.0 }, -- Cyan for hovered waypoint
+    path = { 0.2, 0.7, 1.0, 0.6 }, -- Blue for path
+    hoveredPathPoint = { 0.2, 1.0, 0.7, 1.0 }, -- Light cyan for hovered path point
+    currentPosition = { 0.0, 1.0, 0.0, 1.0 }, -- Green for current position
     waypoint_direction = { 1.0, 0.5, 0.1, 0.8 }, -- Orange for waypoint orientation
-    pathSegmentStart = { 0.8, 0.2, 0.8, 1.0 },   -- Purple for segment starts
-    pathSegmentEnd = { 0.4, 0.8, 0.4, 1.0 },     -- Light green for segment ends
-    distanceMarker = { 1.0, 1.0, 1.0, 0.7 }      -- White for distance markers
+    pathSegmentStart = { 0.8, 0.2, 0.8, 1.0 }, -- Purple for segment starts
+    pathSegmentEnd = { 0.4, 0.8, 0.4, 1.0 }, -- Light green for segment ends
+    distanceMarker = { 1.0, 1.0, 1.0, 0.7 }, -- White for distance markers
+    speedPoint = { 0.3, 0.9, 0.9, 1.0 }, -- Cyan-ish for speed points (different from waypoint color)
+    lookAtPoint = { 1.0, 0.5, 0.0, 1.0 }, -- Orange for lookAt points
+    lookAtLine = { 0.8, 0.6, 0.0, 0.8 }, -- Light orange for lookAt lines
+    inheritedSpeed = { 0.8, 0.8, 0.2, 1.0 }      -- Yellow for inherited speed
 }
 
 -- Visual settings
 DollyCamVisualization.settings = {
-    waypointSize = 40,            -- Size of waypoint markers
-    pathPointSize = 10,           -- Size of path points
-    hoveredPathPointSize = 15,    -- Size of hovered path points
-    currentPosSize = 20,          -- Size of current position marker
-    pathSegmentSkip = 2,          -- Show every Nth path segment (for performance)
-    maxPathSegments = 300,        -- Maximum number of path segments to draw
-    directionLineLength = 40,     -- Length of the direction indicator line
+    waypointSize = 40, -- Size of waypoint markers
+    pathPointSize = 10, -- Size of path points
+    hoveredPathPointSize = 15, -- Size of hovered path points
+    currentPosSize = 20, -- Size of current position marker
+    pathSegmentSkip = 2, -- Show every Nth path segment (for performance)
+    maxPathSegments = 300, -- Maximum number of path segments to draw
+    directionLineLength = 40, -- Length of the direction indicator line
     distanceMarkerInterval = 200, -- Distance between markers along path (world units)
-    drawWaypointLabels = true,    -- Whether to draw waypoint labels
-    drawPathTangents = false,     -- Whether to draw path tangent vectors
-    drawDistanceMarkers = true,   -- Whether to draw distance markers
+    drawWaypointLabels = true, -- Whether to draw waypoint labels
+    drawPathTangents = false, -- Whether to draw path tangent vectors
+    drawDistanceMarkers = true, -- Whether to draw distance markers
     drawSegmentBoundaries = true, -- Whether to draw segment start/end markers
-    waypointLabelSize = 30,       -- Font size for waypoint labels
-    distanceLabelSize = 20        -- Font size for distance labels
+    waypointLabelSize = 30, -- Font size for waypoint labels
+    distanceLabelSize = 20, -- Font size for distance labels
+    speedIndicatorSize = 15, -- Font size for speed indicators
+    lookAtIndicatorSize = 15      -- Font size for lookAt indicators
 }
+
+-- Default target speed value
+DollyCamVisualization.DEFAULT_SPEED = 1.0
 
 -- Toggle visualization
 ---@return boolean enabled New state of visualization
@@ -74,10 +83,14 @@ end
 ---@param text string Text to display
 ---@param yOffset number Y offset for the text
 ---@param size number Font size
-local function drawTextLabel(x, y, z, text, yOffset, size)
+---@param color table|nil Optional color, defaults to white
+local function drawTextLabel(x, y, z, text, yOffset, size, color)
     gl.PushMatrix()
     gl.Translate(x, y + yOffset, z)
     gl.Billboard()
+    if color then
+        gl.Color(unpack(color))
+    end
     gl.Text(text, 0, 0, size, "c")
     gl.PopMatrix()
 end
@@ -99,6 +112,42 @@ local function drawLine(x1, y1, z1, x2, y2, z2, color, width)
         gl.Vertex(x2, y2, z2)
     end)
     gl.LineWidth(1.0)
+end
+
+-- Helper function to calculate effective speed for a waypoint, considering propagation
+-- Returns both the effective speed and whether it's explicitly set or inherited
+---@param index number Waypoint index
+---@return number speed The effective speed
+---@return boolean isExplicit Whether the speed is explicitly set or inherited
+local function getEffectiveWaypointSpeed(index)
+    local waypoints = STATE.dollyCam.route.points
+    if not waypoints or #waypoints == 0 or index < 1 or index > #waypoints then
+        return DollyCamVisualization.DEFAULT_SPEED, false
+    end
+
+    local waypoint = waypoints[index]
+
+    -- If this waypoint has an explicitly set speed that's not the default, it's explicit
+    if waypoint.targetSpeed and waypoint.targetSpeed ~= DollyCamVisualization.DEFAULT_SPEED then
+        return waypoint.targetSpeed, true
+    end
+
+    -- If this waypoint has explicitly set default speed, it's also explicit
+    if waypoint.targetSpeed == DollyCamVisualization.DEFAULT_SPEED and waypoint.hasExplicitSpeed then
+        return waypoint.targetSpeed, true
+    end
+
+    -- Otherwise, look back to find the last explicitly set speed
+    for i = index - 1, 1, -1 do
+        local prevWaypoint = waypoints[i]
+        if prevWaypoint.targetSpeed and
+                (prevWaypoint.targetSpeed ~= DollyCamVisualization.DEFAULT_SPEED or prevWaypoint.hasExplicitSpeed) then
+            return prevWaypoint.targetSpeed, false
+        end
+    end
+
+    -- If no previous explicit speed found, use default
+    return DollyCamVisualization.DEFAULT_SPEED, false
 end
 
 -- Draw a distance marker at a specific point on the path
@@ -123,7 +172,7 @@ local function drawDistanceMarker(position, distance)
     end
 end
 
--- Draw all waypoints
+-- Draw all waypoints with their special properties
 local function drawWaypoints(closestWaypointIndex)
     for i, waypoint in ipairs(STATE.dollyCam.route.points) do
         local color = DollyCamVisualization.colors.waypoint
@@ -150,14 +199,96 @@ local function drawWaypoints(closestWaypointIndex)
                 size, color
         )
 
-        -- Draw waypoint index text
-        if DollyCamVisualization.settings.drawWaypointLabels then
-            drawTextLabel(
-                    waypoint.position.x, waypoint.position.y, waypoint.position.z,
-                    tostring(i), 15,
-                    DollyCamVisualization.settings.waypointLabelSize
-            )
+        -- Draw waypoint index text and properties
+        local labelText = tostring(i)
+
+        -- Get the effective speed for this waypoint
+        local effectiveSpeed, isExplicitSpeed = getEffectiveWaypointSpeed(i)
+
+        -- Only in edit mode, show special properties
+        if STATE.dollyCam.isEditing then
+            -- Show speed only if it's non-default or inherited
+            if isExplicitSpeed and effectiveSpeed ~= DollyCamVisualization.DEFAULT_SPEED then
+                -- Explicitly set non-default speed
+                drawTextLabel(
+                        waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                        string.format("Speed=%.1f", effectiveSpeed),
+                        -15, -- Below the waypoint
+                        DollyCamVisualization.settings.speedIndicatorSize,
+                        DollyCamVisualization.colors.speedPoint
+                )
+            elseif not isExplicitSpeed and effectiveSpeed ~= DollyCamVisualization.DEFAULT_SPEED then
+                -- Inherited non-default speed
+                drawTextLabel(
+                        waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                        string.format("[Speed=%.1f]", effectiveSpeed),
+                        -15, -- Below the waypoint
+                        DollyCamVisualization.settings.speedIndicatorSize,
+                        DollyCamVisualization.colors.inheritedSpeed
+                )
+            end
+
+            -- Show lookAt indicator if defined
+            if waypoint.hasLookAt then
+                if waypoint.lookAtUnitID then
+                    labelText = labelText .. " [L:Unit]"
+                elseif waypoint.lookAtPoint then
+                    labelText = labelText .. " [L:Point]"
+                end
+
+                -- Draw lookAt visualization if defined
+                if waypoint.lookAtPoint then
+                    -- Draw lookAt target point
+                    drawPoint(
+                            waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z,
+                            DollyCamVisualization.settings.pathPointSize * 1.5,
+                            DollyCamVisualization.colors.lookAtPoint
+                    )
+
+                    -- Draw line from waypoint to lookAt point
+                    drawLine(
+                            waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                            waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z,
+                            DollyCamVisualization.colors.lookAtLine, 1.5
+                    )
+
+                    -- Label the lookAt point
+                    drawTextLabel(
+                            waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z,
+                            "LookAt #" .. i,
+                            10,
+                            DollyCamVisualization.settings.lookAtIndicatorSize
+                    )
+                elseif waypoint.lookAtUnitID and Spring.ValidUnitID(waypoint.lookAtUnitID) then
+                    -- Get unit position for visualization
+                    local x, y, z = Spring.GetUnitPosition(waypoint.lookAtUnitID)
+
+                    if x and y and z then
+                        -- Draw line from waypoint to unit
+                        drawLine(
+                                waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                                x, y, z,
+                                DollyCamVisualization.colors.lookAtLine, 1.5
+                        )
+
+                        -- Label the unit being tracked
+                        drawTextLabel(
+                                x, y, z,
+                                "Track #" .. waypoint.lookAtUnitID,
+                                30,
+                                DollyCamVisualization.settings.lookAtIndicatorSize
+                        )
+                    end
+                end
+            end
         end
+
+        -- Always draw the waypoint index
+        drawTextLabel(
+                waypoint.position.x, waypoint.position.y, waypoint.position.z,
+                labelText, 15,
+                DollyCamVisualization.settings.waypointLabelSize
+        )
     end
 end
 
@@ -267,14 +398,21 @@ local function drawCurrentPosition()
             DollyCamVisualization.colors.currentPosition
     )
 
-    -- Draw text with current distance information
+    -- Draw text with current distance and speed information
+    local infoText = string.format("%.1f / %.1f (%.1f%%)",
+            STATE.dollyCam.currentDistance,
+            STATE.dollyCam.route.totalDistance,
+            (STATE.dollyCam.currentDistance / STATE.dollyCam.route.totalDistance) * 100)
+
+    -- Add direction info
+    infoText = infoText .. string.format("\n%s %.2f",
+            STATE.dollyCam.direction > 0 and "→" or "←",
+            STATE.dollyCam.currentSpeed)
+
     drawTextLabel(
             currentPos.x, currentPos.y, currentPos.z,
-            string.format("%.1f / %.1f (%.1f%%)",
-                    STATE.dollyCam.currentDistance,
-                    STATE.dollyCam.route.totalDistance,
-                    (STATE.dollyCam.currentDistance / STATE.dollyCam.route.totalDistance) * 100),
-            20, 12
+            infoText,
+            25, 12
     )
 
     -- Draw tangent if enabled
@@ -289,7 +427,32 @@ local function drawCurrentPosition()
                     currentPos.x + tangent.x * tanLength,
                     currentPos.y + tangent.y * tanLength,
                     currentPos.z + tangent.z * tanLength,
-                    {1, 1, 0, 0.7}, 2.0
+                    { 1, 1, 0, 0.7 }, 2.0
+            )
+        end
+    end
+
+    -- Draw active lookAt visualization if present
+    if STATE.dollyCam.activeLookAt then
+        local lookAtPos = nil
+
+        if STATE.dollyCam.activeLookAt.unitID and Spring.ValidUnitID(STATE.dollyCam.activeLookAt.unitID) then
+            -- Get unit position
+            local x, y, z = Spring.GetUnitPosition(STATE.dollyCam.activeLookAt.unitID)
+            if x and y and z then
+                lookAtPos = { x = x, y = y, z = z }
+            end
+        elseif STATE.dollyCam.activeLookAt.point then
+            -- Use fixed point
+            lookAtPos = STATE.dollyCam.activeLookAt.point
+        end
+
+        if lookAtPos then
+            -- Draw line from current position to lookAt target
+            drawLine(
+                    currentPos.x, currentPos.y, currentPos.z,
+                    lookAtPos.x, lookAtPos.y, lookAtPos.z,
+                    DollyCamVisualization.colors.lookAtLine, 2.0
             )
         end
     end
@@ -310,21 +473,21 @@ local function drawEditorVisualizations()
     drawLine(
             pos.x - axisLength, pos.y, pos.z,
             pos.x + axisLength, pos.y, pos.z,
-            {1.0, 0.0, 0.0, 0.7}, 2.0
+            { 1.0, 0.0, 0.0, 0.7 }, 2.0
     )
 
     -- Y axis (green)
     drawLine(
             pos.x, pos.y - axisLength, pos.z,
             pos.x, pos.y + axisLength, pos.z,
-            {0.0, 1.0, 0.0, 0.7}, 2.0
+            { 0.0, 1.0, 0.0, 0.7 }, 2.0
     )
 
     -- Z axis (blue)
     drawLine(
             pos.x, pos.y, pos.z - axisLength,
             pos.x, pos.y, pos.z + axisLength,
-            {0.0, 0.0, 1.0, 0.7}, 2.0
+            { 0.0, 0.0, 1.0, 0.7 }, 2.0
     )
 end
 
