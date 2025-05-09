@@ -181,12 +181,17 @@ MouseManager.onReleaseRMB = function(modeName, callback)
     registerCallback("onReleaseRMB", modeName, callback)
 end
 
+MouseManager.onRMB = function(modeName, callback)
+    registerCallback("onRMB", modeName, callback)
+end
+
+-- LMB handlers
 MouseManager.onLMB = function(modeName, callback)
     registerCallback("onLMB", modeName, callback)
 end
 
-MouseManager.onRMB = function(modeName, callback)
-    registerCallback("onRMB", modeName, callback)
+MouseManager.onDoubleLMB = function(modeName, callback)
+    registerCallback("onDoubleLMB", modeName, callback)
 end
 
 MouseManager.onReleaseLMB = function(modeName, callback)

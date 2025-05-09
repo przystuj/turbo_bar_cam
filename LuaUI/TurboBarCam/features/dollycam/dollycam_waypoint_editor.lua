@@ -20,7 +20,7 @@ local STATE = WidgetContext.STATE
 -- Initialize required STATE properties
 STATE.dollyCam = STATE.dollyCam or {}
 STATE.dollyCam.hoveredWaypointIndex = nil
-STATE.dollyCam.selectedWaypointIndex = nil
+STATE.dollyCam.selectedWaypoints = STATE.dollyCam.selectedWaypoints or {}
 STATE.dollyCam.hoveredPathPointIndex = nil
 STATE.dollyCam.lastMouseScreenPos = { x = 0, y = 0 }
 STATE.dollyCam.lastMouseWorldPos = { x = 0, y = 0, z = 0 }
@@ -42,6 +42,7 @@ function DollyCamWaypointEditor.initialize()
 
     -- Register mouse handlers
     MouseManager.onLMB('waypointEditor', DollyCamWaypointEditor.handleLeftClick)
+    MouseManager.onDoubleLMB('waypointEditor', DollyCamWaypointEditor.handleLeftDoubleClick)
     MouseManager.onRMB('waypointEditor', DollyCamWaypointEditor.handleRightClick)
     MouseManager.onDoubleMMB('waypointEditor', DollyCamWaypointEditor.handleDoubleMiddleClick)
 
@@ -60,7 +61,7 @@ end
 function DollyCamWaypointEditor.disable()
     -- Reset editor state
     STATE.dollyCam.hoveredWaypointIndex = nil
-    STATE.dollyCam.selectedWaypointIndex = nil
+    STATE.dollyCam.selectedWaypoints = {}
     STATE.dollyCam.hoveredPathPointIndex = nil
 
     -- Set editing state
@@ -165,6 +166,83 @@ function DollyCamWaypointEditor.findClosestPathPointToMouse()
     )
 end
 
+-- Helper function to check if a waypoint is selected
+---@param index number Waypoint index to check
+---@return boolean selected Whether the waypoint is selected
+function DollyCamWaypointEditor.isWaypointSelected(index)
+    for _, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if selectedIndex == index then
+            return true
+        end
+    end
+    return false
+end
+
+-- Helper function to add a waypoint to selection
+---@param index number Waypoint index to add to selection
+function DollyCamWaypointEditor.addWaypointToSelection(index)
+    if not DollyCamWaypointEditor.isWaypointSelected(index) then
+        table.insert(STATE.dollyCam.selectedWaypoints, index)
+        Log.info(string.format("Added waypoint %d to selection", index))
+    end
+end
+
+-- Helper function to remove a waypoint from selection
+---@param index number Waypoint index to remove from selection
+function DollyCamWaypointEditor.removeWaypointFromSelection(index)
+    for i, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if selectedIndex == index then
+            table.remove(STATE.dollyCam.selectedWaypoints, i)
+            Log.info(string.format("Removed waypoint %d from selection", index))
+            return
+        end
+    end
+end
+
+-- Toggle a waypoint's selection status (add if not selected, remove if selected)
+---@param index number Waypoint index to toggle
+function DollyCamWaypointEditor.toggleWaypointSelection(index)
+    if DollyCamWaypointEditor.isWaypointSelected(index) then
+        DollyCamWaypointEditor.removeWaypointFromSelection(index)
+    else
+        DollyCamWaypointEditor.addWaypointToSelection(index)
+    end
+end
+
+-- Select a single waypoint, clearing any previous selection
+---@param index number Index of the waypoint to select
+function DollyCamWaypointEditor.selectWaypoint(index)
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
+            index < 1 or index > #STATE.dollyCam.route.points then
+        return false
+    end
+
+    -- Clear previous selection
+    STATE.dollyCam.selectedWaypoints = {}
+    -- Add the waypoint to selection
+    DollyCamWaypointEditor.addWaypointToSelection(index)
+    Log.info(string.format("Selected waypoint %d", index))
+    return true
+end
+
+-- Select all waypoints
+function DollyCamWaypointEditor.selectAllWaypoints()
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.points then
+        return false
+    end
+
+    -- Clear previous selection
+    STATE.dollyCam.selectedWaypoints = {}
+
+    -- Add all waypoints to selection
+    for i = 1, #STATE.dollyCam.route.points do
+        table.insert(STATE.dollyCam.selectedWaypoints, i)
+    end
+
+    Log.info(string.format("Selected all %d waypoints", #STATE.dollyCam.route.points))
+    return true
+end
+
 ---@param mx number Mouse X coordinate
 ---@param my number Mouse Y coordinate
 function DollyCamWaypointEditor.handleMouseMove(mx, my)
@@ -185,9 +263,18 @@ function DollyCamWaypointEditor.handleMouseMove(mx, my)
 end
 
 function DollyCamWaypointEditor.handleLeftClick()
-    -- If hovering over a waypoint, select it
+    -- If hovering over a waypoint
     if STATE.dollyCam.hoveredWaypointIndex then
-        DollyCamWaypointEditor.selectWaypoint(STATE.dollyCam.hoveredWaypointIndex)
+        local index = STATE.dollyCam.hoveredWaypointIndex
+
+        -- Check for shift key (multi-selection)
+        local _, _, _, shift = Spring.GetModKeyState()
+
+        if shift then
+            DollyCamWaypointEditor.toggleWaypointSelection(index)
+        else
+            DollyCamWaypointEditor.selectWaypoint(index)
+        end
         return true
     end
 
@@ -197,8 +284,24 @@ function DollyCamWaypointEditor.handleLeftClick()
         return true
     end
 
-    -- If clicking elsewhere, deselect current waypoint
-    STATE.dollyCam.selectedWaypointIndex = nil
+    -- If clicking elsewhere and not holding shift, deselect all
+    local _, _, _, shift = Spring.GetModKeyState()
+    if not shift then
+        STATE.dollyCam.selectedWaypoints = {}
+    end
+
+    return false
+end
+
+function DollyCamWaypointEditor.handleLeftDoubleClick()
+    local index = STATE.dollyCam.hoveredWaypointIndex
+
+    -- Check for double-click on an already selected waypoint
+    if DollyCamWaypointEditor.isWaypointSelected(index) then
+        DollyCamWaypointEditor.selectAllWaypoints()
+        return true
+    end
+
     return false
 end
 
@@ -226,23 +329,13 @@ function DollyCamWaypointEditor.handleRightClick()
     return false
 end
 
--- Select a waypoint by index
----@param index number Index of the waypoint to select
-function DollyCamWaypointEditor.selectWaypoint(index)
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or index < 1 or index > #STATE.dollyCam.route.points then
-        return false
-    end
-
-    STATE.dollyCam.selectedWaypointIndex = index
-    Log.info(string.format("Selected waypoint %d", index))
-    return true
-end
-
 -- Delete the selected waypoint
 ---@param index number Index of the waypoint to delete, or nil to use selectedWaypointIndex
 function DollyCamWaypointEditor.deleteSelectedWaypoint(index)
     -- If no index provided, use the currently selected waypoint
-    index = index or STATE.dollyCam.selectedWaypointIndex
+    if not index and #STATE.dollyCam.selectedWaypoints > 0 then
+        index = STATE.dollyCam.selectedWaypoints[1]
+    end
 
     if not index or not STATE.dollyCam.route or not STATE.dollyCam.route.points or
             index < 1 or index > #STATE.dollyCam.route.points then
@@ -261,7 +354,16 @@ function DollyCamWaypointEditor.deleteSelectedWaypoint(index)
     if success then
         Log.info(string.format("Deleted waypoint %d", index))
         STATE.dollyCam.hoveredWaypointIndex = nil
-        STATE.dollyCam.selectedWaypointIndex = nil
+
+        -- Remove from selection
+        DollyCamWaypointEditor.removeWaypointFromSelection(index)
+
+        -- Adjust indices of selected waypoints after the deleted one
+        for i, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+            if selectedIndex > index then
+                STATE.dollyCam.selectedWaypoints[i] = selectedIndex - 1
+            end
+        end
 
         -- Regenerate the path
         DollyCamPathPlanner.generateSmoothPath()
@@ -273,7 +375,8 @@ end
 -- Add a waypoint at a path point
 ---@param pathPointIndex number Index of the path point to add a waypoint at
 function DollyCamWaypointEditor.addWaypointAtPathPoint(pathPointIndex)
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.path or pathPointIndex < 1 or pathPointIndex > #STATE.dollyCam.route.path then
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.path or
+            pathPointIndex < 1 or pathPointIndex > #STATE.dollyCam.route.path then
         return false
     end
 
@@ -327,20 +430,72 @@ function DollyCamWaypointEditor.addWaypointAtPathPoint(pathPointIndex)
     -- Select the new waypoint
     DollyCamWaypointEditor.selectWaypoint(bestIndex)
 
+    -- Adjust indices of selected waypoints after the inserted one
+    for i, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if selectedIndex >= bestIndex and selectedIndex ~= bestIndex then
+            STATE.dollyCam.selectedWaypoints[i] = selectedIndex + 1
+        end
+    end
+
     Log.info(string.format("Added waypoint at path point %d at position (%.1f, %.1f, %.1f)",
             pathPointIndex, position.x, position.y, position.z))
 
     return true
 end
 
+-- Move the selected waypoint along an axis
+---@param axis string Axis to move along: "x", "y", "z"
+---@param value number Amount to move (positive or negative)
+function DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
+    if #STATE.dollyCam.selectedWaypoints == 0 or not STATE.dollyCam.route or
+            not STATE.dollyCam.route.points then
+        return false
+    end
+
+    -- Calculate movement amount
+    local amount = value
+    local moved = false
+
+    -- Apply movement to all selected waypoints
+    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if index >= 1 and index <= #STATE.dollyCam.route.points then
+            -- Get the waypoint
+            local waypoint = STATE.dollyCam.route.points[index]
+
+            -- Update the waypoint position
+            if axis == "x" then
+                waypoint.position.x = waypoint.position.x + amount
+                moved = true
+            elseif axis == "y" then
+                waypoint.position.y = waypoint.position.y + amount
+                moved = true
+            elseif axis == "z" then
+                waypoint.position.z = waypoint.position.z + amount
+                moved = true
+            else
+                Log.warn("Invalid axis: " .. axis)
+                return false
+            end
+        end
+    end
+
+    if moved then
+        -- Regenerate the path after all waypoints have been moved
+        DollyCamPathPlanner.generateSmoothPath()
+
+        local count = #STATE.dollyCam.selectedWaypoints
+        Log.info(string.format("Moved %d waypoint%s along %s axis by %.1f units",
+                count, count > 1 and "s" or "", axis, amount))
+    end
+
+    return moved
+end
+
 -- Set target speed for a waypoint
 ---@param speed number Target speed (0.0-1.0)
 ---@return boolean success Whether the speed was set
 function DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
-    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
-
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
-            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+    if #STATE.dollyCam.selectedWaypoints == 0 then
         return false
     end
 
@@ -351,87 +506,67 @@ function DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
     end
 
     speed = math.max(0.0, math.min(1.0, speed))
+    local changed = false
 
-    -- Store the original speed for logging
-    local oldSpeed = STATE.dollyCam.route.points[waypointIndex].targetSpeed or DollyCamWaypointEditor.DEFAULT_TARGET_SPEED
+    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if index >= 1 and index <= #STATE.dollyCam.route.points then
+            -- Store the original speed for logging
+            local oldSpeed = STATE.dollyCam.route.points[index].targetSpeed or DollyCamWaypointEditor.DEFAULT_TARGET_SPEED
 
-    -- Update the waypoint speed
-    STATE.dollyCam.route.points[waypointIndex].targetSpeed = speed
-    -- Mark this speed as explicitly set, even if it's the default value
-    STATE.dollyCam.route.points[waypointIndex].hasExplicitSpeed = true
+            -- Update the waypoint speed
+            STATE.dollyCam.route.points[index].targetSpeed = speed
+            -- Mark this speed as explicitly set, even if it's the default value
+            STATE.dollyCam.route.points[index].hasExplicitSpeed = true
 
-    Log.info(string.format("Set waypoint %d target speed from %.2f to %.2f",
-            waypointIndex, oldSpeed, speed))
+            changed = true
+            Log.info(string.format("Set waypoint %d target speed from %.2f to %.2f",
+                    index, oldSpeed, speed))
+        end
+    end
 
-    return true
+    return changed
 end
 
 -- Set lookAt unit for a waypoint
 ---@return boolean success Whether the unit tracking was set
 function DollyCamWaypointEditor.setWaypointLookAtUnit()
-    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
-            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+    if #STATE.dollyCam.selectedWaypoints == 0 then
         return false
     end
-
-    local waypoint = STATE.dollyCam.route.points[waypointIndex]
 
     local selected = Spring.GetSelectedUnits()
+    if #selected == 0 then
+        -- Disable lookAt for all selected waypoints
+        for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+            if index >= 1 and index <= #STATE.dollyCam.route.points then
+                local waypoint = STATE.dollyCam.route.points[index]
+                waypoint.hasLookAt = false
+                waypoint.lookAtPoint = nil
+                waypoint.lookAtUnitID = nil
 
-    if #selected > 0 then
-        local unitID = selected[1]
-        -- Enable unit tracking
-        waypoint.hasLookAt = true
-        waypoint.lookAtPoint = nil -- Clear fixed position if any
-        waypoint.lookAtUnitID = unitID
-
-        -- Get unit position for logging
-        local x, y, z = Spring.GetUnitPosition(unitID)
-        Log.info(string.format("Set waypoint %d to track unit %d at (%.1f, %.1f, %.1f)",
-                waypointIndex, unitID, x, y, z))
-    else
-        -- Disable lookAt
-        waypoint.hasLookAt = false
-        waypoint.lookAtPoint = nil
-        waypoint.lookAtUnitID = nil
-
-        Log.info(string.format("Disabled unit tracking for waypoint %d", waypointIndex))
+                Log.info(string.format("Disabled unit tracking for waypoint %d", index))
+            end
+        end
+        return true
     end
 
-    return true
-end
+    -- Enable unit tracking for all selected waypoints
+    local unitID = selected[1]
+    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if index >= 1 and index <= #STATE.dollyCam.route.points then
+            local waypoint = STATE.dollyCam.route.points[index]
 
--- Move the selected waypoint along an axis
----@param axis string Axis to move along: "x", "y", "z"
----@param value number Amount to move (positive or negative)
-function DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
-    local index = STATE.dollyCam.selectedWaypointIndex
+            -- Enable unit tracking
+            waypoint.hasLookAt = true
+            waypoint.lookAtPoint = nil -- Clear fixed position if any
+            waypoint.lookAtUnitID = unitID
 
-    if not index or not STATE.dollyCam.route or not STATE.dollyCam.route.points or index < 1 or index > #STATE.dollyCam.route.points then
-        return false
+            -- Get unit position for logging
+            local x, y, z = Spring.GetUnitPosition(unitID)
+            Log.info(string.format("Set waypoint %d to track unit %d at (%.1f, %.1f, %.1f)",
+                    index, unitID, x, y, z))
+        end
     end
-
-    -- Get the waypoint
-    local waypoint = STATE.dollyCam.route.points[index]
-
-    -- Calculate movement amount
-    local amount = value
-
-    -- Update the waypoint position
-    if axis == "x" then
-        waypoint.position.x = waypoint.position.x + amount
-    elseif axis == "y" then
-        waypoint.position.y = waypoint.position.y + amount
-    elseif axis == "z" then
-        waypoint.position.z = waypoint.position.z + amount
-    else
-        Log.warn("Invalid axis: " .. axis)
-        return false
-    end
-
-    -- Regenerate the path
-    DollyCamPathPlanner.generateSmoothPath()
 
     return true
 end
@@ -439,46 +574,56 @@ end
 -- Reset waypoint speed to default (but still mark it as explicitly set)
 ---@return boolean success Whether the speed was reset
 function DollyCamWaypointEditor.resetWaypointSpeed()
-    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
-
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
-            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+    if #STATE.dollyCam.selectedWaypoints == 0 then
         return false
     end
 
-    local waypoint = STATE.dollyCam.route.points[waypointIndex]
+    local changed = false
 
-    -- Set speed to default
-    waypoint.targetSpeed = DollyCamWaypointEditor.DEFAULT_TARGET_SPEED
-    -- Mark as explicit reset
-    waypoint.hasExplicitSpeed = true
+    -- Apply to all selected waypoints
+    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if index >= 1 and index <= #STATE.dollyCam.route.points then
+            local waypoint = STATE.dollyCam.route.points[index]
 
-    Log.info(string.format("Reset waypoint %d speed to default %.2f (explicit)",
-            waypointIndex, DollyCamWaypointEditor.DEFAULT_TARGET_SPEED))
+            -- Set speed to default
+            waypoint.targetSpeed = DollyCamWaypointEditor.DEFAULT_TARGET_SPEED
+            -- Mark as explicit reset
+            waypoint.hasExplicitSpeed = true
 
-    return true
+            changed = true
+            Log.info(string.format("Reset waypoint %d speed to default %.2f (explicit)",
+                    index, DollyCamWaypointEditor.DEFAULT_TARGET_SPEED))
+        end
+    end
+
+    return changed
 end
 
 -- Clear waypoint lookAt properties
 ---@return boolean success Whether the lookAt was cleared
 function DollyCamWaypointEditor.clearWaypointLookAt()
-    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
-
-    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
-            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+    if #STATE.dollyCam.selectedWaypoints == 0 then
         return false
     end
 
-    local waypoint = STATE.dollyCam.route.points[waypointIndex]
+    local changed = false
 
-    -- Explicitly mark lookAt as set to none
-    waypoint.hasLookAt = true
-    waypoint.lookAtPoint = nil
-    waypoint.lookAtUnitID = nil
+    -- Apply to all selected waypoints
+    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if index >= 1 and index <= #STATE.dollyCam.route.points then
+            local waypoint = STATE.dollyCam.route.points[index]
 
-    Log.info(string.format("Explicitly cleared lookAt for waypoint %d", waypointIndex))
+            -- Explicitly mark lookAt as set to none
+            waypoint.hasLookAt = true
+            waypoint.lookAtPoint = nil
+            waypoint.lookAtUnitID = nil
 
-    return true
+            changed = true
+            Log.info(string.format("Explicitly cleared lookAt for waypoint %d", index))
+        end
+    end
+
+    return changed
 end
 
 return {

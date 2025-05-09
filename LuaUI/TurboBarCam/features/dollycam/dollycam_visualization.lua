@@ -173,13 +173,25 @@ local function drawDistanceMarker(position, distance)
 end
 
 -- Draw all waypoints with their special properties
-local function drawWaypoints(closestWaypointIndex)
+local function drawWaypoints(hoveredWaypointIndex)
     for i, waypoint in ipairs(STATE.dollyCam.route.points) do
         local color = DollyCamVisualization.colors.waypoint
         local size = DollyCamVisualization.settings.waypointSize
 
         -- Determine waypoint appearance based on state
-        if STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypointIndex == i then
+        local isSelected = false
+
+        -- Check if this waypoint is selected (in multi-selection mode)
+        if STATE.dollyCam.isEditing then
+            for _, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+                if selectedIndex == i then
+                    isSelected = true
+                    break
+                end
+            end
+        end
+
+        if STATE.dollyCam.isEditing and isSelected then
             -- Selected waypoint gets priority
             color = DollyCamVisualization.colors.selectedWaypoint
             size = size * 1.5
@@ -187,7 +199,7 @@ local function drawWaypoints(closestWaypointIndex)
             -- Hovered waypoint
             color = DollyCamVisualization.colors.hoveredWaypoint
             size = size * 1.2
-        elseif closestWaypointIndex == i then
+        elseif hoveredWaypointIndex == i then
             -- Navigation closest waypoint
             color = DollyCamVisualization.colors.selectedWaypoint
             size = size * 1.25
@@ -201,6 +213,11 @@ local function drawWaypoints(closestWaypointIndex)
 
         -- Draw waypoint index text and properties
         local labelText = tostring(i)
+
+        -- Add selection indicator to label
+        if isSelected then
+            labelText = "◉ " .. labelText
+        end
 
         -- Get the effective speed for this waypoint
         local effectiveSpeed, isExplicitSpeed = getEffectiveWaypointSpeed(i)
@@ -460,35 +477,88 @@ end
 
 -- Draw editor-specific visualizations
 local function drawEditorVisualizations()
-    if not (STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypointIndex) then
-        return
+    -- If we have selected waypoints, draw movement handles
+    if STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypoints and #STATE.dollyCam.selectedWaypoints > 0 then
+        -- Calculate center point of all selected waypoints
+        local centerX, centerY, centerZ = 0, 0, 0
+        local count = 0
+
+        for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+            if index >= 1 and index <= #STATE.dollyCam.route.points then
+                local pos = STATE.dollyCam.route.points[index].position
+                centerX = centerX + pos.x
+                centerY = centerY + pos.y
+                centerZ = centerZ + pos.z
+                count = count + 1
+            end
+        end
+
+        if count > 0 then
+            centerX = centerX / count
+            centerY = centerY / count
+            centerZ = centerZ / count
+
+            local axisLength = 70
+
+            -- Draw movement axes for center of selected waypoints
+            -- X axis (red)
+            drawLine(
+                    centerX - axisLength, centerY, centerZ,
+                    centerX + axisLength, centerY, centerZ,
+                    { 1.0, 0.0, 0.0, 0.7 }, 2.0
+            )
+
+            -- Y axis (green)
+            drawLine(
+                    centerX, centerY - axisLength, centerZ,
+                    centerX, centerY + axisLength, centerZ,
+                    { 0.0, 1.0, 0.0, 0.7 }, 2.0
+            )
+
+            -- Z axis (blue)
+            drawLine(
+                    centerX, centerY, centerZ - axisLength,
+                    centerX, centerY, centerZ + axisLength,
+                    { 0.0, 0.0, 1.0, 0.7 }, 2.0
+            )
+
+            -- Draw a label showing selection count
+            if count > 1 then
+                drawTextLabel(
+                        centerX, centerY, centerZ,
+                        count .. " waypoints selected",
+                        axisLength + 15, 15,
+                        { 1.0, 1.0, 1.0, 0.9 }
+                )
+            end
+
+            -- Draw connections between selected waypoints if more than one is selected
+            if count > 1 then
+                local selectedWaypoints = {}
+                for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+                    if index >= 1 and index <= #STATE.dollyCam.route.points then
+                        table.insert(selectedWaypoints, STATE.dollyCam.route.points[index])
+                    end
+                end
+
+                -- Sort waypoints by their index
+                table.sort(STATE.dollyCam.selectedWaypoints)
+
+                -- Draw selection group boundary lines
+                gl.LineWidth(1.5)
+                gl.Color(0.9, 0.9, 0.2, 0.5)  -- Yellow, semi-transparent
+                gl.BeginEnd(GL.LINE_LOOP, function()
+                    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+                        if index >= 1 and index <= #STATE.dollyCam.route.points then
+                            local pos = STATE.dollyCam.route.points[index].position
+                            gl.Vertex(pos.x, pos.y, pos.z)
+                        end
+                    end
+                end)
+                gl.LineWidth(1.0)
+            end
+        end
     end
-
-    local selectedWaypoint = STATE.dollyCam.route.points[STATE.dollyCam.selectedWaypointIndex]
-    local pos = selectedWaypoint.position
-    local axisLength = 50
-
-    -- Draw movement axes for selected waypoint
-    -- X axis (red)
-    drawLine(
-            pos.x - axisLength, pos.y, pos.z,
-            pos.x + axisLength, pos.y, pos.z,
-            { 1.0, 0.0, 0.0, 0.7 }, 2.0
-    )
-
-    -- Y axis (green)
-    drawLine(
-            pos.x, pos.y - axisLength, pos.z,
-            pos.x, pos.y + axisLength, pos.z,
-            { 0.0, 1.0, 0.0, 0.7 }, 2.0
-    )
-
-    -- Z axis (blue)
-    drawLine(
-            pos.x, pos.y, pos.z - axisLength,
-            pos.x, pos.y, pos.z + axisLength,
-            { 0.0, 0.0, 1.0, 0.7 }, 2.0
-    )
 end
 
 -- Main draw function for visualization
