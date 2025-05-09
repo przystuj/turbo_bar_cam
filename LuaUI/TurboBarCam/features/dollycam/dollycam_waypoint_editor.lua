@@ -43,6 +43,7 @@ function DollyCamWaypointEditor.initialize()
     -- Register mouse handlers
     MouseManager.onLMB('waypointEditor', DollyCamWaypointEditor.handleLeftClick)
     MouseManager.onRMB('waypointEditor', DollyCamWaypointEditor.handleRightClick)
+    MouseManager.onDoubleMMB('waypointEditor', DollyCamWaypointEditor.handleDoubleMiddleClick)
 
     -- Register mouse movement handler
     MouseManager.onMouseMove('waypointEditor', DollyCamWaypointEditor.handleMouseMove)
@@ -201,9 +202,8 @@ function DollyCamWaypointEditor.handleLeftClick()
     return false
 end
 
-function DollyCamWaypointEditor.handleMiddleClick()
-    -- For now, just add a waypoint at the current camera position
-    local success, action, index = DollyCamEditor.addOrEditWaypointAtCurrentPosition()
+function DollyCamWaypointEditor.handleDoubleMiddleClick()
+    local success, action, index = DollyCamEditor.addOrEditWaypointAtMousePosition()
 
     if success then
         Log.info("Added new waypoint with MMB")
@@ -345,6 +345,11 @@ function DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
     end
 
     -- Clamp speed to valid range
+    speed = tonumber(speed)
+    if not speed then
+        return false
+    end
+
     speed = math.max(0.0, math.min(1.0, speed))
 
     -- Store the original speed for logging
@@ -352,6 +357,8 @@ function DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
 
     -- Update the waypoint speed
     STATE.dollyCam.route.points[waypointIndex].targetSpeed = speed
+    -- Mark this speed as explicitly set, even if it's the default value
+    STATE.dollyCam.route.points[waypointIndex].hasExplicitSpeed = true
 
     Log.info(string.format("Set waypoint %d target speed from %.2f to %.2f",
             waypointIndex, oldSpeed, speed))
@@ -425,6 +432,51 @@ function DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
 
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
+
+    return true
+end
+
+-- Reset waypoint speed to default (but still mark it as explicitly set)
+---@return boolean success Whether the speed was reset
+function DollyCamWaypointEditor.resetWaypointSpeed()
+    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
+
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
+            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+        return false
+    end
+
+    local waypoint = STATE.dollyCam.route.points[waypointIndex]
+
+    -- Set speed to default
+    waypoint.targetSpeed = DollyCamWaypointEditor.DEFAULT_TARGET_SPEED
+    -- Mark as explicit reset
+    waypoint.hasExplicitSpeed = true
+
+    Log.info(string.format("Reset waypoint %d speed to default %.2f (explicit)",
+            waypointIndex, DollyCamWaypointEditor.DEFAULT_TARGET_SPEED))
+
+    return true
+end
+
+-- Clear waypoint lookAt properties
+---@return boolean success Whether the lookAt was cleared
+function DollyCamWaypointEditor.clearWaypointLookAt()
+    local waypointIndex = STATE.dollyCam.selectedWaypointIndex
+
+    if not STATE.dollyCam.route or not STATE.dollyCam.route.points or
+            waypointIndex < 1 or waypointIndex > #STATE.dollyCam.route.points then
+        return false
+    end
+
+    local waypoint = STATE.dollyCam.route.points[waypointIndex]
+
+    -- Explicitly mark lookAt as set to none
+    waypoint.hasLookAt = true
+    waypoint.lookAtPoint = nil
+    waypoint.lookAtUnitID = nil
+
+    Log.info(string.format("Explicitly cleared lookAt for waypoint %d", waypointIndex))
 
     return true
 end

@@ -20,44 +20,27 @@ DollyCamEditor.SELECTION_THRESHOLD = 200
 -- Add a waypoint at the current camera position
 ---@return boolean success Whether the waypoint was added
 ---@return number|nil index Index of the added waypoint, or nil if failed
-function DollyCamEditor.addWaypointAtCurrentPosition()
-    STATE.dollyCam.route = STATE.dollyCam.route or {points = {}}
+function DollyCamEditor.addWaypointAtPosition(position)
+    STATE.dollyCam.route = STATE.dollyCam.route or { points = {} }
 
-    -- Get current camera position and rotation
-    local camState = CameraManager.getCameraState("DollyCamEditor.addWaypointAtCurrentPosition")
-    local position = {
-        x = camState.px,
-        y = camState.py,
-        z = camState.pz
-    }
-    
     -- If we're navigating, find the best insertion point
     local insertIndex = #STATE.dollyCam.route.points + 1
-    
+
     if STATE.dollyCam.isNavigating then
-        -- Find the segment we're currently in
-        local currentDistance = STATE.dollyCam.currentDistance
-        local traversedDistance = 0
-        
-        for i, segmentDist in ipairs(STATE.dollyCam.route.segmentDistances) do
-            if traversedDistance + segmentDist >= currentDistance then
-                insertIndex = i + 1
-                break
-            end
-            traversedDistance = traversedDistance + segmentDist
-        end
+        Log.debug("Can't edit route while navigating")
+        return
     end
-    
+
     -- Insert the new waypoint
     local waypoint = DollyCamDataStructures.createWaypoint(position)
     table.insert(STATE.dollyCam.route.points, insertIndex, waypoint)
-    
+
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
-    
+
     Log.info(string.format("Added waypoint at position (%.1f, %.1f, %.1f) at index %d",
             position.x, position.y, position.z, insertIndex))
-            
+
     return true, insertIndex
 end
 
@@ -71,24 +54,24 @@ function DollyCamEditor.editWaypoint(waypointIndex, newPosition, newRotation)
         Log.warn("Cannot edit waypoint: Invalid waypoint index: " .. waypointIndex)
         return false
     end
-    
+
     if not newPosition or not newRotation then
         local camState = CameraManager.getCameraState("DollyCamEditor.editWaypoint")
-        
+
         newPosition = newPosition or {
             x = camState.px,
             y = camState.py,
             z = camState.pz
         }
     end
-    
+
     -- Update the waypoint data
     STATE.dollyCam.route.points[waypointIndex].position = {
         x = newPosition.x,
         y = newPosition.y,
         z = newPosition.z
     }
-    
+
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
     return true
@@ -102,25 +85,25 @@ function DollyCamEditor.deleteWaypoint(waypointIndex)
         Log.warn("Cannot delete waypoint: Invalid waypoint index: " .. waypointIndex)
         return false
     end
-    
+
     -- Don't allow deleting if only 2 waypoints remain
     if #STATE.dollyCam.route.points <= 2 then
         Log.warn("Cannot delete waypoint: Route needs at least 2 waypoints")
         return false
     end
-    
+
     -- Store the waypoint position for logging
     local position = STATE.dollyCam.route.points[waypointIndex].position
-    
+
     -- Remove the waypoint
     table.remove(STATE.dollyCam.route.points, waypointIndex)
-    
+
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
-    
+
     Log.info(string.format("Deleted waypoint %d at (%.1f, %.1f, %.1f)",
             waypointIndex, position.x, position.y, position.z))
-            
+
     return true
 end
 
@@ -128,27 +111,27 @@ end
 ---@param waypointIndex number Index of the waypoint to adjust
 ---@param newTension number New tension value (0.0-1.0)
 ---@return boolean success Whether the tension was adjusted
-function DollyCamEditor.adjustWaypointTension( waypointIndex, newTension)
+function DollyCamEditor.adjustWaypointTension(waypointIndex, newTension)
     if not STATE.dollyCam.route.points[waypointIndex] then
         Log.warn("Cannot adjust waypoint tension: Invalid waypoint index: " .. waypointIndex)
         return false
     end
-    
+
     -- Clamp tension to valid range
     newTension = math.max(0.0, math.min(1.0, newTension))
-    
+
     -- Store the original tension for logging
     local oldTension = STATE.dollyCam.route.points[waypointIndex].tension
-    
+
     -- Update the waypoint tension
     STATE.dollyCam.route.points[waypointIndex].tension = newTension
-    
+
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
-    
+
     Log.info(string.format("Adjusted waypoint %d tension from %.2f to %.2f",
             waypointIndex, oldTension, newTension))
-            
+
     return true
 end
 
@@ -168,16 +151,39 @@ function DollyCamEditor.findClosestWaypointToEdit(position)
             z = camState.pz
         }
     end
-    
+
     -- Find closest waypoint
     local closestIndex, closestDist = DollyCamPathPlanner.findClosestWaypoint(position)
-    
+
     -- Check if within threshold
     if closestIndex and closestDist <= threshold then
         return closestIndex, closestDist
     end
-    
+
     return nil, nil
+end
+
+local function addOrEditWaypointAtPosition(position)
+    -- Check if we're near an existing waypoint
+    local closestIndex = DollyCamEditor.findClosestWaypointToEdit(position)
+
+    if closestIndex then
+        -- Edit existing waypoint
+        DollyCamEditor.editWaypoint(closestIndex, position)
+        return true, "edited", closestIndex
+    else
+        -- Add new waypoint
+        local success, index = DollyCamEditor.addWaypointAtPosition(position)
+        return success, "added", index
+    end
+end
+
+function DollyCamEditor.addOrEditWaypointAtMousePosition()
+    local mx, my = Spring.GetMouseState()
+    local _, pos = Spring.TraceScreenRay(mx, my, true)
+    local position = { x = pos[1], y = pos[2], z = pos[3] }
+
+    return addOrEditWaypointAtPosition(position)
 end
 
 -- Add or edit waypoint at current position
@@ -192,19 +198,8 @@ function DollyCamEditor.addOrEditWaypointAtCurrentPosition()
         y = camState.py,
         z = camState.pz
     }
-    
-    -- Check if we're near an existing waypoint
-    local closestIndex = DollyCamEditor.findClosestWaypointToEdit(position)
-    
-    if closestIndex then
-        -- Edit existing waypoint
-        DollyCamEditor.editWaypoint(closestIndex, position)
-        return true, "edited", closestIndex
-    else
-        -- Add new waypoint
-        local success, index = DollyCamEditor.addWaypointAtCurrentPosition()
-        return success, "added", index
-    end
+
+    return addOrEditWaypointAtPosition(position)
 end
 
 return {

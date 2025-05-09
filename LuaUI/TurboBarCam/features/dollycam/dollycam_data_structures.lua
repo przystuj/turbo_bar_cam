@@ -38,6 +38,7 @@ function DollyCamDataStructures.createWaypoint(position, tension)
         tension = tension or 0.5, -- Default tension value
         time = nil, -- Will be calculated during knot vector creation
         targetSpeed = 1.0, -- Default target speed
+        hasExplicitSpeed = false, -- By default, speeds are not explicitly set
         hasLookAt = false, -- Default to no lookAt
         lookAtPoint = nil, -- Will be set if needed
         lookAtUnitID = nil -- Will be set if tracking a unit
@@ -54,18 +55,18 @@ function DollyCamDataStructures.removeWaypoint(route, index)
     if not route or not route.points then
         return false
     end
-    
+
     if index < 1 or index > #route.points then
         Log.warn("Invalid waypoint index: " .. index)
         return false
     end
-    
+
     -- Don't allow removing the last waypoint
     if #route.points <= 1 then
         Log.warn("Cannot remove the last waypoint")
         return false
     end
-    
+
     table.remove(route.points, index)
     return true
 end
@@ -83,7 +84,8 @@ function DollyCamDataStructures.serializeRoute()
                 z = point.position.z
             },
             tension = point.tension,
-            targetSpeed = point.targetSpeed
+            targetSpeed = point.targetSpeed,
+            hasExplicitSpeed = point.hasExplicitSpeed
         }
 
         -- Add lookAt properties if present
@@ -133,6 +135,7 @@ function DollyCamDataStructures.deserializeRoute(serialized)
             },
             tension = pointData.tension or 0.5,
             targetSpeed = pointData.targetSpeed or 1.0,
+            hasExplicitSpeed = pointData.hasExplicitSpeed or false,
             hasLookAt = pointData.hasLookAt or false
         }
 

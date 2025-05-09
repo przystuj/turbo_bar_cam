@@ -40,7 +40,6 @@ DollyCam.KEYS = {
     PAGEDOWN = 281
 }
 
--- Add current camera position as a waypoint
 ---@return boolean success Whether the waypoint was added
 function DollyCam.addCurrentPositionToRoute()
     if Util.isTurboBarCamDisabled() then
@@ -73,14 +72,17 @@ function DollyCam.setWaypointTargetSpeed(speed)
         return false
     end
 
-    DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
+    if tonumber(speed) == 1 then
+        DollyCamWaypointEditor.resetWaypointSpeed()
+    else
+        DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
+    end
 end
 
 -- Delete a waypoint by index
----@param routeId string ID of the route to modify
 ---@param waypointIndex number Index of the waypoint to delete
 ---@return boolean success Whether the waypoint was deleted
-function DollyCam.deleteWaypoint(routeId, waypointIndex)
+function DollyCam.deleteWaypoint(waypointIndex)
     if Util.isTurboBarCamDisabled() then
         return false
     end
@@ -237,7 +239,7 @@ function DollyCam.setDirection(direction)
     end
 
     STATE.dollyCam.direction = tonumber(direction)
-    Log.debug("Direction set to " .. STATE.dollyCam.direction )
+    Log.debug("Direction set to " .. STATE.dollyCam.direction)
 end
 
 -- Set navigation speed
@@ -253,7 +255,7 @@ function DollyCam.toggleDirection()
     end
 
     STATE.dollyCam.direction = STATE.dollyCam.direction * -1
-    Log.debug("Direction set to " .. STATE.dollyCam.direction )
+    Log.debug("Direction set to " .. STATE.dollyCam.direction)
 end
 
 -- Toggle waypoint editor mode
@@ -282,6 +284,22 @@ function DollyCam.moveSelectedWaypoint(axis, value)
     end
 
     return DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
+end
+
+function DollyCam.resetWaypointSpeed()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    DollyCamWaypointEditor.resetWaypointSpeed()
+end
+
+function DollyCam.clearWaypointLookAt()
+    if Util.isTurboBarCamDisabled() then
+        return false
+    end
+
+    DollyCamWaypointEditor.clearWaypointLookAt()
 end
 
 -- todo remove at some point

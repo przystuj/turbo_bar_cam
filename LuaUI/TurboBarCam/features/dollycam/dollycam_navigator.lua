@@ -6,6 +6,10 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type DollyCamPathPlanner
 local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
+---@type CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
+---@type TrackingManager
+local TrackingManager = VFS.Include("LuaUI/TurboBarCam/common/tracking_manager.lua").TrackingManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -101,6 +105,24 @@ function DollyCamNavigator.setAlpha(alpha)
     return true
 end
 
+local function createCameraState(position, direction)
+    local camState = {}
+    camState.px = position.x
+    camState.py = position.y
+    camState.pz = position.z
+
+    if direction then
+        camState.dx = direction.dx
+        camState.dy = direction.dy
+        camState.dz = direction.dz
+        camState.rx = direction.rx
+        camState.ry = direction.ry
+        camState.rz = direction.rz
+    end
+
+    return camState
+end
+
 -- Update navigation state
 ---@param deltaTime number Time since last update in seconds
 ---@return boolean active Whether navigation is active
@@ -156,12 +178,13 @@ function DollyCamNavigator.update(deltaTime)
 
     -- Prepare camera state update
     local camState = {
-        px = positionData.x,
-        py = positionData.y,
-        pz = positionData.z
+        x = positionData.x,
+        y = positionData.y,
+        z = positionData.z
     }
 
     -- Apply lookAt if active
+    local directionState
     if STATE.dollyCam.activeLookAt then
         local lookAtPos = nil
 
@@ -171,34 +194,22 @@ function DollyCamNavigator.update(deltaTime)
                 local x, y, z = Spring.GetUnitPosition(STATE.dollyCam.activeLookAt.unitID)
                 lookAtPos = { x = x, y = y, z = z }
             end
-        elseif STATE.dollyCam.activeLookAt.point then
-            -- Use fixed point
-            lookAtPos = STATE.dollyCam.activeLookAt.point
         end
 
         if lookAtPos then
-            -- Calculate direction to lookAt target
-            local dx = lookAtPos.x - positionData.x
-            local dy = lookAtPos.y - positionData.y
-            local dz = lookAtPos.z - positionData.z
-
-            -- Calculate rotation angles
-            local dist = math.sqrt(dx * dx + dz * dz)
-            local ry = math.atan2(dx, dz)
-            local rx = -math.atan2(dy, dist)
-
-            -- Apply to camera state
-            camState.rx = rx
-            camState.ry = ry
+            directionState = CameraCommons.focusOnPoint(camState, lookAtPos, CONFIG.MODE_TRANSITION_SMOOTHING, CONFIG.MODE_TRANSITION_SMOOTHING)
+            directionState.px, directionState.py, directionState.pz = nil, nil, nil
         end
     end
 
     if STATE.dollyCam.noCamera then
         return
     end
+
+    camState = createCameraState(camState, directionState)
+    TrackingManager.updateTrackingState(camState)
     CameraManager.setCameraState(camState, 0, "DollyCamNavigator.update")
 end
-
 
 function DollyCamNavigator.checkWaypointsPassed(prevDistance, currentDistance)
     -- Skip if no route
@@ -247,11 +258,18 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
         return
     end
 
-    -- Apply target speed if defined
-    if waypoint.targetSpeed then
+    -- Apply target speed if explicitly set (including default values marked as explicit)
+    if waypoint.targetSpeed and waypoint.hasExplicitSpeed then
         STATE.dollyCam.targetSpeed = waypoint.targetSpeed
-        Log.debug(string.format("Waypoint %d: Set target speed to %.2f",
+        -- Remember this speed for propagation
+        STATE.dollyCam.lastExplicitSpeed = waypoint.targetSpeed
+        Log.debug(string.format("Waypoint %d: Set explicit target speed to %.2f",
                 waypointIndex, waypoint.targetSpeed))
+    elseif STATE.dollyCam.lastExplicitSpeed then
+        -- Apply propagated speed if no explicit speed is set at this waypoint
+        STATE.dollyCam.targetSpeed = STATE.dollyCam.lastExplicitSpeed
+        Log.debug(string.format("Waypoint %d: Using propagated speed %.2f",
+                waypointIndex, STATE.dollyCam.lastExplicitSpeed))
     end
 
     -- Apply lookAt if defined
@@ -259,6 +277,11 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
         if waypoint.lookAtUnitID and Spring.ValidUnitID(waypoint.lookAtUnitID) then
             -- Setup unit tracking lookAt
             STATE.dollyCam.activeLookAt = {
+                unitID = waypoint.lookAtUnitID,
+                point = nil
+            }
+            -- Remember this lookAt for propagation
+            STATE.dollyCam.lastExplicitLookAt = {
                 unitID = waypoint.lookAtUnitID,
                 point = nil
             }
@@ -270,12 +293,27 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
                 unitID = nil,
                 point = waypoint.lookAtPoint
             }
+            -- Remember this lookAt for propagation
+            STATE.dollyCam.lastExplicitLookAt = {
+                unitID = nil,
+                point = {
+                    x = waypoint.lookAtPoint.x,
+                    y = waypoint.lookAtPoint.y,
+                    z = waypoint.lookAtPoint.z
+                }
+            }
             Log.debug(string.format("Waypoint %d: Set lookAt to fixed point (%.1f, %.1f, %.1f)",
                     waypointIndex, waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z))
+        else
+            -- Explicit reset of lookAt
+            STATE.dollyCam.activeLookAt = nil
+            STATE.dollyCam.lastExplicitLookAt = nil
+            Log.debug(string.format("Waypoint %d: Reset lookAt properties", waypointIndex))
         end
-    else
-        -- Disable lookAt if waypoint doesn't have it
-        STATE.dollyCam.activeLookAt = nil
+    elseif STATE.dollyCam.lastExplicitLookAt then
+        -- Apply propagated lookAt if no explicit lookAt is set at this waypoint
+        STATE.dollyCam.activeLookAt = STATE.dollyCam.lastExplicitLookAt
+        Log.debug(string.format("Waypoint %d: Using propagated lookAt", waypointIndex))
     end
 end
 
