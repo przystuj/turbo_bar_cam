@@ -29,10 +29,6 @@ if not WG.TurboBarCam.CONFIG then
                 COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
-                STEPS_PER_SECOND = 60, -- Steps per second for smooth transitions
-                DWELL = {
-                    DEFAULT_SLOWDOWN_FACTOR = 0.1, -- Default: Camera moves at 10% speed during "dwell" periods
-                },
             },
 
             -- FPS camera settings
@@ -110,16 +106,11 @@ if not WG.TurboBarCam.CONFIG then
             ORBIT = {
                 HEIGHT_FACTOR = 8, -- Height is 8x unit height
                 DISTANCE = 800, -- Distance from unit
-                SPEED = 0.0005, -- Orbit speed in radians per frame
+                SPEED = 0.05, -- Orbit speed in radians per frame
                 HEIGHT = nil, -- It's calculated from unit height
-                DEFAULT_SPEED = 0.0005,
+                DEFAULT_SPEED = 0.05,
                 DEFAULT_DISTANCE = 800,
                 DEFAULT_HEIGHT = nil, -- It's calculated from unit height
-                AUTO_ORBIT = {
-                    ENABLED = true,
-                    DELAY = 10, -- Seconds of no movement to trigger auto orbit
-                    SMOOTHING_FACTOR = 5 -- Higher means smoother transition
-                },
                 SMOOTHING = {
                     POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
                     ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
@@ -315,7 +306,7 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         PARAM_NAMES = {
             HEIGHT = { 100, nil },
             DISTANCE = { 100, nil },
-            SPEED = { -0.005, 0.005 },
+            SPEED = { -0.5, 0.5 },
         }
     },
     ANCHOR = {

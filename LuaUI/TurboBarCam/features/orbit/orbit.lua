@@ -105,7 +105,7 @@ function OrbitingCamera.togglePointOrbit(point)
 end
 
 --- Updates the orbit camera's position and rotation
-function OrbitingCamera.update()
+function OrbitingCamera.update(dt)
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -114,41 +114,9 @@ function OrbitingCamera.update()
     end
 
     -- Get target position based on target type
-    local targetPos
+    local targetPos = OrbitCameraUtils.getTargetPosition()
 
-    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-        -- Check if unit still exists
-        if not Spring.ValidUnitID(STATE.tracking.unitID) then
-            Log.trace("Unit no longer exists, switching to point tracking")
-
-            -- Switch to point tracking using last known position
-            if STATE.tracking.lastTargetPoint then
-                STATE.tracking.targetType = STATE.TARGET_TYPES.POINT
-                STATE.tracking.targetPoint = STATE.tracking.lastTargetPoint
-                STATE.tracking.unitID = nil
-
-                -- Use the last target point for this update
-                targetPos = STATE.tracking.targetPoint
-            else
-                -- No position info available, disable tracking
-                TrackingManager.disableTracking()
-                return
-            end
-        else
-            -- Unit exists, get its position
-            local x, y, z = Spring.GetUnitPosition(STATE.tracking.unitID)
-            targetPos = { x = x, y = y, z = z }
-
-            -- Update last target point for fallback
-            STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
-        end
-    else
-        -- Point tracking
-        targetPos = STATE.tracking.targetPoint
-    end
-
-    -- Update orbit angle
-    STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED
+    STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED * dt
 
     -- Calculate camera position on the orbit circle
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
@@ -169,6 +137,7 @@ function OrbitingCamera.update()
     end
 
     local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
+
     TrackingManager.updateTrackingState(camState)
 
     -- Apply camera state

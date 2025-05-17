@@ -46,12 +46,12 @@ bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-20
 
 // Orbit
 bind		numpad2  		turbobarcam_toggle_orbiting_camera
-bind		numpad5			turbobarcam_orbit_adjust_params add;HEIGHT,5;DISTANCE,10
-bind		numpad8			turbobarcam_orbit_adjust_params add;HEIGHT,-5;DISTANCE,-10
-bind		numpad6			turbobarcam_orbit_adjust_params add;HEIGHT,5
-bind		numpad4			turbobarcam_orbit_adjust_params add;HEIGHT,-5
-bind		numpad9			turbobarcam_orbit_adjust_params add;SPEED,0.0001
-bind		numpad7			turbobarcam_orbit_adjust_params add;SPEED,-0.0001
+bind		numpad5			turbobarcam_orbit_adjust_params add;DISTANCE,20
+bind		numpad8			turbobarcam_orbit_adjust_params add;DISTANCE,-20
+bind		numpad9			turbobarcam_orbit_adjust_params add;HEIGHT,20
+bind		numpad7			turbobarcam_orbit_adjust_params add;HEIGHT,-20
+bind		numpad6			turbobarcam_orbit_adjust_params add;SPEED,0.01
+bind		numpad4			turbobarcam_orbit_adjust_params add;SPEED,-0.01
 
 // FPS
 bind		numpad1			turbobarcam_toggle_fps_camera

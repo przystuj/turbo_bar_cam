@@ -99,8 +99,11 @@ function Scheduler.getTimeRemaining(id)
 end
 
 --- Handles and executes all due schedules
---- This should be called regularly (e.g., each game tick) to process any pending scheduled tasks
 function Scheduler.handleSchedules()
+    if not STATE.scheduler.schedules or #STATE.scheduler.schedules == 0 then
+        return
+    end
+
     local currentTime = Spring.GetTimer()
 
     -- Iterate over all scheduled tasks and execute the ones that are due
@@ -115,6 +118,8 @@ function Scheduler.handleSchedules()
         end
     end
 end
+
+
 
 return {
     Scheduler = Scheduler

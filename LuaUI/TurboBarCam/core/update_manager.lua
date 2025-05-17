@@ -29,6 +29,7 @@ function UpdateManager.processCycle(dt)
 
     if STATE.reloadFeatures then
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
+        Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
         STATE.reloadFeatures = false
     end
 
@@ -103,6 +104,43 @@ function UpdateManager.handleModeTransitions()
     end
 end
 
+local function printAverageDt()
+    -- Initialize STATE.perf if it doesn't exist
+    if not STATE.perf then
+        STATE.perf = {
+            dtSum = 0,
+            frameCount = 0,
+            lastReportTime = Spring.GetTimer(),
+            averageDt = 0
+        }
+    end
+
+    -- Get current dt value (passed to this function)
+    local dt = Spring.GetFrameTimeOffset()
+
+    -- Accumulate dt and increment frame count
+    STATE.perf.dtSum = STATE.perf.dtSum + dt
+    STATE.perf.frameCount = STATE.perf.frameCount + 1
+
+    -- Check if 3 seconds have passed
+    local currentTime = Spring.GetTimer()
+    local timeDiff = Spring.DiffTimers(currentTime, STATE.perf.lastReportTime)
+
+    if timeDiff >= 3.0 then
+        -- Calculate average dt
+        STATE.perf.averageDt = STATE.perf.dtSum / STATE.perf.frameCount
+
+        -- Log or display the average dt
+        Log.debug(string.format("Average dt over last 3s: %.6f seconds (from %d frames)",
+                STATE.perf.averageDt, STATE.perf.frameCount))
+
+        -- Reset counters
+        STATE.perf.dtSum = 0
+        STATE.perf.frameCount = 0
+        STATE.perf.lastReportTime = currentTime
+    end
+end
+
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
@@ -113,21 +151,18 @@ function UpdateManager.updateCameraMode(dt)
         Features.CameraAnchor.update()
     elseif STATE.dollyCam.isNavigating then
         Features.DollyCam.update(dt)
-    else
-        -- Normal camera updates based on current mode
-        if STATE.tracking.mode == 'fps' then
-            Features.FPSCamera.update()
-        elseif STATE.tracking.mode == 'unit_tracking' then
-            Features.UnitTrackingCamera.update()
-        elseif STATE.tracking.mode == 'orbit' then
-            Features.OrbitingCamera.update()
-        elseif STATE.tracking.mode == 'overview' then
-            Features.TurboOverviewCamera.update()
-        elseif STATE.tracking.mode == 'group_tracking' then
-            Features.GroupTrackingCamera.update()
-        elseif STATE.tracking.mode == 'projectile_camera' then
-            Features.ProjectileCamera.update()
-        end
+    elseif STATE.tracking.mode == 'fps' then
+        Features.FPSCamera.update()
+    elseif STATE.tracking.mode == 'unit_tracking' then
+        Features.UnitTrackingCamera.update()
+    elseif STATE.tracking.mode == 'orbit' then
+        Features.OrbitingCamera.update(dt)
+    elseif STATE.tracking.mode == 'overview' then
+        Features.TurboOverviewCamera.update()
+    elseif STATE.tracking.mode == 'group_tracking' then
+        Features.GroupTrackingCamera.update()
+    elseif STATE.tracking.mode == 'projectile_camera' then
+        Features.ProjectileCamera.update()
     end
 end
 

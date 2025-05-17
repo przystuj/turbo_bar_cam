@@ -11,17 +11,36 @@ local Log = {}
 ---@return string representation
 function Log.dump(o)
     if type(o) == 'table' then
-        local s = '{ '
-        for k, v in pairs(o) do
-            if type(k) ~= 'number' then
-                k = '"' .. k .. '"'
-            end
-            s = s .. '[' .. k .. '] = ' .. Log.dump(v) .. ','
-        end
-        return s .. '} '
+        return Log.serializeTable(o)
     else
         return tostring(o)
     end
+end
+
+function Log.serializeTable(t, indent)
+    if not t then
+        return "nil"
+    end
+    if not indent then
+        indent = 0
+    end
+    local result = ""
+    local indentStr = string.rep(" ", indent)
+
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            result = result .. indentStr .. tostring(k) .. " = {\n"
+            result = result .. Log.serializeTable(v, indent + 2)
+            result = result .. indentStr .. "}\n"
+        elseif type(v) == "number" then
+            -- Format numbers with higher precision for debugging
+            result = result .. indentStr .. tostring(k) .. " = " .. string.format("%.9f", v) .. "\n"
+        else
+            result = result .. indentStr .. tostring(k) .. " = " .. tostring(v) .. "\n"
+        end
+    end
+
+    return result
 end
 
 -- Helper function to concatenate multiple arguments into a single string
