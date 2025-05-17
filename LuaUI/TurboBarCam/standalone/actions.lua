@@ -27,6 +27,12 @@ function Actions.registerAllActions()
 end
 
 function Actions.coreActions()
+    Actions.registerAction("turbobarcam_reload_module", 'tp',
+            function()
+                CoreModules.UpdateManager.reload()
+                return true
+            end)
+
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
                 CoreModules.WidgetControl.toggle()

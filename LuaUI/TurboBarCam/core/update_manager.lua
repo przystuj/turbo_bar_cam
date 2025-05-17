@@ -27,6 +27,11 @@ function UpdateManager.processCycle(dt)
         return
     end
 
+    if STATE.reloadFeatures then
+        Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
+        STATE.reloadFeatures = false
+    end
+
     SettingsManager.update()
 
     Scheduler.handleSchedules()
@@ -124,6 +129,11 @@ function UpdateManager.updateCameraMode(dt)
             Features.ProjectileCamera.update()
         end
     end
+end
+
+function UpdateManager.reload()
+    Log.debug("reload")
+    STATE.reloadFeatures = true
 end
 
 return {
