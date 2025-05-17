@@ -232,49 +232,20 @@ function Actions.anchorActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_anchor_queue_set", 'tp',
+    Actions.registerAction("turbobarcam_anchor_easing", 'tp',
             function(_, params)
-                return FeatureModules.CameraAnchor.setQueue(params)
+                FeatureModules.CameraAnchor.setEasing(params)
+                return false
             end)
 
-    Actions.registerAction("turbobarcam_anchor_queue_add", 'tp',
-            function(_, params)
-                return FeatureModules.CameraAnchor.addToQueue(params)
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_reset", 'tp',
-            function()
-                return FeatureModules.CameraAnchor.clearQueue()
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_start", 'tp',
-            function(_, _, args)
-                return FeatureModules.CameraAnchor.startQueue(args[1], args[2], args[3])
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_save", 'tp',
+    Actions.registerAction("turbobarcam_anchor_save", 'tp',
             function(_, params)
                 return FeatureModules.CameraAnchor.save(params, true)
             end)
 
-    Actions.registerAction("turbobarcam_anchor_queue_load", 'tp',
+    Actions.registerAction("turbobarcam_anchor_load", 'tp',
             function(_, params)
                 return FeatureModules.CameraAnchor.load(params)
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_debug", 'tp',
-            function()
-                return FeatureModules.CameraAnchor.debugQueue()
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_speed", 't',
-            function(_, _, args)
-                return FeatureModules.CameraAnchor.addSpeedPoint(args[1], args[2], args[3])
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_queue_stop", 'tp',
-            function()
-                return FeatureModules.CameraAnchor.stopQueue()
             end)
 end
 

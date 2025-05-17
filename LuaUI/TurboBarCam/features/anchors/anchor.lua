@@ -6,18 +6,21 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraAnchorUtils
 local CameraAnchorUtils = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_utils.lua").CameraAnchorUtils
----@type CameraAnchorQueues
-local CameraAnchorQueues = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_queues.lua").CameraAnchorQueues
 ---@type CameraAnchorPersistence
 local CameraAnchorPersistence = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_persistence.lua").CameraAnchorPersistence
----@type AnchorTimeControl
-local AnchorTimeControl = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_time_control.lua").AnchorTimeControl
+---@type EasingFunctions
+local EasingFunctions = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_easing_functions.lua").EasingFunctions
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local TrackingManager = CommonModules.TrackingManager
+
+-- Initialize easing state in global STATE if not exists
+if not STATE.anchors.easing then
+    STATE.anchors.easing = "none" -- Default easing type
+end
 
 ---@class CameraAnchor
 local CameraAnchor = {}
@@ -38,10 +41,29 @@ function CameraAnchor.set(index)
     return
 end
 
+--- Get the easing function based on type string
+---@param easingType string|nil Easing type (one of CameraAnchor.EASING_TYPES)
+---@return function easingFunc The easing function to use
+function CameraAnchor.getEasingFunction(easingType)
+    -- Use specified easing, or fall back to state easing, or default easing
+    easingType = easingType or STATE.anchors.easing
+
+    local easingFunc = EasingFunctions[easingType]
+
+    -- Fallback to default if not found
+    if not easingFunc then
+        Log.warn("Unknown easing type: " .. easingType .. ", falling back to none")
+        easingFunc = "none"
+    end
+
+    return easingFunc
+end
+
 --- Focuses on a camera anchor with smooth transition
 ---@param index number Anchor index (0-9)
+---@param easingType string|nil Optional easing type (one of CameraAnchor.EASING_TYPES)
 ---@return boolean success Always returns true for widget handler
-function CameraAnchor.focus(index)
+function CameraAnchor.focus(index, easingType)
     if Util.isTurboBarCamDisabled() then
         return true
     end
@@ -82,17 +104,26 @@ function CameraAnchor.focus(index)
         return true
     end
 
-    -- Start transition
-    CameraAnchorUtils.startTransitionToAnchor(STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION)
+    -- Get appropriate easing function
+    local easingFunc = CameraAnchor.getEasingFunction(easingType)
+
+    -- Start transition with selected easing
+    CameraAnchorUtils.startTransitionToAnchor(
+            STATE.anchors[index],
+            CONFIG.CAMERA_MODES.ANCHOR.DURATION,
+            easingFunc
+    )
+
     STATE.transition.currentAnchorIndex = index
-    Log.trace("Loading camera anchor: " .. index)
+    Log.trace("Loading camera anchor: " .. index .. " with easing: " .. (easingType or STATE.anchors.easing or CameraAnchor.defaultEasingType))
     return true
 end
 
 --- Focuses on an anchor while tracking a unit
 ---@param index number Anchor index (0-9)
+---@param easingType string|nil Optional easing type
 ---@return boolean success Always returns true for widget handler
-function CameraAnchor.focusAndTrack(index)
+function CameraAnchor.focusAndTrack(index, easingType)
     if Util.isTurboBarCamDisabled() then
         return true
     end
@@ -119,14 +150,14 @@ function CameraAnchor.focusAndTrack(index)
     if not isCompatibleMode or not STATE.tracking.unitID then
         Log.trace("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
-        return CameraAnchor.focus(index)
+        return CameraAnchor.focus(index, easingType)
     end
 
     local unitID = STATE.tracking.unitID
     if not Spring.ValidUnitID(unitID) then
         Log.trace("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
-        return CameraAnchor.focus(index)
+        return CameraAnchor.focus(index, easingType)
     end
 
     -- Cancel any in-progress transitions
@@ -139,6 +170,9 @@ function CameraAnchor.focusAndTrack(index)
     if STATE.tracking.mode then
         TrackingManager.disableTracking()
     end
+
+    -- Get appropriate easing function
+    local easingFunc = CameraAnchor.getEasingFunction(easingType)
 
     -- Create a specialized transition that maintains focus on the unit
     local startState = CameraManager.getCameraState("CameraAnchor.focusAndTrack")
@@ -153,7 +187,14 @@ function CameraAnchor.focusAndTrack(index)
     local targetPos = { x = unitX, y = unitY, z = unitZ }
 
     -- Set up the transition
-    STATE.transition.steps = CameraAnchorUtils.createPositionTransition(startState, STATE.anchors[index], CONFIG.CAMERA_MODES.ANCHOR.DURATION, targetPos)
+    STATE.transition.steps = CameraAnchorUtils.createPositionTransition(
+            startState,
+            STATE.anchors[index],
+            CONFIG.CAMERA_MODES.ANCHOR.DURATION,
+            targetPos,
+            easingFunc
+    )
+
     STATE.transition.currentStepIndex = 1
     STATE.transition.startTime = Spring.GetTimer()
     STATE.transition.active = true
@@ -193,65 +234,37 @@ function CameraAnchor.update()
             STATE.transition.active = false
             STATE.transition.currentAnchorIndex = nil
             Log.trace("transition complete")
-
-            local currentState = CameraManager.getCameraState("CameraAnchor.update")
-            Log.debug(string.format("currentState.rx=%.3f currentState.ry=%.3f",
-                    currentState.rx or 0, currentState.rx or 0))
         end
     end
 end
 
-function CameraAnchor.addToQueue(anchorParams)
+--- Action handler for setting anchor easing type
+---@param easing string Parameters from the action command
+---@return boolean success Always returns true
+function CameraAnchor.setEasing(easing)
     if Util.isTurboBarCamDisabled() then
-        return false
+        return true
     end
-    return CameraAnchorQueues.addToQueue(anchorParams)
+
+    Log.debug(easing)
+
+    -- Set current easing type based on parameter
+    if easing and EasingFunctions[easing] then
+        STATE.anchors.easing = easing
+        Log.info("Set anchor easing type to: " .. easing)
+    else
+        STATE.anchors.easing = "none"
+        Log.info("Invalid easing: " .. easing .. ". Valid values: none, in, out, inout")
+    end
+
+    return true
 end
 
-function CameraAnchor.setQueue(anchorParams)
+function CameraAnchor.save(id)
     if Util.isTurboBarCamDisabled() then
         return false
     end
-    return CameraAnchorQueues.setQueue(anchorParams)
-end
-
-function CameraAnchor.clearQueue()
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-    return CameraAnchorQueues.clearQueue()
-end
-
----@see EasingFunctions
----@see SpeedProfiles
-function CameraAnchor.startQueue(id, easingFn)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-    if id then
-        if not CameraAnchorPersistence.loadFromFile(id) then
-            Log.warn("No queue with id " .. id .. " found for this map")
-            return false
-        end
-        if easingFn then
-            CameraAnchorQueues.applySpeedControl(easingFn)
-        end
-    end
-    return CameraAnchorQueues.startQueue()
-end
-
-function CameraAnchor.updateQueue()
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-    return CameraAnchorQueues.updateQueue()
-end
-
-function CameraAnchor.save(id, includeQueue)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-    return CameraAnchorPersistence.saveToFile(id, includeQueue)
+    return CameraAnchorPersistence.saveToFile(id, false)
 end
 
 function CameraAnchor.load(id)
@@ -259,21 +272,6 @@ function CameraAnchor.load(id)
         return false
     end
     return CameraAnchorPersistence.loadFromFile(id)
-end
-
-function CameraAnchor.debugQueue()
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-    return CameraAnchorPersistence.describeQueue()
-end
-
-function CameraAnchor.addSpeedPoint(position, factor, width)
-    local speedControls = AnchorTimeControl.addSpeedPoint(position, factor, width)
-    if speedControls then
-        return CameraAnchorQueues.applySpeedControl(speedControls)
-    end
-    return false
 end
 
 ---@see ModifiableParams
@@ -286,14 +284,6 @@ function CameraAnchor.adjustParams(params)
     Util.adjustParams(params, 'ANCHOR', function()
         CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2
     end)
-end
-
-function CameraAnchor.stopQueue()
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
-
-    return CameraAnchorQueues.stopQueue()
 end
 
 return {

@@ -34,8 +34,8 @@ function SettingsManager.initializePersistentStorage()
     STATE.settings.fpsCombatOffsets = PersistentStorage.new("fps_combat_offsets", true)
     STATE.settings.storages["fps_combat"] = STATE.settings.fpsCombatOffsets
 
-    STATE.settings["camera_presets"] = PersistentStorage.new("camera_presets", true)
-    STATE.settings.storages["camera_presets"] = STATE.settings["camera_presets"]
+    STATE.settings["anchors"] = PersistentStorage.new("anchors", true)
+    STATE.settings.storages["anchors"] = STATE.settings["anchors"]
 
     STATE.settings["dollycam"] = PersistentStorage.new("dollycam", true)
     STATE.settings.storages["dollycam"] = STATE.settings["dollycam"]

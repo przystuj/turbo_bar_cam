@@ -113,8 +113,8 @@ The following actions are available but not bound to keys by default:
     - `turbobarcam_anchor_queue_add` - Add to existing camera queue
     - `turbobarcam_anchor_queue_reset` - Clear camera queue
     - `turbobarcam_anchor_queue_start` - Start camera queue playback
-    - `turbobarcam_anchor_queue_save` - Save camera queue to file
-    - `turbobarcam_anchor_queue_load` - Load camera queue from file
+    - `turbobarcam_anchor_save` - Save camera queue to file
+    - `turbobarcam_anchor_load` - Load camera queue from file
     - `turbobarcam_anchor_queue_debug` - Print debug info for current queue
     - `turbobarcam_anchor_queue_speed` - Adjust queue time curve
     - `turbobarcam_anchor_queue_stop` - Stop camera queue playback
@@ -197,8 +197,8 @@ Example: `/turbobarcam_anchor_queue_set 1,3;2,5;3`
 - `/turbobarcam_anchor_queue_reset` - Clear the queue
 
 ## Save/Load to File (saved per map)
-- `/turbobarcam_anchor_queue_save mypath` - Save queue
-- `/turbobarcam_anchor_queue_load mypath` - Load queue
+- `/turbobarcam_anchor_save mypath` - Save queue
+- `/turbobarcam_anchor_load mypath` - Load queue
 - `/turbobarcam_anchor_queue_start mypath dramatic` - Load, override profile, and start
 
 ## Build Queue Incrementally
