@@ -215,8 +215,6 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
         Spring.SetCameraState(cameraState, smoothing)
     end
     assert(source, "Source parameter is required for setCameraState")
-    local currentState = CameraManager.getCameraState("CameraManager.setCameraState")
-    --CameraManager.printCameraStateDiff(currentState, cameraState, source) -- debugging camera changes
 
     -- Add to history for debugging
     addToHistory("SetCameraState", {
@@ -226,13 +224,12 @@ function CameraManager.setCameraState(cameraState, smoothing, source)
         mode = STATE.tracking.mode or "none"
     })
 
-    local normalizedState = normalizeRotation(cameraState)
-
-    -- Fix potential rotation issues
-    applyRotationFix(currentState, normalizedState, smoothing, source)
+    -- todo check if these are required
+    --local normalizedState = normalizeRotation(cameraState)
+    --applyRotationFix(currentState, normalizedState, smoothing, source)
 
     -- Apply the camera state
-    Spring.SetCameraState(normalizedState, smoothing)
+    Spring.SetCameraState(cameraState, smoothing)
 
     -- Mark state as dirty since we've changed it
     CameraManager.cache.dirtyFlag = true
