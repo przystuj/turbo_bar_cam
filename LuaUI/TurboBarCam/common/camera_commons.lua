@@ -164,6 +164,15 @@ function CameraCommons.isTransitionComplete()
     return elapsed > CONFIG.TRANSITION.MODE_TRANSITION_DURATION
 end
 
+function CameraCommons.getTransitionProgress()
+    if CameraCommons.isTransitionComplete() then
+        return 1
+    end
+    local now = Spring.GetTimer()
+    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+    return elapsed / CONFIG.TRANSITION.MODE_TRANSITION_DURATION
+end
+
 --- Focuses camera on a point with appropriate smoothing
 ---@param camPos table Camera position {x, y, z}
 ---@param targetPos table Target position {x, y, z}

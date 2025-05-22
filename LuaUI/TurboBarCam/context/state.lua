@@ -152,6 +152,7 @@ if not WG.TurboBarCam.STATE then
                 lastPosition = nil, -- Last unit position to detect movement
                 lastCamPos = nil, -- Last camera position to detect movement
                 lastCamRot = nil, -- Last camera rotation to detect movement
+                isPaused = false,
             },
         },
 

@@ -112,12 +112,12 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_DISTANCE = 800,
                 DEFAULT_HEIGHT = nil, -- It's calculated from unit height
                 SMOOTHING = {
-                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    POSITION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
                 },
                 DEFAULT_SMOOTHING = {
-                    POSITION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    POSITION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
                 },
             },
 

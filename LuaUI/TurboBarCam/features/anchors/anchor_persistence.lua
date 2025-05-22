@@ -13,17 +13,6 @@ local Log = CommonModules.Log
 ---@class CameraAnchorPersistence
 local CameraAnchorPersistence = {}
 
--- Function to get the map name without version number
--- Removes version patterns like "1.2.3" or "V1.2.3" from the end of map names
-local function getCleanMapName()
-    local mapName = Game.mapName
-
-    -- Remove version numbers at the end (patterns like 1.2.3 or V1.2.3)
-    local cleanName = mapName:gsub("%s+[vV]?%d+%.?%d*%.?%d*$", "")
-
-    return cleanName
-end
-
 --- Serializes the current camera anchors to a storable format
 ---@return table serializedData Serialized anchors data
 local function serializeAnchors()
@@ -111,7 +100,7 @@ function CameraAnchorPersistence.saveToFile(anchorSetId, includeQueue)
     local data = serializeAnchors()
 
     -- Get clean map name
-    local mapName = getCleanMapName()
+    local mapName = Util.getCleanMapName()
 
     -- Load existing camera presets for all maps
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
@@ -142,7 +131,7 @@ function CameraAnchorPersistence.loadFromFile(id)
     end
 
     -- Get clean map name
-    local mapName = getCleanMapName()
+    local mapName = Util.getCleanMapName()
 
     -- Load all map presets
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName)

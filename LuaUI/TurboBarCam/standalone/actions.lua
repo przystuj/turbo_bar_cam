@@ -281,7 +281,7 @@ end
 
 
 function Actions.orbitActions()
-    Actions.registerAction("turbobarcam_toggle_orbiting_camera", 'tp',
+    Actions.registerAction("turbobarcam_orbit_toggle", 'tp',
             function()
                 FeatureModules.OrbitingCamera.toggle()
                 return true
@@ -293,9 +293,27 @@ function Actions.orbitActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_toggle_point_orbit", 'tp',
+    Actions.registerAction("turbobarcam_orbit_toggle_point", 'tp',
             function()
                 FeatureModules.OrbitingCamera.togglePointOrbit()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_orbit_toggle_pause", 'tp',
+            function()
+                FeatureModules.OrbitingCamera.togglePauseOrbit()
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_orbit_save", 'tp',
+            function(_, param)
+                FeatureModules.OrbitingCamera.saveOrbit(param)
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_orbit_load", 'tp',
+            function(_, param)
+                FeatureModules.OrbitingCamera.loadOrbit(param)
                 return true
             end)
 end

@@ -4,8 +4,10 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type {OrbitCameraUtils: OrbitCameraUtils}
-local OrbitUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_utils.lua")
+---@type OrbitCameraUtils
+local OrbitCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_utils.lua").OrbitCameraUtils
+---@type OrbitPersistence
+local OrbitPersistence = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_persistence.lua").OrbitPersistence
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -13,10 +15,14 @@ local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
-local OrbitCameraUtils = OrbitUtils.OrbitCameraUtils
 
 ---@class OrbitingCamera
 local OrbitingCamera = {}
+
+-- Initialize isPaused in STATE.tracking.orbit if it's not there
+if STATE.tracking.orbit and STATE.tracking.orbit.isPaused == nil then
+    STATE.tracking.orbit.isPaused = false
+end
 
 --- Toggles orbiting camera mode
 ---@param unitID number|nil Optional unit ID (uses selected unit if nil)
@@ -30,13 +36,12 @@ function OrbitingCamera.toggle(unitID)
         pointTrackingEnabled = true
     end
 
-    -- If no unitID provided, use the first selected unit
     if not unitID then
         local selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             unitID = selectedUnits[1]
         else
-            Log.debug("No unit selected for Orbiting view")
+            Log.debug("[ORBIT] No unit selected for Orbiting view")
             if pointTrackingEnabled then
                 TrackingManager.disableTracking()
             end
@@ -44,35 +49,27 @@ function OrbitingCamera.toggle(unitID)
         end
     end
 
-    -- Check if it's a valid unit
     if not Spring.ValidUnitID(unitID) then
-        Log.trace("Invalid unit ID for Orbiting view")
+        Log.trace("[ORBIT] Invalid unit ID for Orbiting view")
         if pointTrackingEnabled then
             TrackingManager.disableTracking()
         end
         return
     end
 
-    -- If we're already tracking this exact unit in Orbiting mode, turn it off
     if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID and STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
         TrackingManager.disableTracking()
-        Log.trace("Orbiting camera detached")
+        Log.trace("[ORBIT] Orbiting camera detached")
         return
     end
 
-    -- Initialize the tracking system
-    if TrackingManager.initializeTracking('orbit', unitID) then
-
-        -- Initialize orbit angle based on current camera position
+    if TrackingManager.initializeTracking('orbit', unitID, STATE.TARGET_TYPES.UNIT) then
         local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
         local camState = CameraManager.getCameraState("OrbitingCamera.toggle")
-
-        -- Calculate current angle based on camera position relative to unit
         STATE.tracking.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
-
-        Log.trace("Orbiting camera attached to unit " .. unitID)
+        STATE.tracking.orbit.isPaused = false -- Ensure not paused on new toggle
+        Log.trace("[ORBIT] Orbiting camera attached to unit " .. unitID)
     end
-
 end
 
 --- Toggles orbiting camera mode around a point
@@ -82,24 +79,19 @@ function OrbitingCamera.togglePointOrbit(point)
         return
     end
 
-    -- If no point provided, use cursor position
     if not point then
         point = Util.getCursorWorldPosition()
         if not point then
-            Log.debug("Couldn't get cursor position for Orbiting view")
+            Log.debug("[ORBIT] Couldn't get cursor position for Orbiting view")
             return
         end
     end
 
-    -- Initialize the tracking system
     if TrackingManager.initializeTracking('orbit', point, STATE.TARGET_TYPES.POINT) then
-        -- Initialize orbit angle based on current camera position
         local camState = CameraManager.getCameraState("OrbitingCamera.togglePointOrbit")
-
-        -- Calculate current angle based on camera position relative to point
         STATE.tracking.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
-
-        Log.trace(string.format("Orbiting camera attached to point at (%.1f, %.1f, %.1f)",
+        STATE.tracking.orbit.isPaused = false -- Ensure not paused on new toggle
+        Log.trace(string.format("[ORBIT] Orbiting camera attached to point at (%.1f, %.1f, %.1f)",
                 point.x, point.y, point.z))
     end
 end
@@ -113,35 +105,178 @@ function OrbitingCamera.update(dt)
         return
     end
 
-    -- Get target position based on target type
     local targetPos = OrbitCameraUtils.getTargetPosition()
+    if not targetPos then
+        TrackingManager.disableTracking() -- Target lost (e.g. unit destroyed)
+        Log.debug("[ORBIT] Target lost, disabling orbit.")
+        return
+    end
 
-    STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED * dt
+    if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT and STATE.tracking.orbit.isPaused then
+        return
+    end
 
-    -- Calculate camera position on the orbit circle
+    if not STATE.tracking.orbit.isPaused then
+        STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED * dt
+    end
+
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
-
-    -- Determine smoothing factor based on whether we're in a mode transition
-    local smoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
-    local rotFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR
+    local posSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
+    local rotSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR
 
     if STATE.tracking.isModeTransitionInProgress then
-        -- Use a special transition factor during mode changes
-        smoothFactor = CONFIG.MODE_TRANSITION_SMOOTHING
-        rotFactor = CONFIG.MODE_TRANSITION_SMOOTHING
-
-        -- Check if we should end the transition
         if CameraCommons.isTransitionComplete() then
             STATE.tracking.isModeTransitionInProgress = false
         end
+
+        local progress = CameraCommons.getTransitionProgress()
+        posSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR * progress
+        rotSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR * progress
     end
 
-    local camState = CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor)
-
+    local camState = CameraCommons.focusOnPoint(camPos, targetPos, posSmoothFactor, rotSmoothFactor)
     TrackingManager.updateTrackingState(camState)
-
-    -- Apply camera state
     CameraManager.setCameraState(camState, 0, "OrbitingCamera.update")
+end
+
+--- Pauses the current orbit if active.
+function OrbitingCamera.pauseOrbit()
+    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'orbit' then
+        return
+    end
+    if STATE.tracking.orbit.isPaused then
+        Log.trace("[ORBIT] Orbit is already paused.")
+        return
+    end
+    STATE.tracking.orbit.isPaused = true
+    Log.info("[ORBIT] Orbit paused.")
+end
+
+--- Resumes the current orbit if paused.
+function OrbitingCamera.resumeOrbit()
+    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'orbit' then
+        return
+    end
+    if not STATE.tracking.orbit.isPaused then
+        Log.trace("[ORBIT] Orbit is not paused.")
+        return
+    end
+    STATE.tracking.orbit.isPaused = false
+    Log.info("[ORBIT] Orbit resumed.")
+end
+
+--- Toggles pause/resume state of the orbit.
+function OrbitingCamera.togglePauseOrbit()
+    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'orbit' then
+        return
+    end
+    if STATE.tracking.orbit.isPaused then
+        OrbitingCamera.resumeOrbit()
+    else
+        OrbitingCamera.pauseOrbit()
+    end
+end
+
+--- Saves the current orbit state to a named slot for the current map.
+---@param orbitId string The identifier for this saved orbit state (e.g., "orbit_1").
+function OrbitingCamera.saveOrbit(orbitId)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if STATE.tracking.mode ~= 'orbit' then
+        return
+    end
+    if not orbitId or orbitId == "" then
+        Log.warn("[ORBIT] orbitSetId is required to save orbit state.")
+        return
+    end
+
+    local dataToSave = OrbitPersistence.serializeCurrentOrbitState()
+    if dataToSave then
+        OrbitPersistence.saveToFile(orbitId, dataToSave)
+    else
+        Log.error("[ORBIT] Failed to serialize orbit state for saving.")
+    end
+end
+
+--- Loads an orbit state from a named slot for the current map and starts orbiting.
+---@param orbitId string The identifier of the orbit state to load.
+function OrbitingCamera.loadOrbit(orbitId)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    if not orbitId or orbitId == "" then
+        Log.warn("[ORBIT] orbitSetId is required to load orbit state.")
+        return
+    end
+
+    local loadedData = OrbitPersistence.loadFromFile(orbitId)
+    if not loadedData then
+        Log.warn("[ORBIT] Failed to load orbit data for ID: " .. orbitId)
+        return
+    end
+
+    -- Apply loaded settings to CONFIG (these are used by OrbitCameraUtils)
+    CONFIG.CAMERA_MODES.ORBIT.SPEED = loadedData.speed
+    CONFIG.CAMERA_MODES.ORBIT.DISTANCE = loadedData.distance
+    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = loadedData.height
+    OrbitCameraUtils.ensureHeightIsSet() -- Recalculate height if it was based on unit type
+
+    local targetToUse
+    local targetTypeToUse = loadedData.targetType
+    local unitUsedForHeight = nil
+
+    if targetTypeToUse == STATE.TARGET_TYPES.UNIT then
+        if loadedData.targetID and Spring.ValidUnitID(loadedData.targetID) then
+            targetToUse = loadedData.targetID
+            unitUsedForHeight = targetToUse
+            Log.info("[ORBIT] Loading orbit for saved UnitID: " .. targetToUse)
+        else
+            Log.warn("[ORBIT] Saved UnitID " .. (loadedData.targetID or "nil") .. " is invalid.")
+            local selectedUnits = Spring.GetSelectedUnits()
+            if #selectedUnits > 0 then
+                targetToUse = selectedUnits[1]
+                unitUsedForHeight = targetToUse
+                targetTypeToUse = STATE.TARGET_TYPES.UNIT -- Ensure target type is unit
+                Log.info("[ORBIT] Using selected UnitID: " .. targetToUse .. " as fallback.")
+            else
+                Log.warn("[ORBIT] No valid saved unit and no unit selected. Cannot load orbit.")
+                TrackingManager.disableTracking()
+                return
+            end
+        end
+    elseif targetTypeToUse == STATE.TARGET_TYPES.POINT then
+        if loadedData.targetPoint then
+            targetToUse = Util.deepCopy(loadedData.targetPoint)
+            Log.info(string.format("[ORBIT] Loading orbit for saved Point: (%.1f, %.1f, %.1f)", targetToUse.x, targetToUse.y, targetToUse.z))
+        else
+            Log.warn("[ORBIT] Saved target type is POINT, but no targetPoint data found. Cannot load orbit.")
+            TrackingManager.disableTracking()
+            return
+        end
+    else
+        Log.error("[ORBIT] Unknown target type in loaded data: " .. (targetTypeToUse or "nil"))
+        TrackingManager.disableTracking()
+        return
+    end
+
+    -- Stop any current camera mode before starting the new loaded orbit
+    if STATE.tracking.mode then
+        TrackingManager.disableTracking()
+    end
+
+    -- Initialize tracking with the determined target
+    if TrackingManager.initializeTracking('orbit', targetToUse, targetTypeToUse) then
+        -- Crucially, set the loaded angle *after* initializeTracking
+        STATE.tracking.orbit.angle = loadedData.angle
+        -- Set paused state from loaded data
+        STATE.tracking.orbit.isPaused = loadedData.isPaused or false
+
+        Log.info("[ORBIT] Successfully loaded and started orbit ID: " .. orbitId ..
+                (STATE.tracking.orbit.isPaused and " (loaded as PAUSED)" or ""))
+    else
+        Log.error("[ORBIT] Failed to initialize tracking for loaded orbit ID: " .. orbitId)
+    end
 end
 
 ---@see ModifiableParams
@@ -163,12 +298,10 @@ function OrbitingCamera.loadSettings(identifier)
         CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.tracking.offsets.orbit[identifier].speed
         CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.tracking.offsets.orbit[identifier].distance
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.tracking.offsets.orbit[identifier].height
-        Log.trace("[ORBIT] Using previous settings")
     else
         CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
         CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-        Log.trace("[ORBIT] Using default settings")
     end
     OrbitCameraUtils.ensureHeightIsSet()
 end
