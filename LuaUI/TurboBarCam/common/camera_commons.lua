@@ -159,18 +159,34 @@ end
 --- Checks if a transition has completed
 ---@return boolean hasCompleted True if transition is complete
 function CameraCommons.isTransitionComplete()
-    local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-    return elapsed > CONFIG.TRANSITION.MODE_TRANSITION_DURATION
+    return CameraCommons.getTransitionProgress() == 1
 end
 
 function CameraCommons.getTransitionProgress()
-    if CameraCommons.isTransitionComplete() then
-        return 1
-    end
     local now = Spring.GetTimer()
     local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
+
+    if elapsed > CONFIG.TRANSITION.MODE_TRANSITION_DURATION then
+        return 1
+    end
     return elapsed / CONFIG.TRANSITION.MODE_TRANSITION_DURATION
+end
+
+function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor)
+    if not STATE.tracking.isModeTransitionInProgress then
+        return targetPosSmoothingFactor, targetRotSmoothingFactor
+    end
+
+    local progress = CameraCommons.getTransitionProgress()
+
+    if progress == 1 then
+        STATE.tracking.isModeTransitionInProgress = false
+    end
+
+    local posSmoothFactor = targetPosSmoothingFactor * progress
+    local rotSmoothFactor = targetRotSmoothingFactor * progress
+
+    return posSmoothFactor, rotSmoothFactor
 end
 
 --- Focuses camera on a point with appropriate smoothing

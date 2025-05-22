@@ -481,54 +481,6 @@ function Util.getCleanMapName()
     return cleanName
 end
 
-Util.TimeHelpers = {}
-
---- Converts elapsed seconds to normalized time (0-1)
----@param elapsedSeconds number Time elapsed in seconds
----@param totalDuration number Total duration in seconds
----@return number normalizedTime Time as a 0-1 value
-function Util.TimeHelpers.normalizeTime(elapsedSeconds, totalDuration)
-    if totalDuration <= 0 then return 1 end
-    return math.min(1, math.max(0, elapsedSeconds / totalDuration))
-end
-
---- Converts normalized time (0-1) to seconds
----@param normalizedTime number Normalized time (0-1)
----@param totalDuration number Total duration in seconds
----@return number seconds Time in seconds
-function Util.TimeHelpers.denormalizeTime(normalizedTime, totalDuration)
-    return normalizedTime * totalDuration
-end
-
---- Converts step index to normalized time (0-1)
----@param stepIndex number Current step index
----@param totalSteps number Total number of steps
----@return number normalizedTime Time as a 0-1 value
-function Util.TimeHelpers.stepToNormalizedTime(stepIndex, totalSteps)
-    if totalSteps <= 1 then return 1 end
-    return math.min(1, math.max(0, (stepIndex - 1) / (totalSteps - 1)))
-end
-
---- Converts normalized time (0-1) to the closest step index
----@param normalizedTime number Normalized time (0-1)
----@param totalSteps number Total number of steps
----@return number stepIndex The closest step index
-function Util.TimeHelpers.normalizedTimeToStep(normalizedTime, totalSteps)
-    if totalSteps <= 1 then return 1 end
-    local stepIndexF = 1 + normalizedTime * (totalSteps - 1)
-    return math.min(totalSteps, math.max(1, math.floor(stepIndexF + 0.5)))
-end
-
---- Gets current normalized progress from timers
----@param startTime number Timer value when the transition/animation started
----@param duration number Duration in seconds
----@return number normalizedTime Current time as a 0-1 value
-function Util.TimeHelpers.getTimerProgress(startTime, duration)
-    local elapsed = Spring.DiffTimers(Spring.GetTimer(), startTime)
-    return Util.TimeHelpers.normalizeTime(elapsed, duration)
-end
-
--- Export to global scope
 return {
     Util = Util
 }

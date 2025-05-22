@@ -198,6 +198,14 @@ MouseManager.onReleaseLMB = function(modeName, callback)
     registerCallback("onReleaseLMB", modeName, callback)
 end
 
+MouseManager.onDragLMB = function(modeName, callback)
+    registerCallback("onDragLMB", modeName, callback)
+end
+
+MouseManager.onDragStartLMB = function(modeName, callback)
+    registerCallback("onDragStartLMB", modeName, callback)
+end
+
 MouseManager.onMouseMove = function(modeName, callback)
     registerCallback("onMouseMove", modeName, callback)
 end

@@ -120,20 +120,10 @@ function OrbitingCamera.update(dt)
         STATE.tracking.orbit.angle = STATE.tracking.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.SPEED * dt
     end
 
+    local orbitSmoothingFactors = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING
+    local posSmoothFactor, rotSmoothFactor = CameraCommons.handleModeTransition(orbitSmoothingFactors.POSITION_FACTOR, orbitSmoothingFactors.ROTATION_FACTOR)
+
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
-    local posSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
-    local rotSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR
-
-    if STATE.tracking.isModeTransitionInProgress then
-        if CameraCommons.isTransitionComplete() then
-            STATE.tracking.isModeTransitionInProgress = false
-        end
-
-        local progress = CameraCommons.getTransitionProgress()
-        posSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR * progress
-        rotSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR * progress
-    end
-
     local camState = CameraCommons.focusOnPoint(camPos, targetPos, posSmoothFactor, rotSmoothFactor)
     TrackingManager.updateTrackingState(camState)
     CameraManager.setCameraState(camState, 0, "OrbitingCamera.update")

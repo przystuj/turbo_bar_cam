@@ -135,10 +135,7 @@ function FPSCamera.update()
         }
     end
 
-    -- Check for mode transition completion
-    if STATE.tracking.isModeTransitionInProgress and CameraCommons.isTransitionComplete() then
-        STATE.tracking.isModeTransitionInProgress = false
-    end
+    CameraCommons.handleModeTransition(posFactor, rotFactor)
 
     -- Apply smoothing with spherical interpolation for significant direction changes
     local center = { x = unitPos.x, y = unitPos.y, z = unitPos.z }

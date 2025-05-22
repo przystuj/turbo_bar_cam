@@ -265,11 +265,6 @@ function ProjectileCamera.disableProjectileCamera()
     Log.trace("Projectile tracking disabled")
 end
 
--- Get current camera mode
-function ProjectileCamera.getCameraMode()
-    return STATE.projectileWatching.cameraMode
-end
-
 -- This function will be called by UpdateManager in EVERY frame
 -- to check for projectiles when watching is enabled
 function ProjectileCamera.checkAndActivate()
@@ -410,24 +405,6 @@ function ProjectileCamera.resetProjectileState()
     STATE.projectileWatching.impactTimer = nil
     STATE.projectileWatching.impactPosition = nil
     STATE.projectileWatching.initialCamPos = nil
-end
-
-function ProjectileCamera.initializeProjectileState()
-    -- Make sure we have projectile state initialized
-    STATE.tracking.projectile = STATE.tracking.projectile or {}
-
-    -- Initialize smoothed positions if they don't exist
-    if not STATE.tracking.projectile.smoothedPositions then
-        STATE.tracking.projectile.smoothedPositions = {
-            camPos = nil,
-            targetPos = nil
-        }
-    end
-
-    -- Check if mode transition is complete
-    if STATE.tracking.isModeTransitionInProgress and CameraCommons.isTransitionComplete() then
-        STATE.tracking.isModeTransitionInProgress = false
-    end
 end
 
 function ProjectileCamera.selectProjectile(unitID)
@@ -678,32 +655,11 @@ function ProjectileCamera.applyProjectileCameraState(smoothedCamPos, smoothedTar
     TrackingManager.updateTrackingState(directionState)
 end
 
-function ProjectileCamera.easeOutCubic(t)
-    local t2 = t - 1
-    return t2 * t2 * t2 + 1
-end
-
 function ProjectileCamera.getSmoothingFactors()
     local posFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.POSITION_FACTOR
     local rotFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
 
-    if STATE.tracking.isModeTransitionInProgress then
-        -- Calculate transition progress
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        local progress = math.min(1, elapsed / CONFIG.TRANSITION.MODE_TRANSITION_DURATION)
-
-        -- Apply easing function to get a smoother interpolation factor
-        local easedProgress = ProjectileCamera.easeOutCubic(progress)
-
-        -- Interpolate between transition smoothing and normal smoothing
-        -- Start with MODE_TRANSITION_SMOOTHING and gradually approach normal smoothing
-        local transitionFactor = CONFIG.MODE_TRANSITION_SMOOTHING / 10
-        posFactor = transitionFactor + (posFactor - transitionFactor) * easedProgress
-        rotFactor = transitionFactor + (rotFactor - transitionFactor) * easedProgress
-    end
-
-    return posFactor, rotFactor
+    return CameraCommons.handleModeTransition(posFactor, rotFactor)
 end
 
 ---@see ModifiableParams
@@ -752,28 +708,6 @@ function ProjectileCamera.loadSettings(identifier)
         CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_LOOK_AHEAD
         STATE.projectileWatching.cameraMode = "follow"
         Log.trace("[PROJECTILE_CAMERA] Using default settings")
-    end
-end
-
--- For external use - tells if watching mode is active
-function ProjectileCamera.isWatchingForProjectiles()
-    return STATE.projectileWatching.enabled
-end
-
--- For external use - gets the watched unit ID
-function ProjectileCamera.getWatchedUnitID()
-    return STATE.projectileWatching.watchedUnitID
-end
-
--- For external use - gets the timeout duration for impact view
-function ProjectileCamera.getImpactTimeoutDuration()
-    return STATE.projectileWatching.impactTimeout
-end
-
--- For external use - sets the timeout duration for impact view
-function ProjectileCamera.setImpactTimeoutDuration(seconds)
-    if type(seconds) == "number" and seconds >= 0 then
-        STATE.projectileWatching.impactTimeout = seconds
     end
 end
 
