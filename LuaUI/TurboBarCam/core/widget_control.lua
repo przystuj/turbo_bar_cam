@@ -42,7 +42,6 @@ function WidgetControl.disable()
         return
     end
     TrackingManager.disableTracking()
-    CameraManager.shutdown()
 
     if STATE.transition.active then
         STATE.transition.active = false

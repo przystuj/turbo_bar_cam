@@ -227,7 +227,7 @@ function CameraAnchor.update()
         local camState = STATE.transition.steps[STATE.transition.currentStepIndex]
 
         -- Apply the base camera state (position)
-        CameraManager.setCameraState(camState, 1, "CameraTransition.update")
+        CameraManager.setCameraState(camState, 0, "CameraTransition.update")
 
         -- Check if we've reached the end
         if STATE.transition.currentStepIndex >= totalSteps then
