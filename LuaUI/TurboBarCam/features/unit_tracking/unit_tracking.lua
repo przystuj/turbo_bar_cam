@@ -45,101 +45,10 @@ function UnitTrackingCamera.toggle()
     end
 
     -- Initialize the tracking system
+    -- Velocity tracking is handled automatically by CameraManager
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
-        -- Initialize velocity tracking for smooth deceleration
-        UnitTrackingCamera.initializeVelocityTracking()
         Log.trace("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
     end
-end
-
---- Initializes velocity tracking for smooth deceleration
-function UnitTrackingCamera.initializeVelocityTracking()
-    local currentState = CameraManager.getCameraState("UnitTrackingCamera.initializeVelocityTracking")
-
-    -- Initialize velocity tracking state
-    if not STATE.tracking.unitTracking then
-        STATE.tracking.unitTracking = {}
-    end
-
-    STATE.tracking.unitTracking.lastPosition = {
-        x = currentState.px,
-        y = currentState.py,
-        z = currentState.pz
-    }
-
-    STATE.tracking.unitTracking.velocity = { x = 0, y = 0, z = 0 }
-    STATE.tracking.unitTracking.lastUpdateTime = Spring.GetTimer()
-end
-
---- Calculates and updates camera velocity for smooth deceleration
-function UnitTrackingCamera.updateVelocityTracking()
-    if not STATE.tracking.unitTracking then
-        return
-    end
-
-    local currentState = CameraManager.getCameraState("UnitTrackingCamera.updateVelocityTracking")
-    local currentTime = Spring.GetTimer()
-    local lastTime = STATE.tracking.unitTracking.lastUpdateTime or currentTime
-    local deltaTime = Spring.DiffTimers(currentTime, lastTime)
-
-    if deltaTime > 0 then
-        local lastPos = STATE.tracking.unitTracking.lastPosition
-        local currentPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
-
-        -- Calculate velocity
-        STATE.tracking.unitTracking.velocity = {
-            x = (currentPos.x - lastPos.x) / deltaTime,
-            y = (currentPos.y - lastPos.y) / deltaTime,
-            z = (currentPos.z - lastPos.z) / deltaTime
-        }
-
-        -- Update last position and time
-        STATE.tracking.unitTracking.lastPosition = currentPos
-        STATE.tracking.unitTracking.lastUpdateTime = currentTime
-    end
-end
-
---- Applies velocity decay during transition period
----@param currentPos table Current camera position
----@param transitionProgress number Transition progress (0-1)
----@return table decayedPos Position with velocity decay applied
-function UnitTrackingCamera.applyVelocityDecay(currentPos, transitionProgress)
-    if not STATE.tracking.unitTracking or not STATE.tracking.unitTracking.velocity then
-        return currentPos
-    end
-
-    local velocity = STATE.tracking.unitTracking.velocity
-    local deltaTime = Spring.DiffTimers(Spring.GetTimer(), STATE.tracking.unitTracking.lastUpdateTime or Spring.GetTimer())
-
-    if deltaTime <= 0 then
-        return currentPos
-    end
-
-    -- Calculate decay factor based on transition progress
-    -- As transition progresses (0->1), we want more decay
-    local decayFactor = 0.1 + (transitionProgress * 0.9) -- 0.1 to 1.0
-    local decayRate = 0.1 * decayFactor -- Adjustable decay rate
-
-    -- Apply exponential decay to velocity
-    local decayMultiplier = math.exp(-decayRate * deltaTime)
-
-    local decayedVelocity = {
-        x = velocity.x * decayMultiplier,
-        y = velocity.y * decayMultiplier,
-        z = velocity.z * decayMultiplier
-    }
-
-    -- Apply the decayed velocity to position
-    local decayedPos = {
-        x = currentPos.x + (decayedVelocity.x * deltaTime),
-        y = currentPos.y + (decayedVelocity.y * deltaTime),
-        z = currentPos.z + (decayedVelocity.z * deltaTime)
-    }
-
-    -- Update velocity for next frame
-    STATE.tracking.unitTracking.velocity = decayedVelocity
-
-    return decayedPos
 end
 
 --- Updates tracking camera to point at the tracked unit
@@ -188,41 +97,59 @@ function UnitTrackingCamera.update()
 
     -- Handle position control based on transition state
     if STATE.tracking.isModeTransitionInProgress then
-        -- During transition, gradually reduce position control and apply velocity decay
+        -- During transition, apply smooth deceleration using CameraManager's continuously tracked velocity
         local transitionProgress = CameraCommons.getTransitionProgress()
 
-        Log.debug(transitionProgress)
+        -- Get current velocity from CameraManager (tracks automatically)
+        local velocity, velMagnitude = CameraManager.getCurrentVelocity()
 
-        -- Update velocity tracking
-        UnitTrackingCamera.updateVelocityTracking()
+        if velMagnitude > 5.0 then  -- Only apply deceleration if we have significant velocity
+            -- Calculate deceleration parameters
+            -- Start with gentle deceleration, increase as transition progresses
+            local decayRate = 2.0 + (transitionProgress * 8.0)  -- Range: 2-10
+            local deltaTime = 1.0 / 30.0  -- Assume ~30 FPS for prediction
 
-        -- Calculate position smoothing that decreases as transition progresses
-        -- Start with normal smoothing, end with very low smoothing
-        local positionSmoothingFactor = dirFactor * (1.0 - transitionProgress * 0.95) -- Keep 5% minimum
+            -- Apply velocity decay for this frame
+            local decayedVelocity = CameraManager.applyVelocityDecay(decayRate, deltaTime)
 
-        -- Apply velocity decay to current position
-        local decayedPos = UnitTrackingCamera.applyVelocityDecay(camPos, transitionProgress)
+            -- Predict where camera should be based on decaying velocity
+            local predictedPos = CameraManager.predictPosition(camPos, deltaTime, decayRate)
 
-        -- Apply position smoothing between decayed position and current position
-        camStatePatch.px = CameraCommons.smoothStep(decayedPos.x, camPos.x, positionSmoothingFactor)
-        camStatePatch.py = CameraCommons.smoothStep(decayedPos.y, camPos.y, positionSmoothingFactor)
-        camStatePatch.pz = CameraCommons.smoothStep(decayedPos.z, camPos.z, positionSmoothingFactor)
+            -- Calculate position control factor
+            -- Starts high when velocity is high, decreases as velocity decays and transition progresses
+            local velocityFactor = math.min(velMagnitude / 200.0, 1.0)  -- Normalize velocity influence
+            local transitionFactor = 1.0 - (transitionProgress * 0.95)  -- Keep 5% minimum control
+            local positionControlFactor = velocityFactor * transitionFactor
 
-        -- Log transition progress occasionally
-        if transitionProgress > 0 and math.random() < 0.05 then -- 5% chance to log
-            Log.trace(string.format("Unit tracking transition: %.1f%% complete, pos_smooth=%.3f",
-                    transitionProgress * 100, positionSmoothingFactor))
+            -- Apply predicted position with decreasing influence
+            camStatePatch.px = CameraCommons.smoothStep(camPos.x, predictedPos.x, positionControlFactor)
+            camStatePatch.py = CameraCommons.smoothStep(camPos.y, predictedPos.y, positionControlFactor)
+            camStatePatch.pz = CameraCommons.smoothStep(camPos.z, predictedPos.z, positionControlFactor)
+
+            -- Log deceleration info occasionally for debugging
+            if CONFIG.DEBUG.LOG_LEVEL == "TRACE" and math.random() < 0.02 then  -- 2% chance per frame
+                Log.trace(string.format("Unit tracking deceleration: progress=%.1f%%, vel=%.1f, decay=%.1f, control=%.3f",
+                        transitionProgress * 100, velMagnitude, decayRate, positionControlFactor))
+            end
+        else
+            -- Velocity is low, just gradually reduce position control to zero
+            local positionControlFactor = (1.0 - transitionProgress) * 0.05  -- Very gentle final reduction
+
+            -- Apply minimal position control to avoid sudden stops
+            camStatePatch.px = CameraCommons.smoothStep(camPos.x, camPos.x, positionControlFactor)
+            camStatePatch.py = CameraCommons.smoothStep(camPos.y, camPos.y, positionControlFactor)
+            camStatePatch.pz = CameraCommons.smoothStep(camPos.z, camPos.z, positionControlFactor)
+
+            if CONFIG.DEBUG.LOG_LEVEL == "TRACE" and math.random() < 0.01 then
+                Log.trace(string.format("Unit tracking low velocity: progress=%.1f%%, vel=%.1f, control=%.3f",
+                        transitionProgress * 100, velMagnitude, positionControlFactor))
+            end
         end
     else
         -- After transition is complete, remove position updates to allow free camera movement
         camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
 
-        -- Clean up velocity tracking state
-        if STATE.tracking.unitTracking then
-            STATE.tracking.unitTracking.velocity = nil
-            STATE.tracking.unitTracking.lastPosition = nil
-            STATE.tracking.unitTracking.lastUpdateTime = nil
-        end
+        -- Velocity tracking continues automatically in CameraManager
     end
 
     TrackingManager.updateTrackingState(camStatePatch)

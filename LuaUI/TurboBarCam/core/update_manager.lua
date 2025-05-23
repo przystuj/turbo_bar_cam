@@ -18,6 +18,8 @@ local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+---@type CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -27,6 +29,9 @@ function UpdateManager.processCycle(dt)
     if Util.isTurboBarCamDisabled() then
         return
     end
+
+    -- Update CameraManager (handles velocity tracking internally)
+    CameraManager.update()
 
     if STATE.reloadFeatures then
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
