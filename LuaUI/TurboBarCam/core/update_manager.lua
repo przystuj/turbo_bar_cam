@@ -9,6 +9,7 @@ local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local CameraCommons = CommonModules.CameraCommons
 local TrackingManager = CommonModules.TrackingManager
 
 ---@type MouseManager
@@ -30,6 +31,7 @@ function UpdateManager.processCycle(dt)
     if STATE.reloadFeatures then
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
         Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
+        Features.UnitTrackingCamera = VFS.Include("LuaUI/TurboBarCam/features/unit_tracking/unit_tracking.lua").UnitTrackingCamera
         STATE.reloadFeatures = false
     end
 
@@ -41,9 +43,6 @@ function UpdateManager.processCycle(dt)
 
     -- Handle tracking grace period
     UpdateManager.handleTrackingGracePeriod()
-
-    -- Handle mode transitions
-    UpdateManager.handleModeTransitions()
 
     -- Handle fixed point command activation
     Features.FPSCamera.checkFixedPointCommandActivation()
@@ -90,18 +89,10 @@ function UpdateManager.isSpectating()
 end
 
 --- Handles transitions between camera modes
-function UpdateManager.handleModeTransitions()
+function UpdateManager.handleDisabledMode()
     -- If we're in a mode transition but not tracking any unit,
     -- then we're transitioning back to normal camera from a tracking mode
-    if STATE.tracking.isModeTransitionInProgress and not STATE.tracking.mode then
-        -- We're transitioning to free camera
-        -- Just let the transition time out
-        local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-        if elapsed > 1.0 then
-            STATE.tracking.isModeTransitionInProgress = false
-        end
-    end
+    CameraCommons.handleModeTransition(1,1)
 end
 
 local function printAverageDt()
@@ -151,6 +142,8 @@ function UpdateManager.updateCameraMode(dt)
         Features.CameraAnchor.update()
     elseif STATE.dollyCam.isNavigating then
         Features.DollyCam.update(dt)
+    elseif not STATE.tracking.mode then
+        UpdateManager.handleDisabledMode()
     elseif STATE.tracking.mode == 'fps' then
         Features.FPSCamera.update()
     elseif STATE.tracking.mode == 'unit_tracking' then

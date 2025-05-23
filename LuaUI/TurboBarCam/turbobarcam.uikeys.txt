@@ -4,9 +4,10 @@
 bind            numpad.             turbobarcam_toggle
 bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
 // Just in case kek
-bind       	    Ctrl+Backspace  	togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
-bind		    Home      		    turbobarcam_toggle_zoom
-bind            Esc                 turbobarcam_stop_tracking
+bind       	    Ctrl+Backspace  	    togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
+bind       	    Ctrl+Shift+Backspace  	turbobarcam_reload_module
+bind		    Home      		        turbobarcam_toggle_zoom
+bind            Esc                     turbobarcam_stop_tracking
 
 unbindkeyset	numpad2             moveback
 unbindkeyset	numpad6             moveright
@@ -109,8 +110,8 @@ bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15
 bind		numpad8			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,-15
 bind		Ctrl+numpad8	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,5
 bind		Ctrl+numpad5	turbobarcam_group_tracking_adjust_params add;EXTRA_HEIGHT,-5
-bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.1
-bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.1
+bind		numpad4			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,0.01
+bind		numpad6			turbobarcam_group_tracking_adjust_params add;ORBIT_OFFSET,-0.01
 bind		numpad7			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,-0.002;SMOOTHING.STABLE_POSITION,-0.002
 bind		numpad9			turbobarcam_group_tracking_adjust_params add;SMOOTHING.POSITION,0.002;SMOOTHING.STABLE_POSITION,0.002
 bind		Ctrl+numpad0	turbobarcam_group_tracking_adjust_params reset

@@ -87,9 +87,6 @@ function GroupTrackingCamera.toggle()
         GroupTrackingCamera.calculateCenterOfMass()
         GroupTrackingCamera.calculateGroupRadius()
 
-        -- Initialize camera position based on center of mass
-        GroupTrackingCamera.initializeCameraPosition()
-
         Log.trace(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.tracking.group.unitIDs))
     end
 
@@ -453,7 +450,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.tracking.group.targetHeight = targetHeight
 
     -- Apply camera state with a slower initial transition
-    CameraManager.setCameraState(camState, 1, "GroupTrackingCamera.initializeCameraPosition")
+    CameraManager.setCameraState(camState, 0, "GroupTrackingCamera.initializeCameraPosition")
 end
 
 --- Calculates required camera distance to see all units
@@ -662,12 +659,12 @@ function GroupTrackingCamera.update()
     -- Apply orbit-style camera adjustments
     local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
     local totalHeight = targetHeight + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
-
-    local newCamPos = {
-        x = center.x + (newCameraDir.x * totalDistance),
-        y = totalHeight,
-        z = center.z + (newCameraDir.z * totalDistance)
-    }
+    local newCamPos = TrackingUtils.applyCameraAdjustments(
+            center,
+            newCameraDir,
+            totalDistance,
+            totalHeight
+    )
 
     -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
@@ -681,6 +678,8 @@ function GroupTrackingCamera.update()
         posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.POSITION
         rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
     end
+
+    posFactor, rotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
 
     -- Apply smoothing with spherical interpolation for significant direction changes
     local smoothedPos

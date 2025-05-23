@@ -77,11 +77,7 @@ function FPSCamera.toggle()
         selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             Spring.SelectUnitArray(selectedUnits)
-            local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
-            CameraManager.setCameraState(CameraCommons.getDefaultUnitView(x, z), 1, "FPSCamera.disable")
-            -- todo make it smooth
         end
-
         return
     end
 
@@ -121,8 +117,8 @@ function FPSCamera.update()
     local camPos = FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
 
     -- Determine smoothing factors
-    local posFactor = FPSCameraUtils.getSmoothingFactor(STATE.tracking.isModeTransitionInProgress, 'position')
-    local rotFactor = FPSCameraUtils.getSmoothingFactor(STATE.tracking.isModeTransitionInProgress, 'rotation')
+    local posFactor = FPSCameraUtils.getSmoothingFactor('position')
+    local rotFactor = FPSCameraUtils.getSmoothingFactor('rotation')
 
     -- If this is the first update, initialize last positions
     if STATE.tracking.lastCamPos.x == 0 and STATE.tracking.lastCamPos.y == 0 and STATE.tracking.lastCamPos.z == 0 then

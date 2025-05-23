@@ -468,11 +468,7 @@ end
 ---@param isTransitioning boolean Whether we're in a mode transition
 ---@param smoothType string Type of smoothing ('position', 'rotation', 'direction')
 ---@return number smoothingFactor The smoothing factor to use
-function FPSCameraUtils.getSmoothingFactor(isTransitioning, smoothType)
-    if isTransitioning then
-        return CONFIG.MODE_TRANSITION_SMOOTHING
-    end
-
+function FPSCameraUtils.getSmoothingFactor(smoothType)
     -- Determine which mode we're in
     local smoothingMode
     if STATE.tracking.fps.combatModeEnabled then

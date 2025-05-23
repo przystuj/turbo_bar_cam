@@ -19,7 +19,7 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         TRANSITION = {
-            MODE_TRANSITION_DURATION = 1, -- Duration of transition between modes in seconds
+            MODE_TRANSITION_DURATION = 2, -- Duration of transition between modes in seconds
         },
 
         -- Camera mode settings
