@@ -1,7 +1,9 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+---@type TransitionUtil
+local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 
@@ -15,17 +17,13 @@ local TrackingManager = CommonModules.TrackingManager
 ---@class UnitTrackingCamera
 local UnitTrackingCamera = {}
 
---- Toggles tracking camera mode
----@return boolean success Always returns true for widget handler
 function UnitTrackingCamera.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
 
-    -- Get the selected unit
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
-        -- If no unit is selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'unit_tracking' then
             TrackingManager.disableTracking()
             Log.trace("Tracking Camera disabled")
@@ -37,27 +35,22 @@ function UnitTrackingCamera.toggle()
 
     local selectedUnitID = selectedUnits[1]
 
-    -- If we're already tracking this exact unit in tracking camera mode, turn it off
     if STATE.tracking.mode == 'unit_tracking' and STATE.tracking.unitID == selectedUnitID then
         TrackingManager.disableTracking()
         Log.trace("Tracking Camera disabled")
         return
     end
 
-    -- Initialize the tracking system
-    -- Velocity tracking is handled automatically by CameraManager
     if TrackingManager.initializeTracking('unit_tracking', selectedUnitID) then
         Log.trace("Tracking Camera enabled. Camera will track unit " .. selectedUnitID)
     end
 end
 
---- Updates tracking camera to point at the tracked unit
 function UnitTrackingCamera.update(dt)
     if STATE.tracking.mode ~= 'unit_tracking' or not STATE.tracking.unitID then
         return
     end
 
-    -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Log.trace("Tracked unit no longer exists, disabling Tracking Camera")
         TrackingManager.disableTracking()
@@ -65,82 +58,72 @@ function UnitTrackingCamera.update(dt)
     end
 
     local currentState = CameraManager.getCameraState("UnitTrackingCamera.update")
-
-    -- Get unit position
     local unitX, unitY, unitZ = Spring.GetUnitPosition(STATE.tracking.unitID)
-
-    -- Apply the target height offset from config
     local targetPos = {
         x = unitX,
         y = unitY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT,
         z = unitZ
     }
-
-    -- Get current camera position
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
-    -- Determine smoothing factor based on whether we're in a mode transition
-    local dirFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.TRACKING_FACTOR
-    local rotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
+    -- Get base smoothing factors for direction/rotation
+    local baseDirFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.TRACKING_FACTOR
+    local baseRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
 
-    dirFactor, rotFactor = CameraCommons.handleModeTransition(dirFactor, rotFactor)
+    -- Handle mode transition for direction/rotation smoothing and manage isModeTransitionInProgress flag
+    local dirFactor, rotFactor = CameraCommons.handleModeTransition(baseDirFactor, baseRotFactor)
 
-    -- Initialize last values if needed
+    -- Initialize last values if needed (for direction/rotation smoothing)
     if STATE.tracking.lastCamDir.x == 0 and STATE.tracking.lastCamDir.y == 0 and STATE.tracking.lastCamDir.z == 0 then
         local initialLookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
         STATE.tracking.lastCamDir = { x = initialLookDir.dx, y = initialLookDir.dy, z = initialLookDir.dz }
         STATE.tracking.lastRotation = { rx = initialLookDir.rx, ry = initialLookDir.ry, rz = 0 }
     end
 
-    -- Use the focusOnPoint method to get camera direction state
+    -- Use focusOnPoint for camera direction and rotation state
     local camStatePatch = CameraCommons.focusOnPoint(camPos, targetPos, dirFactor, rotFactor)
 
-    -- Handle position control based on transition state
+    -- Handle position control based on transition state using the new generic deceleration
     if STATE.tracking.isModeTransitionInProgress then
-        -- During transition, apply smooth deceleration using CameraManager's continuously tracked velocity
-        local transitionProgress = CameraCommons.getTransitionProgress()
+        -- This flag is managed by handleModeTransition
+        local transitionProgress = CameraCommons.getTransitionProgress() -- Progress over MODE_TRANSITION_DURATION
+        local currentVelocity, _ = CameraManager.getCurrentVelocity() -- Get live camera velocity
+        local profile = CONFIG.DECELERATION_PROFILES.UNIT_TRACKING_ENTER
 
-        -- Get current velocity from CameraManager (tracks automatically)
-        local _, velMagnitude = CameraManager.getCurrentVelocity()
+        local newPos = TransitionUtil.smoothDecelerationTransition(camPos, dt, transitionProgress, currentVelocity, profile)
 
-        if velMagnitude > 10.0 then  -- Only apply deceleration if we have significant velocity (increased threshold)
-            -- Calculate deceleration parameters - more aggressive decay to prevent overshooting
-            local decayRate = 5.0 + (transitionProgress * 15.0)  -- Range: 5-20 (increased from 2-10)
-
-            -- Predict where camera should be based on decaying velocity
-            local predictedPos = CameraManager.predictPosition(camPos, dt, decayRate)
-
-            -- Calculate position control factor - more conservative
-            local positionControlFactor = 0.9 - (0.1 * transitionProgress)
-
-            -- Apply predicted position with decreasing influence
-            camStatePatch.px = CameraCommons.smoothStep(camPos.x, predictedPos.x, positionControlFactor)
-            camStatePatch.py = CameraCommons.smoothStep(camPos.y, predictedPos.y, positionControlFactor)
-            camStatePatch.pz = CameraCommons.smoothStep(camPos.z, predictedPos.z, positionControlFactor)
+        if newPos then
+            camStatePatch.px = newPos.px
+            camStatePatch.py = newPos.py
+            camStatePatch.pz = newPos.pz
         else
-            -- Velocity is low, just gradually reduce position control to zero
-            local positionControlFactor = (1.0 - transitionProgress) * 0.02  -- Even gentler final reduction
-
-            -- Apply minimal position control to avoid sudden stops
-            camStatePatch.px = CameraCommons.smoothStep(camPos.x, camPos.x, positionControlFactor)
-            camStatePatch.py = CameraCommons.smoothStep(camPos.y, camPos.y, positionControlFactor)
-            camStatePatch.pz = CameraCommons.smoothStep(camPos.z, camPos.z, positionControlFactor)
+            -- Velocity is low or transition is nearing end.
+            -- Gently bring to a stop or allow free movement if transition is almost over.
+            if transitionProgress < 0.95 then
+                -- Still actively transitioning
+                local gentleStopFactor = CameraCommons.lerp(profile.POS_CONTROL_FACTOR_MIN or 0.02, 0.0, transitionProgress)
+                if gentleStopFactor > 0.001 then
+                    camStatePatch.px = CameraCommons.smoothStep(camPos.x, camPos.x, gentleStopFactor)
+                    camStatePatch.py = CameraCommons.smoothStep(camPos.y, camPos.y, gentleStopFactor)
+                    camStatePatch.pz = CameraCommons.smoothStep(camPos.z, camPos.z, gentleStopFactor)
+                else
+                    -- Position control has faded out, allow free movement by not setting px,py,pz
+                    camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
+                end
+            else
+                -- Transition virtually complete, ensure no positional override
+                camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
+            end
         end
     else
         -- After transition is complete, remove position updates to allow free camera movement
         camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
-
-        -- Velocity tracking continues automatically in CameraManager
     end
 
     TrackingManager.updateTrackingState(camStatePatch)
-
-    -- Apply camera state
     CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.update")
 end
 
----@see ModifiableParams
----@see Util#adjustParams
 function UnitTrackingCamera.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
         return
@@ -148,13 +131,14 @@ function UnitTrackingCamera.adjustParams(params)
     if Util.isModeDisabled("unit_tracking") then
         return
     end
-    -- Make sure we have a unit to track
     if not STATE.tracking.unitID then
         Log.trace("No unit is tracked")
         return
     end
 
-    Util.adjustParams(params, "UNIT_TRACKING", function() CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT = 0 end)
+    Util.adjustParams(params, "UNIT_TRACKING", function()
+        CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT = 0
+    end)
 end
 
 return {

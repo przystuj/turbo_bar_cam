@@ -46,6 +46,4 @@ function ProjectileCameraPersistence.loadSettings(unitName)
     end
 end
 
-return {
-    ProjectileCameraPersistence = ProjectileCameraPersistence
-}
+return ProjectileCameraPersistence

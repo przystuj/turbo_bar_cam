@@ -238,6 +238,4 @@ function ProjectileTracker.getUnitProjectiles(unitID)
     return STATE.projectileTracking.unitProjectiles[unitID].projectiles
 end
 
-return {
-    ProjectileTracker = ProjectileTracker
-}
+return ProjectileTracker

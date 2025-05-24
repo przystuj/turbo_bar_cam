@@ -18,7 +18,30 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         TRANSITION = {
-            MODE_TRANSITION_DURATION = 2, -- Duration of transition between modes in seconds
+            MODE_TRANSITION_DURATION = 2.0, -- Duration of transition between modes in seconds
+            -- Note: Individual deceleration profiles can have their own DURATION if they
+            -- represent a sub-phase within or outside a mode transition.
+        },
+
+        -- Deceleration profiles for smooth transitions
+        DECELERATION_PROFILES = {
+            UNIT_TRACKING_ENTER = { -- When transitioning into unit tracking mode
+                DECAY_RATE_MIN = 2.0,         -- Final decay rate at the end of transition
+                DECAY_RATE_MAX = 10.0,        -- Initial decay rate at the start of transition
+                POS_CONTROL_FACTOR_MIN = 0.1,-- Final position control strength
+                POS_CONTROL_FACTOR_MAX = 0.7, -- Initial position control strength
+                MIN_VELOCITY_THRESHOLD = 5.0, -- Velocity below which deceleration might stop early
+                PREDICT_DT_SCALE = 1.5,       -- Scales dt for prediction (look further ahead initially)
+            },
+            PROJECTILE_IMPACT_ENTER = { -- When projectile hits and camera focuses on impact
+                DECAY_RATE_MIN = 1.0,
+                DECAY_RATE_MAX = 10.0,
+                POS_CONTROL_FACTOR_MIN = 0.2,
+                POS_CONTROL_FACTOR_MAX = 0.8,
+                MIN_VELOCITY_THRESHOLD = 10.0,
+                PREDICT_DT_SCALE = 1.0,
+                DURATION = 0.5, -- Specific duration for this impact deceleration phase (seconds)
+            }
         },
 
         -- Camera mode settings
@@ -154,11 +177,11 @@ if not WG.TurboBarCam.CONFIG then
                 HEIGHT = 0, -- Height offset for look-at point in world units
                 SMOOTHING = {
                     ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
+                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode (likely for direction, not position)
                 },
                 DEFAULT_SMOOTHING = {
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
-                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
+                    ROTATION_FACTOR = 0.01,
+                    TRACKING_FACTOR = 0.1,
                 },
             },
 
@@ -166,7 +189,7 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_CAMERA_MODE = "follow",
                 COMPATIBLE_MODES_FROM = { "fps", "unit_tracking", "orbit" },
                 DEFAULT_MODE_FALLBACK = "unit_tracking",
-                IMPACT_TIMEOUT = 1.5,
+                IMPACT_TIMEOUT = 1.5, -- Time to stay on impact after deceleration
 
                 FOLLOW = {
                     DISTANCE = 2500,
@@ -178,6 +201,11 @@ if not WG.TurboBarCam.CONFIG then
                     OFFSET_SIDE = 0,
                     OFFSET_HEIGHT = 0,
                     LOOK_AHEAD = 500,
+                },
+
+                IMPACT_VIEW = { -- Optional: Specific settings for the settled impact view
+                    DISTANCE_SCALE = 0.5, -- e.g., half of follow distance
+                    HEIGHT_SCALE = 0.75,  -- e.g., 75% of follow height
                 },
 
                 DEFAULT_FOLLOW = {
@@ -192,10 +220,10 @@ if not WG.TurboBarCam.CONFIG then
                     LOOK_AHEAD = 500,
                 },
 
-                SMOOTHING = {
+                SMOOTHING = { -- General smoothing for projectile tracking (when not in impact deceleration)
                     POSITION_FACTOR = 0.2,
                     ROTATION_FACTOR = 0.2,
-                    INTERPOLATION_FACTOR = 0.2
+                    INTERPOLATION_FACTOR = 0.2 -- For smoothing projectile target/camera positions
                 },
             },
 

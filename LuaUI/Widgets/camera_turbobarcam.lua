@@ -25,7 +25,7 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
 local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
 ---@type ProjectileTracker
-local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
+local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

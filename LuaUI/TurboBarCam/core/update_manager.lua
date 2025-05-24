@@ -19,7 +19,7 @@ local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Sche
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 ---@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -143,25 +143,25 @@ function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
 
     if STATE.anchorQueue and STATE.anchorQueue.active then
-        Features.CameraAnchor.updateQueue()
+        Features.CameraAnchor.updateQueue(dt)
     elseif STATE.transition.active then
-        Features.CameraAnchor.update()
+        Features.CameraAnchor.update(dt)
     elseif STATE.dollyCam.isNavigating then
         Features.DollyCam.update(dt)
     elseif not STATE.tracking.mode then
-        UpdateManager.handleDisabledMode()
+        UpdateManager.handleDisabledMode(dt)
     elseif STATE.tracking.mode == 'fps' then
-        Features.FPSCamera.update()
+        Features.FPSCamera.update(dt)
     elseif STATE.tracking.mode == 'unit_tracking' then
         Features.UnitTrackingCamera.update(dt)
     elseif STATE.tracking.mode == 'orbit' then
         Features.OrbitingCamera.update(dt)
     elseif STATE.tracking.mode == 'overview' then
-        Features.TurboOverviewCamera.update()
+        Features.TurboOverviewCamera.update(dt)
     elseif STATE.tracking.mode == 'group_tracking' then
-        Features.GroupTrackingCamera.update()
+        Features.GroupTrackingCamera.update(dt)
     elseif STATE.tracking.mode == 'projectile_camera' then
-        Features.ProjectileCamera.update()
+        Features.ProjectileCamera.update(dt)
     end
 end
 

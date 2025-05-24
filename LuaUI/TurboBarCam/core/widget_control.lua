@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua").CameraManager
+local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CameraQuickControls
 local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua").CameraQuickControls
 
