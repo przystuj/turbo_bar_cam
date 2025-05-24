@@ -396,7 +396,7 @@ function ProjectileCamera.focusOnImpactPosition()
     local impactPos = STATE.projectileWatching.impactPosition.pos
     local impactVel = STATE.projectileWatching.impactPosition.vel
     local camPos = ProjectileCamera.calculateCameraPositionForProjectile(impactPos, impactVel, STATE.projectileWatching.cameraMode, STATE.projectileWatching.initialCamPos)
-    local targetPos = { x = impactPos.x, y = impactPos.y, z = impactPos.z }
+    local targetPos = ProjectileCamera.calculateIdealTargetPosition(impactPos, impactVel) -- Use ideal target calc here too
     ProjectileCamera.applyProjectileCameraState(camPos, targetPos, "impact_view")
 end
 
@@ -434,29 +434,33 @@ end
 
 function ProjectileCamera.calculateCameraPositionForProjectile(pPos, pVel, subMode, staticInitialCamPos)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local modeCfg = cfg[string.upper(subMode)]
 
-    if subMode == "static" and staticInitialCamPos then
-        return staticInitialCamPos
-    else
-        local distance = modeCfg.DISTANCE
-        local height = modeCfg.HEIGHT
-
-        local dirX, dirY, dirZ = pVel.x, pVel.y, pVel.z
-        if pVel.speed and pVel.speed > 0.001 then
-            dirX = pVel.x / pVel.speed
-            dirY = pVel.y / pVel.speed
-            dirZ = pVel.z / pVel.speed
-        else -- Fallback if velocity is zero
-            dirX, dirY, dirZ = 0, -1, 0
-        end
-
-        return {
-            x = pPos.x - (dirX * distance),
-            y = pPos.y - (dirY * distance) + height,
-            z = pPos.z - (dirZ * distance)
-        }
+    -- If static mode, ALWAYS return the initial static position
+    if subMode == "static" then
+        return staticInitialCamPos or pPos -- Fallback to pPos if initial isn't set
     end
+
+    -- Follow mode logic
+    local modeCfg = cfg.FOLLOW
+    local distance = modeCfg.DISTANCE
+    local height = modeCfg.HEIGHT
+
+    local dirX, dirY, dirZ = pVel.x, pVel.y, pVel.z
+    local speed = pVel.speed or CameraCommons.vectorMagnitude(pVel)
+
+    if speed and speed > 0.001 then
+        dirX = pVel.x / speed
+        dirY = pVel.y / speed
+        dirZ = pVel.z / speed
+    else -- Fallback if velocity is zero
+        dirX, dirY, dirZ = 0, -1, 0
+    end
+
+    return {
+        x = pPos.x - (dirX * distance),
+        y = pPos.y - (dirY * distance) + height,
+        z = pPos.z - (dirZ * distance)
+    }
 end
 
 
@@ -464,22 +468,62 @@ function ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectile
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local subMode = STATE.projectileWatching.cameraMode
     local modeCfg = cfg[string.upper(subMode)]
-    local lookAhead = modeCfg.LOOK_AHEAD
 
     local dirX, dirY, dirZ = projectileVel.x, projectileVel.y, projectileVel.z
-    if projectileVel.speed and projectileVel.speed > 0.001 then
-        dirX = projectileVel.x / projectileVel.speed
-        dirY = projectileVel.y / projectileVel.speed
-        dirZ = projectileVel.z / projectileVel.speed
-    else -- Fallback if velocity is zero
-        dirX, dirY, dirZ = 0, 0, 1 -- Look slightly 'forward'
+    local speed = projectileVel.speed or CameraCommons.vectorMagnitude(projectileVel)
+
+    if speed and speed > 0.001 then
+        dirX = projectileVel.x / speed
+        dirY = projectileVel.y / speed
+        dirZ = projectileVel.z / speed
+    else
+        dirX, dirY, dirZ = 0, 0, 1
     end
 
-    return {
-        x = projectilePos.x + (dirX * lookAhead),
-        y = projectilePos.y + (dirY * lookAhead),
-        z = projectilePos.z + (dirZ * lookAhead)
+    local fwd = { x = dirX, y = dirY, z = dirZ }
+    local pPos = projectilePos
+
+    local lookAhead = modeCfg.LOOK_AHEAD
+    local baseTarget = {
+        x = pPos.x + fwd.x * lookAhead,
+        y = pPos.y + fwd.y * lookAhead,
+        z = pPos.z + fwd.z * lookAhead
     }
+
+    -- If in 'static' mode, apply height and side offsets
+    if subMode == "static" then
+        local offsetHeight = modeCfg.OFFSET_HEIGHT
+        local offsetSide = modeCfg.OFFSET_SIDE
+
+        -- If no offsets, just return base target
+        if offsetHeight == 0 and offsetSide == 0 then
+            return baseTarget
+        end
+
+        local worldUp = { x = 0, y = 1, z = 0 }
+
+        -- Calculate right vector (handle vertical fwd vector)
+        local right = CameraCommons.crossProduct(fwd, worldUp)
+        if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+            -- fwd is (near) vertical, use world forward as reference
+            local worldFwd = { x = 0, y = 0, z = 1 }
+            right = CameraCommons.crossProduct(fwd, worldFwd)
+        end
+        right = CameraCommons.normalizeVector(right)
+
+        -- Calculate local up vector
+        local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, fwd))
+
+        -- Apply offsets
+        return {
+            x = baseTarget.x + localUp.x * offsetHeight + right.x * offsetSide,
+            y = baseTarget.y + localUp.y * offsetHeight + right.y * offsetSide,
+            z = baseTarget.z + localUp.z * offsetHeight + right.z * offsetSide
+        }
+    end
+
+    -- If in 'follow' mode (or fallback), just return the base target
+    return baseTarget
 end
 
 
@@ -508,6 +552,7 @@ end
 function ProjectileCamera.calculateSmoothedCameraPosition(idealCamPos)
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
     local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
+    -- For static mode, idealCamPos is already the static position, so no smoothing.
     if STATE.projectileWatching.cameraMode == "static" then
         return idealCamPos
     end
@@ -556,9 +601,9 @@ function ProjectileCamera.resetToDefaults()
     cfg.FOLLOW.DISTANCE = cfg.DEFAULT_FOLLOW.DISTANCE
     cfg.FOLLOW.HEIGHT = cfg.DEFAULT_FOLLOW.HEIGHT
     cfg.FOLLOW.LOOK_AHEAD = cfg.DEFAULT_FOLLOW.LOOK_AHEAD
-    cfg.STATIC.DISTANCE = cfg.DEFAULT_STATIC.DISTANCE -- Though not used by calc, reset for consistency
-    cfg.STATIC.HEIGHT = cfg.DEFAULT_STATIC.HEIGHT   -- Though not used by calc, reset for consistency
     cfg.STATIC.LOOK_AHEAD = cfg.DEFAULT_STATIC.LOOK_AHEAD
+    cfg.STATIC.OFFSET_HEIGHT = cfg.DEFAULT_STATIC.OFFSET_HEIGHT
+    cfg.STATIC.OFFSET_SIDE = cfg.DEFAULT_STATIC.OFFSET_SIDE
     Log.trace("ProjectileCamera: Restored settings to defaults.")
 end
 
@@ -585,12 +630,10 @@ function ProjectileCamera.saveSettings(unitID)
             LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD,
         },
         STATIC = {
-            DISTANCE = cfg.STATIC.DISTANCE,
-            HEIGHT = cfg.STATIC.HEIGHT,
             LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD,
+            OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT,
+            OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE,
         }
-        -- cameraMode is a runtime state, not saved per unit type here.
-        -- It's restored based on last use or default when arming.
     }
 
     ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
@@ -621,9 +664,9 @@ function ProjectileCamera.loadSettings(unitID)
         cfg.FOLLOW.DISTANCE = loadedSettings.FOLLOW and loadedSettings.FOLLOW.DISTANCE or cfg.DEFAULT_FOLLOW.DISTANCE
         cfg.FOLLOW.HEIGHT = loadedSettings.FOLLOW and loadedSettings.FOLLOW.HEIGHT or cfg.DEFAULT_FOLLOW.HEIGHT
         cfg.FOLLOW.LOOK_AHEAD = loadedSettings.FOLLOW and loadedSettings.FOLLOW.LOOK_AHEAD or cfg.DEFAULT_FOLLOW.LOOK_AHEAD
-        cfg.STATIC.DISTANCE = loadedSettings.STATIC and loadedSettings.STATIC.DISTANCE or cfg.DEFAULT_STATIC.DISTANCE
-        cfg.STATIC.HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.HEIGHT or cfg.DEFAULT_STATIC.HEIGHT
         cfg.STATIC.LOOK_AHEAD = loadedSettings.STATIC and loadedSettings.STATIC.LOOK_AHEAD or cfg.DEFAULT_STATIC.LOOK_AHEAD
+        cfg.STATIC.OFFSET_HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_HEIGHT or cfg.DEFAULT_STATIC.OFFSET_HEIGHT
+        cfg.STATIC.OFFSET_SIDE = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_SIDE or cfg.DEFAULT_STATIC.OFFSET_SIDE
     else
         Log.trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
         ProjectileCamera.resetToDefaults()

@@ -121,12 +121,12 @@ bind		Ctrl+numpad7	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITI
 // Projectile tracking
 bind		Delete      	turbobarcam_projectile_camera_follow
 bind		Insert	        turbobarcam_projectile_camera_track
-bind		numpad8         turbobarcam_projectile_adjust_params add;STATIC.DISTANCE,-20;FOLLOW.DISTANCE,-20
-bind		numpad5			turbobarcam_projectile_adjust_params add;STATIC.DISTANCE,20;FOLLOW.DISTANCE,20
+bind		numpad8         turbobarcam_projectile_adjust_params add;STATIC.OFFSET_HEIGHT,20;FOLLOW.DISTANCE,-20
+bind		numpad5			turbobarcam_projectile_adjust_params add;STATIC.OFFSET_HEIGHT,-20;FOLLOW.DISTANCE,20
 bind		numpad9	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD,20;FOLLOW.LOOK_AHEAD,20
 bind		numpad7	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD,-20;FOLLOW.LOOK_AHEAD,-20
-bind		numpad6			turbobarcam_projectile_adjust_params add;STATIC.HEIGHT,5;FOLLOW.HEIGHT,5
-bind		numpad4			turbobarcam_projectile_adjust_params add;STATIC.HEIGHT,-5;FOLLOW.HEIGHT,-5
+bind		numpad6			turbobarcam_projectile_adjust_params add;STATIC.OFFSET_SIDE,5;FOLLOW.HEIGHT,5
+bind		numpad4			turbobarcam_projectile_adjust_params add;STATIC.OFFSET_SIDE,-5;FOLLOW.HEIGHT,-5
 
 // Dolly Cam
 bind			Ctrl+sc_[           turbobarcam_dollycam_toggle_editor

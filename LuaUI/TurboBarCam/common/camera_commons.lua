@@ -36,6 +36,17 @@ end
 function CameraCommons.dotProduct(v1, v2)
     return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
 end
+--- Calculates the cross product of two vectors
+---@param v1 table Vector {x, y, z}
+---@param v2 table Vector {x, y, z}
+---@return table Cross product vector {x, y, z}
+function CameraCommons.crossProduct(v1, v2)
+    return {
+        x = (v1.y or 0) * (v2.z or 0) - (v1.z or 0) * (v2.y or 0),
+        y = (v1.z or 0) * (v2.x or 0) - (v1.x or 0) * (v2.z or 0),
+        z = (v1.x or 0) * (v2.y or 0) - (v1.y or 0) * (v2.x or 0)
+    }
+end
 
 --- Linear interpolation between two values
 ---@param a number Start value

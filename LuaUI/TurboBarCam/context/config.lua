@@ -175,8 +175,8 @@ if not WG.TurboBarCam.CONFIG then
                 },
 
                 STATIC = {
-                    DISTANCE = 0, -- Static mode doesn't use distance/height from projectile
-                    HEIGHT = 0,
+                    OFFSET_SIDE = 0,
+                    OFFSET_HEIGHT = 0,
                     LOOK_AHEAD = 500,
                 },
 
@@ -187,8 +187,8 @@ if not WG.TurboBarCam.CONFIG then
                 },
 
                 DEFAULT_STATIC = {
-                    DISTANCE = 0,
-                    HEIGHT = 0,
+                    OFFSET_SIDE = 0,
+                    OFFSET_HEIGHT = 0,
                     LOOK_AHEAD = 500,
                 },
 
@@ -342,8 +342,8 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     PROJECTILE_CAMERA = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
         PARAM_NAMES = {
-            ["STATIC.DISTANCE"] = { nil, nil },
-            ["STATIC.HEIGHT"] = { nil, nil },
+            ["STATIC.OFFSET_SIDE"] = { nil, nil },
+            ["STATIC.OFFSET_HEIGHT"] = { nil, nil },
             ["STATIC.LOOK_AHEAD"] = { nil, nil },
             ["FOLLOW.DISTANCE"] = { nil, nil },
             ["FOLLOW.HEIGHT"] = { nil, nil },
