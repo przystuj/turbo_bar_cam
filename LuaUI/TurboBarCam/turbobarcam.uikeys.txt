@@ -127,6 +127,12 @@ bind		numpad9	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD
 bind		numpad7	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD,-20;FOLLOW.LOOK_AHEAD,-20
 bind		numpad6			turbobarcam_projectile_adjust_params add;STATIC.OFFSET_SIDE,5;FOLLOW.HEIGHT,5
 bind		numpad4			turbobarcam_projectile_adjust_params add;STATIC.OFFSET_SIDE,-5;FOLLOW.HEIGHT,-5
+bind		Ctrl+numpad4	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.DURATION,-0.1
+bind		Ctrl+numpad7	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.DURATION,0.1
+bind		Ctrl+numpad5	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.INITIAL_BRAKING,-1
+bind		Ctrl+numpad8	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.INITIAL_BRAKING,1
+bind		Ctrl+numpad6	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.PATH_ADHERENCE,-0.1
+bind		Ctrl+numpad9	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.PATH_ADHERENCE,0.1
 
 // Dolly Cam
 bind			Ctrl+sc_[           turbobarcam_dollycam_toggle_editor

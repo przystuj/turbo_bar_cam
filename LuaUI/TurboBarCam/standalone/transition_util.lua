@@ -6,51 +6,43 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 ---@class TransitionUtil
 local TransitionUtil = {}
 
---- Handles smooth positional deceleration for camera transitions.
 ---@param currentPos table Current camera position {x, y, z}
 ---@param dt number Delta time
----@param transitionProgress number Progress of the transition (0.0 to 1.0)
----@param velocity table Current camera velocity {x,y,z} (e.g., from CameraManager or stored initial velocity)
----@param config table Configuration for deceleration { DECAY_RATE_MIN, DECAY_RATE_MAX, POS_CONTROL_FACTOR_MIN, POS_CONTROL_FACTOR_MAX, MIN_VELOCITY_THRESHOLD, PREDICT_DT_SCALE }
+---@param easedProgress number Progress of the transition (0.0 to 1.0), already eased!
+---@param velocity table Current camera velocity {x,y,z}
+---@param profile table Simplified configuration { DURATION, INITIAL_BRAKING, PATH_ADHERENCE }
 ---@return table|nil newCamPos Smoothed camera position {px, py, pz} or nil if no position update needed
-function TransitionUtil.smoothDecelerationTransition(currentPos, dt, transitionProgress, velocity, config)
+function TransitionUtil.decelerationTransition(currentPos, dt, easedProgress, velocity, profile)
+    -- Fixed internal values for simplification
+    local DECAY_RATE_MIN = 0.5
+    local POS_CONTROL_FACTOR_MIN = 0.05
+    local MIN_VELOCITY_THRESHOLD = 1.0
+    local PREDICT_DT_SCALE = 1.0
+
+    -- Use profile values as MAX
+    local initialBraking = profile.INITIAL_BRAKING or 8.0
+    local pathAdherence = profile.PATH_ADHERENCE or 0.6
+
+    -- Lerp using the *already eased* progress
+    local decayRate = CameraCommons.lerp(initialBraking, DECAY_RATE_MIN, easedProgress)
+    local posControlFactor = CameraCommons.lerp(pathAdherence, POS_CONTROL_FACTOR_MIN, easedProgress)
+
     local velMagnitude = CameraCommons.vectorMagnitude(velocity)
 
-    -- Ensure config defaults if some values are missing
-    local minVelocityThreshold = config.MIN_VELOCITY_THRESHOLD or 1.0
-    local decayRateMax = config.DECAY_RATE_MAX or 10.0
-    local decayRateMin = config.DECAY_RATE_MIN or 2.0
-    local posControlFactorMax = config.POS_CONTROL_FACTOR_MAX or 0.1
-    local posControlFactorMin = config.POS_CONTROL_FACTOR_MIN or 0.02
-    local predictDtScale = config.PREDICT_DT_SCALE or 1.0
+    -- Use a low threshold; mostly rely on progress reaching 1.0
+    if velMagnitude > MIN_VELOCITY_THRESHOLD and easedProgress < 0.999 then
+        -- Predict using the calculated decay rate
+        local predictedPos = CameraManager.predictPosition(currentPos, velocity, dt * PREDICT_DT_SCALE, decayRate)
 
-    if velMagnitude > minVelocityThreshold then
-        -- Calculate dynamic decay rate and position control factor based on progress
-        local decayRate = CameraCommons.lerp(decayRateMax, decayRateMin, transitionProgress) -- Starts high, ends low
-        local posControlFactor = CameraCommons.lerp(posControlFactorMax, posControlFactorMin, transitionProgress) -- Starts high, ends low
-
-        -- Predict where camera should be based on decaying velocity
-        local predictDt = dt * predictDtScale
-        -- Ensure CameraManager.predictPosition is available and correctly referenced
-        local predictedPos = CameraManager.predictPosition(currentPos, velocity, predictDt, decayRate)
-
+        -- Smooth towards the predicted position using the calculated control factor
         return {
             px = CameraCommons.smoothStep(currentPos.x, predictedPos.x, posControlFactor),
             py = CameraCommons.smoothStep(currentPos.y, predictedPos.y, posControlFactor),
             pz = CameraCommons.smoothStep(currentPos.z, predictedPos.z, posControlFactor)
         }
     else
-        -- Velocity is low. We might want to gently bring it to a halt or let the calling mode handle it.
-        -- Lerp the position control factor down to 0 as progress completes.
-        local finalPosControlFactor = CameraCommons.lerp(posControlFactorMin, 0.0, transitionProgress)
-        if finalPosControlFactor > 0.001 then
-            return {
-                px = CameraCommons.smoothStep(currentPos.x, currentPos.x, finalPosControlFactor), -- Smooth towards current position (effectively stopping)
-                py = CameraCommons.smoothStep(currentPos.y, currentPos.y, finalPosControlFactor),
-                pz = CameraCommons.smoothStep(currentPos.z, currentPos.z, finalPosControlFactor)
-            }
-        end
-        return nil -- No position override, let the mode's regular smoothing/logic take over or fix position
+        -- Velocity is very low or progress is complete, signal to hold position
+        return nil
     end
 end
 

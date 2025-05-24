@@ -236,6 +236,9 @@ local function adjustParam(command, module)
         end
     end
 
+    Log.debug(currentConfigTable)
+    Log.debug(paramName)
+
     -- Get the current value
     local currentValue = currentConfigTable[paramName]
     if currentValue == nil then

@@ -23,27 +23,6 @@ if not WG.TurboBarCam.CONFIG then
             -- represent a sub-phase within or outside a mode transition.
         },
 
-        -- Deceleration profiles for smooth transitions
-        DECELERATION_PROFILES = {
-            UNIT_TRACKING_ENTER = { -- When transitioning into unit tracking mode
-                DECAY_RATE_MIN = 2.0,         -- Final decay rate at the end of transition
-                DECAY_RATE_MAX = 10.0,        -- Initial decay rate at the start of transition
-                POS_CONTROL_FACTOR_MIN = 0.1,-- Final position control strength
-                POS_CONTROL_FACTOR_MAX = 0.7, -- Initial position control strength
-                MIN_VELOCITY_THRESHOLD = 5.0, -- Velocity below which deceleration might stop early
-                PREDICT_DT_SCALE = 1.5,       -- Scales dt for prediction (look further ahead initially)
-            },
-            PROJECTILE_IMPACT_ENTER = { -- When projectile hits and camera focuses on impact
-                DECAY_RATE_MIN = 1.0,
-                DECAY_RATE_MAX = 10.0,
-                POS_CONTROL_FACTOR_MIN = 0.2,
-                POS_CONTROL_FACTOR_MAX = 0.8,
-                MIN_VELOCITY_THRESHOLD = 10.0,
-                PREDICT_DT_SCALE = 1.0,
-                DURATION = 0.5, -- Specific duration for this impact deceleration phase (seconds)
-            }
-        },
-
         -- Camera mode settings
         CAMERA_MODES = {
             ANCHOR = {
@@ -183,6 +162,11 @@ if not WG.TurboBarCam.CONFIG then
                     ROTATION_FACTOR = 0.01,
                     TRACKING_FACTOR = 0.1,
                 },
+                DECELERATION_PROFILE = { -- When transitioning into unit tracking mode
+                    DURATION = 2.0,
+                    INITIAL_BRAKING = 10.0,
+                    PATH_ADHERENCE = 0.1,
+                },
             },
 
             PROJECTILE_CAMERA = {
@@ -192,7 +176,7 @@ if not WG.TurboBarCam.CONFIG then
                 IMPACT_TIMEOUT = 1.5, -- Time to stay on impact after deceleration
 
                 FOLLOW = {
-                    DISTANCE = 2500,
+                    DISTANCE = 800,
                     HEIGHT = 100,
                     LOOK_AHEAD = 680,
                 },
@@ -205,11 +189,11 @@ if not WG.TurboBarCam.CONFIG then
 
                 IMPACT_VIEW = { -- Optional: Specific settings for the settled impact view
                     DISTANCE_SCALE = 0.5, -- e.g., half of follow distance
-                    HEIGHT_SCALE = 0.75,  -- e.g., 75% of follow height
+                    HEIGHT_SCALE = 0.75, -- e.g., 75% of follow height
                 },
 
                 DEFAULT_FOLLOW = {
-                    DISTANCE = 2500,
+                    DISTANCE = 800,
                     HEIGHT = 100,
                     LOOK_AHEAD = 680,
                 },
@@ -224,6 +208,18 @@ if not WG.TurboBarCam.CONFIG then
                     POSITION_FACTOR = 0.2,
                     ROTATION_FACTOR = 0.2,
                     INTERPOLATION_FACTOR = 0.2 -- For smoothing projectile target/camera positions
+                },
+
+                DECELERATION_PROFILE = { -- When projectile hits and camera focuses on impact
+                    DURATION = 1.5,
+                    INITIAL_BRAKING = 8.0,
+                    PATH_ADHERENCE = 0.6,
+                },
+
+                DEFAULT_DECELERATION_PROFILE = {
+                    DURATION = 1.7,
+                    INITIAL_BRAKING = 8.0,
+                    PATH_ADHERENCE = 0.6,
                 },
             },
 
@@ -376,6 +372,9 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
             ["FOLLOW.DISTANCE"] = { nil, nil },
             ["FOLLOW.HEIGHT"] = { nil, nil },
             ["FOLLOW.LOOK_AHEAD"] = { nil, nil },
+            ["DECELERATION_PROFILE.DURATION"] = { 0, 10 },
+            ["DECELERATION_PROFILE.INITIAL_BRAKING"] = { 1, 50 },
+            ["DECELERATION_PROFILE.PATH_ADHERENCE"] = { 0.1, 1 },
         }
     },
 }

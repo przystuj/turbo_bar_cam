@@ -131,7 +131,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     STATE.projectileWatching.armed = true
     STATE.projectileWatching.watchedUnitID = unitID
     STATE.projectileWatching.lastArmingTime = Spring.GetGameSeconds()
-    STATE.projectileWatching.impactTimer = nil
+    STATE.projectileWatching.impactTimer = nil -- Reset impact timer
     STATE.projectileWatching.impactPosition = nil
     STATE.projectileWatching.isImpactDecelerating = false -- Reset deceleration state
     STATE.projectileWatching.impactDecelerationStartTime = nil
@@ -161,15 +161,11 @@ function ProjectileCamera.disableProjectileArming()
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
     end
-    -- Do not clear continuouslyArmedUnitID here, let toggle logic manage it.
 end
 
 function ProjectileCamera.switchCameraSubModes(newSubMode)
     STATE.projectileWatching.cameraMode = newSubMode
     if newSubMode == "static" and not STATE.projectileWatching.initialCamPos then
-        -- If switching to static and we are already in projectile_camera mode,
-        -- capture current camera pos as the static point.
-        -- Otherwise, initialCamPos would have been set during arming.
         if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching.armed then
             local camState = CameraManager.getCameraState("ProjectileCamera.switchCameraSubModes.Static")
             STATE.projectileWatching.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
@@ -177,55 +173,49 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
     end
     Log.debug("Projectile tracking switched to: " .. newSubMode)
     ProjectileCamera.resetSmoothedPositions()
-    -- If already tracking a projectile, the view will update in the next frame.
-    -- If only armed, it will use this subMode when a projectile is found.
     return true
 end
 
 function ProjectileCamera.returnToPreviousMode(shouldReArm)
     local prevMode = STATE.projectileWatching.previousMode
     local prevCamState = STATE.projectileWatching.previousCameraState
-    local previouslyWatchedUnitID = STATE.projectileWatching.watchedUnitID -- The unit that fired
-    local unitToReArmWith = STATE.projectileWatching.continuouslyArmedUnitID -- The unit we want to keep watching
+    local previouslyWatchedUnitID = STATE.projectileWatching.watchedUnitID
+    local unitToReArmWith = STATE.projectileWatching.continuouslyArmedUnitID
 
-    ProjectileCamera.disableProjectileArming() -- Full disarm of current cycle
+    ProjectileCamera.disableProjectileArming() -- This also resets impactTimer, isImpactDecelerating etc.
 
     local canReArm = shouldReArm and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith)
 
     if prevMode and prevMode ~= 'projectile_camera' then
         if TrackingManager.startModeTransition(prevMode) then
             local targetForPrevMode = nil
-            -- When returning, the target should be the unit that was originally firing,
-            -- or the unit we are continuously armed for if different and makes sense for that mode.
-            -- Typically, it's the unit that was the center of action.
             local effectiveTargetUnit = previouslyWatchedUnitID
             if Util.isUnitCentricMode(prevMode) and effectiveTargetUnit and Spring.ValidUnitID(effectiveTargetUnit) then
                 targetForPrevMode = effectiveTargetUnit
             elseif Util.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
-                targetForPrevMode = unitToReArmWith -- Fallback if previouslyWatched is gone
+                targetForPrevMode = unitToReArmWith
             end
 
-            TrackingManager.initializeTracking(prevMode, targetForPrevMode) -- Target type auto-detected
+            TrackingManager.initializeTracking(prevMode, targetForPrevMode)
             if prevCamState then
                 CameraManager.setCameraState(prevCamState, 0, "ProjectileCamera.restorePreviousModeState")
             end
         else
             Log.warn("ProjectileCamera: Failed to start transition to previous mode: " .. prevMode .. ". Disabling tracking fully.")
             TrackingManager.disableTracking()
-            canReArm = false -- Cannot re-arm if mode transition failed
+            canReArm = false
         end
     elseif STATE.tracking.mode == 'projectile_camera' then
-        -- Was in projectile_camera, but no specific previous mode to return to (e.g., direct entry)
+        -- If we were in projectile_camera mode and are returning, disable it fully.
         TrackingManager.disableTracking()
     end
 
-    -- Clean up projectile watching state if not re-arming
     if not canReArm then
         STATE.projectileWatching.continuouslyArmedUnitID = nil
         STATE.projectileWatching.previousMode = nil
         STATE.projectileWatching.previousCameraState = nil
     else
-        -- Re-arm for the continuously tracked unit
+        -- If re-arming, set up the next watch cycle.
         ProjectileCamera.loadSettings(unitToReArmWith)
         ProjectileCamera.armProjectileTracking(STATE.projectileWatching.cameraMode, unitToReArmWith)
     end
@@ -236,21 +226,25 @@ end
 --------------------------------------------------------------------------------
 
 function ProjectileCamera.checkAndActivate()
-    -- Handle timeout for impact view (after deceleration)
-    if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer and not STATE.projectileWatching.isImpactDecelerating then
+    -- Check for IMPACT_TIMEOUT. This can now trigger returnToPreviousMode even during deceleration.
+    if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
         local currentTime = Spring.GetTimer()
         local elapsedImpactHold = Spring.DiffTimers(currentTime, STATE.projectileWatching.impactTimer)
         if elapsedImpactHold >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_TIMEOUT then
+            Log.trace("ProjectileCamera: IMPACT_TIMEOUT reached. Returning to previous mode.")
             local unitID = STATE.projectileWatching.watchedUnitID
             local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
             if unitID and not reArm then ProjectileCamera.saveSettings(unitID) end
             ProjectileCamera.returnToPreviousMode(reArm)
-            return true -- Mode changed
+            return true -- Mode changed, skip further processing in this cycle
         end
     end
 
+    -- Logic for arming and activating projectile_camera mode when a new projectile is detected.
     if not STATE.projectileWatching.armed or STATE.tracking.mode == 'projectile_camera' then
-        return false -- Already in mode or not armed
+        -- Not armed (e.g. waiting for next projectile in continuous mode, or already in projectile_camera mode)
+        -- The impactTimer check above handles timeout if we are already in projectile_camera mode.
+        return false
     end
 
     local unitID = STATE.projectileWatching.watchedUnitID
@@ -275,7 +269,6 @@ function ProjectileCamera.checkAndActivate()
 
     -- Found new projectiles, transition to 'projectile_camera' mode
     if TrackingManager.startModeTransition('projectile_camera') then
-        -- Pass the unitID that fired the projectile as the target for the mode
         if TrackingManager.initializeTracking('projectile_camera', unitID, STATE.TARGET_TYPES.UNIT) then
             STATE.tracking.projectile = STATE.tracking.projectile or {}
             STATE.tracking.projectile.selectedProjectileID = nil -- Will be selected in update
@@ -312,14 +305,16 @@ function ProjectileCamera.update(dt)
         return
     end
 
-    -- If impact deceleration is active, handle that exclusively
+    -- If impact deceleration is active, handle that.
+    -- Note: The IMPACT_TIMEOUT is checked in checkAndActivate and can interrupt this.
     if STATE.projectileWatching.isImpactDecelerating then
         ProjectileCamera.decelerateToImpactPosition(dt)
         return
     end
 
     -- If impact timer is active (meaning deceleration is done, now holding view)
-    if STATE.projectileWatching.impactTimer then
+    -- Note: The IMPACT_TIMEOUT is checked in checkAndActivate and can interrupt this.
+    if STATE.projectileWatching.impactTimer then -- This implies deceleration is finished
         ProjectileCamera.focusOnImpactPosition() -- Hold the settled impact view
         return
     end
@@ -348,7 +343,7 @@ function ProjectileCamera.shouldUpdate()
     if STATE.tracking.mode ~= 'projectile_camera' then
         return false
     end
-    if Util.isTurboBarCamDisabled() then -- Removed redundant isModeDisabled check
+    if Util.isTurboBarCamDisabled() then
         return false
     end
     return true
@@ -361,15 +356,12 @@ function ProjectileCamera.validateUnit(unitID)
     return true
 end
 
---- Selects the oldest *new* projectile to track.
 function ProjectileCamera.selectProjectile(unitID)
     local allProjectiles = ProjectileTracker.getUnitProjectiles(unitID)
     local latestValidProjectile = nil
     local maxCreationTime = -1
 
     for _, p in ipairs(allProjectiles) do
-        -- We assume getUnitProjectiles only returns currently active/tracked ones.
-        -- We just need to find the newest one.
         if p.creationTime > maxCreationTime then
             maxCreationTime = p.creationTime
             latestValidProjectile = p
@@ -377,28 +369,22 @@ function ProjectileCamera.selectProjectile(unitID)
     end
 
     if latestValidProjectile then
-        -- Select this projectile if it's different from the current one
         if STATE.tracking.projectile.currentProjectileID ~= latestValidProjectile.id then
             STATE.tracking.projectile.selectedProjectileID = latestValidProjectile.id
             STATE.tracking.projectile.currentProjectileID = latestValidProjectile.id
             ProjectileCamera.resetSmoothedPositions()
             Log.trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id)
-
             -- Reset impact states as we are now tracking a new projectile
             STATE.projectileWatching.impactTimer = nil
             STATE.projectileWatching.isImpactDecelerating = false
             STATE.projectileWatching.impactPosition = nil
         end
     else
-        -- No valid projectiles found. Clear current selection.
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
     end
 end
 
---- Gets the currently tracked projectile's data by searching the tracked list.
----@param unitID number The ID of the firing unit (used to filter ProjectileTracker)
----@return table|nil The projectile data table or nil if not found/invalid.
 function ProjectileCamera.getCurrentProjectile(unitID)
     if not STATE.tracking.projectile or not STATE.tracking.projectile.currentProjectileID then
         return nil
@@ -409,57 +395,50 @@ function ProjectileCamera.getCurrentProjectile(unitID)
 
     for _, proj in ipairs(projectiles) do
         if proj.id == currentID then
-            return proj -- Found it in the current list, so it's "valid"
+            return proj
         end
     end
-
-    -- If not found in the current list, it's no longer tracked/valid.
     return nil
 end
 
 
 function ProjectileCamera.handleProjectileTracking(unitID, dt)
-    local currentProjectile = ProjectileCamera.getCurrentProjectile(unitID) -- unitID is the firing unit
-
-    -- Check if currentProjectile is valid (non-nil) and has a position.
+    local currentProjectile = ProjectileCamera.getCurrentProjectile(unitID)
     if currentProjectile and currentProjectile.lastPosition then
-        -- Store the last known good position and velocity for potential impact view
         STATE.projectileWatching.impactPosition = {
             pos = Util.deepCopy(currentProjectile.lastPosition),
             vel = Util.deepCopy(currentProjectile.lastVelocity)
         }
         ProjectileCamera.trackActiveProjectile(currentProjectile, dt)
     else
-        -- Projectile became invalid or disappeared (getCurrentProjectile returned nil).
         ProjectileCamera.handleImpactView(unitID, dt)
     end
 end
 
 
---- Initiates the sequence for viewing the impact point.
---- This could mean starting deceleration or directly focusing if no velocity.
----@param unitID number The ID of the unit that fired the projectile.
----@param dt number Delta time.
 function ProjectileCamera.handleImpactView(unitID, dt)
     if not STATE.projectileWatching.impactPosition then
         Log.trace("ProjectileCamera: No impact position available, focusing on unit " .. unitID)
-        ProjectileCamera.focusOnUnit(unitID) -- Fallback if no impact data at all
+        ProjectileCamera.focusOnUnit(unitID)
         return
     end
 
+    -- This function is called when a projectile is lost or no new one is found.
+    -- Start deceleration AND the impact timer here.
     if not STATE.projectileWatching.isImpactDecelerating and not STATE.projectileWatching.impactTimer then
-        -- This is the first time we're handling impact for this projectile
         STATE.projectileWatching.isImpactDecelerating = true
         STATE.projectileWatching.impactDecelerationStartTime = Spring.GetTimer()
+        STATE.projectileWatching.impactTimer = Spring.GetTimer() -- Start the main impact timer
         local vel, _ = CameraManager.getCurrentVelocity()
         STATE.projectileWatching.initialImpactVelocity = Util.deepCopy(vel)
-        Log.trace("ProjectileCamera: Projectile lost/ended. Starting impact deceleration for unit " .. unitID)
+        Log.trace("ProjectileCamera: Projectile lost/ended. Starting impact deceleration and timer for unit " .. unitID)
         ProjectileCamera.decelerateToImpactPosition(dt) -- Start deceleration immediately
     elseif STATE.projectileWatching.isImpactDecelerating then
-        -- Already decelerating, continue
+        -- Already decelerating, continue. The timeout is handled in checkAndActivate.
         ProjectileCamera.decelerateToImpactPosition(dt)
     else
-        -- Deceleration finished, impactTimer is running, hold view
+        -- This case should ideally not be reached if impactTimer is set when deceleration starts.
+        -- If it is, it means deceleration finished and impactTimer is running (checked by checkAndActivate).
         ProjectileCamera.focusOnImpactPosition()
     end
 end
@@ -478,12 +457,18 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     local currentCamState = CameraManager.getCameraState("ProjectileCamera.decelerateToImpactPosition")
     local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
 
-    local profile = CONFIG.DECELERATION_PROFILES.PROJECTILE_IMPACT_ENTER
+    local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
     local elapsedDecelTime = Spring.DiffTimers(Spring.GetTimer(), STATE.projectileWatching.impactDecelerationStartTime)
-    local decelProgress = math.min(elapsedDecelTime / (profile.DURATION or 0.75), 1.0)
+
+    local linearProgress = 1.0
+    if profile.DURATION and profile.DURATION > 0 then
+        linearProgress = math.min(elapsedDecelTime / profile.DURATION, 1.0)
+    end
+
+    local easedProgress = CameraCommons.easeOut(linearProgress)
 
     local initialVelocity = STATE.projectileWatching.initialImpactVelocity or {x=0,y=0,z=0}
-    local newPos = TransitionUtil.smoothDecelerationTransition(camPos, dt, decelProgress, initialVelocity, profile)
+    local newPos = TransitionUtil.decelerationTransition(camPos, dt, easedProgress, initialVelocity, profile)
 
     local camStatePatch = {}
     if newPos then
@@ -491,42 +476,37 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
         camStatePatch.py = newPos.py
         camStatePatch.pz = newPos.pz
     else
-        -- Deceleration logic returned nil (e.g., velocity low or progress ended).
-        -- Smoothly approach the final "settled" impact view camera position.
-        local finalCamPosForImpact = ProjectileCamera.calculateSettledImpactCameraPosition(impactWorldPos, STATE.projectileWatching.impactPosition.vel)
-        local approachFactor = CameraCommons.lerp(0.1, 1.0, decelProgress) -- Start gentle, ensure arrival
-
-        camStatePatch.px = CameraCommons.smoothStep(camPos.x, finalCamPosForImpact.x, approachFactor)
-        camStatePatch.py = CameraCommons.smoothStep(camPos.y, finalCamPosForImpact.y, approachFactor)
-        camStatePatch.pz = CameraCommons.smoothStep(camPos.z, finalCamPosForImpact.z, approachFactor)
+        camStatePatch.px = camPos.x
+        camStatePatch.py = camPos.y
+        camStatePatch.pz = camPos.z
     end
 
-    -- Direction and rotation should still point towards the impact.
+    local focusFromPos = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
     local targetLookPos = ProjectileCamera.calculateIdealTargetPosition(impactWorldPos, STATE.projectileWatching.impactPosition.vel or {x=0,y=0,z=0})
 
-    -- Use general projectile camera smoothing factors for direction/rotation during this phase
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local dirSmoothFactor, rotSmoothFactor = CameraCommons.handleModeTransition(cfgSmoothing.POSITION_FACTOR, cfgSmoothing.ROTATION_FACTOR)
+    local dirSmoothFactor = cfgSmoothing.ROTATION_FACTOR
+    local rotSmoothFactor = cfgSmoothing.ROTATION_FACTOR
 
-    -- Create a temporary camera state with the new position for focusOnPoint
-    local tempFocusCamState = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
-    local dirState = CameraCommons.focusOnPoint(tempFocusCamState, targetLookPos, dirSmoothFactor, rotSmoothFactor)
+    local dirState = CameraCommons.focusOnPoint(focusFromPos, targetLookPos, dirSmoothFactor, rotSmoothFactor)
 
     local finalCamState = {
         px = camStatePatch.px, py = camStatePatch.py, pz = camStatePatch.pz,
         dx = dirState.dx, dy = dirState.dy, dz = dirState.dz,
         rx = dirState.rx, ry = dirState.ry, rz = dirState.rz,
-        fov = currentCamState.fov -- Preserve FOV
+        fov = currentCamState.fov
     }
 
     CameraManager.setCameraState(finalCamState, 0, "ProjectileCamera.decelerateToImpact")
     TrackingManager.updateTrackingState(finalCamState)
 
-    if decelProgress >= 1.0 then
+    -- This condition now only marks the end of the *deceleration phase*.
+    -- The overall impact view duration is handled by impactTimer in checkAndActivate.
+    if linearProgress >= 1.0 then
         STATE.projectileWatching.isImpactDecelerating = false
         STATE.projectileWatching.initialImpactVelocity = nil
-        STATE.projectileWatching.impactTimer = Spring.GetTimer() -- Start the hold timer
-        Log.trace("ProjectileCamera: Finished impact deceleration. Holding view.")
+        -- Do NOT reset impactTimer here. It was started when deceleration began.
+        Log.trace("ProjectileCamera: Finished impact deceleration phase.")
     end
 end
 
@@ -536,19 +516,17 @@ function ProjectileCamera.calculateSettledImpactCameraPosition(impactWorldPos, i
     local impactViewCfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_VIEW or {}
     local followCfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.FOLLOW
 
-    -- Use a pseudo velocity to orient the camera if actual impact velocity is not useful
-    local pseudoProjectileVel = {x=0, y=-0.5, z=-0.5, speed=1} -- Default: look somewhat down and forward
+    local pseudoProjectileVel = {x=0, y=-0.5, z=-0.5, speed=1}
     if impactWorldVel and CameraCommons.vectorMagnitude(impactWorldVel) > 0.1 then
         pseudoProjectileVel = impactWorldVel
     end
-    pseudoProjectileVel = CameraCommons.normalizeVector(pseudoProjectileVel) -- Ensure it's normalized
+    pseudoProjectileVel = CameraCommons.normalizeVector(pseudoProjectileVel)
 
-    -- Base distance and height from follow mode, then scale if impactViewCfg exists
     local baseDistance = followCfg.DISTANCE
     local baseHeight = followCfg.HEIGHT
 
     local viewDistance = baseDistance * (impactViewCfg.DISTANCE_SCALE or 0.5)
-    local viewHeightOffset = baseHeight * (impactViewCfg.HEIGHT_SCALE or 0.75) -- This is an offset from projectile path
+    local viewHeightOffset = baseHeight * (impactViewCfg.HEIGHT_SCALE or 0.75)
 
     camPosForImpact = {
         x = impactWorldPos.x - pseudoProjectileVel.x * viewDistance,
@@ -559,21 +537,23 @@ function ProjectileCamera.calculateSettledImpactCameraPosition(impactWorldPos, i
 end
 
 
---- Focuses the camera on the impact position (settled view, after deceleration).
+--- Focuses the camera on the impact position (settled view, after deceleration is complete and impactTimer is active).
 function ProjectileCamera.focusOnImpactPosition()
     if not STATE.projectileWatching.impactPosition or not STATE.projectileWatching.impactPosition.pos then
         Log.warn("ProjectileCamera: focusOnImpactPosition called without valid impactPosition.")
-        ProjectileCamera.focusOnUnit(STATE.tracking.unitID) -- Fallback
+        ProjectileCamera.focusOnUnit(STATE.tracking.unitID)
         return
     end
 
     local impactWorldPos = STATE.projectileWatching.impactPosition.pos
     local impactWorldVel = STATE.projectileWatching.impactPosition.vel or {x=0,y=0,z=0}
 
-    local camPosForImpact = ProjectileCamera.calculateSettledImpactCameraPosition(impactWorldPos, impactWorldVel)
+    local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnImpactPosition.Hold")
+    local settledCamPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
+
     local targetLookPos = ProjectileCamera.calculateIdealTargetPosition(impactWorldPos, impactWorldVel)
 
-    ProjectileCamera.applyProjectileCameraState(camPosForImpact, targetLookPos, "impact_view_settled")
+    ProjectileCamera.applyProjectileCameraState(settledCamPos, targetLookPos, "impact_view_hold")
 end
 
 
@@ -582,7 +562,7 @@ function ProjectileCamera.focusOnUnit(unitID)
     if ux then
         local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnUnit")
         local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
-        local targetPos = { x = ux, y = uy + (Util.getUnitHeight(unitID) * 0.5 or 50), z = uz } -- Look at mid-height
+        local targetPos = { x = ux, y = uy + (Util.getUnitHeight(unitID) * 0.5 or 50), z = uz }
         ProjectileCamera.applyProjectileCameraState(camPos, targetPos, "unit_fallback_view")
     else
         Log.warn("ProjectileCamera: Unit " .. tostring(unitID) .. " invalid while trying to focus on it.")
@@ -592,7 +572,7 @@ function ProjectileCamera.focusOnUnit(unitID)
 end
 
 function ProjectileCamera.trackActiveProjectile(currentProjectile, dt)
-    STATE.projectileWatching.impactTimer = nil -- Not in impact phase if actively tracking
+    STATE.projectileWatching.impactTimer = nil -- Clear impact timer when actively tracking a new projectile
     STATE.projectileWatching.isImpactDecelerating = false
 
     local projectilePos = currentProjectile.lastPosition
@@ -628,8 +608,8 @@ function ProjectileCamera.calculateCameraPositionForProjectile(pPos, pVel, subMo
     local height = modeCfg.HEIGHT
 
     local dir = CameraCommons.normalizeVector(pVel)
-    if dir.x == 0 and dir.y == 0 and dir.z == 0 then -- Fallback if velocity is zero
-        dir = { x = 0, y = -0.5, z = -0.5 } -- Look somewhat down/behind
+    if dir.x == 0 and dir.y == 0 and dir.z == 0 then
+        dir = { x = 0, y = -0.5, z = -0.5 }
         dir = CameraCommons.normalizeVector(dir)
     end
 
@@ -644,11 +624,11 @@ end
 function ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local subMode = STATE.projectileWatching.cameraMode
-    local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW -- Fallback to FOLLOW if subMode cfg missing
+    local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
     local fwd = CameraCommons.normalizeVector(projectileVel)
     if fwd.x == 0 and fwd.y == 0 and fwd.z == 0 then
-        fwd = { x = 0, y = 0, z = 1 } -- Default forward if no velocity
+        fwd = { x = 0, y = 0, z = 1 }
     end
 
     local pPos = projectilePos
@@ -672,7 +652,7 @@ function ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectile
         local right = CameraCommons.crossProduct(fwd, worldUp)
         if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
             local worldFwdTemp = { x = 0, y = 0, z = 1 }
-            if math.abs(fwd.z) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end -- if fwd is along Z, use X for cross
+            if math.abs(fwd.z) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end
             right = CameraCommons.crossProduct(fwd, worldFwdTemp)
         end
         right = CameraCommons.normalizeVector(right)
@@ -751,7 +731,7 @@ function ProjectileCamera.applyProjectileCameraState(camPos, targetPos, context)
     directionState.px = camPos.px or directionState.px
     directionState.py = camPos.py or directionState.py
     directionState.pz = camPos.pz or directionState.pz
-    directionState.fov = currentCamState.fov -- Preserve FOV
+    directionState.fov = currentCamState.fov
 
     CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update." .. (context or "apply"))
     TrackingManager.updateTrackingState(directionState)
@@ -770,6 +750,7 @@ function ProjectileCamera.resetToDefaults()
     cfg.STATIC.LOOK_AHEAD = cfg.DEFAULT_STATIC.LOOK_AHEAD
     cfg.STATIC.OFFSET_HEIGHT = cfg.DEFAULT_STATIC.OFFSET_HEIGHT
     cfg.STATIC.OFFSET_SIDE = cfg.DEFAULT_STATIC.OFFSET_SIDE
+    cfg.DECELERATION_PROFILE = Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
     Log.trace("ProjectileCamera: Restored settings to defaults.")
 end
 
@@ -797,7 +778,8 @@ function ProjectileCamera.saveSettings(unitID)
             LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD,
             OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT,
             OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE,
-        }
+        },
+        DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE)
     }
     ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
 end
@@ -827,6 +809,7 @@ function ProjectileCamera.loadSettings(unitID)
         cfg.STATIC.LOOK_AHEAD = loadedSettings.STATIC and loadedSettings.STATIC.LOOK_AHEAD or cfg.DEFAULT_STATIC.LOOK_AHEAD
         cfg.STATIC.OFFSET_HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_HEIGHT or cfg.DEFAULT_STATIC.OFFSET_HEIGHT
         cfg.STATIC.OFFSET_SIDE = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_SIDE or cfg.DEFAULT_STATIC.OFFSET_SIDE
+        cfg.DECELERATION_PROFILE = loadedSettings.DECELERATION_PROFILE and Util.deepCopy(loadedSettings.DECELERATION_PROFILE) or Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
     else
         Log.trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
         ProjectileCamera.resetToDefaults()

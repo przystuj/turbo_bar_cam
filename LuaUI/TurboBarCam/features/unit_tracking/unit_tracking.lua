@@ -88,7 +88,7 @@ function UnitTrackingCamera.update(dt)
         -- This flag is managed by handleModeTransition
         local transitionProgress = CameraCommons.getTransitionProgress() -- Progress over MODE_TRANSITION_DURATION
         local currentVelocity, _ = CameraManager.getCurrentVelocity() -- Get live camera velocity
-        local profile = CONFIG.DECELERATION_PROFILES.UNIT_TRACKING_ENTER
+        local profile = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE
 
         local newPos = TransitionUtil.smoothDecelerationTransition(camPos, dt, transitionProgress, currentVelocity, profile)
 
