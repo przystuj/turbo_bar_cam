@@ -125,6 +125,10 @@ function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, pr
 end
 
 function CameraCommons.shouldUseSphericalInterpolation(currentPos, targetPos, center)
+    if STATE.tracking.isModeTransitionInProgress then
+        return false
+    end
+
     -- Calculate direction vectors from center (in XZ plane)
     local currentVec = {
         x = currentPos.x - center.x,

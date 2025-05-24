@@ -52,7 +52,7 @@ function UnitTrackingCamera.toggle()
 end
 
 --- Updates tracking camera to point at the tracked unit
-function UnitTrackingCamera.update()
+function UnitTrackingCamera.update(dt)
     if STATE.tracking.mode ~= 'unit_tracking' or not STATE.tracking.unitID then
         return
     end
@@ -101,25 +101,17 @@ function UnitTrackingCamera.update()
         local transitionProgress = CameraCommons.getTransitionProgress()
 
         -- Get current velocity from CameraManager (tracks automatically)
-        local velocity, velMagnitude = CameraManager.getCurrentVelocity()
+        local _, velMagnitude = CameraManager.getCurrentVelocity()
 
-        if velMagnitude > 5.0 then  -- Only apply deceleration if we have significant velocity
-            -- Calculate deceleration parameters
-            -- Start with gentle deceleration, increase as transition progresses
-            local decayRate = 2.0 + (transitionProgress * 8.0)  -- Range: 2-10
-            local deltaTime = 1.0 / 30.0  -- Assume ~30 FPS for prediction
-
-            -- Apply velocity decay for this frame
-            local decayedVelocity = CameraManager.applyVelocityDecay(decayRate, deltaTime)
+        if velMagnitude > 10.0 then  -- Only apply deceleration if we have significant velocity (increased threshold)
+            -- Calculate deceleration parameters - more aggressive decay to prevent overshooting
+            local decayRate = 5.0 + (transitionProgress * 15.0)  -- Range: 5-20 (increased from 2-10)
 
             -- Predict where camera should be based on decaying velocity
-            local predictedPos = CameraManager.predictPosition(camPos, deltaTime, decayRate)
+            local predictedPos = CameraManager.predictPosition(camPos, dt, decayRate)
 
-            -- Calculate position control factor
-            -- Starts high when velocity is high, decreases as velocity decays and transition progresses
-            local velocityFactor = math.min(velMagnitude / 200.0, 1.0)  -- Normalize velocity influence
-            local transitionFactor = 1.0 - (transitionProgress * 0.95)  -- Keep 5% minimum control
-            local positionControlFactor = velocityFactor * transitionFactor
+            -- Calculate position control factor - more conservative
+            local positionControlFactor = 0.9 - (0.1 * transitionProgress)
 
             -- Apply predicted position with decreasing influence
             camStatePatch.px = CameraCommons.smoothStep(camPos.x, predictedPos.x, positionControlFactor)
@@ -127,23 +119,18 @@ function UnitTrackingCamera.update()
             camStatePatch.pz = CameraCommons.smoothStep(camPos.z, predictedPos.z, positionControlFactor)
 
             -- Log deceleration info occasionally for debugging
-            if CONFIG.DEBUG.LOG_LEVEL == "TRACE" and math.random() < 0.02 then  -- 2% chance per frame
-                Log.trace(string.format("Unit tracking deceleration: progress=%.1f%%, vel=%.1f, decay=%.1f, control=%.3f",
+            if math.random() < 0.50 then  -- 2% chance per frame
+                Log.debug(string.format("Unit tracking deceleration: progress=%.1f%%, vel=%.1f, decay=%.1f, control=%.3f",
                         transitionProgress * 100, velMagnitude, decayRate, positionControlFactor))
             end
         else
             -- Velocity is low, just gradually reduce position control to zero
-            local positionControlFactor = (1.0 - transitionProgress) * 0.05  -- Very gentle final reduction
+            local positionControlFactor = (1.0 - transitionProgress) * 0.02  -- Even gentler final reduction
 
             -- Apply minimal position control to avoid sudden stops
             camStatePatch.px = CameraCommons.smoothStep(camPos.x, camPos.x, positionControlFactor)
             camStatePatch.py = CameraCommons.smoothStep(camPos.y, camPos.y, positionControlFactor)
             camStatePatch.pz = CameraCommons.smoothStep(camPos.z, camPos.z, positionControlFactor)
-
-            if CONFIG.DEBUG.LOG_LEVEL == "TRACE" and math.random() < 0.01 then
-                Log.trace(string.format("Unit tracking low velocity: progress=%.1f%%, vel=%.1f, control=%.3f",
-                        transitionProgress * 100, velMagnitude, positionControlFactor))
-            end
         end
     else
         -- After transition is complete, remove position updates to allow free camera movement
@@ -155,7 +142,7 @@ function UnitTrackingCamera.update()
     TrackingManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state
-    CameraManager.setCameraState(camStatePatch, 1, "UnitTrackingCamera.update")
+    CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.update")
 end
 
 ---@see ModifiableParams

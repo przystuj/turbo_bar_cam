@@ -37,6 +37,7 @@ function UpdateManager.processCycle(dt)
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
         Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
         Features.UnitTrackingCamera = VFS.Include("LuaUI/TurboBarCam/features/unit_tracking/unit_tracking.lua").UnitTrackingCamera
+        Features.ProjectileCamera = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua").ProjectileCamera
         STATE.reloadFeatures = false
     end
 
@@ -152,7 +153,7 @@ function UpdateManager.updateCameraMode(dt)
     elseif STATE.tracking.mode == 'fps' then
         Features.FPSCamera.update()
     elseif STATE.tracking.mode == 'unit_tracking' then
-        Features.UnitTrackingCamera.update()
+        Features.UnitTrackingCamera.update(dt)
     elseif STATE.tracking.mode == 'orbit' then
         Features.OrbitingCamera.update(dt)
     elseif STATE.tracking.mode == 'overview' then
