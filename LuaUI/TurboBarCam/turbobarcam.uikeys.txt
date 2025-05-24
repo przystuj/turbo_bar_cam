@@ -124,10 +124,10 @@ bind		Ctrl+numpad7	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITI
 // Projectile tracking
 bind		Delete      	turbobarcam_projectile_camera_follow
 bind		Insert	        turbobarcam_projectile_camera_track
-bind		numpad8         turbobarcam_projectile_adjust_params add;DISTANCE,-5
-bind		numpad5			turbobarcam_projectile_adjust_params add;DISTANCE,5
-bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,5
-bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-5
+bind		numpad8         turbobarcam_projectile_adjust_params add;DISTANCE,-20
+bind		numpad5			turbobarcam_projectile_adjust_params add;DISTANCE,20
+bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,20
+bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-20
 bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
 bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5
 

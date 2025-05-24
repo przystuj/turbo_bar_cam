@@ -163,36 +163,21 @@ if not WG.TurboBarCam.CONFIG then
             },
 
             PROJECTILE_CAMERA = {
-                -- Camera mode: "follow" (behind projectile) or "static" (fixed position looking at projectile)
                 DEFAULT_CAMERA_MODE = "follow",
-                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera" },
-                DEFAULT_MODE = "unit_tracking",
-
-                -- Default distance behind projectile
-                DEFAULT_DISTANCE = 200,
-                DISTANCE = 200,
-
-                -- Default height above projectile
+                COMPATIBLE_MODES_FROM = { "fps", "unit_tracking", "orbit" },
+                DEFAULT_MODE_FALLBACK = "unit_tracking",
+                DEFAULT_DISTANCE = 2500,
+                DISTANCE = 2500,
                 DEFAULT_HEIGHT = 100,
                 HEIGHT = 100,
-
-                -- Default look ahead distance
-                DEFAULT_LOOK_AHEAD = 5,
-                LOOK_AHEAD = 5,
-
-                -- Timeout for tracking lost projectiles (seconds)
-                TIMEOUT = 2.0,
-
-                -- Smoothing settings
+                DEFAULT_LOOK_AHEAD = 680,
+                LOOK_AHEAD = 680,
+                IMPACT_TIMEOUT = 1.5,
                 SMOOTHING = {
                     POSITION_FACTOR = 0.2,
-                    ROTATION_FACTOR = 0.1,
-                    INTERPOLATION_FACTOR = 0.05
+                    ROTATION_FACTOR = 0.2,
+                    INTERPOLATION_FACTOR = 0.2
                 },
-                DEFAULT_SMOOTHING = {
-                    POSITION_FACTOR = 0.3,
-                    ROTATION_FACTOR = 0.3
-                }
             },
 
             -- Group tracking camera settings
@@ -338,9 +323,9 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     PROJECTILE_CAMERA = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
         PARAM_NAMES = {
-            DISTANCE = { 0, 1000 },
-            HEIGHT = { -1000, 1000 },
-            LOOK_AHEAD = { 0, 1000 }
+            DISTANCE = { nil, nil },
+            HEIGHT = { nil, nil },
+            LOOK_AHEAD = { nil, nil }
         }
     },
 }

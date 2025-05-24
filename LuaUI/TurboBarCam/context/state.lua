@@ -29,6 +29,19 @@ if not WG.TurboBarCam.STATE then
             currentAnchorIndex = nil
         },
 
+        projectileWatching = {
+            armed = false, -- True if waiting for a projectile to appear
+            watchedUnitID = nil,
+            continuouslyArmedUnitID = nil,
+            lastArmingTime = 0,
+            previousMode = nil, -- Stores the mode active before arming
+            previousCameraState = nil, -- Stores camera state before arming
+            impactTimer = nil,
+            impactPosition = nil,
+            cameraMode = "follow", -- This is the "sub-mode" ("follow" or "static") for projectile_camera
+            initialCamPos = nil -- For static sub-mode, captured at arming time
+        },
+
         -- Camera tracking
         tracking = {
             -- Current mode

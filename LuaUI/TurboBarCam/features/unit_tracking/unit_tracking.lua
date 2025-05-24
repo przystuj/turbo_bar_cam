@@ -117,12 +117,6 @@ function UnitTrackingCamera.update(dt)
             camStatePatch.px = CameraCommons.smoothStep(camPos.x, predictedPos.x, positionControlFactor)
             camStatePatch.py = CameraCommons.smoothStep(camPos.y, predictedPos.y, positionControlFactor)
             camStatePatch.pz = CameraCommons.smoothStep(camPos.z, predictedPos.z, positionControlFactor)
-
-            -- Log deceleration info occasionally for debugging
-            if math.random() < 0.50 then  -- 2% chance per frame
-                Log.debug(string.format("Unit tracking deceleration: progress=%.1f%%, vel=%.1f, decay=%.1f, control=%.3f",
-                        transitionProgress * 100, velMagnitude, decayRate, positionControlFactor))
-            end
         else
             -- Velocity is low, just gradually reduce position control to zero
             local positionControlFactor = (1.0 - transitionProgress) * 0.02  -- Even gentler final reduction
