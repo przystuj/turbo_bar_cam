@@ -271,7 +271,7 @@ function FPSCameraUtils.handleNewTarget()
     local dx = newTargetPos.x - previousTargetPos.x
     local dy = newTargetPos.y - previousTargetPos.y
     local dz = newTargetPos.z - previousTargetPos.z
-    local targetDistance = math.sqrt(dx*dx + dy*dy + dz*dz)
+    local targetDistance = math.sqrt(dx * dx + dy * dy + dz * dz)
 
     -- Get current time
     local currentTime = Spring.GetTimer()
@@ -492,6 +492,14 @@ function FPSCameraUtils.getSmoothingFactor(smoothType)
     return CONFIG.CAMERA_MODES.FPS.SMOOTHING.PEACE.POSITION_FACTOR
 end
 
+local function getFPSParamPrefixes()
+    return {
+        PEACE = "PEACE.",
+        COMBAT = "COMBAT.",
+        WEAPON = "WEAPON."
+    }
+end
+
 --- Update adjustParams to handle the new offset structure
 function FPSCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() then
@@ -514,63 +522,26 @@ function FPSCameraUtils.adjustParams(params)
         return
     end
 
-    -- Parse the parameter string to check what's being modified
-    local commandParts = {}
-    for part in string.gmatch(params, "[^;]+") do
-        table.insert(commandParts, part)
-    end
-
-    -- Check which mode's parameters are being adjusted
-    local hasPeaceParam = false
-    local hasCombatParam = false
-    local hasWeaponParam = false
-
-    for i = 2, #commandParts do
-        local paramPair = commandParts[i]
-        local paramName = string.match(paramPair, "([^,]+),")
-
-        if paramName then
-            if string.find(paramName, "^PEACE%.") then
-                hasPeaceParam = true
-            elseif string.find(paramName, "^COMBAT%.") then
-                hasCombatParam = true
-            elseif string.find(paramName, "^WEAPON%.") then
-                hasWeaponParam = true
-            end
-        end
-    end
-
-    -- Determine current mode
-    local currentMode
+    -- Determine current FPS submode
+    local currentFPSMode
     if STATE.tracking.fps.combatModeEnabled then
         if STATE.tracking.fps.isAttacking then
-            currentMode = "WEAPON"
+            currentFPSMode = "WEAPON"
         else
-            currentMode = "COMBAT"
+            currentFPSMode = "COMBAT"
         end
     else
-        currentMode = "PEACE"
+        currentFPSMode = "PEACE"
     end
 
-    -- Filter out calls that don't match the current mode
-    if currentMode == "PEACE" and (hasCombatParam or hasWeaponParam) and not hasPeaceParam then
-        return
-    elseif currentMode == "COMBAT" and (hasPeaceParam or hasWeaponParam) and not hasCombatParam then
-        return
-    elseif currentMode == "WEAPON" and (hasPeaceParam or hasCombatParam) and not hasWeaponParam then
-        return
-    end
+    Log.trace("Adjusting FPS parameters for submode: " .. currentFPSMode)
 
-    Log.trace("Adjusting " .. currentMode:lower() .. " parameters")
-
-    -- Call the original adjustParams function
+    -- Call the generic adjustParams function
     Util.adjustParams(params, "FPS", function()
         FPSCameraUtils.resetOffsets()
-    end)
+    end, currentFPSMode, getFPSParamPrefixes)
 
-    -- Save appropriate settings
     SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
-    return
 end
 
 --- Resets camera offsets to default values
@@ -600,7 +571,7 @@ end
 function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     FPSCameraUtils.ensureHeightIsSet()
     local offsets = FPSCameraUtils.getAppropriateOffsets()
-    local unitPos = {x = position.x, y = position.y, z = position.z} -- Store original unit center
+    local unitPos = { x = position.x, y = position.y, z = position.z } -- Store original unit center
 
     -- Determine which vectors to use based on state
     local frontVec, upVec, rightVec
@@ -670,7 +641,7 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     end
 
     -- Calculate the target world position (with offsets applied)
-    local targetCamPosWorld = {x = x, y = y, z = z}
+    local targetCamPosWorld = { x = x, y = y, z = z }
 
     -- Apply minimum height constraint to target position
     targetCamPosWorld = FPSCameraUtils.enforceMinimumHeight(targetCamPosWorld, STATE.tracking.unitID)

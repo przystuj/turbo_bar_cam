@@ -43,6 +43,9 @@ function SettingsManager.initializePersistentStorage()
     STATE.settings["orbit_presets"] = PersistentStorage.new("orbit_presets", true)
     STATE.settings.storages["orbit_presets"] = STATE.settings["orbit_presets"]
 
+    STATE.settings["projectile_camera_settings"] = PersistentStorage.new("projectile_camera_settings", true)
+    STATE.settings.storages["projectile_camera_settings"] = STATE.settings["projectile_camera_settings"]
+
     STATE.settings.initialized = true
     Log.info("SettingsManager initialized")
 end
@@ -92,12 +95,17 @@ function SettingsManager.saveModeSettings(mode, unitID)
         return
     end
 
-    Log.trace(string.format("Saving settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
+    -- Always use unitID for FPS and Projectile Camera for unit-type saving
+    local currentUnitID = (STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT) and STATE.tracking.unitID or unitID
 
-    if mode == 'fps' then
-        SettingsManager.saveFPSOffsets(unitID)
+    Log.trace(string.format("Saving settings for %s=%s (Mode: %s)", CONFIG.PERSISTENT_UNIT_SETTINGS, tostring(identifier), mode))
+
+    if mode == 'fps' and currentUnitID then
+        SettingsManager.saveFPSOffsets(currentUnitID)
     elseif mode == 'orbit' then
         FeatureModules.OrbitingCamera.saveSettings(identifier)
+    elseif mode == 'projectile_camera' and currentUnitID then
+        FeatureModules.ProjectileCamera.saveSettings(currentUnitID)
     end
 end
 
@@ -109,12 +117,14 @@ function SettingsManager.loadModeSettings(mode, unitID)
     local FeatureModules = WG.TurboBarCam.FeatureModules
     local identifier = SettingsManager.chooseIdentifier(mode, unitID)
 
-    Log.trace(string.format("Loading settings for %s=%s", CONFIG.PERSISTENT_UNIT_SETTINGS, identifier))
+    Log.trace(string.format("Loading settings for %s=%s (Mode: %s)", CONFIG.PERSISTENT_UNIT_SETTINGS, tostring(identifier), mode))
 
-    if mode == 'fps' then
+    if mode == 'fps' and unitID then
         SettingsManager.loadFPSOffsets(unitID)
     elseif mode == 'orbit' then
         FeatureModules.OrbitingCamera.loadSettings(identifier)
+    elseif mode == 'projectile_camera' and unitID then
+        FeatureModules.ProjectileCamera.loadSettings(unitID)
     end
 end
 
@@ -193,21 +203,20 @@ function SettingsManager.loadFPSOffsets(unitId)
 end
 
 function SettingsManager.saveUserSetting(name, id, data)
-    if not STATE.settings[name] then
-        Log.warn("Settings not initialized: " .. name)
+    if not STATE.settings.storages[name] then
+        Log.warn("Storage not initialized: " .. name)
         return false
     end
-    Log.debug(data)
-    STATE.settings[name]:set(id, data)
+    STATE.settings.storages[name]:set(id, data)
     return true
 end
 
 function SettingsManager.loadUserSetting(name, id)
-    if not STATE.settings[name] then
-        Log.warn("Settings not initialized: " .. name)
+    if not STATE.settings.storages[name] then
+        Log.warn("Storage not initialized: " .. name)
         return nil
     end
-    return STATE.settings[name]:get(id)
+    return STATE.settings.storages[name]:get(id)
 end
 
 return {

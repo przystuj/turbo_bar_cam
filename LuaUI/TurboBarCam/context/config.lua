@@ -166,13 +166,32 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_CAMERA_MODE = "follow",
                 COMPATIBLE_MODES_FROM = { "fps", "unit_tracking", "orbit" },
                 DEFAULT_MODE_FALLBACK = "unit_tracking",
-                DEFAULT_DISTANCE = 2500,
-                DISTANCE = 2500,
-                DEFAULT_HEIGHT = 100,
-                HEIGHT = 100,
-                DEFAULT_LOOK_AHEAD = 680,
-                LOOK_AHEAD = 680,
                 IMPACT_TIMEOUT = 1.5,
+
+                FOLLOW = {
+                    DISTANCE = 2500,
+                    HEIGHT = 100,
+                    LOOK_AHEAD = 680,
+                },
+
+                STATIC = {
+                    DISTANCE = 0, -- Static mode doesn't use distance/height from projectile
+                    HEIGHT = 0,
+                    LOOK_AHEAD = 500,
+                },
+
+                DEFAULT_FOLLOW = {
+                    DISTANCE = 2500,
+                    HEIGHT = 100,
+                    LOOK_AHEAD = 680,
+                },
+
+                DEFAULT_STATIC = {
+                    DISTANCE = 0,
+                    HEIGHT = 0,
+                    LOOK_AHEAD = 500,
+                },
+
                 SMOOTHING = {
                     POSITION_FACTOR = 0.2,
                     ROTATION_FACTOR = 0.2,
@@ -323,9 +342,12 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
     PROJECTILE_CAMERA = {
         PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
         PARAM_NAMES = {
-            DISTANCE = { nil, nil },
-            HEIGHT = { nil, nil },
-            LOOK_AHEAD = { nil, nil }
+            ["STATIC.DISTANCE"] = { nil, nil },
+            ["STATIC.HEIGHT"] = { nil, nil },
+            ["STATIC.LOOK_AHEAD"] = { nil, nil },
+            ["FOLLOW.DISTANCE"] = { nil, nil },
+            ["FOLLOW.HEIGHT"] = { nil, nil },
+            ["FOLLOW.LOOK_AHEAD"] = { nil, nil },
         }
     },
 }

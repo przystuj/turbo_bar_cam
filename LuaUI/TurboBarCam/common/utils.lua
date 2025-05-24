@@ -122,11 +122,13 @@ local function parseParams(params, moduleName)
     -- Check if the moduleName string is empty or nil
     if not moduleName or moduleName == "" or not CONFIG.MODIFIABLE_PARAMS[moduleName] then
         Log.error("Invalid moduleName " .. tostring(moduleName))
+        return nil -- Return nil on error
     end
 
     -- Check if the params string is empty or nil
     if not params or params == "" then
         Log.error("Empty parameters string")
+        return nil -- Return nil on error
     end
 
     -- Split the params string by semicolons
@@ -139,6 +141,7 @@ local function parseParams(params, moduleName)
     local command = parts[1]
     if not command then
         Log.error("No command specified")
+        return nil -- Return nil on error
     end
 
     local validParams = CONFIG.MODIFIABLE_PARAMS[moduleName].PARAM_NAMES
@@ -153,6 +156,7 @@ local function parseParams(params, moduleName)
     -- Check if command is valid
     if command ~= "set" and command ~= "add" then
         Log.error("Invalid command '" .. command .. "', must be 'set', 'add', or 'reset'")
+        return nil -- Return nil on error
     end
 
     for i = 2, #parts do
@@ -164,6 +168,7 @@ local function parseParams(params, moduleName)
         -- Check if parameter name and value are valid
         if not paramName then
             Log.error("Invalid parameter format at '" .. paramPair .. "'")
+            return nil -- Return nil on error
         end
 
         -- Check if parameter name is recognized
@@ -187,12 +192,14 @@ local function parseParams(params, moduleName)
 
         if not isValidParam then
             Log.error("Unknown parameter '" .. paramName .. "'")
+            return nil -- Return nil on error
         end
 
         -- Convert value to number
         local value = tonumber(valueStr)
         if not value then
             Log.error("Invalid numeric value for parameter '" .. paramName .. "'")
+            return nil -- Return nil on error
         end
 
         ---@class CommandData
@@ -297,30 +304,72 @@ end
 ---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
 ---@param module string module name as in ModifiableParams class (FPS, ORBIT, TRANSITION)
 ---@param resetFunction function function which will be called when 'reset' is used
----to decrease value use 'add' with negative value
----if you use 'reset', the params will be ignored. All params will be rest to default values
----example params: add;HEIGHT,100;DISTANCE,-50
----@see ModifiableParams
-function Util.adjustParams(params, module, resetFunction)
-    Log.trace("Adjusting module: " .. module)
+---@param currentSubmode string|nil Optional current submode name (e.g., "PEACE", "FOLLOW")
+---@param getSubmodeParamPrefixes function|nil Optional function that returns a table of submode_name -> prefix_string (e.g., {PEACE = "PEACE.", FOLLOW = "FOLLOW."})
+function Util.adjustParams(params, module, resetFunction, currentSubmode, getSubmodeParamPrefixes)
+    Log.trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
     local adjustments = parseParams(params, module)
+
+    if not adjustments then -- parseParams returned an error
+        return
+    end
+
+    local submodeParamPrefixes
+    if currentSubmode and getSubmodeParamPrefixes then
+        submodeParamPrefixes = getSubmodeParamPrefixes()
+    end
 
     ---@param adjustment CommandData
     for _, adjustment in ipairs(adjustments) do
+        local shouldProcess = true -- Flag to control processing
+
         if adjustment.name == "reset" then
             if resetFunction then
                 Log.debug("Resetting params for module " .. module)
                 resetFunction()
-                return
+                return -- Exit after reset
             else
                 Log.error("Reset function missing for module " .. module)
                 return
             end
         else
-            adjustParam(adjustment, module)
+            -- Submode filtering logic
+            if currentSubmode and submodeParamPrefixes then
+                local paramName = adjustment.param
+                local isSubmodeParam = false
+                local belongsToCurrentSubmode = false
+
+                -- Check if the param belongs to any submode and if it belongs to the current one
+                for submodeKey, prefix in pairs(submodeParamPrefixes) do
+                    -- Ensure prefix ends with a dot or is the full name to avoid partial matches
+                    local prefixLen = string.len(prefix)
+                    if string.sub(paramName, 1, prefixLen) == prefix then
+                        isSubmodeParam = true
+                        if submodeKey == currentSubmode then
+                            belongsToCurrentSubmode = true
+                            break -- Found its submode, no need to check others
+                        end
+                    end
+                end
+
+                -- Check if the parameter itself (without prefix) exists
+                local isGenericParam = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[paramName] and not isSubmodeParam
+
+                -- If it's a submode param but *not* for the current submode, skip it
+                if isSubmodeParam and not belongsToCurrentSubmode then
+                    Log.trace("Skipping param '" .. paramName .. "' as it belongs to a different submode.")
+                    shouldProcess = false
+                end
+            end
+
+            -- Only adjust if the flag is true
+            if shouldProcess then
+                adjustParam(adjustment, module)
+            end
         end
     end
 end
+
 
 --- Creates a deep copy of a table
 ---@param orig table Table to copy

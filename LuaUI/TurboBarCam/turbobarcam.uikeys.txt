@@ -3,11 +3,8 @@
 //---------------
 bind            numpad.             turbobarcam_toggle
 bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
-// Just in case kek
-bind       	    Ctrl+Backspace  	    togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera
-bind       	    Ctrl+Shift+Backspace  	turbobarcam_reload_module
-bind		    Home      		        turbobarcam_toggle_zoom
-bind            Esc                     turbobarcam_stop_tracking
+bind		    Home      		    turbobarcam_toggle_zoom
+bind            Esc                 turbobarcam_stop_tracking
 
 unbindkeyset	numpad2             moveback
 unbindkeyset	numpad6             moveright
@@ -124,12 +121,12 @@ bind		Ctrl+numpad7	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITI
 // Projectile tracking
 bind		Delete      	turbobarcam_projectile_camera_follow
 bind		Insert	        turbobarcam_projectile_camera_track
-bind		numpad8         turbobarcam_projectile_adjust_params add;DISTANCE,-20
-bind		numpad5			turbobarcam_projectile_adjust_params add;DISTANCE,20
-bind		numpad9	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,20
-bind		numpad7	        turbobarcam_projectile_adjust_params add;LOOK_AHEAD,-20
-bind		numpad6			turbobarcam_projectile_adjust_params add;HEIGHT,5
-bind		numpad4			turbobarcam_projectile_adjust_params add;HEIGHT,-5
+bind		numpad8         turbobarcam_projectile_adjust_params add;STATIC.DISTANCE,-20;FOLLOW.DISTANCE,-20
+bind		numpad5			turbobarcam_projectile_adjust_params add;STATIC.DISTANCE,20;FOLLOW.DISTANCE,20
+bind		numpad9	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD,20;FOLLOW.LOOK_AHEAD,20
+bind		numpad7	        turbobarcam_projectile_adjust_params add;STATIC.LOOK_AHEAD,-20;FOLLOW.LOOK_AHEAD,-20
+bind		numpad6			turbobarcam_projectile_adjust_params add;STATIC.HEIGHT,5;FOLLOW.HEIGHT,5
+bind		numpad4			turbobarcam_projectile_adjust_params add;STATIC.HEIGHT,-5;FOLLOW.HEIGHT,-5
 
 // Dolly Cam
 bind			Ctrl+sc_[           turbobarcam_dollycam_toggle_editor

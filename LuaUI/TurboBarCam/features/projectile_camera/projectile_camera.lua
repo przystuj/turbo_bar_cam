@@ -8,6 +8,9 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua").ProjectileTracker
 ---@type TrackingManager
 local TrackingManager = CommonModules.TrackingManager
+---@type ProjectileCameraPersistence
+local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua").ProjectileCameraPersistence
+
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -64,21 +67,17 @@ function ProjectileCamera.toggle(requestedSubMode)
     local isContinuous = (STATE.projectileWatching.continuouslyArmedUnitID == unitToWatchForToggle)
 
     if isFollowing then
-        -- following projectile in the air
-        -- Currently following: Toggling switches sub-mode or exits.
         if currentSubMode == requestedSubMode then
-            -- Toggling OFF while following. Stop following, exit continuous mode.
-            STATE.projectileWatching.continuouslyArmedUnitID = nil -- Explicitly turn off continuous
-            ProjectileCamera.returnToPreviousMode(false) -- Don't re-arm
+            ProjectileCamera.saveSettings(unitToWatchForToggle) -- Save on exit
+            STATE.projectileWatching.continuouslyArmedUnitID = nil
+            ProjectileCamera.returnToPreviousMode(false)
             return true
         else
-            -- Switching sub-mode while following
             return ProjectileCamera.switchCameraSubModes(requestedSubMode)
         end
     elseif isArmed then
-        -- waiting for first projectile
         if currentSubMode == requestedSubMode then
-            -- Armed but not following (waiting): Toggling turns OFF continuous mode.
+            ProjectileCamera.saveSettings(unitToWatchForToggle) -- Save on exit
             STATE.projectileWatching.continuouslyArmedUnitID = nil
             ProjectileCamera.disableProjectileArming()
             return true
@@ -86,28 +85,25 @@ function ProjectileCamera.toggle(requestedSubMode)
             return ProjectileCamera.switchCameraSubModes(requestedSubMode)
         end
     elseif isContinuous then
-        -- waiting for next projectile
-        -- Not following, not armed, but continuous was set: This means user wants to turn it OFF.
         if currentSubMode == requestedSubMode then
+            ProjectileCamera.saveSettings(unitToWatchForToggle) -- Save on exit
             STATE.projectileWatching.continuouslyArmedUnitID = nil
-            ProjectileCamera.disableProjectileArming() -- Ensure it's fully off
+            ProjectileCamera.disableProjectileArming()
             return true
         else
             return ProjectileCamera.switchCameraSubModes(requestedSubMode)
         end
     else
-        -- Not following, not armed, not continuous: This is the user wanting to turn ON continuous tracking.
-        if Util.isTurboBarCamDisabled() then
-            return false
-        end
-        if currentActualMode and not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then
-            return false
-        end
-        STATE.projectileWatching.continuouslyArmedUnitID = unitToWatchForToggle -- Turn ON continuous
+        if Util.isTurboBarCamDisabled() then return false end
+        if currentActualMode and not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then return false end
+
+        STATE.projectileWatching.continuouslyArmedUnitID = unitToWatchForToggle
         Log.debug("Projectile tracking: " .. requestedSubMode)
+        ProjectileCamera.loadSettings(unitToWatchForToggle) -- Load on entry
         return ProjectileCamera.armProjectileTracking(requestedSubMode, unitToWatchForToggle)
     end
 end
+
 
 --- Arms the system to watch for the next projectile from a unit.
 ---@param subMode string "follow" or "static"
@@ -119,8 +115,6 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
         return false
     end
 
-    -- Only store previous state if we are *not* currently armed or following.
-    -- This ensures we keep the original state when re-arming.
     if not STATE.projectileWatching.armed and STATE.tracking.mode ~= 'projectile_camera' then
         STATE.projectileWatching.previousMode = STATE.tracking.mode
         STATE.projectileWatching.previousCameraState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking")
@@ -137,7 +131,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
 
     STATE.projectileWatching.armed = true
     STATE.projectileWatching.watchedUnitID = unitID
-    STATE.projectileWatching.lastArmingTime = Spring.GetGameSeconds() -- Record arming time
+    STATE.projectileWatching.lastArmingTime = Spring.GetGameSeconds()
     STATE.projectileWatching.impactTimer = nil
     STATE.projectileWatching.impactPosition = nil
 
@@ -153,10 +147,8 @@ end
 --- Disarms the *current* cycle of projectile watching. Does not affect continuous state.
 function ProjectileCamera.disableProjectileArming()
     STATE.projectileWatching.armed = false
-    -- Keep watchedUnitID in case we re-arm.
     STATE.projectileWatching.impactTimer = nil
     STATE.projectileWatching.impactPosition = nil
-    -- Keep initialCamPos, previousMode, previousCameraState in case we re-arm.
 
     if STATE.tracking.projectile then
         STATE.tracking.projectile.selectedProjectileID = nil
@@ -186,11 +178,10 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
     local previouslyWatchedUnitID = STATE.projectileWatching.watchedUnitID
     local unitToReArm = STATE.projectileWatching.continuouslyArmedUnitID
 
-    ProjectileCamera.disableProjectileArming() -- Disarm current cycle
+    ProjectileCamera.disableProjectileArming()
 
     local canReArm = shouldReArm and unitToReArm and Spring.ValidUnitID(unitToReArm)
 
-    -- Return to previous mode if possible
     if prevMode and prevMode ~= 'projectile_camera' then
         if TrackingManager.startModeTransition(prevMode) then
             local targetForPrevMode = nil
@@ -204,18 +195,16 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
         else
             Log.warn("ProjectileCamera: Failed to start transition to previous mode: " .. prevMode .. ". Disabling tracking.")
             TrackingManager.disableTracking()
-            canReArm = false -- Can't re-arm if we failed to return.
+            canReArm = false
         end
     elseif STATE.tracking.mode == 'projectile_camera' then
-        -- If no valid previous mode (or it was itself), just disable.
         TrackingManager.disableTracking()
     end
 
-    -- If we need to re-arm (and can), do it now.
     if canReArm then
+        ProjectileCamera.loadSettings(unitToReArm) -- Load settings before re-arming
         ProjectileCamera.armProjectileTracking(STATE.projectileWatching.cameraMode, unitToReArm)
     else
-        -- If not re-arming, ensure continuous mode is off.
         STATE.projectileWatching.continuouslyArmedUnitID = nil
     end
 end
@@ -226,18 +215,18 @@ end
 
 --- Checks if armed and if new projectiles exist to activate 'projectile_camera' mode.
 function ProjectileCamera.checkAndActivate()
-    -- Handle impact timeout first
     if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
         local currentTime = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(currentTime, STATE.projectileWatching.impactTimer)
         if elapsed >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_TIMEOUT then
-            local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == STATE.projectileWatching.watchedUnitID and Spring.ValidUnitID(STATE.projectileWatching.watchedUnitID))
+            local unitID = STATE.projectileWatching.watchedUnitID
+            local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
+            if unitID and not reArm then ProjectileCamera.saveSettings(unitID) end -- Save before exit if not rearming
             ProjectileCamera.returnToPreviousMode(reArm)
             return true
         end
     end
 
-    -- Only proceed if armed and NOT already in projectile_camera mode
     if not STATE.projectileWatching.armed or STATE.tracking.mode == 'projectile_camera' then
         return false
     end
@@ -245,11 +234,10 @@ function ProjectileCamera.checkAndActivate()
     local unitID = STATE.projectileWatching.watchedUnitID
     if not unitID or not Spring.ValidUnitID(unitID) then
         ProjectileCamera.disableProjectileArming()
-        STATE.projectileWatching.continuouslyArmedUnitID = nil -- Unit gone, stop continuous.
+        STATE.projectileWatching.continuouslyArmedUnitID = nil
         return false
     end
 
-    -- Get *all* projectiles and filter for *new* ones.
     local allProjectiles = ProjectileTracker.getUnitProjectiles(unitID)
     local newProjectiles = {}
     for _, p in ipairs(allProjectiles) do
@@ -259,10 +247,9 @@ function ProjectileCamera.checkAndActivate()
     end
 
     if #newProjectiles == 0 then
-        return false -- No *new* projectiles found.
+        return false
     end
 
-    -- Found new projectiles! Activate 'projectile_camera' mode.
     if TrackingManager.startModeTransition('projectile_camera') then
         if TrackingManager.initializeTracking('projectile_camera', unitID) then
             STATE.tracking.projectile = STATE.tracking.projectile or {}
@@ -283,6 +270,7 @@ function ProjectileCamera.checkAndActivate()
     end
 end
 
+
 --- Updates the camera when 'projectile_camera' mode is active.
 function ProjectileCamera.update()
     if not ProjectileCamera.shouldUpdate() then
@@ -292,6 +280,7 @@ function ProjectileCamera.update()
     local unitID = STATE.tracking.unitID
     if not ProjectileCamera.validateUnit(unitID) then
         local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID)
+        if unitID and not reArm then ProjectileCamera.saveSettings(unitID) end -- Save before exit
         ProjectileCamera.returnToPreviousMode(reArm)
         return
     end
@@ -445,37 +434,54 @@ end
 
 function ProjectileCamera.calculateCameraPositionForProjectile(pPos, pVel, subMode, staticInitialCamPos)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+    local modeCfg = cfg[string.upper(subMode)]
+
     if subMode == "static" and staticInitialCamPos then
         return staticInitialCamPos
     else
+        local distance = modeCfg.DISTANCE
+        local height = modeCfg.HEIGHT
+
         local dirX, dirY, dirZ = pVel.x, pVel.y, pVel.z
         if pVel.speed and pVel.speed > 0.001 then
             dirX = pVel.x / pVel.speed
             dirY = pVel.y / pVel.speed
             dirZ = pVel.z / pVel.speed
+        else -- Fallback if velocity is zero
+            dirX, dirY, dirZ = 0, -1, 0
         end
+
         return {
-            x = pPos.x - (dirX * cfg.DISTANCE),
-            y = pPos.y - (dirY * cfg.DISTANCE) + cfg.HEIGHT,
-            z = pPos.z - (dirZ * cfg.DISTANCE)
+            x = pPos.x - (dirX * distance),
+            y = pPos.y - (dirY * distance) + height,
+            z = pPos.z - (dirZ * distance)
         }
     end
 end
 
+
 function ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+    local subMode = STATE.projectileWatching.cameraMode
+    local modeCfg = cfg[string.upper(subMode)]
+    local lookAhead = modeCfg.LOOK_AHEAD
+
     local dirX, dirY, dirZ = projectileVel.x, projectileVel.y, projectileVel.z
     if projectileVel.speed and projectileVel.speed > 0.001 then
         dirX = projectileVel.x / projectileVel.speed
         dirY = projectileVel.y / projectileVel.speed
         dirZ = projectileVel.z / projectileVel.speed
+    else -- Fallback if velocity is zero
+        dirX, dirY, dirZ = 0, 0, 1 -- Look slightly 'forward'
     end
+
     return {
-        x = projectilePos.x + (dirX * cfg.LOOK_AHEAD),
-        y = projectilePos.y + (dirY * cfg.LOOK_AHEAD),
-        z = projectilePos.z + (dirZ * cfg.LOOK_AHEAD)
+        x = projectilePos.x + (dirX * lookAhead),
+        y = projectilePos.y + (dirY * lookAhead),
+        z = projectilePos.z + (dirZ * lookAhead)
     }
 end
+
 
 function ProjectileCamera.resetSmoothedPositions()
     if STATE.tracking.projectile and STATE.tracking.projectile.smoothedPositions then
@@ -544,45 +550,125 @@ end
 -- Settings and Parameters
 --------------------------------------------------------------------------------
 
+--- Resets projectile camera settings to default values.
+function ProjectileCamera.resetToDefaults()
+    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+    cfg.FOLLOW.DISTANCE = cfg.DEFAULT_FOLLOW.DISTANCE
+    cfg.FOLLOW.HEIGHT = cfg.DEFAULT_FOLLOW.HEIGHT
+    cfg.FOLLOW.LOOK_AHEAD = cfg.DEFAULT_FOLLOW.LOOK_AHEAD
+    cfg.STATIC.DISTANCE = cfg.DEFAULT_STATIC.DISTANCE -- Though not used by calc, reset for consistency
+    cfg.STATIC.HEIGHT = cfg.DEFAULT_STATIC.HEIGHT   -- Though not used by calc, reset for consistency
+    cfg.STATIC.LOOK_AHEAD = cfg.DEFAULT_STATIC.LOOK_AHEAD
+    Log.trace("ProjectileCamera: Restored settings to defaults.")
+end
+
+--- Saves current projectile camera settings for the given unit ID's type.
+---@param unitID number The unit ID.
+function ProjectileCamera.saveSettings(unitID)
+    if not unitID or not Spring.ValidUnitID(unitID) then
+        Log.trace("ProjectileCamera: Cannot save settings, invalid unitID.")
+        return
+    end
+
+    local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
+    if not unitDef then
+        Log.warn("ProjectileCamera: Cannot save settings, failed to get unitDef.")
+        return
+    end
+    local unitName = unitDef.name
+    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+
+    local settingsToSave = {
+        FOLLOW = {
+            DISTANCE = cfg.FOLLOW.DISTANCE,
+            HEIGHT = cfg.FOLLOW.HEIGHT,
+            LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD,
+        },
+        STATIC = {
+            DISTANCE = cfg.STATIC.DISTANCE,
+            HEIGHT = cfg.STATIC.HEIGHT,
+            LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD,
+        }
+        -- cameraMode is a runtime state, not saved per unit type here.
+        -- It's restored based on last use or default when arming.
+    }
+
+    ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
+end
+
+--- Loads projectile camera settings for the given unit ID's type.
+---@param unitID number The unit ID.
+function ProjectileCamera.loadSettings(unitID)
+    if not unitID or not Spring.ValidUnitID(unitID) then
+        Log.trace("ProjectileCamera: Cannot load settings, invalid unitID.")
+        ProjectileCamera.resetToDefaults() -- Reset if unit is invalid
+        return
+    end
+
+    local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
+    if not unitDef then
+        Log.warn("ProjectileCamera: Cannot load settings, failed to get unitDef.")
+        ProjectileCamera.resetToDefaults() -- Reset if no unitdef
+        return
+    end
+    local unitName = unitDef.name
+    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+
+    local loadedSettings = ProjectileCameraPersistence.loadSettings(unitName)
+
+    if loadedSettings then
+        Log.trace("ProjectileCamera: Loading saved settings for " .. unitName)
+        cfg.FOLLOW.DISTANCE = loadedSettings.FOLLOW and loadedSettings.FOLLOW.DISTANCE or cfg.DEFAULT_FOLLOW.DISTANCE
+        cfg.FOLLOW.HEIGHT = loadedSettings.FOLLOW and loadedSettings.FOLLOW.HEIGHT or cfg.DEFAULT_FOLLOW.HEIGHT
+        cfg.FOLLOW.LOOK_AHEAD = loadedSettings.FOLLOW and loadedSettings.FOLLOW.LOOK_AHEAD or cfg.DEFAULT_FOLLOW.LOOK_AHEAD
+        cfg.STATIC.DISTANCE = loadedSettings.STATIC and loadedSettings.STATIC.DISTANCE or cfg.DEFAULT_STATIC.DISTANCE
+        cfg.STATIC.HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.HEIGHT or cfg.DEFAULT_STATIC.HEIGHT
+        cfg.STATIC.LOOK_AHEAD = loadedSettings.STATIC and loadedSettings.STATIC.LOOK_AHEAD or cfg.DEFAULT_STATIC.LOOK_AHEAD
+    else
+        Log.trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
+        ProjectileCamera.resetToDefaults()
+    end
+end
+
+local function getProjectileParamPrefixes()
+    return {
+        FOLLOW = "FOLLOW.",
+        STATIC = "STATIC."
+    }
+end
+
+--- Adjusts projectile camera parameters.
+---@param params string Parameters to adjust.
 function ProjectileCamera.adjustParams(params)
     if Util.isTurboBarCamDisabled() or Util.isModeDisabled('projectile_camera') then
         return
     end
-    Util.adjustParams(params, "PROJECTILE_CAMERA", function()
-        local defaults = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE = defaults.DEFAULT_DISTANCE
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT = defaults.DEFAULT_HEIGHT
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD = defaults.DEFAULT_LOOK_AHEAD
-    end)
-end
 
-function ProjectileCamera.saveSettings(identifier)
-    STATE.tracking.offsets.projectile_camera = STATE.tracking.offsets.projectile_camera or {}
-    STATE.tracking.offsets.projectile_camera[identifier] = {
-        distance = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE,
-        height = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT,
-        lookAhead = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD,
-        cameraMode = STATE.projectileWatching.cameraMode
-    }
-end
+    -- Define the reset function first
+    local function resetAndSave()
+        ProjectileCamera.resetToDefaults()
+        if STATE.tracking.unitID then
+            ProjectileCamera.saveSettings(STATE.tracking.unitID)
+        end
+        Log.info("Projectile Camera settings reset to defaults and saved.")
+    end
 
-function ProjectileCamera.loadSettings(identifier)
-    STATE.tracking.offsets.projectile_camera = STATE.tracking.offsets.projectile_camera or {}
-    local settings = STATE.tracking.offsets.projectile_camera[identifier]
-    local defaults = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
+    -- Determine the current submode (Follow or Static).
+    -- Use 'follow' as a fallback if the state isn't set.
+    local currentSubmode = STATE.projectileWatching.cameraMode or "follow"
+    local currentSubmodeUpper = string.upper(currentSubmode)
 
-    if settings then
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE = settings.distance or defaults.DEFAULT_DISTANCE
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT = settings.height or defaults.DEFAULT_HEIGHT
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD = settings.lookAhead or defaults.DEFAULT_LOOK_AHEAD
-        STATE.projectileWatching.cameraMode = settings.cameraMode or defaults.DEFAULT_CAMERA_MODE
-    else
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DISTANCE = defaults.DEFAULT_DISTANCE
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.HEIGHT = defaults.DEFAULT_HEIGHT
-        CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.LOOK_AHEAD = defaults.DEFAULT_LOOK_AHEAD
-        STATE.projectileWatching.cameraMode = defaults.DEFAULT_CAMERA_MODE
+    Log.trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
+
+    -- Call the generic Util.adjustParams with submode filtering
+    Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
+
+    -- Save settings after adjustment
+    if STATE.tracking.unitID then
+        ProjectileCamera.saveSettings(STATE.tracking.unitID)
     end
 end
+
 
 function Util.isUnitCentricMode(mode)
     return mode == 'fps' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
