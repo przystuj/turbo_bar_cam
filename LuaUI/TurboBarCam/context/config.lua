@@ -193,9 +193,9 @@ if not WG.TurboBarCam.CONFIG then
                 },
 
                 DEFAULT_FOLLOW = {
-                    DISTANCE = 800,
+                    DISTANCE = 300,
                     HEIGHT = 100,
-                    LOOK_AHEAD = 680,
+                    LOOK_AHEAD = 200,
                 },
 
                 DEFAULT_STATIC = {

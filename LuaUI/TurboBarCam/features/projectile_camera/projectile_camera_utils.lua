@@ -17,6 +17,13 @@ local TrackingManager = CommonModules.TrackingManager
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
 
+-- Logging Helper
+local function formatVec(v)
+    if not v then
+        return "nil"
+    end
+    return string.format("{x=%.1f, y=%.1f, z=%.1f}", v.x or 0, v.y or 0, v.z or 0)
+end
 --------------------------------------------------------------------------------
 -- Camera Calculation and Smoothing Helpers
 --------------------------------------------------------------------------------
@@ -33,33 +40,95 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     local distance = modeCfg.DISTANCE
     local height = modeCfg.HEIGHT
 
-    local dir = CameraCommons.normalizeVector(pVel)
-    if dir.x == 0 and dir.y == 0 and dir.z == 0 then
-        dir = { x = 0, y = -0.5, z = -0.5 }
-        dir = CameraCommons.normalizeVector(dir)
+    local projectileDir = CameraCommons.normalizeVector(pVel)
+    if CameraCommons.vectorMagnitudeSq(projectileDir) < 0.001 then
+        projectileDir = { x = 0, y = -0.5, z = -0.5 } -- Default fallback
+        projectileDir = CameraCommons.normalizeVector(projectileDir)
     end
 
-    -- Calculate local up vector
-    local worldUp = { x = 0, y = 1, z = 0 }
-    local right = CameraCommons.crossProduct(dir, worldUp)
+    local camX, camY, camZ
 
-    -- Handle cases where projectile direction is parallel to world up (e.g., straight up or down)
-    if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
-        local worldFwdTemp = { x = 0, y = 0, z = 1 }
-        if math.abs(dir.y) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end
-        right = CameraCommons.crossProduct(dir, worldFwdTemp)
+    if STATE.projectileWatching.isHighArc then
+        -- Calculate horizontal direction
+        local projectileDirXZ = { x = projectileDir.x, y = 0, z = projectileDir.z }
+        local magXZ = CameraCommons.vectorMagnitude(projectileDirXZ)
+
+        if magXZ < 0.05 then
+            -- Projectile is moving (almost) vertically.
+            -- Pull back opposite to the camera's current XZ direction.
+            local awayDirXZ
+            if STATE.tracking.lastCamDir and (STATE.tracking.lastCamDir.x ~= 0 or STATE.tracking.lastCamDir.z ~= 0) then
+                -- Use inverted XZ component of camera's forward vector.
+                awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.tracking.lastCamDir.x, y = 0, z = -STATE.tracking.lastCamDir.z })
+                Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using inverted CamDir XZ: %s"):format(formatVec(awayDirXZ)))
+            else
+                awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
+                Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using Fallback XZ: %s"):format(formatVec(awayDirXZ)))
+            end
+            -- Apply distance along 'awayDirXZ' and height along World Y
+            camX = pPos.x + awayDirXZ.x * distance
+            camZ = pPos.z + awayDirXZ.z * distance
+            camY = pPos.y + height
+        else
+            -- Projectile has horizontal movement. Pull back opposite to it.
+            projectileDirXZ = CameraCommons.normalizeVector(projectileDirXZ)
+            Log.staggeredLog(("[ProjectileDebug] HighArc-NonVertical: Using ProjDir XZ: %s"):format(formatVec(projectileDirXZ)))
+            -- Apply distance opposite to 'projectileDirXZ' and height along World Y
+            camX = pPos.x - projectileDirXZ.x * distance
+            camZ = pPos.z - projectileDirXZ.z * distance
+            camY = pPos.y + height
+        end
+    else
+        local worldUp = { x = 0, y = 1, z = 0 }
+        local right = CameraCommons.crossProduct(projectileDir, worldUp)
+        if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+            local worldFwdTemp = { x = 0, y = 0, z = 1 }
+            if math.abs(projectileDir.y) > 0.99 then
+                worldFwdTemp = { x = 1, y = 0, z = 0 }
+            end
+            right = CameraCommons.crossProduct(projectileDir, worldFwdTemp)
+            if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+                right = { x = 1, y = 0, z = 0 }
+            end
+        end
+        right = CameraCommons.normalizeVector(right)
+        local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, projectileDir))
+
+        -- Apply Y-constraint to localUp
+        if localUp.y < 0 then
+            localUp.y = 0
+            if CameraCommons.vectorMagnitudeSq(localUp) < 0.001 then
+                localUp = { x = 0, y = 1, z = 0 } -- Fallback to world up
+            else
+                localUp = CameraCommons.normalizeVector(localUp)
+            end
+        end
+        local upVectorForHeight = localUp
+
+        -- Apply distance along projectile direction
+        camX = pPos.x - projectileDir.x * distance
+        camY = pPos.y - projectileDir.y * distance
+        camZ = pPos.z - projectileDir.z * distance
+        -- Apply height along (constrained) local up
+        camX = camX + upVectorForHeight.x * height
+        camY = camY + upVectorForHeight.y * height
+        camZ = camZ + upVectorForHeight.z * height
+        -- *** END ORIGINAL LOW ARC LOGIC ***
     end
 
-    right = CameraCommons.normalizeVector(right)
-    local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, dir))
+    local result = { x = camX, y = camY, z = camZ }
 
-    return {
-        x = pPos.x - (dir.x * distance) + (localUp.x * height),
-        y = pPos.y - (dir.y * distance) + (localUp.y * height),
-        z = pPos.z - (dir.z * distance) + (localUp.z * height)
-    }
+    --Log.staggeredLog(("[ProjectileDebug] Utils.CalcCamPos Final. Mode: %s, HighArc: %s, pPos: %s, pVel: %s, ProjDir: %s, Dist: %.1f, H: %.1f, Result: %s"):format(
+    --        subMode, tostring(STATE.projectileWatching.isHighArc), formatVec(pPos), formatVec(pVel), formatVec(projectileDir), distance, height, formatVec(result)
+    --))
+
+    return result
 end
 
+-- =============================================================================
+-- Keep all other functions in projectile_camera_utils.lua as they are.
+-- Only replace the `calculateCameraPositionForProjectile` function.
+-- =============================================================================
 
 function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
@@ -67,7 +136,7 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
     local fwd = CameraCommons.normalizeVector(projectileVel)
-    if fwd.x == 0 and fwd.y == 0 and fwd.z == 0 then
+    if CameraCommons.vectorMagnitudeSq(fwd) < 0.001 then
         fwd = { x = 0, y = 0, z = 1 }
     end
 
@@ -92,8 +161,13 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
         local right = CameraCommons.crossProduct(fwd, worldUp)
         if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
             local worldFwdTemp = { x = 0, y = 0, z = 1 }
-            if math.abs(fwd.z) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end
+            if math.abs(fwd.z) > 0.99 then
+                worldFwdTemp = { x = 1, y = 0, z = 0 }
+            end
             right = CameraCommons.crossProduct(fwd, worldFwdTemp)
+            if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+                right = { x = 1, y = 0, z = 0 }
+            end
         end
         right = CameraCommons.normalizeVector(right)
         local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, fwd))
@@ -106,7 +180,6 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
     end
     return baseTarget
 end
-
 
 function ProjectileCameraUtils.resetSmoothedPositions()
     if STATE.tracking.projectile and STATE.tracking.projectile.smoothedPositions then
@@ -135,6 +208,10 @@ function ProjectileCameraUtils.calculateSmoothedCameraPosition(idealCamPos)
         return idealCamPos
     end
 
+    if not STATE.tracking.projectile.smoothedPositions.camPos then
+        STATE.tracking.projectile.smoothedPositions.camPos = Util.deepCopy(idealCamPos)
+    end
+
     return {
         x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.x, idealCamPos.x, smoothFactor),
         y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.y, idealCamPos.y, smoothFactor),
@@ -145,6 +222,11 @@ end
 function ProjectileCameraUtils.calculateSmoothedTargetPosition(idealTargetPos)
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
     local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
+
+    if not STATE.tracking.projectile.smoothedPositions.targetPos then
+        STATE.tracking.projectile.smoothedPositions.targetPos = Util.deepCopy(idealTargetPos)
+    end
+
     return {
         x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.x, idealTargetPos.x, smoothFactor),
         y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.y, idealTargetPos.y, smoothFactor),
@@ -177,10 +259,6 @@ function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, con
     TrackingManager.updateTrackingState(directionState)
 end
 
---------------------------------------------------------------------------------
--- Settings and Parameters
---------------------------------------------------------------------------------
-
 function ProjectileCameraUtils.resetToDefaults()
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     cfg.FOLLOW.DISTANCE = cfg.DEFAULT_FOLLOW.DISTANCE
@@ -198,7 +276,6 @@ function ProjectileCameraUtils.saveSettings(unitID)
         Log.trace("ProjectileCamera: Cannot save settings, invalid unitID.")
         return
     end
-
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
     if not unitDef then
         Log.warn("ProjectileCamera: Cannot save settings, failed to get unitDef.")
@@ -206,18 +283,9 @@ function ProjectileCameraUtils.saveSettings(unitID)
     end
     local unitName = unitDef.name
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-
     local settingsToSave = {
-        FOLLOW = {
-            DISTANCE = cfg.FOLLOW.DISTANCE,
-            HEIGHT = cfg.FOLLOW.HEIGHT,
-            LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD,
-        },
-        STATIC = {
-            LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD,
-            OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT,
-            OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE,
-        },
+        FOLLOW = { DISTANCE = cfg.FOLLOW.DISTANCE, HEIGHT = cfg.FOLLOW.HEIGHT, LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD, },
+        STATIC = { LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD, OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT, OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE, },
         DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE)
     }
     ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
@@ -229,7 +297,6 @@ function ProjectileCameraUtils.loadSettings(unitID)
         ProjectileCameraUtils.resetToDefaults()
         return
     end
-
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
     if not unitDef then
         Log.warn("ProjectileCamera: Cannot load settings, failed to get unitDef.")
@@ -239,7 +306,6 @@ function ProjectileCameraUtils.loadSettings(unitID)
     local unitName = unitDef.name
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local loadedSettings = ProjectileCameraPersistence.loadSettings(unitName)
-
     if loadedSettings then
         Log.trace("ProjectileCamera: Loading saved settings for " .. unitName)
         cfg.FOLLOW.DISTANCE = loadedSettings.FOLLOW and loadedSettings.FOLLOW.DISTANCE or cfg.DEFAULT_FOLLOW.DISTANCE
@@ -256,31 +322,23 @@ function ProjectileCameraUtils.loadSettings(unitID)
 end
 
 function ProjectileCameraUtils.adjustParams(params)
-    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'projectile_camera' then -- More direct check
+    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'projectile_camera' then
         return
     end
-
     local function getProjectileParamPrefixes()
-        return {
-            FOLLOW = "FOLLOW.",
-            STATIC = "STATIC."
-        }
+        return { FOLLOW = "FOLLOW.", STATIC = "STATIC." }
     end
-
     local function resetAndSave()
         ProjectileCameraUtils.resetToDefaults()
-        if STATE.tracking.unitID then -- Save for current unit if one is tracked
+        if STATE.tracking.unitID then
             ProjectileCameraUtils.saveSettings(STATE.tracking.unitID)
         end
         Log.info("Projectile Camera settings reset to defaults" .. (STATE.tracking.unitID and " and saved for current unit type." or "."))
     end
-
     local currentSubmode = STATE.projectileWatching.cameraMode or "follow"
     local currentSubmodeUpper = string.upper(currentSubmode)
-
     Log.trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
     Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
-
     if STATE.tracking.unitID then
         ProjectileCameraUtils.saveSettings(STATE.tracking.unitID)
     end

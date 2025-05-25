@@ -70,6 +70,15 @@ function Log.debug(...)
     end
 end
 
+function Log.staggeredLog(...)
+    if math.random() >= 0.05 then
+        return
+    end
+    if CONFIG.DEBUG.LOG_LEVEL == "TRACE" or CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
+        Log.info("[DEBUG] " .. formatMessage(...))
+    end
+end
+
 function Log.info(...)
     Spring.Echo("[TurboBarCam] " .. formatMessage(...))
 end

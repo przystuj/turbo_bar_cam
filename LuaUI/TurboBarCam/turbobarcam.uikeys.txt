@@ -119,6 +119,8 @@ bind		Ctrl+numpad9	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITI
 bind		Ctrl+numpad7	turbobarcam_group_tracking_adjust_params set;SMOOTHING.POSITION,0.03;SMOOTHING.STABLE_POSITION,0.03;SMOOTHING.ROTATION,0.03;SMOOTHING.STABLE_ROTATION,0.03
 
 // Projectile tracking
+bind		Ctrl+Delete     turbobarcam_projectile_adjust_params reset
+bind		Ctrl+Insert	    turbobarcam_projectile_adjust_params reset
 bind		Delete      	turbobarcam_projectile_camera_follow
 bind		Insert	        turbobarcam_projectile_camera_track
 bind		numpad8         turbobarcam_projectile_adjust_params add;STATIC.OFFSET_HEIGHT,20;FOLLOW.DISTANCE,-20
