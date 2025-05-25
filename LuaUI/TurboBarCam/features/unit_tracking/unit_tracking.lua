@@ -90,7 +90,7 @@ function UnitTrackingCamera.update(dt)
         local currentVelocity, _ = CameraManager.getCurrentVelocity() -- Get live camera velocity
         local profile = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE
 
-        local newPos = TransitionUtil.smoothDecelerationTransition(camPos, dt, transitionProgress, currentVelocity, profile)
+        local newPos = TransitionUtil.decelerationTransition(camPos, dt, transitionProgress, currentVelocity, profile)
 
         if newPos then
             camStatePatch.px = newPos.px

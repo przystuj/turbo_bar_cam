@@ -600,7 +600,8 @@ function ProjectileCamera.calculateCameraPositionForProjectile(pPos, pVel, subMo
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
 
     if subMode == "static" then
-        return staticInitialCamPos or Util.deepCopy(pPos)
+        local camState = CameraManager.getCameraState("ProjectileCamera.calculateCameraPositionForProjectile.StaticCurrent")
+        return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
     local modeCfg = cfg.FOLLOW
