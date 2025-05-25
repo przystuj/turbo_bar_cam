@@ -181,21 +181,28 @@ if not WG.TurboBarCam.CONFIG then
                     LOOK_AHEAD = 680,
                 },
 
-                STATIC = {
-                    OFFSET_SIDE = 0,
-                    OFFSET_HEIGHT = 0,
-                    LOOK_AHEAD = 500,
-                },
-
-                IMPACT_VIEW = { -- Optional: Specific settings for the settled impact view
-                    DISTANCE_SCALE = 0.5, -- e.g., half of follow distance
-                    HEIGHT_SCALE = 0.75, -- e.g., 75% of follow height
-                },
-
                 DEFAULT_FOLLOW = {
                     DISTANCE = 300,
                     HEIGHT = 100,
                     LOOK_AHEAD = 200,
+                },
+
+                FOLLOW_HIGH = {
+                    DISTANCE = 100,
+                    HEIGHT = 400,
+                    LOOK_AHEAD = -200,
+                },
+
+                DEFAULT_FOLLOW_HIGH = {
+                    DISTANCE = 100,
+                    HEIGHT = 400,
+                    LOOK_AHEAD = -200,
+                },
+
+                STATIC = {
+                    OFFSET_SIDE = 0,
+                    OFFSET_HEIGHT = 0,
+                    LOOK_AHEAD = 500,
                 },
 
                 DEFAULT_STATIC = {

@@ -511,27 +511,6 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     end
 end
 
-function ProjectileCamera.calculateSettledImpactCameraPosition(impactWorldPos, impactWorldVel)
-    local camPosForImpact
-    local impactViewCfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_VIEW or {}
-    local followCfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.FOLLOW
-    local pseudoProjectileVel = { x = 0, y = -0.5, z = -0.5, speed = 1 }
-    if impactWorldVel and CameraCommons.vectorMagnitude(impactWorldVel) > 0.1 then
-        pseudoProjectileVel = impactWorldVel
-    end
-    pseudoProjectileVel = CameraCommons.normalizeVector(pseudoProjectileVel)
-    local baseDistance = followCfg.DISTANCE
-    local baseHeight = followCfg.HEIGHT
-    local viewDistance = baseDistance * (impactViewCfg.DISTANCE_SCALE or 0.5)
-    local viewHeightOffset = baseHeight * (impactViewCfg.HEIGHT_SCALE or 0.75)
-    camPosForImpact = {
-        x = impactWorldPos.x - pseudoProjectileVel.x * viewDistance,
-        y = impactWorldPos.y - pseudoProjectileVel.y * viewDistance + viewHeightOffset,
-        z = impactWorldPos.z - pseudoProjectileVel.z * viewDistance
-    }
-    return camPosForImpact
-end
-
 function ProjectileCamera.focusOnImpactPosition()
     if not STATE.projectileWatching.impactPosition or not STATE.projectileWatching.impactPosition.pos then
         Log.warn("ProjectileCamera: focusOnImpactPosition called without valid impactPosition.")
