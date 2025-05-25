@@ -20,7 +20,7 @@ local TrackingManager = {}
 ---@param target any The target to track (unitID number or point table {x,y,z})
 ---@param targetType string|nil Target type (optional, will be auto-detected if nil)
 ---@return boolean success Whether tracking was initialized successfully
-function TrackingManager.initializeTracking(mode, target, targetType)
+function TrackingManager.initializeMode(mode, target, targetType, automaticMode)
     if Util.isTurboBarCamDisabled() then
         return false
     end
@@ -46,13 +46,17 @@ function TrackingManager.initializeTracking(mode, target, targetType)
     if STATE.tracking.mode == mode and validType == STATE.tracking.targetType and not STATE.tracking.isModeTransitionInProgress then
         if validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID then
             SettingsManager.saveModeSettings(mode, STATE.tracking.unitID)
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
             return false
         elseif validType == STATE.TARGET_TYPES.POINT and Util.arePointsEqual(validTarget, STATE.tracking.targetPoint) then
             SettingsManager.saveModeSettings(mode, "point")
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
             return false
         end
+    end
+    -- clear current mode before enabling new one
+    if STATE.tracking.mode ~= mode and not automaticMode then
+        TrackingManager.disableMode()
     end
 
     TrackingManager.startModeTransition(mode)
@@ -64,7 +68,8 @@ function TrackingManager.initializeTracking(mode, target, targetType)
         STATE.tracking.targetPoint = { x = x, y = y, z = z }
         STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
         SettingsManager.loadModeSettings(mode, validTarget)
-    else -- POINT
+    else
+        -- POINT
         STATE.tracking.targetPoint = validTarget
         STATE.tracking.lastTargetPoint = Util.deepCopy(validTarget)
         STATE.tracking.unitID = nil
@@ -94,7 +99,7 @@ function TrackingManager.updateTrackingState(camState)
 end
 
 --- Disables tracking and resets tracking state
-function TrackingManager.disableTracking()
+function TrackingManager.disableMode()
     if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
         SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
     elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
@@ -107,52 +112,34 @@ function TrackingManager.disableTracking()
     STATE.tracking.targetPoint = nil
     STATE.tracking.lastTargetPoint = nil
 
-    if STATE.tracking.mode == 'projectile_camera' or (STATE.projectileWatching and STATE.projectileWatching.armed) then -- Check 'projectile_camera'
-        if STATE.projectileWatching then
-            STATE.projectileWatching.armed = false
-            STATE.projectileWatching.watchedUnitID = nil
-            STATE.projectileWatching.impactTimer = nil
-            STATE.projectileWatching.impactPosition = nil
-            STATE.projectileWatching.initialCamPos = nil
-            STATE.projectileWatching.previousMode = nil
-            STATE.projectileWatching.previousCameraState = nil
-            STATE.projectileWatching.continuouslyArmedUnitID = nil
-            STATE.projectileWatching.lastArmingTime = 0
-        end
-        if STATE.tracking.projectile then
-            STATE.tracking.projectile.selectedProjectileID = nil
-            STATE.tracking.projectile.currentProjectileID = nil
-            STATE.tracking.projectile.smoothedPositions = nil
-        end
-    end
+    STATE.tracking.projectileWatching = {}
+    STATE.tracking.projectile = {}
 
-    if STATE.tracking.mode == 'overview' then
-        STATE.overview.moveButtonPressed = false
-        STATE.overview.isRotationModeActive = false
-        STATE.overview.rotationCenter = nil
-        STATE.overview.rotationDistance = nil
-        STATE.overview.rotationAngle = nil
-        STATE.overview.lastTargetPoint = nil
-        STATE.overview.targetPoint = nil
-        STATE.overview.targetCamPos = nil
-        STATE.overview.fixedCamPos = nil
-        STATE.overview.targetRx = nil
-        STATE.overview.targetRy = nil
-        STATE.overview.heightLevel = nil
-        STATE.overview.targetHeight = nil
-        STATE.overview.currentTransitionFactor = nil
-        STATE.overview.lastTransitionDistance = nil
-        STATE.overview.initialMoveDistance = nil
-        STATE.overview.stuckFrameCount = 0
-        STATE.overview.userLookedAround = false
-        STATE.overview.pendingRotationMode = nil
-        STATE.overview.pendingRotationCenter = nil
-        STATE.overview.pendingRotationDistance = nil
-        STATE.overview.pendingRotationAngle = nil
-        STATE.overview.enableRotationAfterToggle = nil
-        STATE.overview.movementVelocity = nil
-        STATE.overview.velocityDecay = nil
-    end
+    STATE.overview.moveButtonPressed = false
+    STATE.overview.isRotationModeActive = false
+    STATE.overview.rotationCenter = nil
+    STATE.overview.rotationDistance = nil
+    STATE.overview.rotationAngle = nil
+    STATE.overview.lastTargetPoint = nil
+    STATE.overview.targetPoint = nil
+    STATE.overview.targetCamPos = nil
+    STATE.overview.fixedCamPos = nil
+    STATE.overview.targetRx = nil
+    STATE.overview.targetRy = nil
+    STATE.overview.heightLevel = nil
+    STATE.overview.targetHeight = nil
+    STATE.overview.currentTransitionFactor = nil
+    STATE.overview.lastTransitionDistance = nil
+    STATE.overview.initialMoveDistance = nil
+    STATE.overview.stuckFrameCount = 0
+    STATE.overview.userLookedAround = false
+    STATE.overview.pendingRotationMode = nil
+    STATE.overview.pendingRotationCenter = nil
+    STATE.overview.pendingRotationDistance = nil
+    STATE.overview.pendingRotationAngle = nil
+    STATE.overview.enableRotationAfterToggle = nil
+    STATE.overview.movementVelocity = nil
+    STATE.overview.velocityDecay = nil
 
     STATE.tracking.unitID = nil
     STATE.tracking.fps.targetUnitID = nil
@@ -208,23 +195,6 @@ function TrackingManager.startModeTransition(newMode)
         return false
     end
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
-
-    if STATE.tracking.mode == 'projectile_camera' then -- Check 'projectile_camera'
-        if STATE.projectileWatching then
-            STATE.projectileWatching.armed = false
-            STATE.projectileWatching.watchedUnitID = nil
-            STATE.projectileWatching.impactTimer = nil
-            STATE.projectileWatching.impactPosition = nil
-            STATE.projectileWatching.initialCamPos = nil
-            STATE.projectileWatching.previousMode = nil
-            STATE.projectileWatching.previousCameraState = nil
-        end
-        if STATE.tracking.projectile then
-            STATE.tracking.projectile.selectedProjectileID = nil
-            STATE.tracking.projectile.currentProjectileID = nil
-            STATE.tracking.projectile.smoothedPositions = nil
-        end
-    end
 
     STATE.tracking.fps.prevMode = STATE.tracking.mode
     STATE.tracking.mode = newMode

@@ -43,7 +43,7 @@ function OrbitingCamera.toggle(unitID)
         else
             Log.debug("[ORBIT] No unit selected for Orbiting view")
             if pointTrackingEnabled then
-                TrackingManager.disableTracking()
+                TrackingManager.disableMode()
             end
             return
         end
@@ -52,18 +52,18 @@ function OrbitingCamera.toggle(unitID)
     if not Spring.ValidUnitID(unitID) then
         Log.trace("[ORBIT] Invalid unit ID for Orbiting view")
         if pointTrackingEnabled then
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
         end
         return
     end
 
     if STATE.tracking.mode == 'orbit' and STATE.tracking.unitID == unitID and STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         Log.trace("[ORBIT] Orbiting camera detached")
         return
     end
 
-    if TrackingManager.initializeTracking('orbit', unitID, STATE.TARGET_TYPES.UNIT) then
+    if TrackingManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT) then
         local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
         local camState = CameraManager.getCameraState("OrbitingCamera.toggle")
         STATE.tracking.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
@@ -87,7 +87,7 @@ function OrbitingCamera.togglePointOrbit(point)
         end
     end
 
-    if TrackingManager.initializeTracking('orbit', point, STATE.TARGET_TYPES.POINT) then
+    if TrackingManager.initializeMode('orbit', point, STATE.TARGET_TYPES.POINT) then
         local camState = CameraManager.getCameraState("OrbitingCamera.togglePointOrbit")
         STATE.tracking.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
         STATE.tracking.orbit.isPaused = false -- Ensure not paused on new toggle
@@ -107,7 +107,7 @@ function OrbitingCamera.update(dt)
 
     local targetPos = OrbitCameraUtils.getTargetPosition()
     if not targetPos then
-        TrackingManager.disableTracking() -- Target lost (e.g. unit destroyed)
+        TrackingManager.disableMode() -- Target lost (e.g. unit destroyed)
         Log.debug("[ORBIT] Target lost, disabling orbit.")
         return
     end
@@ -231,7 +231,7 @@ function OrbitingCamera.loadOrbit(orbitId)
                 Log.info("[ORBIT] Using selected UnitID: " .. targetToUse .. " as fallback.")
             else
                 Log.warn("[ORBIT] No valid saved unit and no unit selected. Cannot load orbit.")
-                TrackingManager.disableTracking()
+                TrackingManager.disableMode()
                 return
             end
         end
@@ -241,22 +241,22 @@ function OrbitingCamera.loadOrbit(orbitId)
             Log.info(string.format("[ORBIT] Loading orbit for saved Point: (%.1f, %.1f, %.1f)", targetToUse.x, targetToUse.y, targetToUse.z))
         else
             Log.warn("[ORBIT] Saved target type is POINT, but no targetPoint data found. Cannot load orbit.")
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
             return
         end
     else
         Log.error("[ORBIT] Unknown target type in loaded data: " .. (targetTypeToUse or "nil"))
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         return
     end
 
     -- Stop any current camera mode before starting the new loaded orbit
     if STATE.tracking.mode then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
     end
 
     -- Initialize tracking with the determined target
-    if TrackingManager.initializeTracking('orbit', targetToUse, targetTypeToUse) then
+    if TrackingManager.initializeMode('orbit', targetToUse, targetTypeToUse) then
         -- Crucially, set the loaded angle *after* initializeTracking
         STATE.tracking.orbit.angle = loadedData.angle
         -- Set paused state from loaded data

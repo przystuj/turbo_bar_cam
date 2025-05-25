@@ -198,7 +198,7 @@ function DollyCam.toggleNavigation(noCam)
 
     -- Stop tracking if active
     if STATE.tracking.mode then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
     end
 
     return DollyCamNavigator.startNavigation(noCam == "true" or false)

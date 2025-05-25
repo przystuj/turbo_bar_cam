@@ -70,7 +70,7 @@ function FPSCamera.toggle()
         STATE.tracking.fps.combatModeEnabled = false
         STATE.tracking.fps.forcedWeaponNumber = nil
 
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         Log.trace("FPS camera detached")
 
         -- Refresh units command bar to remove custom command
@@ -82,7 +82,7 @@ function FPSCamera.toggle()
     end
 
     -- Initialize the FPS camera
-    if TrackingManager.initializeTracking('fps', unitID) then
+    if TrackingManager.initializeMode('fps', unitID) then
         -- Clear any existing fixed point tracking when starting a new FPS camera
         STATE.tracking.fps.fixedPoint = nil
         STATE.tracking.fps.targetUnitID = nil

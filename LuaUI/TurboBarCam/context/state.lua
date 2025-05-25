@@ -28,24 +28,6 @@ if not WG.TurboBarCam.STATE then
             currentAnchorIndex = nil
         },
 
-        projectileWatching = {
-            armed = false,
-            watchedUnitID = nil,
-            continuouslyArmedUnitID = nil,
-            lastArmingTime = 0,
-            previousMode = nil,
-            previousCameraState = nil,
-            impactTimer = nil, -- Timer for how long to stay on impact *after* deceleration
-            impactPosition = nil, -- {pos = {x,y,z}, vel = {x,y,z}}
-            cameraMode = "follow",
-            initialCamPos = nil,
-
-            -- New states for impact deceleration
-            isImpactDecelerating = false, -- True if currently in the impact deceleration phase
-            impactDecelerationStartTime = nil, -- Timer for the start of impact deceleration
-            initialImpactVelocity = nil         -- Camera velocity captured at the start of impact deceleration {x,y,z}
-        },
-
         -- Camera tracking
         tracking = {
             mode = nil,
@@ -141,10 +123,28 @@ if not WG.TurboBarCam.STATE then
             },
 
             projectile = {
+                selectedProjectileID = nil,
                 currentProjectileID = nil,
                 lastSwitchTime = nil,
                 isWatchingForProjectiles = false,
                 smoothedPositions = nil, -- Will be { camPos = {x,y,z}, targetPos = {x,y,z} }
+            },
+
+            projectileWatching = {
+                armed = false,
+                watchedUnitID = nil,
+                continuouslyArmedUnitID = nil,
+                lastArmingTime = 0,
+                previousMode = nil,
+                previousCameraState = nil,
+                impactTimer = nil, -- Timer for how long to stay on impact *after* deceleration
+                impactPosition = nil, -- {pos = {x,y,z}, vel = {x,y,z}}
+                cameraMode = nil,
+                initialCamPos = nil,
+
+                isImpactDecelerating = false, -- True if currently in the impact deceleration phase
+                impactDecelerationStartTime = nil, -- Timer for the start of impact deceleration
+                initialImpactVelocity = nil         -- Camera velocity captured at the start of impact deceleration {x,y,z}
             },
 
             group = {

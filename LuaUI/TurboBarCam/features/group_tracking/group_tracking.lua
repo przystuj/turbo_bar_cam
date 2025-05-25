@@ -31,7 +31,7 @@ function GroupTrackingCamera.toggle()
     if #selectedUnits == 0 then
         -- If no units are selected and tracking is currently on, turn it off
         if STATE.tracking.mode == 'group_tracking' then
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
             Log.trace("Group Tracking Camera disabled")
         else
             Log.trace("No units selected for Group Tracking Camera")
@@ -41,14 +41,14 @@ function GroupTrackingCamera.toggle()
 
     -- If we're already in group tracking mode, turn it off
     if STATE.tracking.mode == 'group_tracking' then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         Log.trace("Group Tracking Camera disabled")
         return true
     end
 
     -- Initialize the tracking system for group tracking
     -- We use unitID = 0 as a placeholder since we're tracking multiple units
-    if TrackingManager.initializeTracking('group_tracking', selectedUnits[1]) then
+    if TrackingManager.initializeMode('group_tracking', selectedUnits[1]) then
         -- Store the group of units we're tracking
         STATE.tracking.group.unitIDs = {}
         for _, unitID in ipairs(selectedUnits) do
@@ -549,7 +549,7 @@ function GroupTrackingCamera.update()
 
     -- Check if we have any units to track
     if #STATE.tracking.group.unitIDs == 0 then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         return
     end
 
@@ -565,7 +565,7 @@ function GroupTrackingCamera.update()
     STATE.tracking.group.unitIDs = validUnits
 
     if #validUnits == 0 then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         return
     end
 

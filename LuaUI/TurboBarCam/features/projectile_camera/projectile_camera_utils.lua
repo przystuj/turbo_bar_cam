@@ -48,7 +48,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
 
     local camX, camY, camZ
 
-    if STATE.projectileWatching.isHighArc then
+    if STATE.tracking.projectileWatching.isHighArc then
         -- Calculate horizontal direction
         local projectileDirXZ = { x = projectileDir.x, y = 0, z = projectileDir.z }
         local magXZ = CameraCommons.vectorMagnitude(projectileDirXZ)
@@ -119,7 +119,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     local result = { x = camX, y = camY, z = camZ }
 
     --Log.staggeredLog(("[ProjectileDebug] Utils.CalcCamPos Final. Mode: %s, HighArc: %s, pPos: %s, pVel: %s, ProjDir: %s, Dist: %.1f, H: %.1f, Result: %s"):format(
-    --        subMode, tostring(STATE.projectileWatching.isHighArc), formatVec(pPos), formatVec(pVel), formatVec(projectileDir), distance, height, formatVec(result)
+    --        subMode, tostring(STATE.tracking.projectileWatching.isHighArc), formatVec(pPos), formatVec(pVel), formatVec(projectileDir), distance, height, formatVec(result)
     --))
 
     return result
@@ -132,7 +132,7 @@ end
 
 function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local subMode = STATE.projectileWatching.cameraMode
+    local subMode = STATE.tracking.projectileWatching.cameraMode
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
     local fwd = CameraCommons.normalizeVector(projectileVel)
@@ -204,7 +204,7 @@ function ProjectileCameraUtils.calculateSmoothedCameraPosition(idealCamPos)
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
     local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
 
-    if STATE.projectileWatching.cameraMode == "static" then
+    if STATE.tracking.projectileWatching.cameraMode == "static" then
         return idealCamPos
     end
 
@@ -335,7 +335,7 @@ function ProjectileCameraUtils.adjustParams(params)
         end
         Log.info("Projectile Camera settings reset to defaults" .. (STATE.tracking.unitID and " and saved for current unit type." or "."))
     end
-    local currentSubmode = STATE.projectileWatching.cameraMode or "follow"
+    local currentSubmode = STATE.tracking.projectileWatching.cameraMode
     local currentSubmodeUpper = string.upper(currentSubmode)
     Log.trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
     Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)

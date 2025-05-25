@@ -78,7 +78,7 @@ function UpdateManager.handleTrackingGracePeriod()
 
         -- If grace period expired (1 second), disable tracking for unit targets
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
-            TrackingManager.disableTracking()
+            TrackingManager.disableMode()
             Log.debug("Camera tracking disabled - no units selected")
             return
         end

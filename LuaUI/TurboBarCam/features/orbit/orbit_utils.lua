@@ -90,7 +90,7 @@ function OrbitCameraUtils.getTargetPosition()
                 targetPos = STATE.tracking.targetPoint
             else
                 -- No position info available, disable tracking
-                TrackingManager.disableTracking()
+                TrackingManager.disableMode()
                 return
             end
         else

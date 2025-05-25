@@ -450,7 +450,7 @@ function TurboOverviewCamera.update()
 
     -- Ensure we're intended to be in FPS mode for overview camera control
     if camState.mode ~= 0 then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         return
     end
 
@@ -512,12 +512,8 @@ function TurboOverviewCamera.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
-
-    if STATE.tracking.mode == 'overview' then
-        TrackingManager.disableTracking()
-        Log.trace("Turbo Overview camera disabled")
-        return
-    end
+    -- disable previous mode
+    TrackingManager.disableMode()
 
     local mapX = Game.mapSizeX
     local mapZ = Game.mapSizeZ

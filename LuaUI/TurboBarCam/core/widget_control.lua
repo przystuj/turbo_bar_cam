@@ -41,7 +41,7 @@ function WidgetControl.disable()
     if Util.isTurboBarCamDisabled() then
         return
     end
-    TrackingManager.disableTracking()
+    TrackingManager.disableMode()
 
     if STATE.transition.active then
         STATE.transition.active = false

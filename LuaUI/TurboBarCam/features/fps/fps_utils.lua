@@ -31,7 +31,7 @@ function FPSCameraUtils.shouldUpdateFPSCamera()
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.tracking.unitID) then
         Log.trace("Unit no longer exists")
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
         return false
     end
 

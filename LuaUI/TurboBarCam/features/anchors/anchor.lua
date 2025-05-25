@@ -77,7 +77,7 @@ function CameraAnchor.focus(index, easingType)
     STATE.lastUsedAnchor = index
 
     if STATE.tracking.mode then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
     end
 
     -- Cancel transition if we click the same anchor we're currently moving to
@@ -168,7 +168,7 @@ function CameraAnchor.focusAndTrack(index, easingType)
 
     -- Disable any existing tracking modes to avoid conflicts
     if STATE.tracking.mode then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
     end
 
     -- Get appropriate easing function

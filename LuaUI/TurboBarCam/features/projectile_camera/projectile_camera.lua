@@ -61,23 +61,25 @@ local function getUnitToToggle()
 end
 
 function ProjectileCamera.toggle(requestedSubMode)
-    local unitToWatchForToggle = getUnitToToggle()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    local unitToWatchForToggle = STATE.tracking.unitID
     if not unitToWatchForToggle then
-        Log.warn("ProjectileCamera: No unit selected or tracked to initiate/toggle projectile watching.")
         return false
     end
 
     local currentActualMode = STATE.tracking.mode
-    local isArmed = STATE.projectileWatching.armed
-    local isFollowingProjectileMode = (currentActualMode == 'projectile_camera')
-    local currentSubMode = STATE.projectileWatching.cameraMode
-    local isContinuous = (STATE.projectileWatching.continuouslyArmedUnitID == unitToWatchForToggle)
-    local isImpactDecelerating = STATE.projectileWatching.isImpactDecelerating
+    local isArmed = STATE.tracking.projectileWatching.armed
+    local isFollowingProjectileMode = currentActualMode == 'projectile_camera'
+    local currentSubMode = STATE.tracking.projectileWatching.cameraMode
+    local isContinuous = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitToWatchForToggle)
+    local isImpactDecelerating = STATE.tracking.projectileWatching.isImpactDecelerating
 
     if isFollowingProjectileMode or isImpactDecelerating then
         if currentSubMode == requestedSubMode and not isImpactDecelerating then
             ProjectileCamera.saveSettings(unitToWatchForToggle)
-            STATE.projectileWatching.continuouslyArmedUnitID = nil
+            STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
             ProjectileCamera.returnToPreviousMode(false)
             return true
         else
@@ -86,7 +88,7 @@ function ProjectileCamera.toggle(requestedSubMode)
     elseif isArmed then
         if currentSubMode == requestedSubMode then
             ProjectileCamera.saveSettings(unitToWatchForToggle)
-            STATE.projectileWatching.continuouslyArmedUnitID = nil
+            STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
             ProjectileCamera.disableProjectileArming()
             return true
         else
@@ -95,7 +97,7 @@ function ProjectileCamera.toggle(requestedSubMode)
     elseif isContinuous then
         if currentSubMode == requestedSubMode then
             ProjectileCamera.saveSettings(unitToWatchForToggle)
-            STATE.projectileWatching.continuouslyArmedUnitID = nil
+            STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
             ProjectileCamera.disableProjectileArming()
             return true
         else
@@ -106,12 +108,12 @@ function ProjectileCamera.toggle(requestedSubMode)
         if Util.isTurboBarCamDisabled() then
             return false
         end
-        if currentActualMode and not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then
-            Log.warn("ProjectileCamera: Cannot arm from current mode: " .. currentActualMode)
+        if not currentActualMode or not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then
+            Log.warn("ProjectileCamera: Cannot arm from current mode: " .. tostring(currentActualMode))
             return false
         end
 
-        STATE.projectileWatching.continuouslyArmedUnitID = unitToWatchForToggle
+        STATE.tracking.projectileWatching.continuouslyArmedUnitID = unitToWatchForToggle
         Log.debug("Projectile tracking armed: " .. requestedSubMode)
         ProjectileCamera.loadSettings(unitToWatchForToggle)
         return ProjectileCamera.armProjectileTracking(requestedSubMode, unitToWatchForToggle)
@@ -124,29 +126,29 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
         return false
     end
 
-    if not STATE.projectileWatching.armed and STATE.tracking.mode ~= 'projectile_camera' then
-        STATE.projectileWatching.previousMode = STATE.tracking.mode
-        STATE.projectileWatching.previousCameraState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking.StorePrev")
+    if not STATE.tracking.projectileWatching.armed and STATE.tracking.mode ~= 'projectile_camera' then
+        STATE.tracking.projectileWatching.previousMode = STATE.tracking.mode
+        STATE.tracking.projectileWatching.previousCameraState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking.StorePrev")
     end
 
-    STATE.projectileWatching.cameraMode = subMode
+    STATE.tracking.projectileWatching.cameraMode = subMode
 
     if subMode == "static" then
         local camState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking.StaticInitialPos")
-        STATE.projectileWatching.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
+        STATE.tracking.projectileWatching.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
     else
-        STATE.projectileWatching.initialCamPos = nil
+        STATE.tracking.projectileWatching.initialCamPos = nil
     end
 
-    STATE.projectileWatching.armed = true
-    STATE.projectileWatching.watchedUnitID = unitID
-    STATE.projectileWatching.lastArmingTime = Spring.GetGameSeconds()
-    STATE.projectileWatching.impactTimer = nil
-    STATE.projectileWatching.impactPosition = nil
-    STATE.projectileWatching.isImpactDecelerating = false
-    STATE.projectileWatching.impactDecelerationStartTime = nil
-    STATE.projectileWatching.initialImpactVelocity = nil
-    STATE.projectileWatching.isHighArc = false -- Reset flag
+    STATE.tracking.projectileWatching.armed = true
+    STATE.tracking.projectileWatching.watchedUnitID = unitID
+    STATE.tracking.projectileWatching.lastArmingTime = Spring.GetGameSeconds()
+    STATE.tracking.projectileWatching.impactTimer = nil
+    STATE.tracking.projectileWatching.impactPosition = nil
+    STATE.tracking.projectileWatching.isImpactDecelerating = false
+    STATE.tracking.projectileWatching.impactDecelerationStartTime = nil
+    STATE.tracking.projectileWatching.initialImpactVelocity = nil
+    STATE.tracking.projectileWatching.isHighArc = false -- Reset flag
 
     if STATE.tracking.projectile then
         STATE.tracking.projectile.selectedProjectileID = nil
@@ -159,26 +161,27 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
 end
 
 function ProjectileCamera.disableProjectileArming()
-    STATE.projectileWatching.armed = false
-    STATE.projectileWatching.impactTimer = nil
-    STATE.projectileWatching.impactPosition = nil
-    STATE.projectileWatching.isImpactDecelerating = false
-    STATE.projectileWatching.impactDecelerationStartTime = nil
-    STATE.projectileWatching.initialImpactVelocity = nil
-    STATE.projectileWatching.isHighArc = false
+    STATE.tracking.projectileWatching.armed = false
+    STATE.tracking.projectileWatching.impactTimer = nil
+    STATE.tracking.projectileWatching.impactPosition = nil
+    STATE.tracking.projectileWatching.isImpactDecelerating = false
+    STATE.tracking.projectileWatching.impactDecelerationStartTime = nil
+    STATE.tracking.projectileWatching.initialImpactVelocity = nil
+    STATE.tracking.projectileWatching.isHighArc = false
 
     if STATE.tracking.projectile then
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
     end
+    Log.debug("Projectile tracking disabled")
 end
 
 function ProjectileCamera.switchCameraSubModes(newSubMode)
-    STATE.projectileWatching.cameraMode = newSubMode
-    if newSubMode == "static" and not STATE.projectileWatching.initialCamPos then
-        if STATE.tracking.mode == 'projectile_camera' or STATE.projectileWatching.armed then
+    STATE.tracking.projectileWatching.cameraMode = newSubMode
+    if newSubMode == "static" and not STATE.tracking.projectileWatching.initialCamPos then
+        if STATE.tracking.mode == 'projectile_camera' or STATE.tracking.projectileWatching.armed then
             local camState = CameraManager.getCameraState("ProjectileCamera.switchCameraSubModes.Static")
-            STATE.projectileWatching.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
+            STATE.tracking.projectileWatching.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
         end
     end
     Log.debug("Projectile tracking switched to: " .. newSubMode)
@@ -187,58 +190,56 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
 end
 
 function ProjectileCamera.returnToPreviousMode(shouldReArm)
-    local prevMode = STATE.projectileWatching.previousMode
-    local prevCamState = STATE.projectileWatching.previousCameraState
-    local previouslyWatchedUnitID = STATE.projectileWatching.watchedUnitID
-    local unitToReArmWith = STATE.projectileWatching.continuouslyArmedUnitID
+    Log.debug("Returning to previous mode")
+    local prevMode = STATE.tracking.projectileWatching.previousMode
+    local prevCamState = STATE.tracking.projectileWatching.previousCameraState
+    local previouslyWatchedUnitID = STATE.tracking.projectileWatching.watchedUnitID
+    local unitToReArmWith = STATE.tracking.projectileWatching.continuouslyArmedUnitID
 
-    ProjectileCamera.disableProjectileArming()
+    ProjectileCamera.disableProjectileArming() -- This clears armed, impact, etc.
 
     local canReArm = shouldReArm and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith)
 
     if prevMode and prevMode ~= 'projectile_camera' then
-        if TrackingManager.startModeTransition(prevMode) then
-            local targetForPrevMode
-            local effectiveTargetUnit = previouslyWatchedUnitID
-            if ProjectileCameraUtils.isUnitCentricMode(prevMode) and effectiveTargetUnit and Spring.ValidUnitID(effectiveTargetUnit) then
-                targetForPrevMode = effectiveTargetUnit
-            elseif ProjectileCameraUtils.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
-                targetForPrevMode = unitToReArmWith
-            end
+        ProjectileCamera.cleanupBeforeSwitch(false)
+        local targetForPrevMode
+        local effectiveTargetUnit = previouslyWatchedUnitID
+        if ProjectileCameraUtils.isUnitCentricMode(prevMode) and effectiveTargetUnit and Spring.ValidUnitID(effectiveTargetUnit) then
+            targetForPrevMode = effectiveTargetUnit
+        elseif ProjectileCameraUtils.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
+            targetForPrevMode = unitToReArmWith
+        end
 
-            TrackingManager.initializeTracking(prevMode, targetForPrevMode)
-            if prevCamState then
-                CameraManager.setCameraState(prevCamState, 0, "ProjectileCamera.restorePreviousModeState")
-            end
-        else
-            Log.warn("ProjectileCamera: Failed to start transition to previous mode: " .. prevMode .. ". Disabling tracking fully.")
-            TrackingManager.disableTracking()
-            canReArm = false
+        TrackingManager.initializeMode(prevMode, targetForPrevMode, nil, true)
+        if prevCamState then
+            CameraManager.setCameraState(prevCamState, 0, "ProjectileCamera.restorePreviousModeState")
         end
     elseif STATE.tracking.mode == 'projectile_camera' then
-        TrackingManager.disableTracking()
+        TrackingManager.disableMode()
     end
 
+    -- Clear previousMode ONLY if not re-arming
     if not canReArm then
-        STATE.projectileWatching.continuouslyArmedUnitID = nil
-        STATE.projectileWatching.previousMode = nil
-        STATE.projectileWatching.previousCameraState = nil
+        STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
+        STATE.tracking.projectileWatching.previousMode = nil
+        STATE.tracking.projectileWatching.previousCameraState = nil
     else
         ProjectileCamera.loadSettings(unitToReArmWith)
-        ProjectileCamera.armProjectileTracking(STATE.projectileWatching.cameraMode, unitToReArmWith)
+        ProjectileCamera.armProjectileTracking(STATE.tracking.projectileWatching.cameraMode, unitToReArmWith)
     end
 end
+
 --------------------------------------------------------------------------------
 -- Update Loop Functions
 --------------------------------------------------------------------------------
 function ProjectileCamera.checkAndActivate()
-    if STATE.tracking.mode == 'projectile_camera' and STATE.projectileWatching.impactTimer then
+    if STATE.tracking.mode == 'projectile_camera' and STATE.tracking.projectileWatching.impactTimer then
         local currentTime = Spring.GetTimer()
-        local elapsedImpactHold = Spring.DiffTimers(currentTime, STATE.projectileWatching.impactTimer)
+        local elapsedImpactHold = Spring.DiffTimers(currentTime, STATE.tracking.projectileWatching.impactTimer)
         if elapsedImpactHold >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_TIMEOUT then
             Log.trace("ProjectileCamera: IMPACT_TIMEOUT reached. Returning to previous mode.")
-            local unitID = STATE.projectileWatching.watchedUnitID
-            local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
+            local unitID = STATE.tracking.projectileWatching.watchedUnitID
+            local reArm = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
             if unitID and not reArm then
                 ProjectileCamera.saveSettings(unitID)
             end
@@ -247,22 +248,22 @@ function ProjectileCamera.checkAndActivate()
         end
     end
 
-    if not STATE.projectileWatching.armed or STATE.tracking.mode == 'projectile_camera' then
+    if not STATE.tracking.projectileWatching.armed or STATE.tracking.mode == 'projectile_camera' then
         return false
     end
 
-    local unitID = STATE.projectileWatching.watchedUnitID
+    local unitID = STATE.tracking.projectileWatching.watchedUnitID
     if not unitID or not Spring.ValidUnitID(unitID) then
         Log.warn("ProjectileCamera: Watched unit " .. tostring(unitID) .. " became invalid. Disarming.")
         ProjectileCamera.disableProjectileArming()
-        STATE.projectileWatching.continuouslyArmedUnitID = nil
+        STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
         return false
     end
 
     local allProjectiles = ProjectileTracker.getUnitProjectiles(unitID)
     local newProjectiles = {}
     for _, p in ipairs(allProjectiles) do
-        if p.creationTime > STATE.projectileWatching.lastArmingTime then
+        if p.creationTime > STATE.tracking.projectileWatching.lastArmingTime then
             table.insert(newProjectiles, p)
         end
     end
@@ -270,25 +271,25 @@ function ProjectileCamera.checkAndActivate()
     if #newProjectiles == 0 then
         return false
     end
-
+    ProjectileCamera.cleanupBeforeSwitch()
     if TrackingManager.startModeTransition('projectile_camera') then
-        if TrackingManager.initializeTracking('projectile_camera', unitID, STATE.TARGET_TYPES.UNIT) then
+        if TrackingManager.initializeMode('projectile_camera', unitID, STATE.TARGET_TYPES.UNIT) then
             STATE.tracking.projectile = STATE.tracking.projectile or {}
             STATE.tracking.projectile.selectedProjectileID = nil
             STATE.tracking.projectile.currentProjectileID = nil
             ProjectileCameraUtils.resetSmoothedPositions()
-            STATE.projectileWatching.armed = false
+            STATE.tracking.projectileWatching.armed = false
             Log.trace("ProjectileCamera: Activated, tracking new projectile from unit " .. unitID)
             return true
         else
             Log.warn("ProjectileCamera: Failed to initialize tracking for 'projectile_camera'. Reverting arm.")
-            local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID)
+            local reArm = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitID)
             ProjectileCamera.returnToPreviousMode(reArm)
             return false
         end
     else
         Log.warn("ProjectileCamera: Failed to start mode transition to 'projectile_camera'. Disarming fully.")
-        STATE.projectileWatching.continuouslyArmedUnitID = nil
+        STATE.tracking.projectileWatching.continuouslyArmedUnitID = nil
         ProjectileCamera.disableProjectileArming()
         return false
     end
@@ -301,7 +302,7 @@ function ProjectileCamera.update(dt)
 
     local unitID = STATE.tracking.unitID
     if not ProjectileCamera.validateUnit(unitID) then
-        local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID)
+        local reArm = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitID)
         if unitID and not reArm then
             ProjectileCamera.saveSettings(unitID)
         end
@@ -309,12 +310,12 @@ function ProjectileCamera.update(dt)
         return
     end
 
-    if STATE.projectileWatching.isImpactDecelerating then
+    if STATE.tracking.projectileWatching.isImpactDecelerating then
         ProjectileCamera.decelerateToImpactPosition(dt)
         return
     end
 
-    if STATE.projectileWatching.impactTimer then
+    if STATE.tracking.projectileWatching.impactTimer then
         ProjectileCamera.focusOnImpactPosition()
         return
     end
@@ -323,7 +324,7 @@ function ProjectileCamera.update(dt)
     STATE.tracking.projectile.smoothedPositions = STATE.tracking.projectile.smoothedPositions or { camPos = nil, targetPos = nil }
 
     if not STATE.tracking.projectile.currentProjectileID then
-        ProjectileCamera.selectProjectile(unitID) -- This will set STATE.projectileWatching.isHighArc
+        ProjectileCamera.selectProjectile(unitID) -- This will set STATE.tracking.projectileWatching.isHighArc
         if not STATE.tracking.projectile.currentProjectileID then
             ProjectileCamera.handleImpactView(unitID, dt)
             return
@@ -369,7 +370,7 @@ function ProjectileCamera.selectProjectile(unitID)
     -- or remains false if it was reset due to losing a projectile.
     -- For a cleaner state, always reset when we attempt to select a new one.
     if not latestValidProjectile or (STATE.tracking.projectile.currentProjectileID ~= latestValidProjectile.id) then
-        STATE.projectileWatching.isHighArc = false
+        STATE.tracking.projectileWatching.isHighArc = false
     end
 
     if latestValidProjectile then
@@ -378,15 +379,15 @@ function ProjectileCamera.selectProjectile(unitID)
             STATE.tracking.projectile.currentProjectileID = latestValidProjectile.id
             ProjectileCameraUtils.resetSmoothedPositions()
             Log.trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id)
-            STATE.projectileWatching.impactTimer = nil
-            STATE.projectileWatching.isImpactDecelerating = false
-            STATE.projectileWatching.impactPosition = nil
+            STATE.tracking.projectileWatching.impactTimer = nil
+            STATE.tracking.projectileWatching.isImpactDecelerating = false
+            STATE.tracking.projectileWatching.impactPosition = nil
 
             -- *** HIGH ARC DETECTION LOGIC (Magnitude check removed as per user) ***
             local vel = latestValidProjectile.lastVelocity
             if not vel then
                 Log.warn("[ProjectileDebug] selectProjectile: latestValidProjectile.lastVelocity is nil for projectile ID: " .. latestValidProjectile.id)
-                STATE.projectileWatching.isHighArc = false -- Ensure it's false if velocity is missing
+                STATE.tracking.projectileWatching.isHighArc = false -- Ensure it's false if velocity is missing
             else
                 local mag = CameraCommons.vectorMagnitude(vel)
                 if mag > 0.01 then
@@ -394,14 +395,14 @@ function ProjectileCamera.selectProjectile(unitID)
                     local upComponent = vel.y / mag
                     local HIGH_ARC_THRESHOLD = 0.8 -- ~53 degrees
                     if upComponent > HIGH_ARC_THRESHOLD then
-                        STATE.projectileWatching.isHighArc = true
+                        STATE.tracking.projectileWatching.isHighArc = true
                         Log.debug(("[ProjectileDebug] High arc trajectory DETECTED. Vel: %s UpComp: %.2f Mag: %.2f"):format(formatVec(vel), upComponent, mag))
                     else
                         Log.debug(("[ProjectileDebug] High arc trajectory NOT detected (Low Angle). Vel: %s UpComp: %.2f Mag: %.2f"):format(formatVec(vel), upComponent, mag))
                     end
                 else
                     Log.debug(("[ProjectileDebug] High arc trajectory NOT detected (Zero/Low Speed). Vel: %s Mag: %.2f"):format(formatVec(vel), mag))
-                    STATE.projectileWatching.isHighArc = false -- Ensure it's false for zero/low speed
+                    STATE.tracking.projectileWatching.isHighArc = false -- Ensure it's false for zero/low speed
                 end
             end
             -- *** END HIGH ARC DETECTION ***
@@ -409,7 +410,7 @@ function ProjectileCamera.selectProjectile(unitID)
     else
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
-        STATE.projectileWatching.isHighArc = false -- No projectile, so not high arc
+        STATE.tracking.projectileWatching.isHighArc = false -- No projectile, so not high arc
     end
 end
 
@@ -430,7 +431,7 @@ end
 function ProjectileCamera.handleProjectileTracking(unitID, dt)
     local currentProjectile = ProjectileCamera.getCurrentProjectile(unitID)
     if currentProjectile and currentProjectile.lastPosition then
-        STATE.projectileWatching.impactPosition = {
+        STATE.tracking.projectileWatching.impactPosition = {
             pos = Util.deepCopy(currentProjectile.lastPosition),
             vel = Util.deepCopy(currentProjectile.lastVelocity)
         }
@@ -441,20 +442,20 @@ function ProjectileCamera.handleProjectileTracking(unitID, dt)
 end
 
 function ProjectileCamera.handleImpactView(unitID, dt)
-    if not STATE.projectileWatching.impactPosition then
+    if not STATE.tracking.projectileWatching.impactPosition then
         Log.trace("ProjectileCamera: No impact position available, focusing on unit " .. unitID)
         ProjectileCamera.focusOnUnit(unitID)
         return
     end
-    if not STATE.projectileWatching.isImpactDecelerating and not STATE.projectileWatching.impactTimer then
-        STATE.projectileWatching.isImpactDecelerating = true
-        STATE.projectileWatching.impactDecelerationStartTime = Spring.GetTimer()
-        STATE.projectileWatching.impactTimer = Spring.GetTimer()
+    if not STATE.tracking.projectileWatching.isImpactDecelerating and not STATE.tracking.projectileWatching.impactTimer then
+        STATE.tracking.projectileWatching.isImpactDecelerating = true
+        STATE.tracking.projectileWatching.impactDecelerationStartTime = Spring.GetTimer()
+        STATE.tracking.projectileWatching.impactTimer = Spring.GetTimer()
         local vel, _ = CameraManager.getCurrentVelocity()
-        STATE.projectileWatching.initialImpactVelocity = Util.deepCopy(vel)
+        STATE.tracking.projectileWatching.initialImpactVelocity = Util.deepCopy(vel)
         Log.trace("ProjectileCamera: Projectile lost/ended. Starting impact deceleration and timer for unit " .. unitID)
         ProjectileCamera.decelerateToImpactPosition(dt)
-    elseif STATE.projectileWatching.isImpactDecelerating then
+    elseif STATE.tracking.projectileWatching.isImpactDecelerating then
         ProjectileCamera.decelerateToImpactPosition(dt)
     else
         ProjectileCamera.focusOnImpactPosition()
@@ -462,23 +463,23 @@ function ProjectileCamera.handleImpactView(unitID, dt)
 end
 
 function ProjectileCamera.decelerateToImpactPosition(dt)
-    if not STATE.projectileWatching.impactPosition or not STATE.projectileWatching.impactPosition.pos then
+    if not STATE.tracking.projectileWatching.impactPosition or not STATE.tracking.projectileWatching.impactPosition.pos then
         Log.warn("ProjectileCamera: decelerateToImpactPosition called without valid impactPosition.")
-        STATE.projectileWatching.isImpactDecelerating = false
+        STATE.tracking.projectileWatching.isImpactDecelerating = false
         ProjectileCamera.focusOnUnit(STATE.tracking.unitID)
         return
     end
-    local impactWorldPos = STATE.projectileWatching.impactPosition.pos
+    local impactWorldPos = STATE.tracking.projectileWatching.impactPosition.pos
     local currentCamState = CameraManager.getCameraState("ProjectileCamera.decelerateToImpactPosition")
     local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
-    local elapsedDecelTime = Spring.DiffTimers(Spring.GetTimer(), STATE.projectileWatching.impactDecelerationStartTime)
+    local elapsedDecelTime = Spring.DiffTimers(Spring.GetTimer(), STATE.tracking.projectileWatching.impactDecelerationStartTime)
     local linearProgress = 1.0
     if profile.DURATION and profile.DURATION > 0 then
         linearProgress = math.min(elapsedDecelTime / profile.DURATION, 1.0)
     end
     local easedProgress = CameraCommons.easeOut(linearProgress)
-    local initialVelocity = STATE.projectileWatching.initialImpactVelocity or { x = 0, y = 0, z = 0 }
+    local initialVelocity = STATE.tracking.projectileWatching.initialImpactVelocity or { x = 0, y = 0, z = 0 }
     local newPos = TransitionUtil.decelerationTransition(camPos, dt, easedProgress, initialVelocity, profile)
     local camStatePatch = {}
     if newPos then
@@ -491,7 +492,7 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
         camStatePatch.pz = camPos.z
     end
     local focusFromPos = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
-    local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, STATE.projectileWatching.impactPosition.vel or { x = 0, y = 0, z = 0 })
+    local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, STATE.tracking.projectileWatching.impactPosition.vel or { x = 0, y = 0, z = 0 })
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
     local dirSmoothFactor = cfgSmoothing.ROTATION_FACTOR
     local rotSmoothFactor = cfgSmoothing.ROTATION_FACTOR
@@ -505,20 +506,20 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     CameraManager.setCameraState(finalCamState, 0, "ProjectileCamera.decelerateToImpact")
     TrackingManager.updateTrackingState(finalCamState)
     if linearProgress >= 1.0 then
-        STATE.projectileWatching.isImpactDecelerating = false
-        STATE.projectileWatching.initialImpactVelocity = nil
+        STATE.tracking.projectileWatching.isImpactDecelerating = false
+        STATE.tracking.projectileWatching.initialImpactVelocity = nil
         Log.trace("ProjectileCamera: Finished impact deceleration phase.")
     end
 end
 
 function ProjectileCamera.focusOnImpactPosition()
-    if not STATE.projectileWatching.impactPosition or not STATE.projectileWatching.impactPosition.pos then
+    if not STATE.tracking.projectileWatching.impactPosition or not STATE.tracking.projectileWatching.impactPosition.pos then
         Log.warn("ProjectileCamera: focusOnImpactPosition called without valid impactPosition.")
         ProjectileCamera.focusOnUnit(STATE.tracking.unitID)
         return
     end
-    local impactWorldPos = STATE.projectileWatching.impactPosition.pos
-    local impactWorldVel = STATE.projectileWatching.impactPosition.vel or { x = 0, y = 0, z = 0 }
+    local impactWorldPos = STATE.tracking.projectileWatching.impactPosition.pos
+    local impactWorldVel = STATE.tracking.projectileWatching.impactPosition.vel or { x = 0, y = 0, z = 0 }
     local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnImpactPosition.Hold")
     local settledCamPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
     local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, impactWorldVel)
@@ -534,7 +535,7 @@ function ProjectileCamera.focusOnUnit(unitID)
         ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, "unit_fallback_view")
     else
         Log.warn("ProjectileCamera: Unit " .. tostring(unitID) .. " invalid while trying to focus on it.")
-        local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID)
+        local reArm = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitID)
         ProjectileCamera.returnToPreviousMode(reArm)
     end
 end
@@ -543,8 +544,8 @@ end
 -- It does not pass `smoothedUp` to calculateCameraPositionForProjectile.
 -- The logic is now self-contained in projectile_camera_utils.lua
 function ProjectileCamera.trackActiveProjectile(currentProjectile)
-    STATE.projectileWatching.impactTimer = nil
-    STATE.projectileWatching.isImpactDecelerating = false
+    STATE.tracking.projectileWatching.impactTimer = nil
+    STATE.tracking.projectileWatching.isImpactDecelerating = false
 
     local projectilePos = currentProjectile.lastPosition
     local projectileVel = currentProjectile.lastVelocity
@@ -555,8 +556,8 @@ function ProjectileCamera.trackActiveProjectile(currentProjectile)
         return
     end
 
-    -- calculateCameraPositionForProjectile in utils will now internally use STATE.projectileWatching.isHighArc
-    local idealCamPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVel, STATE.projectileWatching.cameraMode)
+    -- calculateCameraPositionForProjectile in utils will now internally use STATE.tracking.projectileWatching.isHighArc
+    local idealCamPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVel, STATE.tracking.projectileWatching.cameraMode)
     local idealTargetPos = ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
 
     ProjectileCameraUtils.initializeSmoothedPositionsIfNil(idealCamPos, idealTargetPos)
@@ -567,14 +568,36 @@ function ProjectileCamera.trackActiveProjectile(currentProjectile)
     STATE.tracking.projectile.smoothedPositions.camPos = smoothedCamPos
     STATE.tracking.projectile.smoothedPositions.targetPos = smoothedTargetPos
 
-    Log.staggeredLog(("[ProjectileDebug] Track Loop. ProjPos: %s | ProjVel: %s | HighArc: %s | Mode: %s"):format(
-            formatVec(projectilePos), formatVec(projectileVel), tostring(STATE.projectileWatching.isHighArc), STATE.projectileWatching.cameraMode
-    ))
-    Log.staggeredLog(("[ProjectileDebug] Track Loop. IdealCam: %s | SmoothedCam: %s"):format(
-            formatVec(idealCamPos), formatVec(smoothedCamPos)
-    ))
+    --Log.staggeredLog(("[ProjectileDebug] Track Loop. ProjPos: %s | ProjVel: %s | HighArc: %s | Mode: %s"):format(
+    --        formatVec(projectilePos), formatVec(projectileVel), tostring(STATE.tracking.projectileWatching.isHighArc), STATE.tracking.projectileWatching.cameraMode
+    --))
+    --Log.staggeredLog(("[ProjectileDebug] Track Loop. IdealCam: %s | SmoothedCam: %s"):format(
+    --        formatVec(idealCamPos), formatVec(smoothedCamPos)
+    --))
 
     ProjectileCameraUtils.applyProjectileCameraState(smoothedCamPos, smoothedTargetPos, "tracking_active")
+end
+
+--- Cleans up projectile state before switching to another mode.
+--- It checks an internal flag to see if this switch is part of returning to a previous mode.
+function ProjectileCamera.cleanupBeforeSwitch()
+    if STATE.tracking.mode == 'projectile_camera' then
+        -- Check 'projectile_camera'
+        if STATE.tracking.projectileWatching then
+            STATE.tracking.projectileWatching.armed = false
+            STATE.tracking.projectileWatching.watchedUnitID = nil
+            STATE.tracking.projectileWatching.impactTimer = nil
+            STATE.tracking.projectileWatching.impactPosition = nil
+            STATE.tracking.projectileWatching.initialCamPos = nil
+            STATE.tracking.projectileWatching.previousMode = nil
+            STATE.tracking.projectileWatching.previousCameraState = nil
+        end
+        if STATE.tracking.projectile then
+            STATE.tracking.projectile.selectedProjectileID = nil
+            STATE.tracking.projectile.currentProjectileID = nil
+            STATE.tracking.projectile.smoothedPositions = nil
+        end
+    end
 end
 --------------------------------------------------------------------------------
 -- Settings and Parameters
