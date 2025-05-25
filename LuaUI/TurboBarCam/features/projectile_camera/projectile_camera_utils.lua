@@ -39,10 +39,24 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         dir = CameraCommons.normalizeVector(dir)
     end
 
+    -- Calculate local up vector
+    local worldUp = { x = 0, y = 1, z = 0 }
+    local right = CameraCommons.crossProduct(dir, worldUp)
+
+    -- Handle cases where projectile direction is parallel to world up (e.g., straight up or down)
+    if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+        local worldFwdTemp = { x = 0, y = 0, z = 1 }
+        if math.abs(dir.y) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end
+        right = CameraCommons.crossProduct(dir, worldFwdTemp)
+    end
+
+    right = CameraCommons.normalizeVector(right)
+    local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, dir))
+
     return {
-        x = pPos.x - (dir.x * distance),
-        y = pPos.y - (dir.y * distance) + height,
-        z = pPos.z - (dir.z * distance)
+        x = pPos.x - (dir.x * distance) + (localUp.x * height),
+        y = pPos.y - (dir.y * distance) + (localUp.y * height),
+        z = pPos.z - (dir.z * distance) + (localUp.z * height)
     }
 end
 
