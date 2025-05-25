@@ -8,8 +8,8 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
 ---@type TransitionUtil
 local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util.lua")
----@type ProjectileCameraPersistence
-local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua")
+---@type ProjectileCameraUtils
+local ProjectileCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_utils.lua")
 
 
 local CONFIG = WidgetContext.CONFIG
@@ -141,7 +141,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     if STATE.tracking.projectile then
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
-        ProjectileCamera.resetSmoothedPositions()
+        ProjectileCameraUtils.resetSmoothedPositions()
     end
 
     ProjectileTracker.initUnitTracking(unitID)
@@ -172,7 +172,7 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
         end
     end
     Log.debug("Projectile tracking switched to: " .. newSubMode)
-    ProjectileCamera.resetSmoothedPositions()
+    ProjectileCameraUtils.resetSmoothedPositions()
     return true
 end
 
@@ -188,11 +188,11 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
 
     if prevMode and prevMode ~= 'projectile_camera' then
         if TrackingManager.startModeTransition(prevMode) then
-            local targetForPrevMode = nil
+            local targetForPrevMode
             local effectiveTargetUnit = previouslyWatchedUnitID
-            if Util.isUnitCentricMode(prevMode) and effectiveTargetUnit and Spring.ValidUnitID(effectiveTargetUnit) then
+            if ProjectileCameraUtils.isUnitCentricMode(prevMode) and effectiveTargetUnit and Spring.ValidUnitID(effectiveTargetUnit) then
                 targetForPrevMode = effectiveTargetUnit
-            elseif Util.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
+            elseif ProjectileCameraUtils.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
                 targetForPrevMode = unitToReArmWith
             end
 
@@ -273,7 +273,7 @@ function ProjectileCamera.checkAndActivate()
             STATE.tracking.projectile = STATE.tracking.projectile or {}
             STATE.tracking.projectile.selectedProjectileID = nil -- Will be selected in update
             STATE.tracking.projectile.currentProjectileID = nil
-            ProjectileCamera.resetSmoothedPositions()
+            ProjectileCameraUtils.resetSmoothedPositions()
             STATE.projectileWatching.armed = false -- Consumed the "armed" state by entering the mode
             Log.trace("ProjectileCamera: Activated, tracking new projectile from unit " .. unitID)
             return true -- Mode changed
@@ -358,7 +358,7 @@ end
 
 function ProjectileCamera.selectProjectile(unitID)
     local allProjectiles = ProjectileTracker.getUnitProjectiles(unitID)
-    local latestValidProjectile = nil
+    local latestValidProjectile
     local maxCreationTime = -1
 
     for _, p in ipairs(allProjectiles) do
@@ -372,7 +372,7 @@ function ProjectileCamera.selectProjectile(unitID)
         if STATE.tracking.projectile.currentProjectileID ~= latestValidProjectile.id then
             STATE.tracking.projectile.selectedProjectileID = latestValidProjectile.id
             STATE.tracking.projectile.currentProjectileID = latestValidProjectile.id
-            ProjectileCamera.resetSmoothedPositions()
+            ProjectileCameraUtils.resetSmoothedPositions()
             Log.trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id)
             -- Reset impact states as we are now tracking a new projectile
             STATE.projectileWatching.impactTimer = nil
@@ -409,7 +409,7 @@ function ProjectileCamera.handleProjectileTracking(unitID, dt)
             pos = Util.deepCopy(currentProjectile.lastPosition),
             vel = Util.deepCopy(currentProjectile.lastVelocity)
         }
-        ProjectileCamera.trackActiveProjectile(currentProjectile, dt)
+        ProjectileCamera.trackActiveProjectile(currentProjectile)
     else
         ProjectileCamera.handleImpactView(unitID, dt)
     end
@@ -482,7 +482,7 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     end
 
     local focusFromPos = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
-    local targetLookPos = ProjectileCamera.calculateIdealTargetPosition(impactWorldPos, STATE.projectileWatching.impactPosition.vel or {x=0,y=0,z=0})
+    local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, STATE.projectileWatching.impactPosition.vel or {x=0,y=0,z=0})
 
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
     local dirSmoothFactor = cfgSmoothing.ROTATION_FACTOR
@@ -551,9 +551,9 @@ function ProjectileCamera.focusOnImpactPosition()
     local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnImpactPosition.Hold")
     local settledCamPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
 
-    local targetLookPos = ProjectileCamera.calculateIdealTargetPosition(impactWorldPos, impactWorldVel)
+    local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, impactWorldVel)
 
-    ProjectileCamera.applyProjectileCameraState(settledCamPos, targetLookPos, "impact_view_hold")
+    ProjectileCameraUtils.applyProjectileCameraState(settledCamPos, targetLookPos, "impact_view_hold")
 end
 
 
@@ -563,7 +563,7 @@ function ProjectileCamera.focusOnUnit(unitID)
         local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnUnit")
         local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
         local targetPos = { x = ux, y = uy + (Util.getUnitHeight(unitID) * 0.5 or 50), z = uz }
-        ProjectileCamera.applyProjectileCameraState(camPos, targetPos, "unit_fallback_view")
+        ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, "unit_fallback_view")
     else
         Log.warn("ProjectileCamera: Unit " .. tostring(unitID) .. " invalid while trying to focus on it.")
         local reArm = (STATE.projectileWatching.continuouslyArmedUnitID == unitID)
@@ -571,285 +571,45 @@ function ProjectileCamera.focusOnUnit(unitID)
     end
 end
 
-function ProjectileCamera.trackActiveProjectile(currentProjectile, dt)
-    STATE.projectileWatching.impactTimer = nil -- Clear impact timer when actively tracking a new projectile
+function ProjectileCamera.trackActiveProjectile(currentProjectile)
+    STATE.projectileWatching.impactTimer = nil
     STATE.projectileWatching.isImpactDecelerating = false
 
     local projectilePos = currentProjectile.lastPosition
     local projectileVel = currentProjectile.lastVelocity
 
-    local idealCamPos = ProjectileCamera.calculateCameraPositionForProjectile(projectilePos, projectileVel, STATE.projectileWatching.cameraMode, STATE.projectileWatching.initialCamPos)
-    local idealTargetPos = ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectileVel)
+    local idealCamPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVel, STATE.projectileWatching.cameraMode)
+    local idealTargetPos = ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
 
-    ProjectileCamera.initializeSmoothedPositionsIfNil(idealCamPos, idealTargetPos)
+    ProjectileCameraUtils.initializeSmoothedPositionsIfNil(idealCamPos, idealTargetPos)
 
-    local smoothedCamPos = ProjectileCamera.calculateSmoothedCameraPosition(idealCamPos)
-    local smoothedTargetPos = ProjectileCamera.calculateSmoothedTargetPosition(idealTargetPos)
+    local smoothedCamPos = ProjectileCameraUtils.calculateSmoothedCameraPosition(idealCamPos)
+    local smoothedTargetPos = ProjectileCameraUtils.calculateSmoothedTargetPosition(idealTargetPos)
 
     STATE.tracking.projectile.smoothedPositions.camPos = smoothedCamPos
     STATE.tracking.projectile.smoothedPositions.targetPos = smoothedTargetPos
 
-    ProjectileCamera.applyProjectileCameraState(smoothedCamPos, smoothedTargetPos, "tracking_active")
+    ProjectileCameraUtils.applyProjectileCameraState(smoothedCamPos, smoothedTargetPos, "tracking_active")
 end
-
---------------------------------------------------------------------------------
--- Camera Calculation and Smoothing Helpers
---------------------------------------------------------------------------------
-
-function ProjectileCamera.calculateCameraPositionForProjectile(pPos, pVel, subMode, staticInitialCamPos)
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-
-    if subMode == "static" then
-        local camState = CameraManager.getCameraState("ProjectileCamera.calculateCameraPositionForProjectile.StaticCurrent")
-        return { x = camState.px, y = camState.py, z = camState.pz }
-    end
-
-    local modeCfg = cfg.FOLLOW
-    local distance = modeCfg.DISTANCE
-    local height = modeCfg.HEIGHT
-
-    local dir = CameraCommons.normalizeVector(pVel)
-    if dir.x == 0 and dir.y == 0 and dir.z == 0 then
-        dir = { x = 0, y = -0.5, z = -0.5 }
-        dir = CameraCommons.normalizeVector(dir)
-    end
-
-    return {
-        x = pPos.x - (dir.x * distance),
-        y = pPos.y - (dir.y * distance) + height,
-        z = pPos.z - (dir.z * distance)
-    }
-end
-
-
-function ProjectileCamera.calculateIdealTargetPosition(projectilePos, projectileVel)
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local subMode = STATE.projectileWatching.cameraMode
-    local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
-
-    local fwd = CameraCommons.normalizeVector(projectileVel)
-    if fwd.x == 0 and fwd.y == 0 and fwd.z == 0 then
-        fwd = { x = 0, y = 0, z = 1 }
-    end
-
-    local pPos = projectilePos
-    local lookAhead = modeCfg.LOOK_AHEAD or 0
-
-    local baseTarget = {
-        x = pPos.x + fwd.x * lookAhead,
-        y = pPos.y + fwd.y * lookAhead,
-        z = pPos.z + fwd.z * lookAhead
-    }
-
-    if subMode == "static" then
-        local offsetHeight = modeCfg.OFFSET_HEIGHT or 0
-        local offsetSide = modeCfg.OFFSET_SIDE or 0
-
-        if offsetHeight == 0 and offsetSide == 0 then
-            return baseTarget
-        end
-
-        local worldUp = { x = 0, y = 1, z = 0 }
-        local right = CameraCommons.crossProduct(fwd, worldUp)
-        if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
-            local worldFwdTemp = { x = 0, y = 0, z = 1 }
-            if math.abs(fwd.z) > 0.99 then worldFwdTemp = {x=1, y=0, z=0} end
-            right = CameraCommons.crossProduct(fwd, worldFwdTemp)
-        end
-        right = CameraCommons.normalizeVector(right)
-        local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, fwd))
-
-        return {
-            x = baseTarget.x + localUp.x * offsetHeight + right.x * offsetSide,
-            y = baseTarget.y + localUp.y * offsetHeight + right.y * offsetSide,
-            z = baseTarget.z + localUp.z * offsetHeight + right.z * offsetSide
-        }
-    end
-    return baseTarget
-end
-
-
-function ProjectileCamera.resetSmoothedPositions()
-    if STATE.tracking.projectile and STATE.tracking.projectile.smoothedPositions then
-        STATE.tracking.projectile.smoothedPositions.camPos = nil
-        STATE.tracking.projectile.smoothedPositions.targetPos = nil
-    end
-end
-
-function ProjectileCamera.initializeSmoothedPositionsIfNil(idealCamPos, idealTargetPos)
-    STATE.tracking.projectile = STATE.tracking.projectile or {}
-    STATE.tracking.projectile.smoothedPositions = STATE.tracking.projectile.smoothedPositions or {}
-
-    if not STATE.tracking.projectile.smoothedPositions.camPos then
-        STATE.tracking.projectile.smoothedPositions.camPos = Util.deepCopy(idealCamPos)
-    end
-    if not STATE.tracking.projectile.smoothedPositions.targetPos then
-        STATE.tracking.projectile.smoothedPositions.targetPos = Util.deepCopy(idealTargetPos)
-    end
-end
-
-function ProjectileCamera.calculateSmoothedCameraPosition(idealCamPos)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
-
-    if STATE.projectileWatching.cameraMode == "static" then
-        return idealCamPos
-    end
-
-    return {
-        x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.x, idealCamPos.x, smoothFactor),
-        y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.y, idealCamPos.y, smoothFactor),
-        z = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.camPos.z, idealCamPos.z, smoothFactor)
-    }
-end
-
-function ProjectileCamera.calculateSmoothedTargetPosition(idealTargetPos)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
-    return {
-        x = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.x, idealTargetPos.x, smoothFactor),
-        y = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.y, idealTargetPos.y, smoothFactor),
-        z = CameraCommons.smoothStep(STATE.tracking.projectile.smoothedPositions.targetPos.z, idealTargetPos.z, smoothFactor)
-    }
-end
-
-function ProjectileCamera.applyProjectileCameraState(camPos, targetPos, context)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local posFactor = cfgSmoothing.POSITION_FACTOR
-    local rotFactor = cfgSmoothing.ROTATION_FACTOR
-
-    local actualPosFactor, actualRotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
-
-    local currentCamState = CameraManager.getCameraState("ProjectileCamera.applyProjectileCameraState.Context." .. context)
-    local fullCamPos = {
-        x = camPos.px or camPos.x or currentCamState.px,
-        y = camPos.py or camPos.y or currentCamState.py,
-        z = camPos.pz or camPos.z or currentCamState.pz
-    }
-
-    local directionState = CameraCommons.focusOnPoint(fullCamPos, targetPos, actualPosFactor, actualRotFactor)
-
-    directionState.px = camPos.px or directionState.px
-    directionState.py = camPos.py or directionState.py
-    directionState.pz = camPos.pz or directionState.pz
-    directionState.fov = currentCamState.fov
-
-    CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update." .. (context or "apply"))
-    TrackingManager.updateTrackingState(directionState)
-end
-
 
 --------------------------------------------------------------------------------
 -- Settings and Parameters
 --------------------------------------------------------------------------------
 
+function ProjectileCamera.adjustParams(params)
+    return ProjectileCameraUtils.adjustParams(params)
+end
+
 function ProjectileCamera.resetToDefaults()
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    cfg.FOLLOW.DISTANCE = cfg.DEFAULT_FOLLOW.DISTANCE
-    cfg.FOLLOW.HEIGHT = cfg.DEFAULT_FOLLOW.HEIGHT
-    cfg.FOLLOW.LOOK_AHEAD = cfg.DEFAULT_FOLLOW.LOOK_AHEAD
-    cfg.STATIC.LOOK_AHEAD = cfg.DEFAULT_STATIC.LOOK_AHEAD
-    cfg.STATIC.OFFSET_HEIGHT = cfg.DEFAULT_STATIC.OFFSET_HEIGHT
-    cfg.STATIC.OFFSET_SIDE = cfg.DEFAULT_STATIC.OFFSET_SIDE
-    cfg.DECELERATION_PROFILE = Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
-    Log.trace("ProjectileCamera: Restored settings to defaults.")
+    return ProjectileCameraUtils.resetToDefaults()
 end
 
 function ProjectileCamera.saveSettings(unitID)
-    if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("ProjectileCamera: Cannot save settings, invalid unitID.")
-        return
-    end
-
-    local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
-    if not unitDef then
-        Log.warn("ProjectileCamera: Cannot save settings, failed to get unitDef.")
-        return
-    end
-    local unitName = unitDef.name
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-
-    local settingsToSave = {
-        FOLLOW = {
-            DISTANCE = cfg.FOLLOW.DISTANCE,
-            HEIGHT = cfg.FOLLOW.HEIGHT,
-            LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD,
-        },
-        STATIC = {
-            LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD,
-            OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT,
-            OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE,
-        },
-        DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE)
-    }
-    ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
+    return ProjectileCameraUtils.saveSettings(unitID)
 end
 
 function ProjectileCamera.loadSettings(unitID)
-    if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("ProjectileCamera: Cannot load settings, invalid unitID.")
-        ProjectileCamera.resetToDefaults()
-        return
-    end
-
-    local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
-    if not unitDef then
-        Log.warn("ProjectileCamera: Cannot load settings, failed to get unitDef.")
-        ProjectileCamera.resetToDefaults()
-        return
-    end
-    local unitName = unitDef.name
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local loadedSettings = ProjectileCameraPersistence.loadSettings(unitName)
-
-    if loadedSettings then
-        Log.trace("ProjectileCamera: Loading saved settings for " .. unitName)
-        cfg.FOLLOW.DISTANCE = loadedSettings.FOLLOW and loadedSettings.FOLLOW.DISTANCE or cfg.DEFAULT_FOLLOW.DISTANCE
-        cfg.FOLLOW.HEIGHT = loadedSettings.FOLLOW and loadedSettings.FOLLOW.HEIGHT or cfg.DEFAULT_FOLLOW.HEIGHT
-        cfg.FOLLOW.LOOK_AHEAD = loadedSettings.FOLLOW and loadedSettings.FOLLOW.LOOK_AHEAD or cfg.DEFAULT_FOLLOW.LOOK_AHEAD
-        cfg.STATIC.LOOK_AHEAD = loadedSettings.STATIC and loadedSettings.STATIC.LOOK_AHEAD or cfg.DEFAULT_STATIC.LOOK_AHEAD
-        cfg.STATIC.OFFSET_HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_HEIGHT or cfg.DEFAULT_STATIC.OFFSET_HEIGHT
-        cfg.STATIC.OFFSET_SIDE = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_SIDE or cfg.DEFAULT_STATIC.OFFSET_SIDE
-        cfg.DECELERATION_PROFILE = loadedSettings.DECELERATION_PROFILE and Util.deepCopy(loadedSettings.DECELERATION_PROFILE) or Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
-    else
-        Log.trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
-        ProjectileCamera.resetToDefaults()
-    end
-end
-
-local function getProjectileParamPrefixes()
-    return {
-        FOLLOW = "FOLLOW.",
-        STATIC = "STATIC."
-    }
-end
-
-function ProjectileCamera.adjustParams(params)
-    if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'projectile_camera' then -- More direct check
-        return
-    end
-
-    local function resetAndSave()
-        ProjectileCamera.resetToDefaults()
-        if STATE.tracking.unitID then -- Save for current unit if one is tracked
-            ProjectileCamera.saveSettings(STATE.tracking.unitID)
-        end
-        Log.info("Projectile Camera settings reset to defaults" .. (STATE.tracking.unitID and " and saved for current unit type." or "."))
-    end
-
-    local currentSubmode = STATE.projectileWatching.cameraMode or "follow"
-    local currentSubmodeUpper = string.upper(currentSubmode)
-
-    Log.trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
-    Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
-
-    if STATE.tracking.unitID then
-        ProjectileCamera.saveSettings(STATE.tracking.unitID)
-    end
-end
-
-function Util.isUnitCentricMode(mode)
-    return mode == 'fps' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
+    return ProjectileCameraUtils.loadSettings(unitID)
 end
 
 return {

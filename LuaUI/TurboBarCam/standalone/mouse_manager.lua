@@ -95,7 +95,7 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
             STATE.mouse.lastDragX = mouseX
             STATE.mouse.lastDragY = mouseY
             fireCallbacks("onDragStart" .. buttonKey, STATE.mouse[initialPressKey].x, STATE.mouse[initialPressKey].y, mouseX, mouseY, STATE.mouse[isDoubleClickKey])
-        elseif STATE.mouse[isDraggingKey] then
+        elseif STATE.mouse[isDraggingKey] and STATE.mouse.lastDragX and STATE.mouse.lastDragY then
             local dragDx = mouseX - STATE.mouse.lastDragX
             local dragDy = mouseY - STATE.mouse.lastDragY
             if dragDx ~= 0 or dragDy ~= 0 then
