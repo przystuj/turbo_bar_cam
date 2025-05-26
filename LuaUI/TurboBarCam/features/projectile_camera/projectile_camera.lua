@@ -187,6 +187,7 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
     local previouslyWatchedUnitID = STATE.tracking.projectileWatching.watchedUnitID
     local unitToReArmWith = STATE.tracking.projectileWatching.continuouslyArmedUnitID
 
+    local prevCamStateCopy = Util.deepCopy(prevCamState)
     ProjectileCamera.disableProjectileArming() -- This clears armed, impact, etc.
 
     local canReArm = shouldReArm and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith)
@@ -201,10 +202,8 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
             targetForPrevMode = unitToReArmWith
         end
 
-        TrackingManager.initializeMode(prevMode, targetForPrevMode, nil, true)
-        if prevCamState then
-            CameraManager.setCameraState(prevCamState, 0, "ProjectileCamera.restorePreviousModeState")
-        end
+        TrackingManager.initializeMode(prevMode, targetForPrevMode, nil, true, prevCamStateCopy)
+
     elseif STATE.tracking.mode == 'projectile_camera' then
         TrackingManager.disableMode()
     end
@@ -227,7 +226,8 @@ function ProjectileCamera.checkAndActivate()
     if STATE.tracking.mode == 'projectile_camera' and STATE.tracking.projectileWatching.impactTimer then
         local currentTime = Spring.GetTimer()
         local elapsedImpactHold = Spring.DiffTimers(currentTime, STATE.tracking.projectileWatching.impactTimer)
-        if elapsedImpactHold >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_TIMEOUT then
+        local _, gameSpeed = Spring.GetGameSpeed()
+        if elapsedImpactHold * gameSpeed >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_TIMEOUT then
             Log.trace("ProjectileCamera: IMPACT_TIMEOUT reached. Returning to previous mode.")
             local unitID = STATE.tracking.projectileWatching.watchedUnitID
             local reArm = (STATE.tracking.projectileWatching.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
@@ -356,16 +356,13 @@ function ProjectileCamera.selectProjectile(unitID)
         end
     end
 
-    -- Reset isHighArc before checking. It's set only if a new projectile is selected AND meets criteria.
-    -- If no new projectile is selected, isHighArc retains its value from the previous projectile if applicable,
-    -- or remains false if it was reset due to losing a projectile.
-    -- For a cleaner state, always reset when we attempt to select a new one.
     if not latestValidProjectile or (STATE.tracking.projectile.currentProjectileID ~= latestValidProjectile.id) then
         STATE.tracking.projectileWatching.isHighArc = false
     end
 
     if latestValidProjectile then
         if STATE.tracking.projectile.currentProjectileID ~= latestValidProjectile.id then
+            STATE.tracking.projectile = STATE.tracking.projectile or {}
             STATE.tracking.projectile.selectedProjectileID = latestValidProjectile.id
             STATE.tracking.projectile.currentProjectileID = latestValidProjectile.id
             ProjectileCameraUtils.resetSmoothedPositions()
@@ -373,30 +370,31 @@ function ProjectileCamera.selectProjectile(unitID)
             STATE.tracking.projectileWatching.impactTimer = nil
             STATE.tracking.projectileWatching.isImpactDecelerating = false
             STATE.tracking.projectileWatching.impactPosition = nil
+            STATE.tracking.projectile.trackingStartTime = Spring.GetTimer()
 
-            -- *** HIGH ARC DETECTION LOGIC (Magnitude check removed as per user) ***
             local vel = latestValidProjectile.lastVelocity
             if not vel then
-                Log.warn("[ProjectileDebug] selectProjectile: latestValidProjectile.lastVelocity is nil for projectile ID: " .. latestValidProjectile.id)
-                STATE.tracking.projectileWatching.isHighArc = false -- Ensure it's false if velocity is missing
+                --Log.warn("[ProjectileDebug] selectProjectile: latestValidProjectile.lastVelocity is nil for projectile ID: " .. latestValidProjectile.id)
+                STATE.tracking.projectileWatching.isHighArc = false
             else
                 local mag = CameraCommons.vectorMagnitude(vel)
                 if mag > 0.01 then
-                    -- Ensure projectile has some velocity to avoid division by zero / NaN
                     local upComponent = vel.y / mag
-                    local HIGH_ARC_THRESHOLD = 0.8 -- ~53 degrees
+                    local HIGH_ARC_THRESHOLD = 0.8
                     if upComponent > HIGH_ARC_THRESHOLD then
                         STATE.tracking.projectileWatching.isHighArc = true
                     end
-                    STATE.tracking.projectileWatching.isHighArc = false -- Ensure it's false for zero/low speed
+                else
+                    STATE.tracking.projectileWatching.isHighArc = false
                 end
             end
-            -- *** END HIGH ARC DETECTION ***
         end
     else
+        STATE.tracking.projectile = STATE.tracking.projectile or {}
         STATE.tracking.projectile.selectedProjectileID = nil
         STATE.tracking.projectile.currentProjectileID = nil
-        STATE.tracking.projectileWatching.isHighArc = false -- No projectile, so not high arc
+        STATE.tracking.projectile.trackingStartTime = nil
+        STATE.tracking.projectileWatching.isHighArc = false
     end
 end
 
@@ -463,25 +461,21 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
 
     -- 2. Calculate progress (0.0 to 1.0)
+    local _, gameSpeed = Spring.GetGameSpeed()
     local elapsedDecelTime = Spring.DiffTimers(Spring.GetTimer(), STATE.tracking.projectileWatching.impactDecelerationStartTime)
-    local linearProgress = 1.0
-    if profile.DURATION and profile.DURATION > 0 then
-        linearProgress = math.min(elapsedDecelTime / profile.DURATION, 1.0)
-    end
-    local easedProgress = CameraCommons.easeOut(linearProgress) -- Use easing function if available
+    -- shorten the transition if gameSpeed is higher
+    local linearProgress = math.min(elapsedDecelTime / profile.DURATION / gameSpeed , 1.0)
+    local easedProgress = CameraCommons.easeOut(linearProgress)
 
     -- 3. Get initial velocities (both positional and rotational)
     local initialVelocity = STATE.tracking.projectileWatching.initialImpactVelocity or { x = 0, y = 0, z = 0 }
     local initialRotVelocity = STATE.tracking.projectileWatching.initialImpactRotVelocity or { x = 0, y = 0, z = 0 }
 
-    -- 4. Call the (newly enhanced) TransitionUtil
+    -- Call the TransitionUtil
     local smoothedState = TransitionUtil.smoothDecelerationTransition(currentCamState, dt, easedProgress, initialVelocity, initialRotVelocity, profile)
 
     local finalCamState
-
-    -- 5. Determine the next camera state based on transition output
     if smoothedState then
-        -- If TransitionUtil returned a state, it means we're still decelerating.
         finalCamState = smoothedState
     else
         -- If TransitionUtil returned nil, it means deceleration is finished.
@@ -556,9 +550,6 @@ function ProjectileCamera.focusOnUnit(unitID)
     end
 end
 
--- This is the version from your uploaded file for this turn.
--- It does not pass `smoothedUp` to calculateCameraPositionForProjectile.
--- The logic is now self-contained in projectile_camera_utils.lua
 function ProjectileCamera.trackActiveProjectile(currentProjectile)
     STATE.tracking.projectileWatching.impactTimer = nil
     STATE.tracking.projectileWatching.isImpactDecelerating = false
@@ -567,7 +558,7 @@ function ProjectileCamera.trackActiveProjectile(currentProjectile)
     local projectileVel = currentProjectile.lastVelocity
 
     if not projectilePos or not projectileVel then
-        Log.warn(("[ProjectileDebug] TrackActive: projectilePos (%s) or projectileVel (%s) is nil. ID: %s"):format(tostring(projectilePos), tostring(projectileVel), currentProjectile.id))
+        --Log.warn(("[ProjectileDebug] TrackActive: projectilePos (%s) or projectileVel (%s) is nil. ID: %s"):format(tostring(projectilePos), tostring(projectileVel), currentProjectile.id))
         ProjectileCamera.handleImpactView(STATE.tracking.unitID, 0) -- Pass dt=0 or handle appropriately
         return
     end

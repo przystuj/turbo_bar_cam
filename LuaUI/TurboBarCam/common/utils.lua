@@ -352,9 +352,6 @@ function Util.adjustParams(params, module, resetFunction, currentSubmode, getSub
                     end
                 end
 
-                -- Check if the parameter itself (without prefix) exists
-                local isGenericParam = CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES[paramName] and not isSubmodeParam
-
                 -- If it's a submode param but *not* for the current submode, skip it
                 if isSubmodeParam and not belongsToCurrentSubmode then
                     Log.trace("Skipping param '" .. paramName .. "' as it belongs to a different submode.")
@@ -572,6 +569,20 @@ function Util.subtractTable(t1, t2)
     end
 
     return result
+end
+
+--- Splits a string path by a delimiter.
+-- @param path The string path to split (e.g., "A.B.C").
+-- @param delimiter The character to split by (defaults to ".").
+-- @return A table containing the path segments.
+function Util.splitPath(path, delimiter)
+    delimiter = delimiter or "."
+    local segments = {}
+    -- Use gmatch to find all sequences of characters that are not the delimiter
+    for segment in string.gmatch(path, "([^" .. delimiter .. "]+)") do
+        table.insert(segments, segment)
+    end
+    return segments
 end
 
 return {

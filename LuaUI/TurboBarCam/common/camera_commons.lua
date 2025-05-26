@@ -177,18 +177,32 @@ function CameraCommons.isTransitionComplete()
     return CameraCommons.getTransitionProgress() == 1
 end
 
+function CameraCommons.easeIn(t)
+    return t * t * t
+end
+
 function CameraCommons.easeOut(t)
     local t2 = t - 1
     return t2 * t2 * t2 + 1
 end
 
-function CameraCommons.getTransitionProgress()
+function CameraCommons.easeInOut(t)
+    if t < 0.5 then
+        return 4 * t * t * t
+    else
+        local p = -2 * t + 2
+        return 1 - (p * p * p) / 2
+    end
+end
+
+function CameraCommons.getTransitionProgress(duration)
+    duration = duration or CONFIG.TRANSITION.MODE_TRANSITION_DURATION
     local now = Spring.GetTimer()
     local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
     -- Apply easing to the raw elapsed time before dividing by duration
-    local easedElapsedFactor = CameraCommons.easeOut(elapsed / CONFIG.TRANSITION.MODE_TRANSITION_DURATION)
+    local easedElapsedFactor = CameraCommons.easeInOut(elapsed / duration)
 
-    if elapsed >= CONFIG.TRANSITION.MODE_TRANSITION_DURATION then
+    if elapsed >= duration then
         return 1 -- Ensure it clamps to 1 at the end of the duration
     end
     return easedElapsedFactor

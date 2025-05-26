@@ -19,8 +19,24 @@ if not WG.TurboBarCam.CONFIG then
 
         TRANSITION = {
             MODE_TRANSITION_DURATION = 2.0, -- Duration of transition between modes in seconds
-            -- Note: Individual deceleration profiles can have their own DURATION if they
-            -- represent a sub-phase within or outside a mode transition.
+            DECELERATION = {
+                -- The minimum rate at which velocity decays towards the end of the transition.
+                -- A higher value means the camera stops more sharply, a lower value means a gentler stop.
+                DECAY_RATE_MIN = 0.5,
+                -- The minimum LERP factor for smoothing towards the end of the transition.
+                -- It controls how strongly the camera follows the predicted decelerating path vs. its current path.
+                -- A lower value results in smoother but potentially less direct deceleration.
+                POS_CONTROL_FACTOR_MIN = 0.05,
+                ROT_CONTROL_FACTOR_MIN = 0.01,
+                -- The positional velocity magnitude below which the camera is considered 'stopped'.
+                -- Used to determine when to end the deceleration phase.
+                MIN_VELOCITY_THRESHOLD = 1.0,
+                -- The rotational velocity magnitude below which the camera is considered 'stopped' rotating.
+                -- Used to determine when to end the deceleration phase.
+                MIN_ROT_VEL_THRESHOLD = 0.01,
+                MAX_POSITION_VELOCITY = 500,
+                MAX_ROTATION_VELOCITY = 1,
+            }
         },
 
         -- Camera mode settings
@@ -221,12 +237,14 @@ if not WG.TurboBarCam.CONFIG then
                     DURATION = 1.5,
                     INITIAL_BRAKING = 8.0,
                     PATH_ADHERENCE = 0.6,
+                    MIN_INITIAL_ROT_MAG = 0,
                 },
 
                 DEFAULT_DECELERATION_PROFILE = {
                     DURATION = 1.7,
                     INITIAL_BRAKING = 8.0,
                     PATH_ADHERENCE = 0.6,
+                    MIN_INITIAL_ROT_VELOCITY = 0,
                 },
             },
 

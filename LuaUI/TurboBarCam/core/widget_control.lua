@@ -123,6 +123,39 @@ function WidgetControl.toggleRequireUnitSelection()
     return true
 end
 
+--- Sets a value in the CONFIG table using a string path.
+-- If the path doesn't exist, it creates the necessary nested tables.
+-- @param path The string path (e.g., "CAMERA_MODES.FPS.OFFSETS.UP").
+-- @param value The value to set at the specified path.
+function WidgetControl.changeConfig(path, value)
+    local segments = Util.splitPath(path)
+    local currentTable = CONFIG
+    local segmentCount = #segments
+
+    -- Iterate through the path segments, except the last one
+    for i = 1, segmentCount - 1 do
+        local segment = segments[i]
+
+        -- If the next level doesn't exist or isn't a table, create it
+        if not currentTable[segment] or type(currentTable[segment]) ~= "table" then
+            currentTable[segment] = {}
+        end
+
+        -- Move down to the next level
+        currentTable = currentTable[segment]
+    end
+
+    -- Set the value at the final level using the last segment
+    if segmentCount > 0 then
+        local lastSegment = segments[segmentCount]
+        Log.debug(string.format("Changing %s=%s to %s", path, currentTable[lastSegment], value))
+        currentTable[lastSegment] = value
+    else
+        -- Handle cases where the path might be empty, though this usually indicates an error.
+        Log.debug("Attempted to change config with an empty path.")
+    end
+end
+
 return {
     WidgetControl = WidgetControl
 }

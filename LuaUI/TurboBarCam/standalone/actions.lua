@@ -72,6 +72,12 @@ function Actions.coreActions()
                 CommonModules.TrackingManager.disableMode()
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_dev_config", 't',
+            function(_, params, args)
+                CoreModules.WidgetControl.changeConfig(args[1], args[2])
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()

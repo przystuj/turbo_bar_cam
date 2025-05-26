@@ -1,3 +1,5 @@
+---@type WidgetContext
+local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CameraCommons
 local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 ---@type Log
@@ -6,6 +8,8 @@ local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+
+local CONFIG = WidgetContext.CONFIG
 
 ---@class TransitionUtil
 local TransitionUtil = {}
@@ -19,11 +23,29 @@ local TransitionUtil = {}
 ---@param profile table Configuration { DURATION, INITIAL_BRAKING, PATH_ADHERENCE }
 ---@return table|nil newCamState Full smoothed camera state {px, py, pz, rx, ry, rz} or nil
 function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProgress, velocity, rotVelocity, profile)
-    local DECAY_RATE_MIN = 0.5
-    local POS_CONTROL_FACTOR_MIN = 0.05
-    local ROT_CONTROL_FACTOR_MIN = 0.01
-    local MIN_VELOCITY_THRESHOLD = 1.0
-    local MIN_ROT_VEL_THRESHOLD = 0.1
+    local DECAY_RATE_MIN = CONFIG.TRANSITION.DECELERATION.DECAY_RATE_MIN
+    local POS_CONTROL_FACTOR_MIN = CONFIG.TRANSITION.DECELERATION.POS_CONTROL_FACTOR_MIN
+    local ROT_CONTROL_FACTOR_MIN = CONFIG.TRANSITION.DECELERATION.ROT_CONTROL_FACTOR_MIN
+    local MIN_VELOCITY_THRESHOLD = CONFIG.TRANSITION.DECELERATION.MIN_VELOCITY_THRESHOLD
+    local MIN_ROT_VEL_THRESHOLD = CONFIG.TRANSITION.DECELERATION.MIN_ROT_VEL_THRESHOLD
+    local MAX_POSITION_VELOCITY = CONFIG.TRANSITION.DECELERATION.MAX_POSITION_VELOCITY
+    local MAX_ROTATION_VELOCITY = CONFIG.TRANSITION.DECELERATION.MAX_ROTATION_VELOCITY
+
+    local clampedVelocity = velocity
+    local clampedRotVelocity = rotVelocity
+    local velMagnitude = CameraCommons.vectorMagnitude(velocity)
+    local rotVelMagnitude = CameraCommons.vectorMagnitude(rotVelocity)
+
+    if velMagnitude > MAX_POSITION_VELOCITY then
+        clampedVelocity = CameraCommons.vectorMultiply(velocity, MAX_POSITION_VELOCITY / velMagnitude)
+        Log.trace("Clamping high velocity: " .. velMagnitude .. " to " .. MAX_POSITION_VELOCITY)
+        velMagnitude = MAX_POSITION_VELOCITY
+    end
+    if rotVelMagnitude > MAX_ROTATION_VELOCITY then
+        clampedRotVelocity = CameraCommons.vectorMultiply(rotVelocity, MAX_ROTATION_VELOCITY / rotVelMagnitude)
+        Log.trace("Clamping high rot velocity: " .. rotVelMagnitude .. " to " .. MAX_ROTATION_VELOCITY)
+        rotVelMagnitude = MAX_ROTATION_VELOCITY
+    end
 
     local initialBraking = profile.INITIAL_BRAKING or 8.0
     local pathAdherence = profile.PATH_ADHERENCE or 0.6
@@ -32,14 +54,9 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
     local posControlFactor = CameraCommons.lerp(pathAdherence, POS_CONTROL_FACTOR_MIN, easedProgress)
     local rotControlFactor = CameraCommons.lerp(0.9, ROT_CONTROL_FACTOR_MIN, easedProgress)
 
-    local velMagnitude = CameraCommons.vectorMagnitude(velocity)
-    local rotVelMagnitude = CameraCommons.vectorMagnitude(rotVelocity)
-
-    -- Check if either position OR rotation needs deceleration
     if (velMagnitude > MIN_VELOCITY_THRESHOLD or rotVelMagnitude > MIN_ROT_VEL_THRESHOLD) and easedProgress < 0.999 then
 
-        -- Predict the full next state
-        local predictedState = CameraManager.predictState(currentState, velocity, rotVelocity, dt, decayRate)
+        local predictedState = CameraManager.predictState(currentState, clampedVelocity, clampedRotVelocity, dt, decayRate)
 
         local newState = {
             px = CameraCommons.smoothStep(currentState.px, predictedState.px, posControlFactor),
@@ -52,7 +69,6 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
         }
         return newState
     else
-        -- Nothing to decelerate, return nil to signal holding position/rotation
         return nil
     end
 end

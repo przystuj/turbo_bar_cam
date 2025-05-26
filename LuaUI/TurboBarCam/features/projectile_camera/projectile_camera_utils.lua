@@ -36,9 +36,10 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
+    local rampUpFactor = ProjectileCameraUtils.getRampUpFactor()
     local modeCfg = cfg.FOLLOW
-    local distance = modeCfg.DISTANCE
-    local height = modeCfg.HEIGHT
+    local distance = modeCfg.DISTANCE * rampUpFactor
+    local height = modeCfg.HEIGHT * rampUpFactor
 
     local projectileDir = CameraCommons.normalizeVector(pVel)
     if CameraCommons.vectorMagnitudeSq(projectileDir) < 0.001 then
@@ -60,10 +61,10 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
             if STATE.tracking.lastCamDir and (STATE.tracking.lastCamDir.x ~= 0 or STATE.tracking.lastCamDir.z ~= 0) then
                 -- Use inverted XZ component of camera's forward vector.
                 awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.tracking.lastCamDir.x, y = 0, z = -STATE.tracking.lastCamDir.z })
-                Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using inverted CamDir XZ: %s"):format(formatVec(awayDirXZ)))
+                --Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using inverted CamDir XZ: %s"):format(formatVec(awayDirXZ)))
             else
                 awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
-                Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using Fallback XZ: %s"):format(formatVec(awayDirXZ)))
+                --Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using Fallback XZ: %s"):format(formatVec(awayDirXZ)))
             end
             -- Apply distance along 'awayDirXZ' and height along World Y
             camX = pPos.x + awayDirXZ.x * distance
@@ -72,7 +73,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         else
             -- Projectile has horizontal movement. Pull back opposite to it.
             projectileDirXZ = CameraCommons.normalizeVector(projectileDirXZ)
-            Log.staggeredLog(("[ProjectileDebug] HighArc-NonVertical: Using ProjDir XZ: %s"):format(formatVec(projectileDirXZ)))
+            --Log.staggeredLog(("[ProjectileDebug] HighArc-NonVertical: Using ProjDir XZ: %s"):format(formatVec(projectileDirXZ)))
             -- Apply distance opposite to 'projectileDirXZ' and height along World Y
             camX = pPos.x - projectileDirXZ.x * distance
             camZ = pPos.z - projectileDirXZ.z * distance
@@ -124,11 +125,6 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
 
     return result
 end
-
--- =============================================================================
--- Keep all other functions in projectile_camera_utils.lua as they are.
--- Only replace the `calculateCameraPositionForProjectile` function.
--- =============================================================================
 
 function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
@@ -346,6 +342,22 @@ end
 
 function ProjectileCameraUtils.isUnitCentricMode(mode)
     return mode == 'fps' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
+end
+
+--- Calculates a ramp-up factor based on projectile tracking time.
+---@return number rampUpFactor (0.0 to 1.0)
+function ProjectileCameraUtils.getRampUpFactor()
+    local _, gameSpeed = Spring.GetGameSpeed()
+    local RAMP_UP_DURATION = 1.0 / gameSpeed
+
+    if not STATE.tracking.projectile or not STATE.tracking.projectile.trackingStartTime then
+        return RAMP_UP_DURATION -- Default to 1 if not tracking or no start time
+    end
+
+    local elapsed = Spring.DiffTimers(Spring.GetTimer(), STATE.tracking.projectile.trackingStartTime)
+    local factor = math.min(elapsed / RAMP_UP_DURATION, RAMP_UP_DURATION)
+
+    return CameraCommons.easeOut(factor)
 end
 
 return ProjectileCameraUtils

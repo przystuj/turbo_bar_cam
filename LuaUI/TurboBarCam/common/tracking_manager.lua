@@ -19,8 +19,10 @@ local TrackingManager = {}
 ---@param mode string Tracking mode ('fps', 'unit_tracking', 'orbit', 'overview', 'projectile_camera')
 ---@param target any The target to track (unitID number or point table {x,y,z})
 ---@param targetType string|nil Target type (optional, will be auto-detected if nil)
+---@param automaticMode boolean|nil True if this is an automatic transition
+---@param optionalTargetState table|nil Optional camera state to transition towards
 ---@return boolean success Whether tracking was initialized successfully
-function TrackingManager.initializeMode(mode, target, targetType, automaticMode)
+function TrackingManager.initializeMode(mode, target, targetType, automaticMode, optionalTargetState)
     if Util.isTurboBarCamDisabled() then
         return false
     end
@@ -43,7 +45,9 @@ function TrackingManager.initializeMode(mode, target, targetType, automaticMode)
         end
     end
 
-    if STATE.tracking.mode == mode and validType == STATE.tracking.targetType and not STATE.tracking.isModeTransitionInProgress then
+    -- Allow re-init/transition if a target state is provided, even if mode/unit is same
+    local allowReinit = optionalTargetState ~= nil
+    if STATE.tracking.mode == mode and validType == STATE.tracking.targetType and not STATE.tracking.isModeTransitionInProgress and not allowReinit then
         if validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID then
             SettingsManager.saveModeSettings(mode, STATE.tracking.unitID)
             TrackingManager.disableMode()
@@ -54,10 +58,13 @@ function TrackingManager.initializeMode(mode, target, targetType, automaticMode)
             return false
         end
     end
+
     -- clear current mode before enabling new one
     if STATE.tracking.mode ~= mode and not automaticMode then
         TrackingManager.disableMode()
     end
+
+    STATE.tracking.transitionTarget = optionalTargetState
 
     TrackingManager.startModeTransition(mode)
     STATE.tracking.targetType = validType
@@ -185,13 +192,13 @@ function TrackingManager.disableMode()
         alpha = 1,
         visualizationEnabled = true
     }
+    STATE.tracking.transitionTarget = nil
 end
 
 --- Starts a mode transition
----@param newMode string New camera mode
----@return boolean success Whether transition started successfully
 function TrackingManager.startModeTransition(newMode)
-    if STATE.tracking.mode == newMode then
+    -- Allow re-transition if a target is set, otherwise check if mode is same
+    if STATE.tracking.mode == newMode and not STATE.tracking.transitionTarget then
         return false
     end
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)

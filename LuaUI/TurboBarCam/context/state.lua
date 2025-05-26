@@ -138,7 +138,8 @@ if not WG.TurboBarCam.STATE then
                 currentProjectileID = nil,
                 lastSwitchTime = nil,
                 isWatchingForProjectiles = false,
-                smoothedPositions = nil, -- Will be { camPos = {x,y,z}, targetPos = {x,y,z} }
+                smoothedPositions = nil,
+                trackingStartTime = nil,
             },
 
             projectileWatching = {
