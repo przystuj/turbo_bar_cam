@@ -8,6 +8,17 @@ if not WG.TurboBarCam.STATE then
             NONE = "NONE"
         },
 
+        cameraVelocity = {
+            positionHistory = {},
+            rotationHistory = {},
+            maxHistorySize = 10,
+            currentVelocity = { x = 0, y = 0, z = 0 },
+            currentRotationalVelocity = { x = 0, y = 0, z = 0 },
+            lastUpdateTime = nil,
+            isTracking = false,
+            initialized = false
+        },
+
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
@@ -144,7 +155,8 @@ if not WG.TurboBarCam.STATE then
 
                 isImpactDecelerating = false, -- True if currently in the impact deceleration phase
                 impactDecelerationStartTime = nil, -- Timer for the start of impact deceleration
-                initialImpactVelocity = nil         -- Camera velocity captured at the start of impact deceleration {x,y,z}
+                initialImpactVelocity = nil,        -- Camera velocity captured at the start of impact deceleration {x,y,z}
+                initialImpactRotVelocity = nil,         -- Camera velocity captured at the start of impact deceleration {x,y,z}
             },
 
             group = {

@@ -155,17 +155,17 @@ if not WG.TurboBarCam.CONFIG then
             UNIT_TRACKING = {
                 HEIGHT = 0, -- Height offset for look-at point in world units
                 SMOOTHING = {
-                    ROTATION_FACTOR = 0.01, -- Lower = smoother but more lag (0.0-1.0)
+                    ROTATION_FACTOR = 0.05, -- Lower = smoother but more lag (0.0-1.0)
                     TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode (likely for direction, not position)
                 },
                 DEFAULT_SMOOTHING = {
-                    ROTATION_FACTOR = 0.01,
+                    ROTATION_FACTOR = 0.05,
                     TRACKING_FACTOR = 0.1,
                 },
                 DECELERATION_PROFILE = { -- When transitioning into unit tracking mode
-                    DURATION = 2.0,
-                    INITIAL_BRAKING = 10.0,
-                    PATH_ADHERENCE = 0.1,
+                    DURATION = 2.5,
+                    INITIAL_BRAKING = 1.0,
+                    PATH_ADHERENCE = 1,
                 },
             },
 

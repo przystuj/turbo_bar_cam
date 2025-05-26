@@ -64,61 +64,62 @@ function UnitTrackingCamera.update(dt)
         y = unitY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT,
         z = unitZ
     }
-    local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
-    -- Get base smoothing factors for direction/rotation
     local baseDirFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.TRACKING_FACTOR
     local baseRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
-
-    -- Handle mode transition for direction/rotation smoothing and manage isModeTransitionInProgress flag
     local dirFactor, rotFactor = CameraCommons.handleModeTransition(baseDirFactor, baseRotFactor)
 
-    -- Initialize last values if needed (for direction/rotation smoothing)
-    if STATE.tracking.lastCamDir.x == 0 and STATE.tracking.lastCamDir.y == 0 and STATE.tracking.lastCamDir.z == 0 then
-        local initialLookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
-        STATE.tracking.lastCamDir = { x = initialLookDir.dx, y = initialLookDir.dy, z = initialLookDir.dz }
-        STATE.tracking.lastRotation = { rx = initialLookDir.rx, ry = initialLookDir.ry, rz = 0 }
-    end
+    local camStatePatch = {}
 
-    -- Use focusOnPoint for camera direction and rotation state
-    local camStatePatch = CameraCommons.focusOnPoint(camPos, targetPos, dirFactor, rotFactor)
-
-    -- Handle position control based on transition state using the new generic deceleration
     if STATE.tracking.isModeTransitionInProgress then
-        -- This flag is managed by handleModeTransition
-        local transitionProgress = CameraCommons.getTransitionProgress() -- Progress over MODE_TRANSITION_DURATION
-        local currentVelocity, _ = CameraManager.getCurrentVelocity() -- Get live camera velocity
+        local transitionProgress = CameraCommons.getTransitionProgress()
+        local initialVelocity, _, initialRotVelocity = CameraManager.getCurrentVelocity()
         local profile = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE
 
-        local newPos = TransitionUtil.decelerationTransition(camPos, dt, transitionProgress, currentVelocity, profile)
+        -- Calculate th2e DECCELERATED state (includes pos and rot)
+        local deceleratedState = TransitionUtil.smoothDecelerationTransition(currentState, dt, transitionProgress, initialVelocity, initialRotVelocity, profile)
 
-        if newPos then
-            camStatePatch.px = newPos.px
-            camStatePatch.py = newPos.py
-            camStatePatch.pz = newPos.pz
+        if deceleratedState then
+            -- We are still decelerating.
+            -- Use the decelerated position.
+            camStatePatch.px = deceleratedState.px
+            camStatePatch.py = deceleratedState.py
+            camStatePatch.pz = deceleratedState.pz
+
+            -- Calculate the ideal target rotation based on the *decelerated* position.
+            local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(deceleratedState, targetPos)
+
+            -- Blend from the decelerated rotation towards the target rotation using rotFactor.
+            -- This applies deceleration *while* steering towards the target.
+            camStatePatch.rx = CameraCommons.smoothStepAngle(deceleratedState.rx, targetLookDir.rx, rotFactor)
+            camStatePatch.ry = CameraCommons.smoothStepAngle(deceleratedState.ry, targetLookDir.ry, rotFactor)
+
         else
-            -- Velocity is low or transition is nearing end.
-            -- Gently bring to a stop or allow free movement if transition is almost over.
-            if transitionProgress < 0.95 then
-                -- Still actively transitioning
-                local gentleStopFactor = CameraCommons.lerp(profile.POS_CONTROL_FACTOR_MIN or 0.02, 0.0, transitionProgress)
-                if gentleStopFactor > 0.001 then
-                    camStatePatch.px = CameraCommons.smoothStep(camPos.x, camPos.x, gentleStopFactor)
-                    camStatePatch.py = CameraCommons.smoothStep(camPos.y, camPos.y, gentleStopFactor)
-                    camStatePatch.pz = CameraCommons.smoothStep(camPos.z, camPos.z, gentleStopFactor)
-                else
-                    -- Position control has faded out, allow free movement by not setting px,py,pz
-                    camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
-                end
-            else
-                -- Transition virtually complete, ensure no positional override
-                camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
-            end
+            -- Deceleration finished (velocity low). Fall back to normal focus using focusOnPoint.
+            -- We need to pass a valid camera position to focusOnPoint, so use currentState.
+            local idealState = CameraCommons.focusOnPoint(currentState, targetPos, dirFactor, rotFactor)
+            camStatePatch.px = nil -- Free movement
+            camStatePatch.py = nil
+            camStatePatch.pz = nil
+            camStatePatch.rx = idealState.rx
+            camStatePatch.ry = idealState.ry
         end
     else
-        -- After transition is complete, remove position updates to allow free camera movement
-        camStatePatch.px, camStatePatch.py, camStatePatch.pz = nil, nil, nil
+        -- Not in transition. Normal focus using focusOnPoint.
+        local idealState = CameraCommons.focusOnPoint(currentState, targetPos, dirFactor, rotFactor)
+        camStatePatch.px = nil -- Free movement
+        camStatePatch.py = nil
+        camStatePatch.pz = nil
+        camStatePatch.rx = idealState.rx
+        camStatePatch.ry = idealState.ry
     end
+
+    -- Ensure dx/dy/dz and rz are set based on the final rotation.
+    local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
+    camStatePatch.dx = finalDir.x
+    camStatePatch.dy = finalDir.y
+    camStatePatch.dz = finalDir.z
+    camStatePatch.rz = 0
 
     TrackingManager.updateTrackingState(camStatePatch)
     CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.update")

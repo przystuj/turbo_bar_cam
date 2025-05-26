@@ -4,25 +4,13 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
----@type CameraCommons -- Forward declaration for predictPosition usage if it were here
+---@type CameraCommons
 local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 
 local STATE = WidgetContext.STATE
 
 ---@class CameraManager
 local CameraManager = {}
-
--- Initialize velocity tracking state
-if not STATE.cameraVelocity then
-    STATE.cameraVelocity = {
-        positionHistory = {},
-        maxHistorySize = 10,
-        currentVelocity = {x=0, y=0, z=0},
-        lastUpdateTime = nil,
-        isTracking = false,
-        initialized = false
-    }
-end
 
 function CameraManager.update()
     if not STATE.cameraVelocity.initialized then
@@ -36,47 +24,69 @@ function CameraManager.update()
     end
 end
 
-local function updateVelocityTracking()
+--- Calculates the shortest difference between two angles (handles wrapping).
+--- Assumes CameraCommons exists and we can add this helper or it has one.
+--- If not, we define it here or in camera_commons.lua.
+local function getAngleDiff(a1, a2)
+    local diff = a2 - a1
+    while diff > math.pi do diff = diff - 2 * math.pi end
+    while diff < -math.pi do diff = diff + 2 * math.pi end
+    return diff
+end
+
+function CameraManager.updateVelocityTracking()
     local currentState = Spring.GetCameraState()
     local velocityState = STATE.cameraVelocity
     local currentTime = Spring.GetTimer()
 
-    local currentPos = {
-        pos = {x = currentState.px, y = currentState.py, z = currentState.pz},
-        time = currentTime
-    }
+    local pos = { x = currentState.px, y = currentState.py, z = currentState.pz }
+    local rot = { x = currentState.rx, y = currentState.ry, z = currentState.rz }
 
-    local isDuplicate = false
-    if #velocityState.positionHistory > 0 then
-        local lastEntry = velocityState.positionHistory[#velocityState.positionHistory]
-        local timeDiff = Spring.DiffTimers(currentTime, lastEntry.time)
+    if velocityState.lastUpdateTime then
+        local dt = Spring.DiffTimers(currentTime, velocityState.lastUpdateTime)
+        if dt > 0.001 then -- Avoid division by zero
+            table.insert(velocityState.positionHistory, 1, { pos = pos, time = currentTime })
+            table.insert(velocityState.rotationHistory, 1, { rot = rot, time = currentTime })
 
-        -- Use CameraCommons for magnitude calculation if available and appropriate
-        local posDiffVec = {
-            x = currentPos.pos.x - lastEntry.pos.x,
-            y = currentPos.pos.y - lastEntry.pos.y,
-            z = currentPos.pos.z - lastEntry.pos.z
-        }
-        local posDiff = CameraCommons.vectorMagnitude(posDiffVec)
+            -- Trim history
+            if #velocityState.positionHistory > velocityState.maxHistorySize then
+                table.remove(velocityState.positionHistory)
+            end
+            if #velocityState.rotationHistory > velocityState.maxHistorySize then
+                table.remove(velocityState.rotationHistory)
+            end
 
+            -- Calculate average velocity (using oldest and newest for simplicity, can be improved)
+            if #velocityState.positionHistory > 1 then
+                local oldestPos = velocityState.positionHistory[#velocityState.positionHistory]
+                local oldestRot = velocityState.rotationHistory[#velocityState.rotationHistory] -- ADDED
+                local totalDt = Spring.DiffTimers(currentTime, oldestPos.time)
 
-        if timeDiff < 0.01 and posDiff < 1.0 then
-            isDuplicate = true
+                if totalDt > 0.01 then -- Ensure enough time passed
+                    velocityState.currentVelocity = {
+                        x = (pos.x - oldestPos.pos.x) / totalDt,
+                        y = (pos.y - oldestPos.pos.y) / totalDt,
+                        z = (pos.z - oldestPos.pos.z) / totalDt,
+                    }
+                    -- ADDED: Calculate rotational velocity
+                    velocityState.currentRotationalVelocity = {
+                        x = getAngleDiff(oldestRot.rot.x, rot.x) / totalDt,
+                        y = getAngleDiff(oldestRot.rot.y, rot.y) / totalDt,
+                        z = getAngleDiff(oldestRot.rot.z, rot.z) / totalDt,
+                    }
+                end
+            end
         end
+    else
+        -- Initialize history on first run
+        table.insert(velocityState.positionHistory, 1, { pos = pos, time = currentTime })
+        table.insert(velocityState.rotationHistory, 1, { rot = rot, time = currentTime }) -- ADDED
     end
 
-    if not isDuplicate then
-        table.insert(velocityState.positionHistory, currentPos)
-        while #velocityState.positionHistory > velocityState.maxHistorySize do
-            table.remove(velocityState.positionHistory, 1)
-        end
-        if #velocityState.positionHistory >= 2 then
-            CameraManager.calculateVelocity()
-        end
-        velocityState.lastUpdateTime = currentTime
-    end
+    velocityState.lastUpdateTime = currentTime
+    STATE.cameraVelocity.lastPosition = pos
+    STATE.cameraVelocity.lastRotation = rot -- ADDED
 end
-CameraManager.updateVelocityTracking = updateVelocityTracking
 
 function CameraManager.calculateVelocity()
     local velocityState = STATE.cameraVelocity
@@ -134,8 +144,10 @@ end
 
 function CameraManager.getCurrentVelocity()
     local vel = STATE.cameraVelocity.currentVelocity
+    local rotVel = STATE.cameraVelocity.currentRotationalVelocity
     local magnitude = CameraCommons.vectorMagnitude(vel)
-    return vel, magnitude
+    local rotMagnitude = CameraCommons.vectorMagnitude(rotVel)
+    return vel, magnitude, rotVel, rotMagnitude
 end
 
 function CameraManager.applyVelocityDecay(decayRate, deltaTime)
@@ -150,41 +162,33 @@ function CameraManager.applyVelocityDecay(decayRate, deltaTime)
     return velocityState.currentVelocity
 end
 
---- Predicts future camera position based on a given velocity and decay.
---- This function is now more generic as it accepts the velocity to use.
----@param currentPos table Current camera position {x, y, z}
----@param velocity table Velocity to use for prediction {x, y, z}
----@param deltaTime number Time step for prediction
----@param decayRate number Rate of velocity decay
----@return table predictedPos Predicted position after deltaTime
-function CameraManager.predictPosition(currentPos, velocity, deltaTime, decayRate)
-    local vel = velocity -- Use the passed velocity
-
-    local velMagnitude = CameraCommons.vectorMagnitude(vel)
-    if velMagnitude < 0.1 then -- A small threshold to consider velocity negligible
-        return Util.deepCopy(currentPos) -- Return a copy to avoid modifying original
+--- Predicts camera state based on current state, velocity, and decay.
+---@param currentState table Current camera state {px, py, pz, rx, ry, rz}
+---@param vel table Positional velocity {x, y, z}
+---@param rotVel table Rotational velocity {rx, ry, rz}
+---@param deltaTime number Time delta
+---@param decayRate number Decay rate
+---@return table predictedState Predicted camera state {px, py, pz, rx, ry, rz}
+function CameraManager.predictState(currentState, vel, rotVel, deltaTime, decayRate)
+    -- If no decay or dt is zero, return current state
+    if decayRate <= 0 or deltaTime <= 0 then
+        return Util.deepCopy(currentState) -- Return a copy
     end
 
-    -- If decayRate is effectively zero, perform linear prediction
-    if decayRate <= 0.0001 then
-        return {
-            x = currentPos.x + vel.x * deltaTime,
-            y = currentPos.y + vel.y * deltaTime,
-            z = currentPos.z + vel.z * deltaTime,
-        }
-    end
+    local decayFactorIntegral = (1 - math.exp(-decayRate * deltaTime)) / decayRate
 
-    -- Calculate position with decaying velocity using the integral formula
-    -- Integral of v*e^(-rt) dt = v*(1-e^(-rt))/r
-    local decayFactorIntegral = (1.0 - math.exp(-decayRate * deltaTime)) / decayRate
-
-    return {
-        x = currentPos.x + vel.x * decayFactorIntegral,
-        y = currentPos.y + vel.y * decayFactorIntegral,
-        z = currentPos.z + vel.z * decayFactorIntegral
+    local predictedState = {
+        px = currentState.px + vel.x * decayFactorIntegral,
+        py = currentState.py + vel.y * decayFactorIntegral,
+        pz = currentState.pz + vel.z * decayFactorIntegral,
+        rx = currentState.rx + rotVel.x * decayFactorIntegral,
+        ry = CameraCommons.normalizeAngle(currentState.ry + rotVel.y * decayFactorIntegral),
+        rz = currentState.rz + rotVel.z * decayFactorIntegral,
+        fov = currentState.fov
     }
-end
 
+    return predictedState
+end
 
 function CameraManager.hasSignificantVelocity(threshold)
     threshold = threshold or 10.0
@@ -214,12 +218,10 @@ function CameraManager.setFov(fov)
 end
 
 function CameraManager.getCameraState(source)
-    assert(source, "Source parameter is required for getCameraState")
     return Spring.GetCameraState()
 end
 
 function CameraManager.setCameraState(cameraState, smoothing, source)
-    assert(source, "Source parameter is required for setCameraState")
     Spring.SetCameraState(cameraState, smoothing)
 end
 

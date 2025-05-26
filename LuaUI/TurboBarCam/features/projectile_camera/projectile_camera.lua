@@ -21,15 +21,6 @@ local TrackingManager = CommonModules.TrackingManager
 ---@class ProjectileCamera
 local ProjectileCamera = {}
 
--- Logging Helper
-local function formatVec(v)
-    if not v then
-        return "nil"
-    end
-    return string.format("{x=%.1f, y=%.1f, z=%.1f}", v.x or 0, v.y or 0, v.z or 0)
-end
-
-
 --------------------------------------------------------------------------------
 -- Public API Functions
 --------------------------------------------------------------------------------
@@ -396,12 +387,7 @@ function ProjectileCamera.selectProjectile(unitID)
                     local HIGH_ARC_THRESHOLD = 0.8 -- ~53 degrees
                     if upComponent > HIGH_ARC_THRESHOLD then
                         STATE.tracking.projectileWatching.isHighArc = true
-                        Log.debug(("[ProjectileDebug] High arc trajectory DETECTED. Vel: %s UpComp: %.2f Mag: %.2f"):format(formatVec(vel), upComponent, mag))
-                    else
-                        Log.debug(("[ProjectileDebug] High arc trajectory NOT detected (Low Angle). Vel: %s UpComp: %.2f Mag: %.2f"):format(formatVec(vel), upComponent, mag))
                     end
-                else
-                    Log.debug(("[ProjectileDebug] High arc trajectory NOT detected (Zero/Low Speed). Vel: %s Mag: %.2f"):format(formatVec(vel), mag))
                     STATE.tracking.projectileWatching.isHighArc = false -- Ensure it's false for zero/low speed
                 end
             end
@@ -451,9 +437,10 @@ function ProjectileCamera.handleImpactView(unitID, dt)
         STATE.tracking.projectileWatching.isImpactDecelerating = true
         STATE.tracking.projectileWatching.impactDecelerationStartTime = Spring.GetTimer()
         STATE.tracking.projectileWatching.impactTimer = Spring.GetTimer()
-        local vel, _ = CameraManager.getCurrentVelocity()
+        local vel, _, rotVel, _ = CameraManager.getCurrentVelocity()
         STATE.tracking.projectileWatching.initialImpactVelocity = Util.deepCopy(vel)
-        Log.trace("ProjectileCamera: Projectile lost/ended. Starting impact deceleration and timer for unit " .. unitID)
+        STATE.tracking.projectileWatching.initialImpactRotVelocity = Util.deepCopy(rotVel)
+        Log.trace("ProjectileCamera: Projectile lost. Starting impact deceleration.")
         ProjectileCamera.decelerateToImpactPosition(dt)
     elseif STATE.tracking.projectileWatching.isImpactDecelerating then
         ProjectileCamera.decelerateToImpactPosition(dt)
@@ -463,52 +450,81 @@ function ProjectileCamera.handleImpactView(unitID, dt)
 end
 
 function ProjectileCamera.decelerateToImpactPosition(dt)
+    -- 1. Check for valid impact position
     if not STATE.tracking.projectileWatching.impactPosition or not STATE.tracking.projectileWatching.impactPosition.pos then
         Log.warn("ProjectileCamera: decelerateToImpactPosition called without valid impactPosition.")
         STATE.tracking.projectileWatching.isImpactDecelerating = false
-        ProjectileCamera.focusOnUnit(STATE.tracking.unitID)
+        ProjectileCamera.focusOnUnit(STATE.tracking.unitID) -- Fallback to unit
         return
     end
+
     local impactWorldPos = STATE.tracking.projectileWatching.impactPosition.pos
     local currentCamState = CameraManager.getCameraState("ProjectileCamera.decelerateToImpactPosition")
-    local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
+
+    -- 2. Calculate progress (0.0 to 1.0)
     local elapsedDecelTime = Spring.DiffTimers(Spring.GetTimer(), STATE.tracking.projectileWatching.impactDecelerationStartTime)
     local linearProgress = 1.0
     if profile.DURATION and profile.DURATION > 0 then
         linearProgress = math.min(elapsedDecelTime / profile.DURATION, 1.0)
     end
-    local easedProgress = CameraCommons.easeOut(linearProgress)
+    local easedProgress = CameraCommons.easeOut(linearProgress) -- Use easing function if available
+
+    -- 3. Get initial velocities (both positional and rotational)
     local initialVelocity = STATE.tracking.projectileWatching.initialImpactVelocity or { x = 0, y = 0, z = 0 }
-    local newPos = TransitionUtil.decelerationTransition(camPos, dt, easedProgress, initialVelocity, profile)
-    local camStatePatch = {}
-    if newPos then
-        camStatePatch.px = newPos.px;
-        camStatePatch.py = newPos.py;
-        camStatePatch.pz = newPos.pz
+    local initialRotVelocity = STATE.tracking.projectileWatching.initialImpactRotVelocity or { x = 0, y = 0, z = 0 }
+
+    -- 4. Call the (newly enhanced) TransitionUtil
+    local smoothedState = TransitionUtil.smoothDecelerationTransition(currentCamState, dt, easedProgress, initialVelocity, initialRotVelocity, profile)
+
+    local finalCamState
+
+    -- 5. Determine the next camera state based on transition output
+    if smoothedState then
+        -- If TransitionUtil returned a state, it means we're still decelerating.
+        finalCamState = smoothedState
     else
-        camStatePatch.px = camPos.x;
-        camStatePatch.py = camPos.y;
-        camStatePatch.pz = camPos.z
+        -- If TransitionUtil returned nil, it means deceleration is finished.
+        -- We hold the current state and mark deceleration as complete.
+        finalCamState = Util.deepCopy(currentCamState)
+        if STATE.tracking.projectileWatching.isImpactDecelerating then
+            STATE.tracking.projectileWatching.isImpactDecelerating = false
+            STATE.tracking.projectileWatching.initialImpactVelocity = nil
+            STATE.tracking.projectileWatching.initialImpactRotVelocity = nil
+            Log.trace("ProjectileCamera: Finished impact deceleration phase (TransitionUtil returned nil).")
+        end
     end
-    local focusFromPos = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
+
+    -- 6. Calculate where the camera *should* be looking
     local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, STATE.tracking.projectileWatching.impactPosition.vel or { x = 0, y = 0, z = 0 })
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local dirSmoothFactor = cfgSmoothing.ROTATION_FACTOR
-    local rotSmoothFactor = cfgSmoothing.ROTATION_FACTOR
-    local dirState = CameraCommons.focusOnPoint(focusFromPos, targetLookPos, dirSmoothFactor, rotSmoothFactor)
-    local finalCamState = {
-        px = camStatePatch.px, py = camStatePatch.py, pz = camStatePatch.pz,
-        dx = dirState.dx, dy = dirState.dy, dz = dirState.dz,
-        rx = dirState.rx, ry = dirState.ry, rz = dirState.rz,
-        fov = currentCamState.fov
-    }
+
+    -- 7. Calculate the *ideal* rotation to look at the target (without smoothing)
+    local focusFromPos = { x = finalCamState.px, y = finalCamState.py, z = finalCamState.pz }
+    local dirSmoothFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
+    local rotSmoothFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING.ROTATION_FACTOR
+    local targetDirState = CameraCommons.focusOnPoint(focusFromPos, targetLookPos, dirSmoothFactor, rotSmoothFactor)
+
+    -- 8. Smoothly interpolate the *current* rotation towards the *ideal* rotation.
+    finalCamState.rx = CameraCommons.smoothStepAngle(finalCamState.rx, targetDirState.rx, rotSmoothFactor)
+    finalCamState.ry = CameraCommons.smoothStepAngle(finalCamState.ry, targetDirState.ry, rotSmoothFactor)
+    finalCamState.rz = CameraCommons.smoothStepAngle(finalCamState.rz, targetDirState.rz, rotSmoothFactor)
+
+    -- 9. Update direction vectors based on the new final rotation
+    local finalDir = CameraCommons.getDirectionFromRotation(finalCamState.rx, finalCamState.ry, finalCamState.rz)
+    finalCamState.dx = finalDir.x
+    finalCamState.dy = finalDir.y
+    finalCamState.dz = finalDir.z
+
+    -- 10. Set the final camera state
     CameraManager.setCameraState(finalCamState, 0, "ProjectileCamera.decelerateToImpact")
     TrackingManager.updateTrackingState(finalCamState)
-    if linearProgress >= 1.0 then
+
+    -- 11. Final check if duration ended, in case TransitionUtil didn't return nil yet.
+    if linearProgress >= 1.0 and STATE.tracking.projectileWatching.isImpactDecelerating then
         STATE.tracking.projectileWatching.isImpactDecelerating = false
         STATE.tracking.projectileWatching.initialImpactVelocity = nil
-        Log.trace("ProjectileCamera: Finished impact deceleration phase.")
+        STATE.tracking.projectileWatching.initialImpactRotVelocity = nil
+        Log.trace("ProjectileCamera: Finished impact deceleration phase (Progress >= 1.0).")
     end
 end
 
@@ -567,13 +583,6 @@ function ProjectileCamera.trackActiveProjectile(currentProjectile)
 
     STATE.tracking.projectile.smoothedPositions.camPos = smoothedCamPos
     STATE.tracking.projectile.smoothedPositions.targetPos = smoothedTargetPos
-
-    --Log.staggeredLog(("[ProjectileDebug] Track Loop. ProjPos: %s | ProjVel: %s | HighArc: %s | Mode: %s"):format(
-    --        formatVec(projectilePos), formatVec(projectileVel), tostring(STATE.tracking.projectileWatching.isHighArc), STATE.tracking.projectileWatching.cameraMode
-    --))
-    --Log.staggeredLog(("[ProjectileDebug] Track Loop. IdealCam: %s | SmoothedCam: %s"):format(
-    --        formatVec(idealCamPos), formatVec(smoothedCamPos)
-    --))
 
     ProjectileCameraUtils.applyProjectileCameraState(smoothedCamPos, smoothedTargetPos, "tracking_active")
 end

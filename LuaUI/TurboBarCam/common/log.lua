@@ -46,7 +46,7 @@ end
 -- Helper function to concatenate multiple arguments into a single string
 -- with proper type conversion
 local function formatMessage(...)
-    local args = {...}
+    local args = { ... }
     local parts = {}
     for i = 1, #args do
         if type(args[i]) ~= "string" then
@@ -89,6 +89,22 @@ end
 
 function Log.warn(...)
     Log.info("[WARN] " .. formatMessage(...))
+end
+
+function Log.formatVec(vector)
+    if not vector then
+        return "nil"
+    end
+
+    return string.format("{x=%.6f, y=%.6f, z=%.6f}", vector.x or 0, vector.y or 0, vector.z or 0)
+end
+
+function Log.formatCamState(camState)
+    if not camState then
+        return "nil"
+    end
+    return string.format("{px=%.6f, py=%.6f, pz=%.6f, dx=%.6f, dy=%.6f, dz=%.6f, rx=%.6f, ry=%.6f, rz=%.6f, }",
+            camState.px or 0, camState.py or 0, camState.pz or 0, camState.dx or 0, camState.dy or 0, camState.dz or 0, camState.rx or 0, camState.ry or 0, camState.rz or 0)
 end
 
 return {

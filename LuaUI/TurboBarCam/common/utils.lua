@@ -236,9 +236,6 @@ local function adjustParam(command, module)
         end
     end
 
-    Log.debug(currentConfigTable)
-    Log.debug(paramName)
-
     -- Get the current value
     local currentValue = currentConfigTable[paramName]
     if currentValue == nil then
@@ -531,6 +528,50 @@ function Util.getCleanMapName()
     local cleanName = mapName:gsub("%s+[vV]?%d+%.?%d*%.?%d*$", "")
 
     return cleanName
+end
+
+--- Subtracts the values of t2 from t1 for matching keys, if both are numbers.
+--- It iterates through all keys in t1. If a key in t1 does not exist in t2,
+--- or if the value in t1 or t2 for a key is not a number,
+--- the value from t1 is used in the result.
+---@param t1 table The table to subtract from (Minuend).
+---@param t2 table The table whose values are subtracted (Subtrahend).
+---@return table result A new table containing the subtraction results.
+function Util.subtractTable(t1, t2)
+    -- Check if inputs are tables
+    if type(t1) ~= "table" or type(t2) ~= "table" then
+        Spring.Log("Util.subtractTable", LOG.WARNING, "Both inputs must be tables.")
+        return {} -- Return an empty table on invalid input
+    end
+
+    local result = {}
+
+    -- Iterate through all keys in the first table (t1)
+    for key, value1 in pairs(t1) do
+        local value2 = t2[key]
+
+        -- Check if both values are numbers
+        if type(value1) == "number" and type(value2) == "number" then
+            -- Both are numbers, perform subtraction
+            result[key] = value1 - value2
+        elseif type(value1) == "number" and value2 == nil then
+            -- Only t1 has a number, treat t2's value as 0
+            result[key] = value1
+        else
+            -- If v1 is not a number, or v2 is not a number (but not nil),
+            -- or v1 is nil, we default to using the value from t1.
+            -- This also copies non-numeric fields.
+            result[key] = value1
+        end
+    end
+
+    for key, value2 in pairs(t2) do
+        if t1[key] == nil and type(value2) == "number" then
+            result[key] = -value2
+        end
+    end
+
+    return result
 end
 
 return {

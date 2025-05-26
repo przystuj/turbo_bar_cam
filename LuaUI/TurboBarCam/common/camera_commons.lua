@@ -423,6 +423,37 @@ function CameraCommons.getDefaultUnitView(x, z)
     return camState
 end
 
+--- Converts rotation angles (pitch, yaw) into a normalized direction vector.
+--- Assumes FPS-style camera where roll (rz) is ignored for direction.
+---@param rx number Pitch angle (rotation around X-axis) in radians.
+---@param ry number Yaw angle (rotation around Y-axis) in radians.
+---@param rz number|nil Roll angle (optional, currently ignored).
+---@return table Direction vector {x, y, z}.
+function CameraCommons.getDirectionFromRotation(rx, ry, rz)
+    -- Ensure we have valid angles, default to 0 if nil
+    rx = rx or 0
+    ry = ry or 0
+    -- rz = rz or 0 -- We ignore roll (rz) for the direction vector itself.
+
+    local cos_rx = math.cos(rx)
+    local sin_rx = math.sin(rx)
+    local cos_ry = math.cos(ry)
+    local sin_ry = math.sin(ry)
+
+    -- Calculate direction based on standard Euler-to-Vector conversion (Y-up)
+    -- Note: The exact formula can depend on the engine's coordinate system
+    -- and how ry=0 and rx=0 is defined. This assumes ry=0 looks down -Z.
+    -- If your camera looks down +Z or +X at ry=0, these might need swapping/negating.
+    -- This matches the 'dx = sin(ry)*cos(rx)', 'dy = -sin(rx)', 'dz = -cos(ry)*cos(rx)' pattern
+    local dx = cos_rx * sin_ry
+    local dy = -sin_rx
+    local dz = -cos_rx * cos_ry
+
+    -- The result should inherently be normalized if rx/ry are standard,
+    -- but normalizing here ensures it.
+    return CameraCommons.normalizeVector({ x = dx, y = dy, z = dz })
+end
+
 return {
     CameraCommons = CameraCommons
 }
