@@ -208,12 +208,12 @@ function CameraCommons.getTransitionProgress(duration)
     return easedElapsedFactor
 end
 
-function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor)
+function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor, duration)
     if not STATE.tracking.isModeTransitionInProgress then
         return targetPosSmoothingFactor, targetRotSmoothingFactor
     end
 
-    local progress = CameraCommons.getTransitionProgress()
+    local progress = CameraCommons.getTransitionProgress(duration)
 
     if progress == 1 then
         STATE.tracking.isModeTransitionInProgress = false

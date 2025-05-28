@@ -20,6 +20,8 @@ local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Sche
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 ---@type CameraManager
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+---@type TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -43,7 +45,11 @@ function UpdateManager.processCycle(dt)
 
     SettingsManager.update()
 
+    -- Handle scheduled tasks
     Scheduler.handleSchedules()
+
+    -- Handle transitions
+    TransitionManager.update(dt)
 
     MouseManager.update()
 

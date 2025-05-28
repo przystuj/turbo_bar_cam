@@ -6,6 +6,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type ProjectileCameraPersistence
 local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua")
+---@type TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -17,13 +19,7 @@ local TrackingManager = CommonModules.TrackingManager
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
 
--- Logging Helper
-local function formatVec(v)
-    if not v then
-        return "nil"
-    end
-    return string.format("{x=%.1f, y=%.1f, z=%.1f}", v.x or 0, v.y or 0, v.z or 0)
-end
+local DIRECTION_TRANSITION_ID = "ProjectileCamera.projectileDirectionTransition"
 --------------------------------------------------------------------------------
 -- Camera Calculation and Smoothing Helpers
 --------------------------------------------------------------------------------
@@ -61,23 +57,22 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
             if STATE.tracking.lastCamDir and (STATE.tracking.lastCamDir.x ~= 0 or STATE.tracking.lastCamDir.z ~= 0) then
                 -- Use inverted XZ component of camera's forward vector.
                 awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.tracking.lastCamDir.x, y = 0, z = -STATE.tracking.lastCamDir.z })
-                --Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using inverted CamDir XZ: %s"):format(formatVec(awayDirXZ)))
             else
                 awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
-                --Log.staggeredLog(("[ProjectileDebug] HighArc-Vertical: Using Fallback XZ: %s"):format(formatVec(awayDirXZ)))
             end
             -- Apply distance along 'awayDirXZ' and height along World Y
             camX = pPos.x + awayDirXZ.x * distance
             camZ = pPos.z + awayDirXZ.z * distance
             camY = pPos.y + height
+            STATE.tracking.projectileWatching.highArcGoingUpward = true
         else
             -- Projectile has horizontal movement. Pull back opposite to it.
             projectileDirXZ = CameraCommons.normalizeVector(projectileDirXZ)
-            --Log.staggeredLog(("[ProjectileDebug] HighArc-NonVertical: Using ProjDir XZ: %s"):format(formatVec(projectileDirXZ)))
             -- Apply distance opposite to 'projectileDirXZ' and height along World Y
             camX = pPos.x - projectileDirXZ.x * distance
             camZ = pPos.z - projectileDirXZ.z * distance
             camY = pPos.y + height
+            STATE.tracking.projectileWatching.highArcGoingUpward = false
         end
     else
         local worldUp = { x = 0, y = 1, z = 0 }
@@ -114,15 +109,9 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         camX = camX + upVectorForHeight.x * height
         camY = camY + upVectorForHeight.y * height
         camZ = camZ + upVectorForHeight.z * height
-        -- *** END ORIGINAL LOW ARC LOGIC ***
     end
 
     local result = { x = camX, y = camY, z = camZ }
-
-    --Log.staggeredLog(("[ProjectileDebug] Utils.CalcCamPos Final. Mode: %s, HighArc: %s, pPos: %s, pVel: %s, ProjDir: %s, Dist: %.1f, H: %.1f, Result: %s"):format(
-    --        subMode, tostring(STATE.tracking.projectileWatching.isHighArc), formatVec(pPos), formatVec(pVel), formatVec(projectileDir), distance, height, formatVec(result)
-    --))
-
     return result
 end
 
@@ -230,10 +219,19 @@ function ProjectileCameraUtils.calculateSmoothedTargetPosition(idealTargetPos)
     }
 end
 
+--- Applies the camera state, using an optional override for rotation factor.
+---@param camPos table Camera position
+---@param targetPos table Target position
+---@param context string Logging context
 function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, context)
     local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local posFactor = cfgSmoothing.POSITION_FACTOR
-    local rotFactor = cfgSmoothing.ROTATION_FACTOR
+    local factorOverride
+    if TransitionManager.isTransitioning(DIRECTION_TRANSITION_ID) then
+        factorOverride = STATE.tracking.projectileWatching.currentFactor
+    end
+
+    local posFactor = factorOverride or cfgSmoothing.POSITION_FACTOR
+    local rotFactor = factorOverride or cfgSmoothing.ROTATION_FACTOR
 
     local actualPosFactor, actualRotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
 
@@ -244,16 +242,18 @@ function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, con
         z = camPos.pz or camPos.z or currentCamState.pz
     }
 
-    local directionState = CameraCommons.focusOnPoint(fullCamPos, targetPos, actualPosFactor, actualRotFactor)
+    -- Use the (potentially overridden and transitioned) rotation factor
+    local finalState = CameraCommons.focusOnPoint(fullCamPos, targetPos, actualPosFactor, actualRotFactor)
 
-    directionState.px = camPos.px or directionState.px
-    directionState.py = camPos.py or directionState.py
-    directionState.pz = camPos.pz or directionState.pz
-    directionState.fov = currentCamState.fov
+    finalState.px = camPos.px or finalState.px
+    finalState.py = camPos.py or finalState.py
+    finalState.pz = camPos.pz or finalState.pz
+    finalState.fov = currentCamState.fov
 
-    CameraManager.setCameraState(directionState, 0, "ProjectileCamera.update." .. (context or "apply"))
-    TrackingManager.updateTrackingState(directionState)
+    CameraManager.setCameraState(finalState, 0, "ProjectileCamera.update." .. (context or "apply"))
+    TrackingManager.updateTrackingState(finalState)
 end
+
 
 function ProjectileCameraUtils.resetToDefaults()
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
@@ -282,7 +282,7 @@ function ProjectileCameraUtils.saveSettings(unitID)
     local settingsToSave = {
         FOLLOW = { DISTANCE = cfg.FOLLOW.DISTANCE, HEIGHT = cfg.FOLLOW.HEIGHT, LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD, },
         STATIC = { LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD, OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT, OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE, },
-        DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE)
+        DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE),
     }
     ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
 end
@@ -317,6 +317,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
     end
 end
 
+
 function ProjectileCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() or STATE.tracking.mode ~= 'projectile_camera' then
         return
@@ -346,9 +347,9 @@ end
 
 --- Calculates a ramp-up factor based on projectile tracking time.
 ---@return number rampUpFactor (0.0 to 1.0)
-function ProjectileCameraUtils.getRampUpFactor()
+function ProjectileCameraUtils.getRampUpFactor(duration)
     local _, gameSpeed = Spring.GetGameSpeed()
-    local RAMP_UP_DURATION = 1.0 / gameSpeed
+    local RAMP_UP_DURATION = (duration or 1) / gameSpeed
 
     if not STATE.tracking.projectile or not STATE.tracking.projectile.trackingStartTime then
         return RAMP_UP_DURATION -- Default to 1 if not tracking or no start time

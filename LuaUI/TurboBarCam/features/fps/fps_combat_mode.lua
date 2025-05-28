@@ -501,7 +501,6 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
 
     -- If no target was found at all, schedule disabling attack state
     if not targetPos then
-        Log.debug("no target pos")
         FPSCombatMode.scheduleAttackStateDisable()
     else
         -- We found a target, cancel any pending disable and ensure attacking state is on

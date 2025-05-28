@@ -190,6 +190,9 @@ if not WG.TurboBarCam.CONFIG then
                 COMPATIBLE_MODES_FROM = { "fps", "unit_tracking", "orbit" },
                 DEFAULT_MODE_FALLBACK = "unit_tracking",
                 IMPACT_TIMEOUT = 1.5, -- Time to stay on impact after deceleration
+                DIRECTION_TRANSITION_DURATION = 3,
+                DIRECTION_TRANSITION_THRESHOLD = 1.5,
+                DIRECTION_TRANSITION_FACTOR = 0.01,
 
                 FOLLOW = {
                     DISTANCE = 800,
@@ -218,19 +221,19 @@ if not WG.TurboBarCam.CONFIG then
                 STATIC = {
                     OFFSET_SIDE = 0,
                     OFFSET_HEIGHT = 0,
-                    LOOK_AHEAD = 500,
+                    LOOK_AHEAD = 0,
                 },
 
                 DEFAULT_STATIC = {
                     OFFSET_SIDE = 0,
                     OFFSET_HEIGHT = 0,
-                    LOOK_AHEAD = 500,
+                    LOOK_AHEAD = 0,
                 },
 
                 SMOOTHING = { -- General smoothing for projectile tracking (when not in impact deceleration)
                     POSITION_FACTOR = 0.2,
                     ROTATION_FACTOR = 0.2,
-                    INTERPOLATION_FACTOR = 0.2 -- For smoothing projectile target/camera positions
+                    INTERPOLATION_FACTOR = 0.2,
                 },
 
                 DECELERATION_PROFILE = { -- When projectile hits and camera focuses on impact
@@ -398,8 +401,11 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
             ["FOLLOW.HEIGHT"] = { nil, nil },
             ["FOLLOW.LOOK_AHEAD"] = { nil, nil },
             ["DECELERATION_PROFILE.DURATION"] = { 0, 10 },
-            ["DECELERATION_PROFILE.INITIAL_BRAKING"] = { 1, 50 },
+            ["DECELERATION_PROFILE.INITIAL_BRAKING"] = { 1, 2000 },
             ["DECELERATION_PROFILE.PATH_ADHERENCE"] = { 0.1, 1 },
+            ["DIRECTION_TRANSITION_DURATION"] = { 0.1, 5.0 },
+            ["DIRECTION_TRANSITION_ROTATION_FACTOR"] = { 0.001, 0.5 },
+            ["DIRECTION_TRANSITION_THRESHOLD_RAD"] = { 0.0087, 0.349, "rad"}, -- Approx 0.5 to 20 degrees
         }
     },
 }

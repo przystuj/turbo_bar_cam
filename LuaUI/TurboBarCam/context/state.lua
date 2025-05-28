@@ -30,7 +30,10 @@ if not WG.TurboBarCam.STATE then
 
         scheduler = { schedules = {} },
 
-        -- Camera transitions
+        -- Transitions (Managed by TransitionManager)
+        transitions = {},
+
+        -- Camera transitions (Old anchor transition state)
         transition = {
             active = false,
             startTime = nil,
@@ -46,6 +49,7 @@ if not WG.TurboBarCam.STATE then
             unitID = nil,
             targetPoint = nil,
             lastTargetPoint = nil,
+            transitionTarget = nil,
 
             offsets = { fps = {}, orbit = {}, projectile_camera = {} },
 
@@ -140,6 +144,8 @@ if not WG.TurboBarCam.STATE then
                 isWatchingForProjectiles = false,
                 smoothedPositions = nil,
                 trackingStartTime = nil,
+                lastProjectileVel = nil, -- NEW: Store last velocity vector
+                lastProjectileVelY = nil, -- Kept for now, might be removed later
             },
 
             projectileWatching = {
@@ -149,15 +155,18 @@ if not WG.TurboBarCam.STATE then
                 lastArmingTime = 0,
                 previousMode = nil,
                 previousCameraState = nil,
-                impactTimer = nil, -- Timer for how long to stay on impact *after* deceleration
-                impactPosition = nil, -- {pos = {x,y,z}, vel = {x,y,z}}
+                impactTimer = nil,
+                impactPosition = nil,
                 cameraMode = nil,
                 initialCamPos = nil,
-
-                isImpactDecelerating = false, -- True if currently in the impact deceleration phase
-                impactDecelerationStartTime = nil, -- Timer for the start of impact deceleration
-                initialImpactVelocity = nil,        -- Camera velocity captured at the start of impact deceleration {x,y,z}
-                initialImpactRotVelocity = nil,         -- Camera velocity captured at the start of impact deceleration {x,y,z}
+                isImpactDecelerating = false,
+                impactDecelerationStartTime = nil,
+                initialImpactVelocity = nil,
+                initialImpactRotVelocity = nil,
+                isHighArc = false,
+                highArcGoingUpward = false,
+                transitioningDirection = false, -- NEW: Track if transition is active
+                currentFactor = nil, -- NEW: Store current rotation factor
             },
 
             group = {
