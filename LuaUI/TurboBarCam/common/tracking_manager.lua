@@ -6,14 +6,20 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
+---@type CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+---@type TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 
 ---@class TrackingManager
 local TrackingManager = {}
+
+local MODE_TRANSITION_ID = "TrackingManager.MODE_TRANSITION_ID"
 
 --- Initializes tracking
 ---@param mode string Tracking mode ('fps', 'unit_tracking', 'orbit', 'overview', 'projectile_camera')
@@ -45,45 +51,39 @@ function TrackingManager.initializeMode(mode, target, targetType, automaticMode,
         end
     end
 
-    -- Allow re-init/transition if a target state is provided, even if mode/unit is same
     local allowReinit = optionalTargetState ~= nil
-    if STATE.tracking.mode == mode and validType == STATE.tracking.targetType and not STATE.tracking.isModeTransitionInProgress and not allowReinit then
+    if STATE.tracking.mode == mode and validType == STATE.tracking.targetType and not TransitionManager.isTransitioning(MODE_TRANSITION_ID) and not allowReinit then
         if validType == STATE.TARGET_TYPES.UNIT and validTarget == STATE.tracking.unitID then
             SettingsManager.saveModeSettings(mode, STATE.tracking.unitID)
-            TrackingManager.disableMode()
-            return false
-        elseif validType == STATE.TARGET_TYPES.POINT and Util.arePointsEqual(validTarget, STATE.tracking.targetPoint) then
-            SettingsManager.saveModeSettings(mode, "point")
             TrackingManager.disableMode()
             return false
         end
     end
 
-    -- clear current mode before enabling new one
     if STATE.tracking.mode ~= mode and not automaticMode then
+        -- Clear current mode before enabling a new one, unless it's an automatic transition (e.g., projectile cam activating)
         TrackingManager.disableMode()
     end
 
-    STATE.tracking.transitionTarget = optionalTargetState
+    STATE.tracking.transitionTarget = optionalTargetState -- Store target for transition logic if provided
 
-    TrackingManager.startModeTransition(mode)
+    TrackingManager.startModeTransition(mode) -- This now handles the transition start using TransitionManager
     STATE.tracking.targetType = validType
 
     if validType == STATE.TARGET_TYPES.UNIT then
         STATE.tracking.unitID = validTarget
         local x, y, z = Spring.GetUnitPosition(validTarget)
-        STATE.tracking.targetPoint = { x = x, y = y, z = z }
+        STATE.tracking.targetPoint = { x = x, y = y, z = z } -- Store unit's current position as target point
         STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
         SettingsManager.loadModeSettings(mode, validTarget)
-    else
-        -- POINT
+    else -- STATE.TARGET_TYPES.POINT
         STATE.tracking.targetPoint = validTarget
         STATE.tracking.lastTargetPoint = Util.deepCopy(validTarget)
-        STATE.tracking.unitID = nil
+        STATE.tracking.unitID = nil -- Ensure no unitID is stale
         SettingsManager.loadModeSettings(mode, "point")
     end
 
-    Spring.SelectUnitArray(Spring.GetSelectedUnits())
+    Spring.SelectUnitArray(Spring.GetSelectedUnits()) -- Refreshes selection, could be related to command UI
     return true
 end
 
@@ -107,6 +107,8 @@ end
 
 --- Disables tracking and resets tracking state
 function TrackingManager.disableMode()
+    TransitionManager.stopAll() -- Stop all ongoing transitions
+
     if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
         SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
     elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
@@ -119,9 +121,10 @@ function TrackingManager.disableMode()
     STATE.tracking.targetPoint = nil
     STATE.tracking.lastTargetPoint = nil
 
-    STATE.tracking.projectileWatching = {}
-    STATE.tracking.projectile = {}
+    STATE.tracking.projectileWatching = {} -- Reset projectile specific state
+    STATE.tracking.projectile = {}         -- Reset projectile specific state
 
+    -- Reset overview state
     STATE.overview.moveButtonPressed = false
     STATE.overview.isRotationModeActive = false
     STATE.overview.rotationCenter = nil
@@ -148,20 +151,23 @@ function TrackingManager.disableMode()
     STATE.overview.movementVelocity = nil
     STATE.overview.velocityDecay = nil
 
+
     STATE.tracking.unitID = nil
+    -- Reset FPS specific state
     STATE.tracking.fps.targetUnitID = nil
     STATE.tracking.fps.isFreeCameraActive = false
     STATE.tracking.graceTimer = nil
     STATE.tracking.lastUnitID = nil
     STATE.tracking.fps.fixedPoint = nil
     STATE.tracking.fps.isFixedPointActive = false
-    STATE.tracking.mode = nil
+    STATE.tracking.mode = nil -- Critical: Set current mode to nil
 
     STATE.tracking.fps.inTargetSelectionMode = false
     STATE.tracking.fps.prevFreeCamState = false
     STATE.tracking.fps.prevMode = nil
     STATE.tracking.fps.prevFixedPoint = nil
     STATE.tracking.fps.prevFixedPointActive = nil
+
 
     if STATE.tracking.orbit then
         STATE.tracking.orbit.lastPosition = nil
@@ -181,6 +187,7 @@ function TrackingManager.disableMode()
         STATE.anchorQueue.stepStartTime = 0
     end
 
+    -- Reset DollyCam state
     STATE.dollyCam = {
         route = { points = {} },
         isNavigating = false,
@@ -193,24 +200,51 @@ function TrackingManager.disableMode()
         visualizationEnabled = true
     }
     STATE.tracking.transitionTarget = nil
+    STATE.tracking.transitionProgress = nil -- Clear general mode transition progress
+    STATE.tracking.isModeTransitionInProgress = false -- Clear general mode transition flag
+    STATE.tracking.transitionStartState = nil -- Clear stored start state
 end
 
 --- Starts a mode transition
 function TrackingManager.startModeTransition(newMode)
-    -- Allow re-transition if a target is set, otherwise check if mode is same
+    -- Allow re-transition if a target state is provided, otherwise check if mode is same
     if STATE.tracking.mode == newMode and not STATE.tracking.transitionTarget then
+        -- Already in this mode and no specific target state to transition to.
+        -- Potentially, one might want to "refresh" the view or re-acquire target if it moved,
+        -- but for now, we prevent re-starting the same transition if already in mode.
         return false
     end
     SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
 
-    STATE.tracking.fps.prevMode = STATE.tracking.mode
+    STATE.tracking.fps.prevMode = STATE.tracking.mode -- Store previous mode, used by FPS
     STATE.tracking.mode = newMode
 
-    STATE.tracking.isModeTransitionInProgress = true
-    STATE.tracking.transitionStartState = CameraManager.getCameraState("TrackingManager.startModeTransition")
-    STATE.tracking.transitionStartTime = Spring.GetTimer()
+    -- Get start state *before* starting the transition
+    local startState = CameraManager.getCameraState("TrackingManager.startModeTransition")
+    STATE.tracking.transitionStartState = startState -- Store for modes that might need it during their update
 
-    TrackingManager.updateTrackingState(STATE.tracking.transitionStartState)
+    -- Use TransitionManager.force to handle timing and cleanup
+    TransitionManager.force({
+        id = MODE_TRANSITION_ID,
+        duration = CONFIG.TRANSITION.MODE_TRANSITION_DURATION,
+        easingFn = CameraCommons.easeInOut,
+        onUpdate = function(progress, easedProgress, dt)
+            -- Update the global progress value that CameraCommons.handleModeTransition will use
+            STATE.tracking.transitionProgress = easedProgress
+            -- This flag might still be used by some older logic, or can be phased out.
+            -- For now, keep it consistent with the transition's lifecycle.
+            STATE.tracking.isModeTransitionInProgress = true
+        end,
+        onComplete = function()
+            -- Clear progress and flags on completion
+            STATE.tracking.transitionProgress = nil
+            STATE.tracking.isModeTransitionInProgress = false
+            STATE.tracking.transitionStartState = nil -- Clear the stored start state
+            Log.trace("Mode transition completed for mode: " .. STATE.tracking.mode)
+        end
+    })
+
+    TrackingManager.updateTrackingState(startState) -- Initialize lastCamPos etc. with the start of the transition
     return true
 end
 

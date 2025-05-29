@@ -63,6 +63,7 @@ if not WG.TurboBarCam.STATE then
             isModeTransitionInProgress = false,
             transitionStartState = nil,
             transitionStartTime = nil,
+            transitionProgress = nil,
 
             fps = {
                 inTargetSelectionMode = false,

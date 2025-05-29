@@ -1,11 +1,9 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 
 local STATE = WidgetContext.STATE
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons -- Needed for default easing
 
 ---@class TransitionManager
 local TransitionManager = {}
@@ -26,7 +24,7 @@ end
 ---    id = string,           -- Unique ID for this transition
 ---    duration = number,       -- Duration in seconds
 ---    easingFn = function,   -- Easing function (e.g., CameraCommons.easeInOut), defaults to linear
----    onUpdate = function,   -- Function(progress, easedProgress) called each frame
+---    onUpdate = function,   -- Function(progress, easedProgress, dt) called each frame
 ---    onComplete = function  -- Optional function called when finished
 ---  }
 ---@return boolean success Whether the transition was started
@@ -60,6 +58,29 @@ function TransitionManager.cancel(id)
     return false
 end
 
+--- Cancels and removes all active transitions.
+--- Does not call onComplete callbacks.
+function TransitionManager.stopAll()
+    local count = 0
+    for id, _ in pairs(STATE.transitions) do
+        STATE.transitions[id] = nil
+        count = count + 1
+    end
+    if count > 0 then
+        Log.trace("TransitionManager: Stopped all " .. count .. " transitions.")
+    end
+end
+
+--- Starts a new transition, stopping all others first.
+---@param config table Configuration for the transition (same as start).
+---@return boolean success Whether the transition was started.
+function TransitionManager.force(config)
+    Log.trace("TransitionManager: Forcing transition [" .. (config.id or "unknown") .. "], stopping all others first.")
+    TransitionManager.stopAll()
+    return TransitionManager.start(config)
+end
+
+
 --- Checks if a transition with the given ID is currently active.
 ---@param id string The ID to check.
 ---@return boolean isTransitioning
@@ -78,8 +99,8 @@ function TransitionManager.update(dt)
         local progress = math.min(elapsed / t.duration, 1.0)
         local easedProgress = t.easingFn(progress)
 
-        -- Call the update callback
-        t.onUpdate(progress, easedProgress)
+        -- Call the update callback, now including dt
+        t.onUpdate(progress, easedProgress, dt) -- MODIFIED: Added dt
 
         -- Check for completion
         if progress >= 1.0 then

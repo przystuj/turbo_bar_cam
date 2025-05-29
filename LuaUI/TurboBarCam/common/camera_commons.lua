@@ -195,30 +195,21 @@ function CameraCommons.easeInOut(t)
     end
 end
 
-function CameraCommons.getTransitionProgress(duration)
-    duration = duration or CONFIG.TRANSITION.MODE_TRANSITION_DURATION
-    local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.tracking.transitionStartTime)
-    -- Apply easing to the raw elapsed time before dividing by duration
-    local easedElapsedFactor = CameraCommons.easeInOut(elapsed / duration)
+--- Adjusts smoothing factors based on the current mode transition progress.
+--- Reads progress from STATE.tracking.transitionProgress.
+---@param targetPosSmoothingFactor number The target position smoothing factor.
+---@param targetRotSmoothingFactor number The target rotation smoothing factor.
+---@return number posSmoothFactor Adjusted position smoothing factor.
+---@return number rotSmoothFactor Adjusted rotation smoothing factor.
+function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor)
+    local progress = STATE.tracking.transitionProgress
 
-    if elapsed >= duration then
-        return 1 -- Ensure it clamps to 1 at the end of the duration
-    end
-    return easedElapsedFactor
-end
-
-function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor, duration)
-    if not STATE.tracking.isModeTransitionInProgress then
+    if not progress then
+        -- No transition in progress, or it's finished, return full factors.
         return targetPosSmoothingFactor, targetRotSmoothingFactor
     end
 
-    local progress = CameraCommons.getTransitionProgress(duration)
-
-    if progress == 1 then
-        STATE.tracking.isModeTransitionInProgress = false
-    end
-
+    -- A transition is active, interpolate the factors based on its progress.
     local posSmoothFactor = targetPosSmoothingFactor * progress
     local rotSmoothFactor = targetRotSmoothingFactor * progress
 
