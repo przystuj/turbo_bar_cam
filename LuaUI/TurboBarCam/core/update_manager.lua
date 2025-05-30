@@ -10,7 +10,7 @@ local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 
 ---@type MouseManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
@@ -32,9 +32,6 @@ function UpdateManager.processCycle(dt)
         return
     end
 
-    -- Update CameraManager (handles velocity tracking internally)
-    CameraManager.update()
-
     if STATE.reloadFeatures then
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
         Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
@@ -42,6 +39,9 @@ function UpdateManager.processCycle(dt)
         Features.ProjectileCamera = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua").ProjectileCamera
         STATE.reloadFeatures = false
     end
+
+    -- Update CameraManager (handles velocity tracking internally)
+    CameraManager.update()
 
     SettingsManager.update()
 
@@ -69,22 +69,22 @@ end
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
     if CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION then
-        STATE.tracking.graceTimer = Spring.GetTimer()
+        STATE.mode.graceTimer = Spring.GetTimer()
         return
     end
-    if STATE.tracking.graceTimer and STATE.tracking.mode and STATE.tracking.mode ~= "overview" and STATE.tracking.mode ~= "waypointEditor" then
+    if STATE.mode.graceTimer and STATE.mode.name and STATE.mode.name ~= "overview" and STATE.mode.name ~= "waypointEditor" then
         local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.tracking.graceTimer)
+        local elapsed = Spring.DiffTimers(now, STATE.mode.graceTimer)
 
         -- Skip grace period for point tracking
-        if STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
-            STATE.tracking.graceTimer = Spring.GetTimer()
+        if STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
+            STATE.mode.graceTimer = Spring.GetTimer()
             return
         end
 
         -- If grace period expired (1 second), disable tracking for unit targets
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
-            TrackingManager.disableMode()
+            ModeManager.disableMode()
             Log.debug("Camera tracking disabled - no units selected")
             return
         end
@@ -154,19 +154,19 @@ function UpdateManager.updateCameraMode(dt)
         Features.CameraAnchor.update(dt)
     elseif STATE.dollyCam.isNavigating then
         Features.DollyCam.update(dt)
-    elseif not STATE.tracking.mode then
+    elseif not STATE.mode.name then
         UpdateManager.handleDisabledMode(dt)
-    elseif STATE.tracking.mode == 'fps' then
+    elseif STATE.mode.name == 'fps' then
         Features.FPSCamera.update(dt)
-    elseif STATE.tracking.mode == 'unit_tracking' then
+    elseif STATE.mode.name == 'unit_tracking' then
         Features.UnitTrackingCamera.update(dt)
-    elseif STATE.tracking.mode == 'orbit' then
+    elseif STATE.mode.name == 'orbit' then
         Features.OrbitingCamera.update(dt)
-    elseif STATE.tracking.mode == 'overview' then
+    elseif STATE.mode.name == 'overview' then
         Features.TurboOverviewCamera.update(dt)
-    elseif STATE.tracking.mode == 'group_tracking' then
+    elseif STATE.mode.name == 'group_tracking' then
         Features.GroupTrackingCamera.update(dt)
-    elseif STATE.tracking.mode == 'projectile_camera' then
+    elseif STATE.mode.name == 'projectile_camera' then
         Features.ProjectileCamera.update(dt)
     end
 end

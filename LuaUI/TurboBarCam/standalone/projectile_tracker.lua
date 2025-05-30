@@ -139,7 +139,7 @@ function ProjectileTracker.update(frameNum)
     local currentTime = Spring.GetGameSeconds()
 
     -- Always track the current unit
-    local currentUnitID = STATE.tracking.unitID
+    local currentUnitID = STATE.mode.unitID
     if currentUnitID and Spring.ValidUnitID(currentUnitID) then
         ProjectileTracker.initUnitTracking(currentUnitID)
 

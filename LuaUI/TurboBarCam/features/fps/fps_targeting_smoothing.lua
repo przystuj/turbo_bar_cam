@@ -24,9 +24,9 @@ local TARGET_SWITCH_THRESHOLD = 0.3  -- Time threshold (seconds) to detect rapid
 
 -- Initialize state if needed
 local function ensureTargetSmoothingState()
-    if not STATE.tracking.fps.targetSmoothing then
+    if not STATE.mode.fps.targetSmoothing then
         local currentTime = Spring.GetTimer()
-        STATE.tracking.fps.targetSmoothing = {
+        STATE.mode.fps.targetSmoothing = {
             targetHistory = {},
             cloudCenter = nil,
             cloudRadius = 0,
@@ -77,7 +77,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
     end
 
     ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
+    local state = STATE.mode.fps.targetSmoothing
     local currentTime = Spring.GetTimer()
 
     -- Ensure all timer values are initialized
@@ -213,12 +213,12 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
     end
 
     ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
+    local state = STATE.mode.fps.targetSmoothing
 
     -- Get unit position
     local unitPos = nil
-    if STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-        local x, y, z = Spring.GetUnitPosition(STATE.tracking.unitID)
+    if STATE.mode.unitID and Spring.ValidUnitID(STATE.mode.unitID) then
+        local x, y, z = Spring.GetUnitPosition(STATE.mode.unitID)
         unitPos = { x = x, y = y, z = z }
     end
 
@@ -231,8 +231,8 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         local targetKey = string.format("%.0f_%.0f_%.0f",
                 math.floor(targetPos.x), math.floor(targetPos.y), math.floor(targetPos.z))
 
-        if STATE.tracking.fps.targetTracking and STATE.tracking.fps.targetTracking[targetKey] then
-            targetData = STATE.tracking.fps.targetTracking[targetKey]
+        if STATE.mode.fps.targetTracking and STATE.mode.fps.targetTracking[targetKey] then
+            targetData = STATE.mode.fps.targetTracking[targetKey]
 
             -- Process aerial target using your velocity data
             local smoothedAerialPos = FPSTargetingSmoothing.processAerialTarget(
@@ -300,7 +300,7 @@ function FPSTargetingSmoothing.predictTargetPosition(targetPos, targetUnitID)
     end
 
     ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
+    local state = STATE.mode.fps.targetSmoothing
 
     -- Skip prediction if not enabled
     if not state.targetPrediction.enabled then
@@ -343,8 +343,8 @@ end
 --- @return number constrainedPitch Constrained pitch angle
 function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
     ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
-    local fpsState = STATE.tracking.fps -- Access FPS state
+    local state = STATE.mode.fps.targetSmoothing
+    local fpsState = STATE.mode.fps -- Access FPS state
 
     -- *** Reset constraints state on target switch signal ***
     if state.rotationConstraint.resetForSwitch then
@@ -467,7 +467,7 @@ end
 --- @param settings table Settings to apply
 function FPSTargetingSmoothing.configure(settings)
     ensureTargetSmoothingState()
-    local state = STATE.tracking.fps.targetSmoothing
+    local state = STATE.mode.fps.targetSmoothing
 
     if settings.cloudBlendFactor then
         CLOUD_BLEND_FACTOR = math.max(0, math.min(1, settings.cloudBlendFactor))
@@ -501,8 +501,8 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     local speed = targetData.speed or 0
 
     -- Initialize aerial tracking data in targetSmoothing if not already present
-    if not STATE.tracking.fps.targetSmoothing.aerialTracking then
-        STATE.tracking.fps.targetSmoothing.aerialTracking = {
+    if not STATE.mode.fps.targetSmoothing.aerialTracking then
+        STATE.mode.fps.targetSmoothing.aerialTracking = {
             smoothedPosition = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
             lastUpdateTime = Spring.GetTimer(),
             trajectoryPredictionEnabled = true,
@@ -510,7 +510,7 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
         }
     end
 
-    local aerial = STATE.tracking.fps.targetSmoothing.aerialTracking
+    local aerial = STATE.mode.fps.targetSmoothing.aerialTracking
 
     -- Add to position history
     table.insert(aerial.positionHistory, {

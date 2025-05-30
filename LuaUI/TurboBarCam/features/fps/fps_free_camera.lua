@@ -19,39 +19,39 @@ local FreeCam = {}
 ---@return table updated rotation values {rx, ry}
 function FreeCam.updateMouseRotation(rotFactor)
     local mouseX, mouseY = Spring.GetMouseState()
-    local lastRotation = STATE.tracking.lastRotation
+    local lastRotation = STATE.mode.lastRotation
 
     -- Skip if no previous position recorded
-    if not STATE.tracking.fps.freeCam.lastMouseX or not STATE.tracking.fps.freeCam.lastMouseY then
-        STATE.tracking.fps.freeCam.lastMouseX = mouseX
-        STATE.tracking.fps.freeCam.lastMouseY = mouseY
+    if not STATE.mode.fps.freeCam.lastMouseX or not STATE.mode.fps.freeCam.lastMouseY then
+        STATE.mode.fps.freeCam.lastMouseX = mouseX
+        STATE.mode.fps.freeCam.lastMouseY = mouseY
         return lastRotation
     end
 
     -- Calculate delta movement
-    local deltaX = mouseX - STATE.tracking.fps.freeCam.lastMouseX
-    local deltaY = mouseY - STATE.tracking.fps.freeCam.lastMouseY
+    local deltaX = mouseX - STATE.mode.fps.freeCam.lastMouseX
+    local deltaY = mouseY - STATE.mode.fps.freeCam.lastMouseY
 
     -- Only update if mouse has moved
     if deltaX ~= 0 or deltaY ~= 0 then
         -- Update target rotations based on mouse movement
-        STATE.tracking.fps.freeCam.targetRy = STATE.tracking.fps.freeCam.targetRy + deltaX * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
-        STATE.tracking.fps.freeCam.targetRx = STATE.tracking.fps.freeCam.targetRx - deltaY * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
+        STATE.mode.fps.freeCam.targetRy = STATE.mode.fps.freeCam.targetRy + deltaX * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
+        STATE.mode.fps.freeCam.targetRx = STATE.mode.fps.freeCam.targetRx - deltaY * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
 
         -- Normalize yaw angle
-        STATE.tracking.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.tracking.fps.freeCam.targetRy)
+        STATE.mode.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.fps.freeCam.targetRy)
 
         -- Constrain pitch angle (prevent flipping over)
-        STATE.tracking.fps.freeCam.targetRx = math.max(0.1, math.min(math.pi - 0.1, STATE.tracking.fps.freeCam.targetRx))
+        STATE.mode.fps.freeCam.targetRx = math.max(0.1, math.min(math.pi - 0.1, STATE.mode.fps.freeCam.targetRx))
 
         -- Remember mouse position for next frame
-        STATE.tracking.fps.freeCam.lastMouseX = mouseX
-        STATE.tracking.fps.freeCam.lastMouseY = mouseY
+        STATE.mode.fps.freeCam.lastMouseX = mouseX
+        STATE.mode.fps.freeCam.lastMouseY = mouseY
     end
 
     -- Create smoothed camera rotation values
-    local rx = CameraCommons.smoothStep(lastRotation.rx, STATE.tracking.fps.freeCam.targetRx, rotFactor)
-    local ry = CameraCommons.smoothStepAngle(lastRotation.ry, STATE.tracking.fps.freeCam.targetRy, rotFactor)
+    local rx = CameraCommons.smoothStep(lastRotation.rx, STATE.mode.fps.freeCam.targetRx, rotFactor)
+    local ry = CameraCommons.smoothStepAngle(lastRotation.ry, STATE.mode.fps.freeCam.targetRy, rotFactor)
 
     return {
         rx = rx,
@@ -71,13 +71,13 @@ function FreeCam.updateUnitHeadingTracking(unitID)
     local unitHeading = Spring.GetUnitHeading(unitID, true)
 
     -- Skip if no previous heading recorded
-    if not STATE.tracking.fps.freeCam.lastUnitHeading then
-        STATE.tracking.fps.freeCam.lastUnitHeading = unitHeading
+    if not STATE.mode.fps.freeCam.lastUnitHeading then
+        STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
         return false
     end
 
     -- Calculate heading difference
-    local headingDiff = unitHeading - STATE.tracking.fps.freeCam.lastUnitHeading
+    local headingDiff = unitHeading - STATE.mode.fps.freeCam.lastUnitHeading
 
     -- Only adjust if the heading difference is significant
     if math.abs(headingDiff) > 0.01 then
@@ -88,15 +88,15 @@ function FreeCam.updateUnitHeadingTracking(unitID)
         headingDiff = -headingDiff
 
         -- Adjust the target rotation to maintain relative orientation
-        STATE.tracking.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.tracking.fps.freeCam.targetRy + headingDiff)
+        STATE.mode.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.fps.freeCam.targetRy + headingDiff)
 
         -- Update the last heading for next frame
-        STATE.tracking.fps.freeCam.lastUnitHeading = unitHeading
+        STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
         return true
     end
 
     -- Update the last heading for next frame
-    STATE.tracking.fps.freeCam.lastUnitHeading = unitHeading
+    STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
     return false
 end
 
@@ -141,37 +141,37 @@ function FreeCam.toggle()
     end
 
     -- Toggle free camera mode
-    STATE.tracking.inFreeCameraMode = not STATE.tracking.inFreeCameraMode
+    STATE.mode.inFreeCameraMode = not STATE.mode.inFreeCameraMode
 
-    -- Initialize or clear free camera STATE.tracking
-    if STATE.tracking.inFreeCameraMode then
-        -- Initialize with current camera STATE.tracking
+    -- Initialize or clear free camera STATE.mode
+    if STATE.mode.inFreeCameraMode then
+        -- Initialize with current camera STATE.mode
         local camState = CameraManager.getCameraState("GroupTrackingCamera.initializeCameraPosition")
-        STATE.tracking.fps.freeCam = STATE.tracking.fps.freeCam or {}
-        STATE.tracking.fps.freeCam.targetRx = camState.rx
-        STATE.tracking.fps.freeCam.targetRy = camState.ry
-        STATE.tracking.fps.freeCam.lastMouseX, STATE.tracking.fps.freeCam.lastMouseY = Spring.GetMouseState()
+        STATE.mode.fps.freeCam = STATE.mode.fps.freeCam or {}
+        STATE.mode.fps.freeCam.targetRx = camState.rx
+        STATE.mode.fps.freeCam.targetRy = camState.ry
+        STATE.mode.fps.freeCam.lastMouseX, STATE.mode.fps.freeCam.lastMouseY = Spring.GetMouseState()
 
         -- Initialize unit heading tracking if we have a unit
-        if STATE.tracking.unitID and Spring.ValidUnitID(STATE.tracking.unitID) then
-            STATE.tracking.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.tracking.unitID, true)
+        if STATE.mode.unitID and Spring.ValidUnitID(STATE.mode.unitID) then
+            STATE.mode.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
         end
 
         Log.debug("Free camera mode enabled - use mouse to rotate view")
     else
         -- Clear tracking data when disabling
-        STATE.tracking.fps.freeCam.lastMouseX = nil
-        STATE.tracking.fps.freeCam.lastMouseY = nil
-        STATE.tracking.fps.freeCam.targetRx = nil
-        STATE.tracking.fps.freeCam.targetRy = nil
-        STATE.tracking.fps.freeCam.lastUnitHeading = nil
+        STATE.mode.fps.freeCam.lastMouseX = nil
+        STATE.mode.fps.freeCam.lastMouseY = nil
+        STATE.mode.fps.freeCam.targetRx = nil
+        STATE.mode.fps.freeCam.targetRy = nil
+        STATE.mode.fps.freeCam.lastUnitHeading = nil
 
         Log.trace("Free camera mode disabled - view follows unit orientation")
     end
 
     -- Start a transition for smooth change
-    STATE.tracking.modeTransition = true
-    STATE.tracking.transitionStartTime = Spring.GetTimer()
+    STATE.mode.modeTransition = true
+    STATE.mode.transitionStartTime = Spring.GetTimer()
 
     return true
 end

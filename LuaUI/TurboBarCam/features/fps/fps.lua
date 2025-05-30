@@ -20,7 +20,7 @@ local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mod
 local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
 
 local CameraCommons = CommonModules.CameraCommons
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 
 local prevActiveCmd
 
@@ -61,16 +61,16 @@ function FPSCamera.toggle()
     end
 
     -- If we're already tracking this exact unit in FPS mode, turn it off
-    if STATE.tracking.mode == 'fps' and STATE.tracking.unitID == unitID then
+    if STATE.mode.name == 'fps' and STATE.mode.unitID == unitID then
         -- Make sure fixed point tracking is cleared when turning off FPS camera
-        STATE.tracking.fps.fixedPoint = nil
-        STATE.tracking.fps.targetUnitID = nil
-        STATE.tracking.fps.isFixedPointActive = false
+        STATE.mode.fps.fixedPoint = nil
+        STATE.mode.fps.targetUnitID = nil
+        STATE.mode.fps.isFixedPointActive = false
         -- Clear combat mode state as well
-        STATE.tracking.fps.combatModeEnabled = false
-        STATE.tracking.fps.forcedWeaponNumber = nil
+        STATE.mode.fps.combatModeEnabled = false
+        STATE.mode.fps.forcedWeaponNumber = nil
 
-        TrackingManager.disableMode()
+        ModeManager.disableMode()
         Log.trace("FPS camera detached")
 
         -- Refresh units command bar to remove custom command
@@ -82,14 +82,14 @@ function FPSCamera.toggle()
     end
 
     -- Initialize the FPS camera
-    if TrackingManager.initializeMode('fps', unitID) then
+    if ModeManager.initializeMode('fps', unitID) then
         -- Clear any existing fixed point tracking when starting a new FPS camera
-        STATE.tracking.fps.fixedPoint = nil
-        STATE.tracking.fps.targetUnitID = nil
-        STATE.tracking.fps.isFixedPointActive = false
+        STATE.mode.fps.fixedPoint = nil
+        STATE.mode.fps.targetUnitID = nil
+        STATE.mode.fps.isFixedPointActive = false
         -- Initialize combat mode state to false
-        STATE.tracking.fps.combatModeEnabled = false
-        STATE.tracking.fps.forcedWeaponNumber = nil
+        STATE.mode.fps.combatModeEnabled = false
+        STATE.mode.fps.forcedWeaponNumber = nil
 
         FPSTargetingSmoothing.configure({
             rotationConstraint = true,
@@ -111,7 +111,7 @@ function FPSCamera.update()
     end
 
     -- Get unit position and vectors
-    local unitPos, front, up, right = Util.getUnitVectors(STATE.tracking.unitID)
+    local unitPos, front, up, right = Util.getUnitVectors(STATE.mode.unitID)
 
     -- Apply offsets to get camera position
     local camPos = FPSCameraUtils.applyFPSOffsets(unitPos, front, up, right)
@@ -121,12 +121,12 @@ function FPSCamera.update()
     local rotFactor = FPSCameraUtils.getSmoothingFactor('rotation')
 
     -- If this is the first update, initialize last positions
-    if STATE.tracking.lastCamPos.x == 0 and STATE.tracking.lastCamPos.y == 0 and STATE.tracking.lastCamPos.z == 0 then
-        STATE.tracking.lastCamPos = { x = camPos.x, y = camPos.y, z = camPos.z }
-        STATE.tracking.lastCamDir = { x = front[1], y = front[2], z = front[3] }
-        STATE.tracking.lastRotation = {
+    if STATE.mode.lastCamPos.x == 0 and STATE.mode.lastCamPos.y == 0 and STATE.mode.lastCamPos.z == 0 then
+        STATE.mode.lastCamPos = { x = camPos.x, y = camPos.y, z = camPos.z }
+        STATE.mode.lastCamDir = { x = front[1], y = front[2], z = front[3] }
+        STATE.mode.lastRotation = {
             rx = 1.8,
-            ry = -(Spring.GetUnitHeading(STATE.tracking.unitID, true) + math.pi),
+            ry = -(Spring.GetUnitHeading(STATE.mode.unitID, true) + math.pi),
             rz = 0
         }
     end
@@ -137,54 +137,54 @@ function FPSCamera.update()
     local center = { x = unitPos.x, y = unitPos.y, z = unitPos.z }
     local smoothedPos
 
-    if CameraCommons.shouldUseSphericalInterpolation(STATE.tracking.lastCamPos, camPos, center) then
-        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.tracking.lastCamPos, camPos, posFactor, true)
+    if CameraCommons.shouldUseSphericalInterpolation(STATE.mode.lastCamPos, camPos, center) then
+        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.mode.lastCamPos, camPos, posFactor, true)
     else
         smoothedPos = {
-            x = CameraCommons.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, posFactor),
-            y = CameraCommons.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, posFactor),
-            z = CameraCommons.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, posFactor)
+            x = CameraCommons.smoothStep(STATE.mode.lastCamPos.x, camPos.x, posFactor),
+            y = CameraCommons.smoothStep(STATE.mode.lastCamPos.y, camPos.y, posFactor),
+            z = CameraCommons.smoothStep(STATE.mode.lastCamPos.z, camPos.z, posFactor)
         }
     end
 
     -- Handle different camera orientation modes
     local directionState
 
-    if STATE.tracking.fps.isFixedPointActive then
+    if STATE.mode.fps.isFixedPointActive then
         -- Update fixed point if tracking a unit
         FPSCameraUtils.updateFixedPointTarget()
 
         -- Use base camera module to calculate direction to fixed point
         directionState = CameraCommons.focusOnPoint(
                 smoothedPos,
-                STATE.tracking.fps.fixedPoint,
+                STATE.mode.fps.fixedPoint,
                 rotFactor,
                 rotFactor,
                 1.8
         )
-    elseif STATE.tracking.fps.isFreeCameraActive then
+    elseif STATE.mode.fps.isFreeCameraActive then
         -- Free camera mode - controlled by mouse
         local rotation = FreeCam.updateMouseRotation(rotFactor)
-        FreeCam.updateUnitHeadingTracking(STATE.tracking.unitID)
+        FreeCam.updateUnitHeadingTracking(STATE.mode.unitID)
 
         -- Create camera state for free camera mode
         directionState = FreeCam.createCameraState(
                 smoothedPos,
                 rotation,
-                STATE.tracking.lastCamDir,
-                STATE.tracking.lastRotation,
+                STATE.mode.lastCamDir,
+                STATE.mode.lastRotation,
                 rotFactor
         )
     else
         -- Normal FPS mode - follow unit orientation
-        directionState = FPSCameraUtils.handleNormalFPSMode(STATE.tracking.unitID, rotFactor)
+        directionState = FPSCameraUtils.handleNormalFPSMode(STATE.mode.unitID, rotFactor)
     end
 
     -- Apply camera state and update tracking for next frame
     if directionState then
         local camStatePatch = FPSCameraUtils.createCameraState(smoothedPos, directionState)
         CameraManager.setCameraState(camStatePatch, 0, "FPSCamera.update")
-        TrackingManager.updateTrackingState(camStatePatch)
+        ModeManager.updateTrackingState(camStatePatch)
     end
 end
 
@@ -202,60 +202,60 @@ function FPSCamera.checkFixedPointCommandActivation()
         -- Case 1: Command activated - entering target selection mode
         if activeCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
             -- Only proceed if we're in FPS mode and have a unit to track
-            if STATE.tracking.mode == 'fps' and STATE.tracking.unitID then
+            if STATE.mode.name == 'fps' and STATE.mode.unitID then
                 -- Store current state before switching to target selection mode
-                STATE.tracking.fps.inTargetSelectionMode = true
-                STATE.tracking.fps.prevFreeCamState = STATE.tracking.fps.isFreeCameraActive
+                STATE.mode.fps.inTargetSelectionMode = true
+                STATE.mode.fps.prevFreeCamState = STATE.mode.fps.isFreeCameraActive
 
                 -- Save the previous fixed point state for later restoration if canceled
-                STATE.tracking.fps.prevMode = STATE.tracking.mode
-                STATE.tracking.fps.prevFixedPoint = STATE.tracking.fps.fixedPoint
-                STATE.tracking.fps.prevFixedPointActive = STATE.tracking.fps.isFixedPointActive
+                STATE.mode.fps.prevMode = STATE.mode.name
+                STATE.mode.fps.prevFixedPoint = STATE.mode.fps.fixedPoint
+                STATE.mode.fps.prevFixedPointActive = STATE.mode.fps.isFixedPointActive
 
                 -- Temporarily disable fixed point during selection
-                if STATE.tracking.fps.isFixedPointActive then
-                    STATE.tracking.fps.isFixedPointActive = false
-                    STATE.tracking.fps.fixedPoint = nil
+                if STATE.mode.fps.isFixedPointActive then
+                    STATE.mode.fps.isFixedPointActive = false
+                    STATE.mode.fps.fixedPoint = nil
                 end
 
                 -- Initialize free camera for target selection
                 local camState = CameraManager.getCameraState("FPSCamera.checkFixedPointCommandActivation")
-                STATE.tracking.fps.freeCam.targetRx = camState.rx
-                STATE.tracking.fps.freeCam.targetRy = camState.ry
-                STATE.tracking.fps.freeCam.lastMouseX, STATE.tracking.fps.freeCam.lastMouseY = Spring.GetMouseState()
+                STATE.mode.fps.freeCam.targetRx = camState.rx
+                STATE.mode.fps.freeCam.targetRy = camState.ry
+                STATE.mode.fps.freeCam.lastMouseX, STATE.mode.fps.freeCam.lastMouseY = Spring.GetMouseState()
 
                 -- Initialize unit heading tracking
-                if Spring.ValidUnitID(STATE.tracking.unitID) then
-                    STATE.tracking.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.tracking.unitID, true)
+                if Spring.ValidUnitID(STATE.mode.unitID) then
+                    STATE.mode.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
                 end
 
                 -- Always enable free camera mode during target selection
-                STATE.tracking.fps.isFreeCameraActive = true
-                STATE.tracking.isModeTransitionInProgress = true
-                STATE.tracking.transitionStartTime = Spring.GetTimer()
+                STATE.mode.fps.isFreeCameraActive = true
+                STATE.mode.isModeTransitionInProgress = true
+                STATE.mode.transitionStartTime = Spring.GetTimer()
 
                 Log.trace("Target selection mode activated - select a target to look at")
             end
             -- Case 2: Command deactivated - exiting target selection mode without setting a point
-        elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.tracking.fps.inTargetSelectionMode then
+        elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.mode.fps.inTargetSelectionMode then
             -- User canceled target selection, restore previous state
-            STATE.tracking.fps.inTargetSelectionMode = false
+            STATE.mode.fps.inTargetSelectionMode = false
 
             -- Restore the previous fixed point state
-            if STATE.tracking.fps.prevFixedPointActive and STATE.tracking.fps.prevFixedPoint then
-                STATE.tracking.fps.isFixedPointActive = true
-                STATE.tracking.fps.fixedPoint = STATE.tracking.fps.prevFixedPoint
+            if STATE.mode.fps.prevFixedPointActive and STATE.mode.fps.prevFixedPoint then
+                STATE.mode.fps.isFixedPointActive = true
+                STATE.mode.fps.fixedPoint = STATE.mode.fps.prevFixedPoint
                 Log.trace("Target selection canceled, returning to fixed point view")
             end
 
             -- Restore previous free camera state
-            STATE.tracking.fps.isFreeCameraActive = STATE.tracking.fps.prevFreeCamState
+            STATE.mode.fps.isFreeCameraActive = STATE.mode.fps.prevFreeCamState
 
             -- Start a transition to smoothly return to the previous state
-            STATE.tracking.isModeTransitionInProgress = true
-            STATE.tracking.transitionStartTime = Spring.GetTimer()
+            STATE.mode.isModeTransitionInProgress = true
+            STATE.mode.transitionStartTime = Spring.GetTimer()
 
-            if not STATE.tracking.fps.prevFixedPointActive then
+            if not STATE.mode.fps.prevFixedPointActive then
                 Log.trace("Target selection canceled, returning to unit view")
             end
         end
@@ -275,14 +275,14 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     if Util.isModeDisabled("fps") then
         return
     end
-    if not STATE.tracking.unitID then
+    if not STATE.mode.unitID then
         Log.debug("No unit being tracked for fixed point camera")
         return false
     end
 
     local x, y, z
     -- Reset target unit ID before processing new input
-    STATE.tracking.fps.targetUnitID = nil
+    STATE.mode.fps.targetUnitID = nil
 
     -- Process different types of input
     if cmdParams then
@@ -291,7 +291,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
             local unitID = cmdParams[1]
             if Spring.ValidUnitID(unitID) then
                 -- Store the target unit ID for continuous tracking
-                STATE.tracking.fps.targetUnitID = unitID
+                STATE.mode.fps.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
                 Log.trace("Camera will follow current unit but look at unit " .. unitID)
             end
@@ -318,7 +318,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
         z = z
     }
 
-    return FPSCameraUtils.setFixedLookPoint(fixedPoint, STATE.tracking.fps.targetUnitID)
+    return FPSCameraUtils.setFixedLookPoint(fixedPoint, STATE.mode.fps.targetUnitID)
 end
 
 --- Clears fixed point tracking
@@ -333,7 +333,7 @@ function FPSCamera.toggleFreeCam()
     end
 
     -- Only works if we're tracking a unit in FPS mode
-    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
+    if STATE.mode.name ~= 'fps' or not STATE.mode.unitID then
         Log.debug("Free camera only works when tracking a unit in FPS mode")
         return
     end
@@ -342,7 +342,7 @@ function FPSCamera.toggleFreeCam()
     FreeCam.toggle()
 
     -- If we have a fixed point active, we need to explicitly clear it when disabling free cam
-    if not STATE.tracking.fps.isFreeCameraActive and STATE.tracking.fps.isFixedPointActive then
+    if not STATE.mode.fps.isFreeCameraActive and STATE.mode.fps.isFixedPointActive then
         FPSCameraUtils.clearFixedLookPoint()
     end
 end
@@ -355,7 +355,7 @@ function FPSCamera.nextWeapon()
     if Util.isModeDisabled('fps') then
         return
     end
-    if not STATE.tracking.unitID or not Spring.ValidUnitID(STATE.tracking.unitID) then
+    if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
         Log.debug("No unit selected.")
         return
     end

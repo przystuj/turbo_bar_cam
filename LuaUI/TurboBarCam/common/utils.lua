@@ -110,10 +110,10 @@ end
 
 ---@param mode 'fps'|'unit_tracking'|'orbit'|'overview'
 function Util.isModeDisabled(mode)
-    if mode == "global" and STATE.tracking.mode then
+    if mode == "global" and STATE.mode.name then
         return true
     end
-    if mode ~= "global" and STATE.tracking.mode ~= mode then
+    if mode ~= "global" and STATE.mode.name ~= mode then
         return true
     end
 end

@@ -16,27 +16,27 @@ local OrbitPersistence = {}
 --- Serializes the current orbit state for storage
 ---@return table|nil serializedData Serialized orbit data, or nil if not in orbit mode
 function OrbitPersistence.serializeCurrentOrbitState()
-    if STATE.tracking.mode ~= 'orbit' then
+    if STATE.mode.name ~= 'orbit' then
         Log.warn("[OrbitPersistence] Not in orbit mode, cannot serialize state.")
         return nil
     end
 
     local data = {
-        angle = STATE.tracking.orbit.angle,
+        angle = STATE.mode.orbit.angle,
         speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
         distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
         height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT,
-        targetType = STATE.tracking.targetType,
+        targetType = STATE.mode.targetType,
         targetID = nil,
         targetPoint = nil,
-        isPaused = STATE.tracking.orbit.isPaused or false -- Save paused state
+        isPaused = STATE.mode.orbit.isPaused or false -- Save paused state
     }
 
-    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-        data.targetID = STATE.tracking.unitID
-    elseif STATE.tracking.targetType == STATE.TARGET_TYPES.POINT then
-        if STATE.tracking.targetPoint then
-            data.targetPoint = Util.deepCopy(STATE.tracking.targetPoint)
+    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
+        data.targetID = STATE.mode.unitID
+    elseif STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
+        if STATE.mode.targetPoint then
+            data.targetPoint = Util.deepCopy(STATE.mode.targetPoint)
         else
             Log.warn("[OrbitPersistence] Target type is POINT but targetPoint is nil. Saving without point.")
         end

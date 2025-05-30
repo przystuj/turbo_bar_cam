@@ -52,7 +52,7 @@ function widget:Initialize()
 
     -- external hooks
     WG.TurboBarCam.isInControl = function()
-        return STATE.enabled and STATE.tracking.mode ~= nil
+        return STATE.enabled and STATE.mode.name ~= nil
     end
     WG.TurboBarCam.forceFpsCamera = function()
         return STATE.enabled

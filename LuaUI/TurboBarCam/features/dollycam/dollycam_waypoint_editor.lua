@@ -49,7 +49,7 @@ function DollyCamWaypointEditor.initialize()
     -- Register mouse movement handler
     MouseManager.onMouseMove('waypointEditor', DollyCamWaypointEditor.handleMouseMove)
 
-    STATE.tracking.mode = "waypointEditor"
+    STATE.mode.name = "waypointEditor"
 
     -- Set editing state
     STATE.dollyCam.isEditing = true
@@ -66,7 +66,7 @@ function DollyCamWaypointEditor.disable()
 
     -- Set editing state
     STATE.dollyCam.isEditing = false
-    STATE.tracking.mode = nil
+    STATE.mode.name = nil
 
     Log.info("[DollyCam] Waypoint Editor disabled")
 end

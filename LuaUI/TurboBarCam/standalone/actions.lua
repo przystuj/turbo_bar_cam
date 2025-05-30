@@ -69,7 +69,7 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_stop_tracking", 'tp',
             function()
-                CommonModules.TrackingManager.disableMode()
+                CommonModules.ModeManager.disableMode()
                 return false
             end)
 

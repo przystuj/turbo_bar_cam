@@ -4,8 +4,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
----@type TrackingManager
-local TrackingManager = VFS.Include("LuaUI/TurboBarCam/common/tracking_manager.lua").TrackingManager
+---@type ModeManager
+local ModeManager = VFS.Include("LuaUI/TurboBarCam/common/mode_manager.lua").ModeManager
 ---@type DollyCamPathPlanner
 local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
 ---@type DollyCamNavigator
@@ -197,8 +197,8 @@ function DollyCam.toggleNavigation(noCam)
     end
 
     -- Stop tracking if active
-    if STATE.tracking.mode then
-        TrackingManager.disableMode()
+    if STATE.mode.name then
+        ModeManager.disableMode()
     end
 
     return DollyCamNavigator.startNavigation(noCam == "true" or false)

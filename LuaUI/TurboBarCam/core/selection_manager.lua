@@ -23,47 +23,47 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
     -- If no units are selected and tracking is active, start grace period
     if #selectedUnits == 0 then
-        if STATE.tracking.mode then
+        if STATE.mode.name then
             -- Store the current tracked unit ID
-            STATE.tracking.lastUnitID = STATE.tracking.unitID
+            STATE.mode.lastUnitID = STATE.mode.unitID
 
             -- Start grace period timer (1 second)
-            STATE.tracking.graceTimer = Spring.GetTimer()
+            STATE.mode.graceTimer = Spring.GetTimer()
         end
         return
     end
 
     -- If units are selected, cancel any active grace period
-    if STATE.tracking.graceTimer then
-        STATE.tracking.graceTimer = nil
+    if STATE.mode.graceTimer then
+        STATE.mode.graceTimer = nil
     end
 
     -- Get the first selected unit
     local unitID = selectedUnits[1]
 
     -- Update tracking if it's enabled
-    if STATE.tracking.mode and STATE.tracking.unitID ~= unitID then
+    if STATE.mode.name and STATE.mode.unitID ~= unitID then
         -- Save settings for the old unit before switching
-        local oldIdentifier = SettingsManager.chooseIdentifier(STATE.tracking.mode, STATE.tracking.unitID)
+        local oldIdentifier = SettingsManager.chooseIdentifier(STATE.mode.name, STATE.mode.unitID)
         if oldIdentifier then
-            SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+            SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
         end
 
-        if STATE.tracking.mode == 'fps' then
+        if STATE.mode.name == 'fps' then
             FPSCamera.handleSelectNewUnit()
-            STATE.tracking.fps.lastUnitProjectileID = nil
-            STATE.tracking.fps.projectileTrackingEnabled = false
-            STATE.tracking.fps.lastProjectilePosition = nil
+            STATE.mode.fps.lastUnitProjectileID = nil
+            STATE.mode.fps.projectileTrackingEnabled = false
+            STATE.mode.fps.lastProjectilePosition = nil
         end
 
         -- Switch tracking to the new unit
-        STATE.tracking.unitID = unitID
-        STATE.tracking.group.unitIDs = selectedUnits
+        STATE.mode.unitID = unitID
+        STATE.mode.group_tracking.unitIDs = selectedUnits
 
         -- Load settings for the new unit
-        local newIdentifier = SettingsManager.chooseIdentifier(STATE.tracking.mode, unitID)
+        local newIdentifier = SettingsManager.chooseIdentifier(STATE.mode.name, unitID)
         if newIdentifier then
-            SettingsManager.loadModeSettings(STATE.tracking.mode, unitID)
+            SettingsManager.loadModeSettings(STATE.mode.name, unitID)
         end
 
         Log.trace("Tracking switched to unit " .. unitID)

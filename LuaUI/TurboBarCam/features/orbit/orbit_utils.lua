@@ -9,7 +9,7 @@ local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
@@ -19,7 +19,7 @@ local OrbitCameraUtils = {}
 ---@return table camPos Camera position {x, y, z}
 function OrbitCameraUtils.calculateOrbitPosition(targetPos)
     -- Calculate precise sine and cosine for the orbit angle
-    local angle = STATE.tracking.orbit.angle
+    local angle = STATE.mode.orbit.angle
     local distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE
 
     -- Calculate precise orbit offset
@@ -38,8 +38,8 @@ function OrbitCameraUtils.ensureHeightIsSet()
         return
     end
 
-    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
-        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID)
+    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
+        local unitHeight = ModeManager.getDefaultHeightForUnitTracking(STATE.mode.unitID)
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
     else
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = 1000
@@ -59,7 +59,7 @@ function OrbitCameraUtils.adjustParams(params)
     Util.adjustParams(params, "ORBIT", function()
         OrbitCameraUtils.resetSettings()
     end)
-    SettingsManager.saveModeSettings(STATE.tracking.mode, STATE.tracking.unitID)
+    SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
 end
 
 --- Resets orbit settings to defaults
@@ -75,35 +75,35 @@ end
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.getTargetPosition()
     local targetPos
-    if STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT then
+    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
         -- Check if unit still exists
-        if not Spring.ValidUnitID(STATE.tracking.unitID) then
+        if not Spring.ValidUnitID(STATE.mode.unitID) then
             Log.trace("Unit no longer exists, switching to point tracking")
 
             -- Switch to point tracking using last known position
-            if STATE.tracking.lastTargetPoint then
-                STATE.tracking.targetType = STATE.TARGET_TYPES.POINT
-                STATE.tracking.targetPoint = STATE.tracking.lastTargetPoint
-                STATE.tracking.unitID = nil
+            if STATE.mode.lastTargetPoint then
+                STATE.mode.targetType = STATE.TARGET_TYPES.POINT
+                STATE.mode.targetPoint = STATE.mode.lastTargetPoint
+                STATE.mode.unitID = nil
 
                 -- Use the last target point for this update
-                targetPos = STATE.tracking.targetPoint
+                targetPos = STATE.mode.targetPoint
             else
                 -- No position info available, disable tracking
-                TrackingManager.disableMode()
+                ModeManager.disableMode()
                 return
             end
         else
             -- Unit exists, get its position
-            local x, y, z = Spring.GetUnitPosition(STATE.tracking.unitID)
+            local x, y, z = Spring.GetUnitPosition(STATE.mode.unitID)
             targetPos = { x = x, y = y, z = z }
 
             -- Update last target point for fallback
-            STATE.tracking.lastTargetPoint = { x = x, y = y, z = z }
+            STATE.mode.lastTargetPoint = { x = x, y = y, z = z }
         end
     else
         -- Point tracking
-        targetPos = STATE.tracking.targetPoint
+        targetPos = STATE.mode.targetPoint
     end
     return targetPos
 end

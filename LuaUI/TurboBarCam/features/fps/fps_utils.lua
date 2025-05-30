@@ -15,7 +15,7 @@ local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 local CameraCommons = CommonModules.CameraCommons
 
 ---@class FPSCameraUtils
@@ -24,14 +24,14 @@ local FPSCameraUtils = {}
 --- Checks if FPS camera should be updated
 ---@return boolean shouldUpdate Whether FPS camera should be updated
 function FPSCameraUtils.shouldUpdateFPSCamera()
-    if STATE.tracking.mode ~= 'fps' or not STATE.tracking.unitID then
+    if STATE.mode.name ~= 'fps' or not STATE.mode.unitID then
         return false
     end
 
     -- Check if unit still exists
-    if not Spring.ValidUnitID(STATE.tracking.unitID) then
+    if not Spring.ValidUnitID(STATE.mode.unitID) then
         Log.trace("Unit no longer exists")
-        TrackingManager.disableMode()
+        ModeManager.disableMode()
         return false
     end
 
@@ -42,7 +42,7 @@ end
 function FPSCameraUtils.ensureHeightIsSet()
     -- Set PEACE mode height if not set
     if not CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT then
-        local unitHeight = TrackingManager.getDefaultHeightForUnitTracking(STATE.tracking.unitID) + 30
+        local unitHeight = ModeManager.getDefaultHeightForUnitTracking(STATE.mode.unitID) + 30
         CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT = unitHeight
     end
 
@@ -61,8 +61,8 @@ end
 ---@return table offsets The offsets to apply
 function FPSCameraUtils.getAppropriateOffsets()
     -- In combat mode - check if actively attacking
-    if STATE.tracking.fps.combatModeEnabled then
-        if STATE.tracking.fps.isAttacking then
+    if STATE.mode.fps.combatModeEnabled then
+        if STATE.mode.fps.isAttacking then
             -- Weapon offsets - when actively targeting something
             return CONFIG.CAMERA_MODES.FPS.OFFSETS.WEAPON
         else
@@ -113,12 +113,12 @@ function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
 
     -- Create camera direction state with smoothed values
     return {
-        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.smoothStep(STATE.tracking.lastRotation.rz, targetRz, rotFactor),
+        dx = CameraCommons.smoothStep(STATE.mode.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.smoothStep(STATE.mode.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.smoothStep(STATE.mode.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.smoothStep(STATE.mode.lastRotation.rz, targetRz, rotFactor),
     }
 end
 
@@ -144,7 +144,7 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
 
     -- Apply target smoothing here - this is the key addition!
     -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
-    local processedTarget = FPSTargetingSmoothing.processTarget(targetPos, STATE.tracking.fps.lastTargetUnitID)
+    local processedTarget = FPSTargetingSmoothing.processTarget(targetPos, STATE.mode.fps.lastTargetUnitID)
 
     if processedTarget then
         targetPos = processedTarget
@@ -164,9 +164,9 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
     dx, dy, dz = dx / magnitude, dy / magnitude, dz / magnitude
 
     -- Store position and direction for other functions
-    STATE.tracking.fps.weaponPos = weaponPos
-    STATE.tracking.fps.weaponDir = { dx, dy, dz }
-    STATE.tracking.fps.activeWeaponNum = weaponNum
+    STATE.mode.fps.weaponPos = weaponPos
+    STATE.mode.fps.weaponDir = { dx, dy, dz }
+    STATE.mode.fps.activeWeaponNum = weaponNum
 
     -- Get camera position with weapon offsets
     local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
@@ -175,7 +175,7 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
     local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
 
     -- Apply rotation constraints to prevent too rapid rotation
-    if directionState and STATE.tracking.fps.isAttacking then
+    if directionState and STATE.mode.fps.isAttacking then
         -- Get the constrained rotation values
         local constrainedYaw, constrainedPitch = FPSTargetingSmoothing.constrainRotationRate(
                 directionState.ry, directionState.rx)
@@ -199,17 +199,17 @@ end
 --- @return table directionState Camera direction and rotation state
 function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
     -- Check if combat mode is enabled
-    if STATE.tracking.fps.combatModeEnabled then
+    if STATE.mode.fps.combatModeEnabled then
         -- Check if the unit is actively targeting something
         local targetPos, firingWeaponNum, isNewTarget = FPSCombatMode.getCurrentAttackTarget(unitID)
-        if isNewTarget and not STATE.tracking.fps.isTargetSwitchTransition then
+        if isNewTarget and not STATE.mode.fps.isTargetSwitchTransition then
             FPSCameraUtils.handleNewTarget()
         end
 
-        if STATE.tracking.fps.isAttacking then
+        if STATE.mode.fps.isAttacking then
             -- Try to create direction state based on targeting data
             local targetingState = FPSCameraUtils.createTargetingDirectionState(
-                    unitID, targetPos, firingWeaponNum or STATE.tracking.fps.activeWeaponNum, rotFactor)
+                    unitID, targetPos, firingWeaponNum or STATE.mode.fps.activeWeaponNum, rotFactor)
 
             if targetingState then
                 -- Successfully created targeting state
@@ -222,35 +222,35 @@ function FPSCameraUtils.handleNormalFPSMode(unitID, rotFactor)
         return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.COMBAT, rotFactor)
     else
         -- Normal mode - always ensure isAttacking is false
-        STATE.tracking.fps.isAttacking = false
+        STATE.mode.fps.isAttacking = false
         return FPSCameraUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE, rotFactor)
     end
 end
 
 function FPSCameraUtils.handleNewTarget()
-    local trackedUnitID = STATE.tracking.unitID
+    local trackedUnitID = STATE.mode.unitID
     if not trackedUnitID or not Spring.ValidUnitID(trackedUnitID) then
         return
     end
 
     -- Initialize state fields if needed
-    if not STATE.tracking.fps.previousTargetPos then
-        if STATE.tracking.fps.lastTargetPos then
-            STATE.tracking.fps.previousTargetPos = {
-                x = STATE.tracking.fps.lastTargetPos.x,
-                y = STATE.tracking.fps.lastTargetPos.y,
-                z = STATE.tracking.fps.lastTargetPos.z
+    if not STATE.mode.fps.previousTargetPos then
+        if STATE.mode.fps.lastTargetPos then
+            STATE.mode.fps.previousTargetPos = {
+                x = STATE.mode.fps.lastTargetPos.x,
+                y = STATE.mode.fps.lastTargetPos.y,
+                z = STATE.mode.fps.lastTargetPos.z
             }
         end
     end
 
-    if not STATE.tracking.fps.lastTargetSwitchTime then
-        STATE.tracking.fps.lastTargetSwitchTime = Spring.GetTimer()
+    if not STATE.mode.fps.lastTargetSwitchTime then
+        STATE.mode.fps.lastTargetSwitchTime = Spring.GetTimer()
     end
 
     -- Check for target suitability
-    local newTargetPos = STATE.tracking.fps.lastTargetPos
-    local previousTargetPos = STATE.tracking.fps.previousTargetPos
+    local newTargetPos = STATE.mode.fps.lastTargetPos
+    local previousTargetPos = STATE.mode.fps.previousTargetPos
 
     -- Skip if we don't have proper target data
     if not newTargetPos then
@@ -259,7 +259,7 @@ function FPSCameraUtils.handleNewTarget()
 
     -- First acquisition just store it
     if not previousTargetPos then
-        STATE.tracking.fps.previousTargetPos = {
+        STATE.mode.fps.previousTargetPos = {
             x = newTargetPos.x,
             y = newTargetPos.y,
             z = newTargetPos.z
@@ -277,12 +277,12 @@ function FPSCameraUtils.handleNewTarget()
     local currentTime = Spring.GetTimer()
 
     -- Rate limiting criteria
-    local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.tracking.fps.lastTargetSwitchTime)
-    local minTimeBetweenTransitions = STATE.tracking.fps.isTargetSwitchTransition and 0.5 or 1.0  -- Shorter if already in transition
+    local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.mode.fps.lastTargetSwitchTime)
+    local minTimeBetweenTransitions = STATE.mode.fps.isTargetSwitchTransition and 0.5 or 1.0  -- Shorter if already in transition
     local distanceThreshold = 200  -- Only transition for targets over this distance
 
     -- Enhanced decision criteria:
-    local isInTransition = STATE.tracking.fps.isTargetSwitchTransition
+    local isInTransition = STATE.mode.fps.isTargetSwitchTransition
     local isDistanceSignificant = targetDistance > distanceThreshold
     local isTimeSufficientForNewTransition = timeSinceLastTransition > minTimeBetweenTransitions
 
@@ -292,7 +292,7 @@ function FPSCameraUtils.handleNewTarget()
     -- 3. Last transition was too recent
     if isInTransition or (not isDistanceSignificant) or (not isTimeSufficientForNewTransition) then
         -- Just update the previous target position without starting a new transition
-        STATE.tracking.fps.previousTargetPos = {
+        STATE.mode.fps.previousTargetPos = {
             x = newTargetPos.x,
             y = newTargetPos.y,
             z = newTargetPos.z
@@ -321,53 +321,53 @@ function FPSCameraUtils.handleNewTarget()
     -- CRITICAL FIX: Capture the CURRENT camera state for transition origin point
     -- This ensures we start from where the camera actually is
     local currentCameraState = Spring.GetCameraState()
-    STATE.tracking.fps.previousCamPosWorld = {
+    STATE.mode.fps.previousCamPosWorld = {
         x = currentCameraState.px,
         y = currentCameraState.py,
         z = currentCameraState.pz
     }
 
     -- Store previous direction vector (used for calculating target camera position)
-    if STATE.tracking.fps.weaponDir then
-        STATE.tracking.fps.previousWeaponDir = {
-            STATE.tracking.fps.weaponDir[1],
-            STATE.tracking.fps.weaponDir[2],
-            STATE.tracking.fps.weaponDir[3]
+    if STATE.mode.fps.weaponDir then
+        STATE.mode.fps.previousWeaponDir = {
+            STATE.mode.fps.weaponDir[1],
+            STATE.mode.fps.weaponDir[2],
+            STATE.mode.fps.weaponDir[3]
         }
     else
         local _, frontVec, _, _ = Spring.GetUnitVectors(trackedUnitID)
         if frontVec then
-            STATE.tracking.fps.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
+            STATE.mode.fps.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
         else
-            STATE.tracking.fps.previousWeaponDir = { 0, 0, 1 }  -- Fallback
+            STATE.mode.fps.previousWeaponDir = { 0, 0, 1 }  -- Fallback
         end
     end
 
     -- Start transition
-    STATE.tracking.fps.isTargetSwitchTransition = true
-    STATE.tracking.fps.targetSwitchStartTime = currentTime
-    STATE.tracking.fps.lastTargetSwitchTime = currentTime
-    STATE.tracking.fps.transitionCounter = (STATE.tracking.fps.transitionCounter or 0) + 1
+    STATE.mode.fps.isTargetSwitchTransition = true
+    STATE.mode.fps.targetSwitchStartTime = currentTime
+    STATE.mode.fps.lastTargetSwitchTime = currentTime
+    STATE.mode.fps.transitionCounter = (STATE.mode.fps.transitionCounter or 0) + 1
 
     -- Set shorter transition for smaller changes
     if targetDistance > 400 then
-        STATE.tracking.fps.targetSwitchDuration = 0.4
+        STATE.mode.fps.targetSwitchDuration = 0.4
     else
-        STATE.tracking.fps.targetSwitchDuration = 0.3
+        STATE.mode.fps.targetSwitchDuration = 0.3
     end
 
     -- Log transition start
     Log.info(string.format("Target switch #%d: distance=%.1f units, starting transition",
-            STATE.tracking.fps.transitionCounter, targetDistance))
+            STATE.mode.fps.transitionCounter, targetDistance))
 
     -- Signal rotation constraints to reset
-    if STATE.tracking.fps.targetSmoothing and STATE.tracking.fps.targetSmoothing.rotationConstraint then
-        STATE.tracking.fps.targetSmoothing.rotationConstraint.resetForSwitch = true
+    if STATE.mode.fps.targetSmoothing and STATE.mode.fps.targetSmoothing.rotationConstraint then
+        STATE.mode.fps.targetSmoothing.rotationConstraint.resetForSwitch = true
         Log.debug("Signaling rotation constraint reset.")
     end
 
     -- Store this target position for future comparisons
-    STATE.tracking.fps.previousTargetPos = {
+    STATE.mode.fps.previousTargetPos = {
         x = newTargetPos.x,
         y = newTargetPos.y,
         z = newTargetPos.z
@@ -385,36 +385,36 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     if Util.isModeDisabled("fps") then
         return false
     end
-    if not STATE.tracking.unitID then
+    if not STATE.mode.unitID then
         Log.trace("No unit being tracked for fixed point camera")
         return false
     end
 
     -- Set the fixed point
-    STATE.tracking.fps.fixedPoint = fixedPoint
-    STATE.tracking.fps.targetUnitID = targetUnitID
-    STATE.tracking.fps.isFixedPointActive = true
+    STATE.mode.fps.fixedPoint = fixedPoint
+    STATE.mode.fps.targetUnitID = targetUnitID
+    STATE.mode.fps.isFixedPointActive = true
 
     -- We're no longer in target selection mode
-    STATE.tracking.fps.inTargetSelectionMode = false
-    STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
+    STATE.mode.fps.inTargetSelectionMode = false
+    STATE.mode.fps.prevFixedPoint = nil -- Clear saved previous fixed point
 
     -- Use the previous free camera state for normal operation
-    STATE.tracking.fps.isFreeCameraActive = STATE.tracking.fps.prevFreeCamState or false
+    STATE.mode.fps.isFreeCameraActive = STATE.mode.fps.prevFreeCamState or false
 
     -- If not in free camera mode, enable a transition to the fixed point
-    if not STATE.tracking.fps.isFreeCameraActive then
+    if not STATE.mode.fps.isFreeCameraActive then
         -- Trigger a transition to smoothly move to the new view
-        STATE.tracking.isModeTransitionInProgress = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
+        STATE.mode.isModeTransitionInProgress = true
+        STATE.mode.transitionStartTime = Spring.GetTimer()
     end
 
-    if not STATE.tracking.fps.targetUnitID then
+    if not STATE.mode.fps.targetUnitID then
         Log.trace("Camera will follow unit but look at fixed point")
     else
-        local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.tracking.fps.targetUnitID)]
+        local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.mode.fps.targetUnitID)]
         local targetName = unitDef and unitDef.name or "Unnamed unit"
-        Log.trace("Camera will follow unit but look at unit " .. STATE.tracking.fps.targetUnitID ..
+        Log.trace("Camera will follow unit but look at unit " .. STATE.mode.fps.targetUnitID ..
                 " (" .. targetName .. ")")
     end
 
@@ -427,19 +427,19 @@ function FPSCameraUtils.clearFixedLookPoint()
         return
     end
 
-    if STATE.tracking.fps.isFixedPointActive and STATE.tracking.unitID then
+    if STATE.mode.fps.isFixedPointActive and STATE.mode.unitID then
         -- Disable fixed point tracking
-        STATE.tracking.fps.isFixedPointActive = false
-        STATE.tracking.fps.fixedPoint = nil
-        STATE.tracking.fps.targetUnitID = nil  -- Clear the target unit ID
-        STATE.tracking.fps.inTargetSelectionMode = false
-        STATE.tracking.fps.prevFixedPoint = nil -- Clear saved previous fixed point
+        STATE.mode.fps.isFixedPointActive = false
+        STATE.mode.fps.fixedPoint = nil
+        STATE.mode.fps.targetUnitID = nil  -- Clear the target unit ID
+        STATE.mode.fps.inTargetSelectionMode = false
+        STATE.mode.fps.prevFixedPoint = nil -- Clear saved previous fixed point
 
         -- Start a transition when changing modes
-        STATE.tracking.isModeTransitionInProgress = true
-        STATE.tracking.transitionStartTime = Spring.GetTimer()
+        STATE.mode.isModeTransitionInProgress = true
+        STATE.mode.transitionStartTime = Spring.GetTimer()
 
-        if STATE.tracking.fps.isFreeCameraActive then
+        if STATE.mode.fps.isFreeCameraActive then
             Log.trace("Fixed point tracking disabled, maintaining free camera mode")
         else
             Log.trace("Fixed point tracking disabled, returning to FPS mode")
@@ -450,18 +450,18 @@ end
 --- Updates the fixed point if tracking a unit
 ---@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
 function FPSCameraUtils.updateFixedPointTarget()
-    if not STATE.tracking.fps.targetUnitID or not Spring.ValidUnitID(STATE.tracking.fps.targetUnitID) then
-        return STATE.tracking.fps.fixedPoint
+    if not STATE.mode.fps.targetUnitID or not Spring.ValidUnitID(STATE.mode.fps.targetUnitID) then
+        return STATE.mode.fps.fixedPoint
     end
 
     -- Get the current position of the target unit
-    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.tracking.fps.targetUnitID)
-    STATE.tracking.fps.fixedPoint = {
+    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.mode.fps.targetUnitID)
+    STATE.mode.fps.fixedPoint = {
         x = targetX,
         y = targetY,
         z = targetZ
     }
-    return STATE.tracking.fps.fixedPoint
+    return STATE.mode.fps.fixedPoint
 end
 
 --- Determines appropriate smoothing factors based on current state
@@ -471,8 +471,8 @@ end
 function FPSCameraUtils.getSmoothingFactor(smoothType)
     -- Determine which mode we're in
     local smoothingMode
-    if STATE.tracking.fps.combatModeEnabled then
-        if STATE.tracking.fps.isAttacking then
+    if STATE.mode.fps.combatModeEnabled then
+        if STATE.mode.fps.isAttacking then
             smoothingMode = "WEAPON"
         else
             smoothingMode = "COMBAT"
@@ -510,7 +510,7 @@ function FPSCameraUtils.adjustParams(params)
     end
 
     -- Make sure we have a unit to track
-    if not STATE.tracking.unitID then
+    if not STATE.mode.unitID then
         Log.trace("No unit being tracked")
         return
     end
@@ -518,14 +518,14 @@ function FPSCameraUtils.adjustParams(params)
     -- Handle reset directly
     if params == "reset" then
         FPSCameraUtils.resetOffsets()
-        SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
+        SettingsManager.saveModeSettings("fps", STATE.mode.unitID)
         return
     end
 
     -- Determine current FPS submode
     local currentFPSMode
-    if STATE.tracking.fps.combatModeEnabled then
-        if STATE.tracking.fps.isAttacking then
+    if STATE.mode.fps.combatModeEnabled then
+        if STATE.mode.fps.isAttacking then
             currentFPSMode = "WEAPON"
         else
             currentFPSMode = "COMBAT"
@@ -541,7 +541,7 @@ function FPSCameraUtils.adjustParams(params)
         FPSCameraUtils.resetOffsets()
     end, currentFPSMode, getFPSParamPrefixes)
 
-    SettingsManager.saveModeSettings("fps", STATE.tracking.unitID)
+    SettingsManager.saveModeSettings("fps", STATE.mode.unitID)
 end
 
 --- Resets camera offsets to default values
@@ -577,14 +577,14 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     local frontVec, upVec, rightVec
     local weaponBasePos = unitPos
 
-    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.weaponDir then
+    if STATE.mode.fps.isAttacking and STATE.mode.fps.weaponDir then
         -- Use weapon position when attacking if available
-        if STATE.tracking.fps.weaponPos then
-            weaponBasePos = STATE.tracking.fps.weaponPos
-            position = STATE.tracking.fps.weaponPos
+        if STATE.mode.fps.weaponPos then
+            weaponBasePos = STATE.mode.fps.weaponPos
+            position = STATE.mode.fps.weaponPos
         end
         -- Use weapon direction when attacking
-        frontVec = STATE.tracking.fps.weaponDir
+        frontVec = STATE.mode.fps.weaponDir
         upVec = up
         -- Calculate right vector from front and up vectors
         rightVec = {
@@ -644,13 +644,13 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
     local targetCamPosWorld = { x = x, y = y, z = z }
 
     -- Apply minimum height constraint to target position
-    targetCamPosWorld = FPSCameraUtils.enforceMinimumHeight(targetCamPosWorld, STATE.tracking.unitID)
+    targetCamPosWorld = FPSCameraUtils.enforceMinimumHeight(targetCamPosWorld, STATE.mode.unitID)
 
     -- IMPORTANT: First apply the stabilization for jittery camera
     local finalCamPosWorld = targetCamPosWorld
 
     -- Handle transition if active
-    if STATE.tracking.fps.isTargetSwitchTransition then
+    if STATE.mode.fps.isTargetSwitchTransition then
         local transitionPos = FPSCameraUtils.handleTransition(targetCamPosWorld)
         if transitionPos then
             finalCamPosWorld = transitionPos
@@ -665,10 +665,10 @@ function FPSCameraUtils.applyFPSOffsets(position, front, up, right)
 
     -- IMPORTANT: Apply air target repositioning AFTER stabilization
     -- This ensures the air adjustment respects the stabilized camera state
-    if STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
+    if STATE.mode.fps.isAttacking and STATE.mode.fps.lastTargetPos then
         finalCamPosWorld = FPSTargetingUtils.handleAirTargetRepositioning(
                 finalCamPosWorld,
-                STATE.tracking.fps.lastTargetPos,
+                STATE.mode.fps.lastTargetPos,
                 unitPos  -- Pass original unit position for reference
         )
     end
@@ -680,7 +680,7 @@ end
 -- This follows the guideline to avoid large conditional blocks
 function FPSCameraUtils.applyStabilizationOrTransition(targetCamPosWorld)
     -- Check if we are in a target switch transition
-    if STATE.tracking.fps.isTargetSwitchTransition then
+    if STATE.mode.fps.isTargetSwitchTransition then
         return FPSCameraUtils.handleTransition(targetCamPosWorld)
     end
 
@@ -692,8 +692,8 @@ end
 -- This follows the guideline to split large conditionals into functions
 function FPSCameraUtils.handleTransition(targetCamPosWorld)
     local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.tracking.fps.targetSwitchStartTime or now)
-    local transitionDuration = STATE.tracking.fps.targetSwitchDuration or 0.4
+    local elapsed = Spring.DiffTimers(now, STATE.mode.fps.targetSwitchStartTime or now)
+    local transitionDuration = STATE.mode.fps.targetSwitchDuration or 0.4
 
     -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
     local rawProgress = math.min(1.0, elapsed / transitionDuration)
@@ -702,8 +702,8 @@ function FPSCameraUtils.handleTransition(targetCamPosWorld)
 
     if progress < 1.0 then
         -- Use current actual camera position for transition
-        if STATE.tracking.fps.previousCamPosWorld then
-            local startPos = STATE.tracking.fps.previousCamPosWorld
+        if STATE.mode.fps.previousCamPosWorld then
+            local startPos = STATE.mode.fps.previousCamPosWorld
             local endPos = targetCamPosWorld
 
             -- Simple direct linear interpolation between current and target position
@@ -718,8 +718,8 @@ function FPSCameraUtils.handleTransition(targetCamPosWorld)
         end
     else
         -- Transition finished this frame
-        STATE.tracking.fps.isTargetSwitchTransition = false
-        STATE.tracking.fps.previousCamPosWorld = nil
+        STATE.mode.fps.isTargetSwitchTransition = false
+        STATE.mode.fps.previousCamPosWorld = nil
         Log.info("Target switch transition finished.")
     end
 
@@ -730,27 +730,27 @@ end
 -- This follows the guideline to split large conditionals into functions
 function FPSCameraUtils.applyStabilization(targetCamPosWorld)
     -- Get targeting information from smoothing system
-    local targetSmoothing = STATE.tracking.fps.targetSmoothing
+    local targetSmoothing = STATE.mode.fps.targetSmoothing
 
     -- Only apply stabilization during active targeting with high target switching activity
-    if not STATE.tracking.fps.isAttacking or not targetSmoothing or
+    if not STATE.mode.fps.isAttacking or not targetSmoothing or
             not targetSmoothing.activityLevel or targetSmoothing.activityLevel <= 0.5 then
         -- Reset stabilization when not in a high-activity targeting situation
-        STATE.tracking.fps.stableCamPos = nil
+        STATE.mode.fps.stableCamPos = nil
         return nil
     end
 
     -- Initialize stable camera position history if needed
-    if not STATE.tracking.fps.stableCamPos then
-        STATE.tracking.fps.stableCamPos = targetCamPosWorld
-        STATE.tracking.fps.cameraStabilityFactor = 0.05 -- Default slow response
+    if not STATE.mode.fps.stableCamPos then
+        STATE.mode.fps.stableCamPos = targetCamPosWorld
+        STATE.mode.fps.cameraStabilityFactor = 0.05 -- Default slow response
     end
 
     -- Calculate stabilization factors
     local factor = FPSCameraUtils.calculateStabilityFactor(targetSmoothing)
 
     -- Apply very gradual interpolation towards the target position
-    local stableCamPos = STATE.tracking.fps.stableCamPos
+    local stableCamPos = STATE.mode.fps.stableCamPos
 
     local smoothedCamPos = {
         x = stableCamPos.x + (targetCamPosWorld.x - stableCamPos.x) * factor,
@@ -759,7 +759,7 @@ function FPSCameraUtils.applyStabilization(targetCamPosWorld)
     }
 
     -- Update stable camera position for next frame
-    STATE.tracking.fps.stableCamPos = smoothedCamPos
+    STATE.mode.fps.stableCamPos = smoothedCamPos
 
     -- Log stabilization info periodically
     FPSCameraUtils.logStabilizationInfo(factor, targetSmoothing)
@@ -784,7 +784,7 @@ function FPSCameraUtils.calculateStabilityFactor(targetSmoothing)
     end
 
     -- Store the factor for reference
-    STATE.tracking.fps.cameraStabilityFactor = factor
+    STATE.mode.fps.cameraStabilityFactor = factor
 
     return factor
 end
@@ -792,11 +792,11 @@ end
 -- Log stabilization info periodically to avoid spam
 function FPSCameraUtils.logStabilizationInfo(factor, targetSmoothing)
     local currentTime = Spring.GetTimer()
-    if not STATE.tracking.fps.lastStabilizationLog or
-            Spring.DiffTimers(currentTime, STATE.tracking.fps.lastStabilizationLog) > 1.0 then
+    if not STATE.mode.fps.lastStabilizationLog or
+            Spring.DiffTimers(currentTime, STATE.mode.fps.lastStabilizationLog) > 1.0 then
         Log.debug(string.format("Camera stabilization active: factor=%.3f, activity=%.2f, switches=%d",
                 factor, targetSmoothing.activityLevel, targetSmoothing.targetSwitchCount or 0))
-        STATE.tracking.fps.lastStabilizationLog = currentTime
+        STATE.mode.fps.lastStabilizationLog = currentTime
     end
 end
 

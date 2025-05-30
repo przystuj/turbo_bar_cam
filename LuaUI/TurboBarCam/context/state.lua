@@ -43,13 +43,13 @@ if not WG.TurboBarCam.STATE then
         },
 
         -- Camera tracking
-        tracking = {
-            mode = nil,
+        mode = {
+            name = nil,
             targetType = nil,
             unitID = nil,
             targetPoint = nil,
             lastTargetPoint = nil,
-            transitionTarget = nil,
+            transitionTarget = nil, -- Used for specific LERP transitions by features
 
             offsets = { fps = {}, orbit = {}, projectile_camera = {} },
 
@@ -60,12 +60,29 @@ if not WG.TurboBarCam.STATE then
             lastCamDir = { x = 0, y = 0, z = 0 },
             lastRotation = { rx = 0, ry = 0, rz = 0 },
 
+            -- Legacy generic mode transition states (being phased out as features manage their own transitions)
+            -- ModeManager no longer sets these directly for generic transitions.
+            -- Kept for compatibility with unrefactored modules that might read them.
             isModeTransitionInProgress = false,
-            transitionStartState = nil,
-            transitionStartTime = nil,
             transitionProgress = nil,
+            -- transitionStartTime = nil, -- This was used with getTransitionProgress, which is removed/changed
+
+            -- New states set by ModeManager for feature-led transitions
+            initialCameraStateForModeEntry = nil,
+            optionalTargetCameraStateForModeEntry = nil,
+            -- transitionStartState = nil, -- Replaced by initialCameraStateForModeEntry for clarity
+
+            unit_tracking = {
+                -- Purpose: This flag indicates if the UnitTrackingCamera feature has performed
+                -- its specific initialization logic (like starting its entry camera transition)
+                -- for the current activation of the 'unit_tracking' mode. It's reset by
+                -- ModeManager when the mode is disabled or changed, allowing the feature
+                -- to re-initialize its entry behavior next time it's activated.
+                isModeInitialized = false,
+            },
 
             fps = {
+                isModeInitialized = false, -- For feature-led entry transition
                 inTargetSelectionMode = false,
                 prevFreeCamState = false,
                 prevMode = nil,
@@ -138,18 +155,8 @@ if not WG.TurboBarCam.STATE then
                 },
             },
 
-            projectile = {
-                selectedProjectileID = nil,
-                currentProjectileID = nil,
-                lastSwitchTime = nil,
-                isWatchingForProjectiles = false,
-                smoothedPositions = nil,
-                trackingStartTime = nil,
-                lastProjectileVel = nil, -- NEW: Store last velocity vector
-                lastProjectileVelY = nil, -- Kept for now, might be removed later
-            },
-
-            projectileWatching = {
+            projectile_camera = { -- State for the projectile_camera feature when active
+                isModeInitialized = false, -- For feature-led entry transition
                 armed = false,
                 watchedUnitID = nil,
                 continuouslyArmedUnitID = nil,
@@ -158,19 +165,30 @@ if not WG.TurboBarCam.STATE then
                 previousCameraState = nil,
                 impactTimer = nil,
                 impactPosition = nil,
-                cameraMode = nil,
+                cameraMode = nil, -- 'follow' or 'static' submodes
                 initialCamPos = nil,
                 isImpactDecelerating = false,
                 impactDecelerationStartTime = nil,
                 initialImpactVelocity = nil,
                 initialImpactRotVelocity = nil,
                 isHighArc = false,
-                highArcGoingUpward = false,
-                transitioningDirection = false, -- NEW: Track if transition is active
-                currentFactor = nil, -- NEW: Store current rotation factor
+                -- transitioningDirection = false, -- Managed by TransitionManager now
+                -- currentFactor = nil,           -- Managed by TransitionManager now
+
+                projectile = { -- Data about the projectile itself
+                    selectedProjectileID = nil,
+                    currentProjectileID = nil,
+                    lastSwitchTime = nil,
+                    isWatchingForProjectiles = false,
+                    smoothedPositions = nil,
+                    trackingStartTime = nil,
+                    lastProjectileVel = nil,
+                    lastProjectileVelY = nil,
+                },
             },
 
-            group = {
+            group_tracking = {
+                isModeInitialized = false, -- Placeholder for consistency if group_tracking is refactored
                 unitIDs = {},
                 centerOfMass = { x = 0, y = 0, z = 0 },
                 targetDistance = nil,
@@ -180,11 +198,61 @@ if not WG.TurboBarCam.STATE then
             },
 
             orbit = {
+                isModeInitialized = false, -- For feature-led entry transition
                 angle = nil,
                 lastPosition = nil,
                 lastCamPos = nil,
                 lastCamRot = nil,
                 isPaused = false,
+            },
+
+            overview = {
+                isModeInitialized = false, -- For feature-led entry transition (ModeManager will need to handle this path)
+                height = nil,
+                heightLevel = nil,
+                fixedCamPos = nil,
+                targetRx = nil,
+                targetRy = nil,
+                movingToTarget = false,
+                targetPoint = nil,
+                distanceToTarget = nil,
+                movementAngle = nil,
+                angularVelocity = nil,
+                inMovementTransition = false,
+                targetHeight = nil,
+                lastMouseX = nil,
+                lastMouseY = nil,
+                screenCenterX = nil,
+                isMiddleMouseDown = false,
+                lastMiddleClickTime = 0,
+                middleClickCount = 0,
+                doubleClickThreshold = 0.3,
+                lastDragX = nil,
+                lastDragY = nil,
+                isLeftMouseDown = false,
+                lastLeftClickTime = 0,
+                leftClickCount = 0,
+                maxRotationSpeed = nil,
+                edgeRotationMultiplier = nil,
+                maxAngularVelocity = nil,
+                angularDamping = nil,
+                forwardVelocity = nil,
+                minDistanceToTarget = nil,
+                movementTransitionFactor = nil,
+                isRotationModeActive = false,
+                rotationTargetPoint = nil,
+                rotationAngle = nil,
+                rotationDistance = nil,
+                rotationCenter = nil,
+                currentTransitionFactor = nil,
+                lastTransitionDistance = nil,
+                stuckFrameCount = 0,
+                userLookedAround = false,
+                pendingRotationMode = false,
+                pendingRotationCenter = nil,
+                pendingRotationDistance = nil,
+                pendingRotationAngle = nil,
+                enableRotationAfterToggle = nil,
             },
         },
 
@@ -193,53 +261,6 @@ if not WG.TurboBarCam.STATE then
             isSpectator = false
         },
 
-        overview = {
-            height = nil,
-            heightLevel = nil,
-            fixedCamPos = nil,
-            targetRx = nil,
-            targetRy = nil,
-            movingToTarget = false,
-            targetPoint = nil,
-            distanceToTarget = nil,
-            movementAngle = nil,
-            angularVelocity = nil,
-            inMovementTransition = false,
-            targetHeight = nil,
-            lastMouseX = nil,
-            lastMouseY = nil,
-            screenCenterX = nil,
-            isMiddleMouseDown = false,
-            lastMiddleClickTime = 0,
-            middleClickCount = 0,
-            doubleClickThreshold = 0.3,
-            lastDragX = nil,
-            lastDragY = nil,
-            isLeftMouseDown = false,
-            lastLeftClickTime = 0,
-            leftClickCount = 0,
-            maxRotationSpeed = nil,
-            edgeRotationMultiplier = nil,
-            maxAngularVelocity = nil,
-            angularDamping = nil,
-            forwardVelocity = nil,
-            minDistanceToTarget = nil,
-            movementTransitionFactor = nil,
-            isRotationModeActive = false,
-            rotationTargetPoint = nil,
-            rotationAngle = nil,
-            rotationDistance = nil,
-            rotationCenter = nil,
-            currentTransitionFactor = nil,
-            lastTransitionDistance = nil,
-            stuckFrameCount = 0,
-            userLookedAround = false,
-            pendingRotationMode = false,
-            pendingRotationCenter = nil,
-            pendingRotationDistance = nil,
-            pendingRotationAngle = nil,
-            enableRotationAfterToggle = nil,
-        },
 
         mouse = {
             registeredModes = {},

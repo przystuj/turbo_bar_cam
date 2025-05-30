@@ -65,11 +65,11 @@ function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType,
     local isNewTarget = true
     local isNewPosition = true
 
-    if STATE.tracking.fps.lastTargetPos then
+    if STATE.mode.fps.lastTargetPos then
         -- Check if position is significantly different (more than 5 units away)
-        local dx = targetPos.x - STATE.tracking.fps.lastTargetPos.x
-        local dy = targetPos.y - STATE.tracking.fps.lastTargetPos.y
-        local dz = targetPos.z - STATE.tracking.fps.lastTargetPos.z
+        local dx = targetPos.x - STATE.mode.fps.lastTargetPos.x
+        local dy = targetPos.y - STATE.mode.fps.lastTargetPos.y
+        local dz = targetPos.z - STATE.mode.fps.lastTargetPos.z
         local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
 
         if distance < 5 then
@@ -77,7 +77,7 @@ function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType,
         end
 
         -- Also check if unit ID is the same (for unit targets)
-        if targetUnitID and targetUnitID == STATE.tracking.fps.lastTargetUnitID then
+        if targetUnitID and targetUnitID == STATE.mode.fps.lastTargetUnitID then
             isNewTarget = false
         end
     end
@@ -91,8 +91,8 @@ function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType,
             local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
             local unitName = unitDef and unitDef.name or "Unnamed unit"
             targetInfo = " (Unit: " .. unitName .. ", ID: " .. targetUnitID .. ")"
-            STATE.tracking.fps.lastTargetUnitName = unitName
-            STATE.tracking.fps.lastTargetUnitID = targetUnitID
+            STATE.mode.fps.lastTargetUnitName = unitName
+            STATE.mode.fps.lastTargetUnitID = targetUnitID
         else
             targetInfo = " (Ground target)"
         end
@@ -107,16 +107,16 @@ function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType,
                     " using weapon #" .. weaponNum)
 
             -- Reset target history for new target
-            STATE.tracking.fps.initialTargetAcquisitionTime = Spring.GetGameSeconds()
-            STATE.tracking.fps.targetRotationHistory = {}
+            STATE.mode.fps.initialTargetAcquisitionTime = Spring.GetGameSeconds()
+            STATE.mode.fps.targetRotationHistory = {}
         elseif isNewPosition then
             Log.trace("Target moved to " .. posStr)
         end
     end
 
     -- Always update the last target position
-    STATE.tracking.fps.lastTargetPos = targetPos
-    STATE.tracking.fps.lastTargetType = targetType
+    STATE.mode.fps.lastTargetPos = targetPos
+    STATE.mode.fps.lastTargetType = targetType
 end
 
 --- Logs camera rotation changes when targeting
@@ -128,21 +128,21 @@ function FPSCombatMode.logRotationChange(rx, ry, rz)
         return
     end
     -- Skip if we're not in attacking mode
-    if not STATE.tracking.fps.isAttacking then
+    if not STATE.mode.fps.isAttacking then
         return
     end
 
     -- Calculate rotation change from last recorded values
     local rotationDiff = FPSCombatMode.getRotationDifference(
-            STATE.tracking.fps.lastRotationRy, ry)
+            STATE.mode.fps.lastRotationRy, ry)
 
     -- Only log significant changes
-    if rotationDiff > STATE.tracking.fps.rotationChangeThreshold then
+    if rotationDiff > STATE.mode.fps.rotationChangeThreshold then
         -- Format angle in degrees for readability
         local rotationDiffDeg = math.floor(rotationDiff * 180 / math.pi)
 
         -- Add entry to rotation history
-        table.insert(STATE.tracking.fps.targetRotationHistory, {
+        table.insert(STATE.mode.fps.targetRotationHistory, {
             time = Spring.GetGameSeconds(),
             diff = rotationDiff,
             rx = rx,
@@ -154,15 +154,15 @@ function FPSCombatMode.logRotationChange(rx, ry, rz)
             -- ~28 degrees
             Log.info("LARGE camera rotation: " .. rotationDiffDeg ..
                     "° while tracking " ..
-                    (STATE.tracking.fps.lastTargetUnitName or "target"))
+                    (STATE.mode.fps.lastTargetUnitName or "target"))
         else
             Log.debug("Camera rotation: " .. rotationDiffDeg .. "°")
         end
     end
 
     -- Update last rotation values
-    STATE.tracking.fps.lastRotationRx = rx
-    STATE.tracking.fps.lastRotationRy = ry
+    STATE.mode.fps.lastRotationRx = rx
+    STATE.mode.fps.lastRotationRy = ry
 end
 
 --- Cycles through unit's weapons
@@ -173,12 +173,12 @@ function FPSCombatMode.nextWeapon()
     if Util.isModeDisabled('fps') then
         return
     end
-    if not STATE.tracking.unitID or not Spring.ValidUnitID(STATE.tracking.unitID) then
+    if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
         Log.debug("No unit selected.")
         return
     end
 
-    local unitID = STATE.tracking.unitID
+    local unitID = STATE.mode.unitID
     local unitDefID = Spring.GetUnitDefID(unitID)
     local unitDef = UnitDefs[unitDefID]
 
@@ -204,7 +204,7 @@ function FPSCombatMode.nextWeapon()
         return
     end
 
-    local currentWeapon = STATE.tracking.fps.forcedWeaponNumber or weaponNumbers[1]
+    local currentWeapon = STATE.mode.fps.forcedWeaponNumber or weaponNumbers[1]
 
     -- Find the index of the current weapon in our ordered list
     local currentIndex = 1
@@ -217,13 +217,13 @@ function FPSCombatMode.nextWeapon()
 
     -- Move to the next weapon or wrap around to the first
     local nextIndex = currentIndex % #weaponNumbers + 1
-    STATE.tracking.fps.forcedWeaponNumber = weaponNumbers[nextIndex]
+    STATE.mode.fps.forcedWeaponNumber = weaponNumbers[nextIndex]
 
     -- Enable combat mode
     FPSCombatMode.setCombatMode(true)
 
     -- Check if actively targeting something
-    local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, STATE.tracking.fps.forcedWeaponNumber)
+    local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, STATE.mode.fps.forcedWeaponNumber)
 
     -- Set attacking state with debounce cancellation (if we're newly attacking)
     if targetPos then
@@ -233,10 +233,10 @@ function FPSCombatMode.nextWeapon()
     end
 
     -- Use a smooth transition
-    STATE.tracking.isModeTransitionInProgress = true
-    STATE.tracking.transitionStartTime = Spring.GetTimer()
+    STATE.mode.isModeTransitionInProgress = true
+    STATE.mode.transitionStartTime = Spring.GetTimer()
 
-    Log.info("Current weapon: " .. tostring(STATE.tracking.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.tracking.fps.forcedWeaponNumber].name .. ")")
+    Log.info("Current weapon: " .. tostring(STATE.mode.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.mode.fps.forcedWeaponNumber].name .. ")")
 end
 
 --- Clear forced weapon
@@ -248,11 +248,11 @@ function FPSCombatMode.clearWeaponSelection()
         return
     end
 
-    STATE.tracking.fps.forcedWeaponNumber = nil
+    STATE.mode.fps.forcedWeaponNumber = nil
 
-    if STATE.tracking.fps.combatModeEnabled then
+    if STATE.mode.fps.combatModeEnabled then
         -- Update state but keep combat mode enabled
-        local unitID = STATE.tracking.unitID
+        local unitID = STATE.mode.unitID
         if unitID and Spring.ValidUnitID(unitID) then
             -- Check if any weapon is targeting something
             local unitDefID = Spring.GetUnitDefID(unitID)
@@ -265,7 +265,7 @@ function FPSCombatMode.clearWeaponSelection()
                         if targetPos then
                             -- Set attacking state with debounce cancellation
                             FPSCombatMode.setAttackingState(true)
-                            STATE.tracking.fps.activeWeaponNum = weaponNum
+                            STATE.mode.fps.activeWeaponNum = weaponNum
                             return
                         end
                     end
@@ -288,8 +288,8 @@ function FPSCombatMode.setAttackingState(isAttacking)
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
 
         -- Only update state if it's changing
-        if not STATE.tracking.fps.isAttacking then
-            STATE.tracking.fps.isAttacking = true
+        if not STATE.mode.fps.isAttacking then
+            STATE.mode.fps.isAttacking = true
             Log.trace("Attack state enabled")
         end
     else
@@ -301,10 +301,10 @@ end
 --- Schedules disabling of the attack state after a cooldown period
 function FPSCombatMode.scheduleAttackStateDisable()
     -- Only schedule if currently in attacking state and not already scheduled
-    if STATE.tracking.fps.isAttacking and not Scheduler.isScheduled(ATTACK_STATE_DEBOUNCE_ID) then
+    if STATE.mode.fps.isAttacking and not Scheduler.isScheduled(ATTACK_STATE_DEBOUNCE_ID) then
         Scheduler.debounce(function()
             -- Only clear if we're still in combat mode
-            if STATE.tracking.fps.combatModeEnabled then
+            if STATE.mode.fps.combatModeEnabled then
                 FPSCombatMode.clearAttackingState()
                 Log.trace("Attack state disabled after cooldown")
             end
@@ -317,22 +317,22 @@ function FPSCombatMode.clearAttackingState()
     -- Cancel any pending attack state changes
     Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
 
-    if not STATE.tracking.fps.isAttacking then
+    if not STATE.mode.fps.isAttacking then
         return
     end
 
     Log.debug("clear attack state")
-    STATE.tracking.fps.isAttacking = false
-    STATE.tracking.fps.weaponPos = nil
-    STATE.tracking.fps.weaponDir = nil
-    STATE.tracking.fps.activeWeaponNum = nil
-    STATE.tracking.fps.lastTargetPos = nil -- Clear the last target position
-    STATE.tracking.fps.lastTargetUnitID = nil -- Clear the last target unit ID
-    STATE.tracking.fps.lastTargetUnitName = nil -- Clear the last target unit name
-    STATE.tracking.fps.lastTargetType = nil -- Clear the last target type
-    STATE.tracking.fps.lastRotationRx = nil -- Clear last rotation values
-    STATE.tracking.fps.lastRotationRy = nil
-    STATE.tracking.fps.targetRotationHistory = {} -- Clear rotation history
+    STATE.mode.fps.isAttacking = false
+    STATE.mode.fps.weaponPos = nil
+    STATE.mode.fps.weaponDir = nil
+    STATE.mode.fps.activeWeaponNum = nil
+    STATE.mode.fps.lastTargetPos = nil -- Clear the last target position
+    STATE.mode.fps.lastTargetUnitID = nil -- Clear the last target unit ID
+    STATE.mode.fps.lastTargetUnitName = nil -- Clear the last target unit name
+    STATE.mode.fps.lastTargetType = nil -- Clear the last target type
+    STATE.mode.fps.lastRotationRx = nil -- Clear last rotation values
+    STATE.mode.fps.lastRotationRy = nil
+    STATE.mode.fps.targetRotationHistory = {} -- Clear rotation history
 end
 
 --- Extracts target position from a weapon target and detects target switches.
@@ -379,12 +379,12 @@ function FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
     local isNewTarget = FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
 
     -- Update the globally tracked last target info *after* comparison and potential transition trigger
-    STATE.tracking.fps.lastTargetPos = newTargetPos
-    STATE.tracking.fps.lastTargetType = targetType
-    STATE.tracking.fps.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
+    STATE.mode.fps.lastTargetPos = newTargetPos
+    STATE.mode.fps.lastTargetType = targetType
+    STATE.mode.fps.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
     if targetUnitID then
         local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
-        STATE.tracking.fps.lastTargetUnitName = unitDef and unitDef.name or "Unnamed unit"
+        STATE.mode.fps.lastTargetUnitName = unitDef and unitDef.name or "Unnamed unit"
     end
 
     -- Return the determined target position for the specific weapon
@@ -393,8 +393,8 @@ end
 
 function FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
     local isNewTarget = false
-    local oldTargetUnitID = STATE.tracking.fps.lastTargetUnitID
-    local oldTargetPos = STATE.tracking.fps.lastTargetPos
+    local oldTargetUnitID = STATE.mode.fps.lastTargetUnitID
+    local oldTargetPos = STATE.mode.fps.lastTargetPos
 
     -- If no old target data, this is definitely a new target
     if not oldTargetPos then
@@ -421,7 +421,7 @@ function FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
             -- If switching to a ground target, clear the last unit ID state
             -- Check explicitly if the *old* target was a unit and the new one is ground
             if oldTargetUnitID and targetType == 2 then
-                STATE.tracking.fps.lastTargetUnitID = nil
+                STATE.mode.fps.lastTargetUnitID = nil
             end
         end
     elseif newTargetPos and not oldTargetPos then
@@ -430,8 +430,8 @@ function FPSCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
     end
 
     -- If this is a new target, make sure we store it in previousTargetPos for the transition system
-    if isNewTarget and not STATE.tracking.fps.previousTargetPos then
-        STATE.tracking.fps.previousTargetPos = oldTargetPos
+    if isNewTarget and not STATE.mode.fps.previousTargetPos then
+        STATE.mode.fps.previousTargetPos = oldTargetPos
     end
 
     return isNewTarget
@@ -439,8 +439,8 @@ end
 
 function FPSCombatMode.chooseWeapon(unitID, unitDef)
     -- If we have a forced weapon number, only check that specific weapon
-    if STATE.tracking.fps.forcedWeaponNumber then
-        local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+    if STATE.mode.fps.forcedWeaponNumber then
+        local weaponNum = STATE.mode.fps.forcedWeaponNumber
 
         -- Verify that this weapon exists for the unit
         if unitDef.weapons[weaponNum] then
@@ -492,11 +492,11 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
     local targetPos, weaponNum, isNewTarget = FPSCombatMode.chooseWeapon(unitID, unitDef)
 
     -- If no target was found, but we have a last target position and we're in attacking state
-    if not targetPos and STATE.tracking.fps.isAttacking and STATE.tracking.fps.lastTargetPos then
-        Log.debug("Using last target position for " .. (STATE.tracking.fps.lastTargetUnitName or "unknown target"))
+    if not targetPos and STATE.mode.fps.isAttacking and STATE.mode.fps.lastTargetPos then
+        Log.debug("Using last target position for " .. (STATE.mode.fps.lastTargetUnitName or "unknown target"))
         FPSCombatMode.scheduleAttackStateDisable()
         -- Return the last known target position and the active weapon number
-        return STATE.tracking.fps.lastTargetPos, STATE.tracking.fps.activeWeaponNum
+        return STATE.mode.fps.lastTargetPos, STATE.mode.fps.activeWeaponNum
     end
 
     -- If no target was found at all, schedule disabling attack state
@@ -505,13 +505,13 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
     else
         -- We found a target, cancel any pending disable and ensure attacking state is on
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
-        STATE.tracking.fps.isAttacking = true
+        STATE.mode.fps.isAttacking = true
 
         -- Store the active weapon number for later use
-        STATE.tracking.fps.activeWeaponNum = weaponNum
+        STATE.mode.fps.activeWeaponNum = weaponNum
 
         -- Save the current target position for later use
-        STATE.tracking.fps.lastTargetPos = targetPos
+        STATE.mode.fps.lastTargetPos = targetPos
     end
 
     return targetPos, weaponNum, isNewTarget
@@ -524,7 +524,7 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
     local x, y, z = Spring.GetUnitPosition(unitID)
     local front, up, right = Spring.GetUnitVectors(unitID)
     local unitPos = { x = x, y = y, z = z }
-    local weaponNum = STATE.tracking.fps.activeWeaponNum
+    local weaponNum = STATE.mode.fps.activeWeaponNum
 
     if weaponNum then
         local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
@@ -547,9 +547,9 @@ function FPSCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffsets)
             end
 
             -- Update state for tracking
-            STATE.tracking.fps.weaponPos = unitPos
-            STATE.tracking.fps.weaponDir = normalizedDir
-            STATE.tracking.fps.activeWeaponNum = weaponNum
+            STATE.mode.fps.weaponPos = unitPos
+            STATE.mode.fps.weaponDir = normalizedDir
+            STATE.mode.fps.activeWeaponNum = weaponNum
         end
     end
 
@@ -567,7 +567,7 @@ function FPSCombatMode.toggleCombatMode()
         return false
     end
 
-    if STATE.tracking.fps.combatModeEnabled then
+    if STATE.mode.fps.combatModeEnabled then
         FPSCombatMode.setCombatMode(false)
     else
         FPSCombatMode.setCombatMode(true)
@@ -578,10 +578,10 @@ end
 
 --- Switches between combat and normal modes
 --- @param enable boolean Whether to enable combat mode
---- @param unitID number|nil The unit ID to use (defaults to STATE.tracking.unitID)
+--- @param unitID number|nil The unit ID to use (defaults to STATE.mode.unitID)
 --- @return boolean success Whether the switch was successful
 function FPSCombatMode.setCombatMode(enable, unitID)
-    unitID = unitID or STATE.tracking.unitID
+    unitID = unitID or STATE.mode.unitID
 
     if not unitID or not Spring.ValidUnitID(unitID) then
         Log.trace("No valid unit for combat mode")
@@ -589,7 +589,7 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     end
 
     -- Set the combat mode flag
-    STATE.tracking.fps.combatModeEnabled = enable
+    STATE.mode.fps.combatModeEnabled = enable
 
     if enable then
         -- Enable combat mode
@@ -597,7 +597,7 @@ function FPSCombatMode.setCombatMode(enable, unitID)
         local unitDef = UnitDefs[unitDefID]
 
         -- Find a default weapon to use if not already set
-        if not STATE.tracking.fps.forcedWeaponNumber and unitDef and unitDef.weapons then
+        if not STATE.mode.fps.forcedWeaponNumber and unitDef and unitDef.weapons then
             local weaponNumbers = {}
             for weaponNum, weaponData in pairs(unitDef.weapons) do
                 if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
@@ -607,45 +607,45 @@ function FPSCombatMode.setCombatMode(enable, unitID)
 
             if #weaponNumbers > 0 then
                 table.sort(weaponNumbers)
-                STATE.tracking.fps.forcedWeaponNumber = weaponNumbers[1]
+                STATE.mode.fps.forcedWeaponNumber = weaponNumbers[1]
             end
         end
 
         -- Check if actively targeting something
-        local weaponNum = STATE.tracking.fps.forcedWeaponNumber
+        local weaponNum = STATE.mode.fps.forcedWeaponNumber
         if weaponNum then
             local targetPos = FPSCombatMode.getWeaponTargetPosition(unitID, weaponNum)
 
             -- Set attacking state with proper debounce handling
             if targetPos then
                 -- Unit is attacking - enable immediately
-                STATE.tracking.fps.isAttacking = true
+                STATE.mode.fps.isAttacking = true
                 Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
             else
                 -- Unit is not attacking - start with attacking false
                 Log.debug("unit not attacking")
-                STATE.tracking.fps.isAttacking = false
+                STATE.mode.fps.isAttacking = false
             end
 
             -- Get weapon position and direction
             local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
             if posX and destX then
                 -- Use weapon position
-                STATE.tracking.fps.weaponPos = { x = posX, y = posY, z = posZ }
+                STATE.mode.fps.weaponPos = { x = posX, y = posY, z = posZ }
 
                 -- Create normalized vector
                 local magnitude = math.sqrt(destX * destX + destY * destY + destZ * destZ)
                 if magnitude > 0 then
-                    STATE.tracking.fps.weaponDir = {
+                    STATE.mode.fps.weaponDir = {
                         destX / magnitude,
                         destY / magnitude,
                         destZ / magnitude
                     }
                 else
-                    STATE.tracking.fps.weaponDir = { destX, destY, destZ }
+                    STATE.mode.fps.weaponDir = { destX, destY, destZ }
                 end
 
-                STATE.tracking.fps.activeWeaponNum = weaponNum
+                STATE.mode.fps.activeWeaponNum = weaponNum
             end
         end
 
@@ -653,16 +653,16 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     else
         -- Disable combat mode - immediately clear attacking state
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
-        STATE.tracking.fps.isAttacking = false
-        STATE.tracking.fps.weaponPos = nil
-        STATE.tracking.fps.weaponDir = nil
+        STATE.mode.fps.isAttacking = false
+        STATE.mode.fps.weaponPos = nil
+        STATE.mode.fps.weaponDir = nil
 
         Log.info("Combat mode disabled")
     end
 
     -- Trigger a transition for smooth camera movement
-    STATE.tracking.isModeTransitionInProgress = true
-    STATE.tracking.transitionStartTime = Spring.GetTimer()
+    STATE.mode.isModeTransitionInProgress = true
+    STATE.mode.transitionStartTime = Spring.GetTimer()
     return true
 end
 

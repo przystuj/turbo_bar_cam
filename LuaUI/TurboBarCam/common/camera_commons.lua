@@ -136,7 +136,7 @@ function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, pr
 end
 
 function CameraCommons.shouldUseSphericalInterpolation(currentPos, targetPos, center)
-    if STATE.tracking.isModeTransitionInProgress then
+    if STATE.mode.isModeTransitionInProgress then
         return false
     end
 
@@ -196,13 +196,13 @@ function CameraCommons.easeInOut(t)
 end
 
 --- Adjusts smoothing factors based on the current mode transition progress.
---- Reads progress from STATE.tracking.transitionProgress.
+--- Reads progress from STATE.mode.transitionProgress.
 ---@param targetPosSmoothingFactor number The target position smoothing factor.
 ---@param targetRotSmoothingFactor number The target rotation smoothing factor.
 ---@return number posSmoothFactor Adjusted position smoothing factor.
 ---@return number rotSmoothFactor Adjusted rotation smoothing factor.
 function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor)
-    local progress = STATE.tracking.transitionProgress
+    local progress = STATE.mode.transitionProgress
 
     if not progress then
         -- No transition in progress, or it's finished, return full factors.
@@ -229,18 +229,18 @@ function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor, 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
         -- Smooth camera position
-        px = CameraCommons.smoothStep(STATE.tracking.lastCamPos.x, camPos.x, smoothFactor),
-        py = CameraCommons.smoothStep(STATE.tracking.lastCamPos.y, camPos.y, smoothFactor),
-        pz = CameraCommons.smoothStep(STATE.tracking.lastCamPos.z, camPos.z, smoothFactor),
+        px = CameraCommons.smoothStep(STATE.mode.lastCamPos.x, camPos.x, smoothFactor),
+        py = CameraCommons.smoothStep(STATE.mode.lastCamPos.y, camPos.y, smoothFactor),
+        pz = CameraCommons.smoothStep(STATE.mode.lastCamPos.z, camPos.z, smoothFactor),
 
         -- Smooth direction vector
-        dx = CameraCommons.smoothStep(STATE.tracking.lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = CameraCommons.smoothStep(STATE.tracking.lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = CameraCommons.smoothStep(STATE.tracking.lastCamDir.z, lookDir.dz, smoothFactor),
+        dx = CameraCommons.smoothStep(STATE.mode.lastCamDir.x, lookDir.dx, smoothFactor),
+        dy = CameraCommons.smoothStep(STATE.mode.lastCamDir.y, lookDir.dy, smoothFactor),
+        dz = CameraCommons.smoothStep(STATE.mode.lastCamDir.z, lookDir.dz, smoothFactor),
 
         -- Smooth rotations
-        rx = CameraCommons.smoothStep(STATE.tracking.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.tracking.lastRotation.ry, lookDir.ry, rotFactor),
+        rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, lookDir.rx, rotFactor),
+        ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, lookDir.ry, rotFactor),
         rz = 0
     }
 

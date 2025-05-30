@@ -96,7 +96,7 @@ function SettingsManager.saveModeSettings(mode, unitID)
     end
 
     -- Always use unitID for FPS and Projectile Camera for unit-type saving
-    local currentUnitID = (STATE.tracking.targetType == STATE.TARGET_TYPES.UNIT) and STATE.tracking.unitID or unitID
+    local currentUnitID = (STATE.mode.targetType == STATE.TARGET_TYPES.UNIT) and STATE.mode.unitID or unitID
 
     Log.trace(string.format("Saving settings for %s=%s (Mode: %s)", CONFIG.PERSISTENT_UNIT_SETTINGS, tostring(identifier), mode))
 

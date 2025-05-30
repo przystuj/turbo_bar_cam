@@ -12,7 +12,7 @@ local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 
 ---@class WidgetControl
 local WidgetControl = {}
@@ -41,7 +41,7 @@ function WidgetControl.disable()
     if Util.isTurboBarCamDisabled() then
         return
     end
-    TrackingManager.disableMode()
+    ModeManager.disableMode()
 
     if STATE.transition.active then
         STATE.transition.active = false

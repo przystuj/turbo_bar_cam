@@ -8,8 +8,8 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
 ---@type CameraCommons
 local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
----@type TrackingManager
-local TrackingManager = VFS.Include("LuaUI/TurboBarCam/common/tracking_manager.lua").TrackingManager
+---@type ModeManager
+local ModeManager = VFS.Include("LuaUI/TurboBarCam/common/mode_manager.lua").ModeManager
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -207,7 +207,7 @@ function DollyCamNavigator.update(deltaTime)
     end
 
     camState = createCameraState(camState, directionState)
-    TrackingManager.updateTrackingState(camState)
+    ModeManager.updateTrackingState(camState)
     CameraManager.setCameraState(camState, 0, "DollyCamNavigator.update")
 end
 

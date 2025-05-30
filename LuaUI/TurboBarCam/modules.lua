@@ -25,7 +25,7 @@
 ---@field CameraCommons CameraCommons
 ---@field Util Util
 ---@field Log Log
----@field TrackingManager TrackingManager
+---@field ModeManager ModeManager
 
 ---@class AllModules
 ---@field Core CoreModules

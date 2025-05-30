@@ -16,7 +16,7 @@ local CameraQuickControls = {}
 
 local function togglePointOrbit()
     -- Only handle if no other mode is active or we're toggling an existing mode
-    if not STATE.tracking.mode or STATE.tracking.mode == 'orbit' then
+    if not STATE.mode.name or STATE.mode.name == 'orbit' then
         Features.OrbitingCamera.togglePointOrbit()
     end
 end

@@ -15,7 +15,7 @@ local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
-local TrackingManager = CommonModules.TrackingManager
+local ModeManager = CommonModules.ModeManager
 
 -- Initialize easing state in global STATE if not exists
 if not STATE.anchors.easing then
@@ -76,8 +76,8 @@ function CameraAnchor.focus(index, easingType)
     -- Store the anchor we're moving to
     STATE.lastUsedAnchor = index
 
-    if STATE.tracking.mode then
-        TrackingManager.disableMode()
+    if STATE.mode.name then
+        ModeManager.disableMode()
     end
 
     -- Cancel transition if we click the same anchor we're currently moving to
@@ -140,20 +140,20 @@ function CameraAnchor.focusAndTrack(index, easingType)
     -- Check if current mode is compatible with tracking during anchor focus
     local isCompatibleMode = false
     for _, mode in ipairs(CONFIG.CAMERA_MODES.ANCHOR.COMPATIBLE_MODES) do
-        if STATE.tracking.mode == mode then
+        if STATE.mode.name == mode then
             isCompatibleMode = true
             break
         end
     end
 
     -- If not in a compatible tracking mode or no unit is being tracked, do normal focus
-    if not isCompatibleMode or not STATE.tracking.unitID then
+    if not isCompatibleMode or not STATE.mode.unitID then
         Log.trace("No unit was tracked during focused anchor transition")
         -- Just do a normal anchor transition
         return CameraAnchor.focus(index, easingType)
     end
 
-    local unitID = STATE.tracking.unitID
+    local unitID = STATE.mode.unitID
     if not Spring.ValidUnitID(unitID) then
         Log.trace("Invalid unit for tracking during anchor transition")
         -- Just do a normal anchor transition
@@ -167,8 +167,8 @@ function CameraAnchor.focusAndTrack(index, easingType)
     end
 
     -- Disable any existing tracking modes to avoid conflicts
-    if STATE.tracking.mode then
-        TrackingManager.disableMode()
+    if STATE.mode.name then
+        ModeManager.disableMode()
     end
 
     -- Get appropriate easing function
@@ -178,10 +178,10 @@ function CameraAnchor.focusAndTrack(index, easingType)
     local startState = CameraManager.getCameraState("CameraAnchor.focusAndTrack")
 
     -- Enable tracking camera on the unit
-    STATE.tracking.mode = 'unit_tracking'
-    STATE.tracking.unitID = unitID
-    STATE.tracking.lastCamDir = { x = 0, y = 0, z = 0 }
-    STATE.tracking.lastRotation = { rx = 0, ry = 0, rz = 0 }
+    STATE.mode.name = 'unit_tracking'
+    STATE.mode.unitID = unitID
+    STATE.mode.lastCamDir = { x = 0, y = 0, z = 0 }
+    STATE.mode.lastRotation = { rx = 0, ry = 0, rz = 0 }
 
     local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
     local targetPos = { x = unitX, y = unitY, z = unitZ }
