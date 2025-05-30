@@ -39,7 +39,7 @@ function OrbitCameraUtils.ensureHeightIsSet()
     end
 
     if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
-        local unitHeight = ModeManager.getDefaultHeightForUnitTracking(STATE.mode.unitID)
+        local unitHeight = math.max(Util.getUnitHeight(STATE.mode.unitID), 100)
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
     else
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = 1000
@@ -106,6 +106,24 @@ function OrbitCameraUtils.getTargetPosition()
         targetPos = STATE.mode.targetPoint
     end
     return targetPos
+end
+
+--- Calculates camera position on orbit path for a specific angle.
+---@param targetPos table Target position {x, y, z}
+---@param angle number The specific angle (in radians) to calculate the orbit position for.
+---@return table camPos Camera position {x, y, z}
+function OrbitCameraUtils.calculateOrbitPositionWithAngle(targetPos, angle)
+    local distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE
+    local offsetX = distance * math.sin(angle)
+    local offsetZ = distance * math.cos(angle)
+
+    OrbitCameraUtils.ensureHeightIsSet() -- Call ensureHeightIsSet using existing state for target type.
+
+    return {
+        x = targetPos.x + offsetX,
+        y = targetPos.y + (CONFIG.CAMERA_MODES.ORBIT.HEIGHT or 0),
+        z = targetPos.z + offsetZ
+    }
 end
 
 return {

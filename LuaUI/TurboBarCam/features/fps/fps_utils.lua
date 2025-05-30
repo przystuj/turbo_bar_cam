@@ -42,7 +42,7 @@ end
 function FPSCameraUtils.ensureHeightIsSet()
     -- Set PEACE mode height if not set
     if not CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT then
-        local unitHeight = ModeManager.getDefaultHeightForUnitTracking(STATE.mode.unitID) + 30
+        local unitHeight = math.max(Util.getUnitHeight(STATE.mode.unitID), 100) + 30
         CONFIG.CAMERA_MODES.FPS.OFFSETS.PEACE.HEIGHT = unitHeight
     end
 

@@ -22,9 +22,10 @@ end
 ---@param config table Configuration for the transition:
 ---  {
 ---    id = string,           -- Unique ID for this transition
----    duration = number,       -- Duration in seconds
+---    duration = number,       -- Duration in "effective seconds". If 'respectGameSpeed' is true, this is in game-time seconds; otherwise, real-time seconds.
+---    respectGameSpeed = boolean, -- Optional (default: false). If true, transition speed scales with game speed and pauses if game speed is 0.
 ---    easingFn = function,   -- Easing function (e.g., CameraCommons.easeInOut), defaults to linear
----    onUpdate = function,   -- Function(progress, easedProgress, dt) called each frame
+---    onUpdate = function,   -- Function(progress, easedProgress, effectiveDt) called each frame. 'effectiveDt' is game-time scaled if respectGameSpeed is true.
 ---    onComplete = function  -- Optional function called when finished
 ---  }
 ---@return boolean success Whether the transition was started
@@ -36,13 +37,16 @@ function TransitionManager.start(config)
 
     STATE.transitions[config.id] = {
         id = config.id,
-        startTime = Spring.GetTimer(),
+        startTime = Spring.GetTimer(), -- For reference, not directly used for progress if using elapsedEffectiveTime
         duration = config.duration,
+        respectGameSpeed = config.respectGameSpeed or false,
+        elapsedEffectiveTime = 0, -- Tracks accumulated effective time
         easingFn = config.easingFn or linearEase,
         onUpdate = config.onUpdate,
         onComplete = config.onComplete,
     }
-    Log.trace("TransitionManager: Started transition [" .. config.id .. "] for " .. config.duration .. "s.")
+    Log.trace("TransitionManager: Started transition [" .. config.id .. "] for " .. config.duration ..
+            (config.respectGameSpeed and " effective game seconds." or " effective real seconds."))
     return true
 end
 
@@ -89,34 +93,53 @@ function TransitionManager.isTransitioning(id)
 end
 
 --- Updates all active transitions. Called every frame by UpdateManager.
----@param dt number Delta time (currently unused but good practice)
-function TransitionManager.update(dt)
-    local currentTime = Spring.GetTimer()
+---@param dt_real number Real delta time since last frame.
+function TransitionManager.update(dt_real)
+    -- Ensure dt_real is a valid positive number
+    if not dt_real or dt_real <= 0 then
+        dt_real = 1 / 60 -- Fallback to a typical frame duration if dt_real is invalid
+    end
+
     local transitionsToRemove = {}
+    local _, actualGameSpeed = Spring.GetGameSpeed() -- This is the game speed multiplier
 
     for id, t in pairs(STATE.transitions) do
-        local elapsed = Spring.DiffTimers(currentTime, t.startTime)
-        local progress = math.min(elapsed / t.duration, 1.0)
+        local effectiveDt = dt_real
+        if t.respectGameSpeed then
+            if actualGameSpeed > 0 then
+                effectiveDt = dt_real * actualGameSpeed
+            else -- actualGameSpeed is 0 (paused) or potentially negative (if engine supports)
+                effectiveDt = 0 -- Transition effectively pauses if respecting game speed and game is paused
+            end
+        end
+
+        if t.duration > 0 then -- Only advance time if duration is positive
+            t.elapsedEffectiveTime = t.elapsedEffectiveTime + effectiveDt
+        end
+
+        local progress
+        if t.duration <= 0 then -- Treat zero or negative duration as instantly complete
+            progress = 1.0
+        else
+            progress = math.min(t.elapsedEffectiveTime / t.duration, 1.0)
+        end
+
         local easedProgress = t.easingFn(progress)
 
-        -- Call the update callback, now including dt
-        t.onUpdate(progress, easedProgress, dt) -- MODIFIED: Added dt
+        -- Call the update callback, passing the calculated effectiveDt
+        t.onUpdate(progress, easedProgress, effectiveDt)
 
-        -- Check for completion
         if progress >= 1.0 then
-            -- If an onComplete callback exists, call it
             if t.onComplete then
                 t.onComplete()
             end
-            -- Mark for removal
             table.insert(transitionsToRemove, id)
         end
     end
 
-    -- Remove completed transitions
-    for _, id in ipairs(transitionsToRemove) do
-        STATE.transitions[id] = nil
-        Log.trace("TransitionManager: Finished transition [" .. id .. "].")
+    for _, idToRemove in ipairs(transitionsToRemove) do
+        STATE.transitions[idToRemove] = nil
+        Log.trace("TransitionManager: Finished transition [" .. idToRemove .. "].")
     end
 end
 

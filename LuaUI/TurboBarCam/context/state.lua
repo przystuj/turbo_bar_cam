@@ -204,6 +204,7 @@ if not WG.TurboBarCam.STATE then
                 lastCamPos = nil,
                 lastCamRot = nil,
                 isPaused = false,
+                loadedAngleForEntry = nil,
             },
 
             overview = {

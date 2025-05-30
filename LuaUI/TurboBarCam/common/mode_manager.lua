@@ -6,8 +6,6 @@ local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.l
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
 local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 ---@type SettingsManager
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
 ---@type TransitionManager
@@ -124,7 +122,9 @@ end
 
 --- Disables active camera mode and resets relevant state.
 function ModeManager.disableMode()
-    Log.debug("ModeManager: Disabling active mode: " .. (STATE.mode.name or "None"))
+    if STATE.mode.name then
+        Log.debug("ModeManager: Disabling active mode: " .. (STATE.mode.name or "None"))
+    end
     TransitionManager.stopAll()
 
     if STATE.mode.name then
