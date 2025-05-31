@@ -2,8 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+---@type VelocityTracker
+local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
 ---@type ProjectileTracker
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
 ---@type TransitionUtil
@@ -121,14 +121,14 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     if not STATE.mode.projectile_camera.armed and STATE.mode.name ~= 'projectile_camera' then
         if not STATE.mode.projectile_camera.previousCameraState then
             STATE.mode.projectile_camera.previousMode = STATE.mode.name
-            STATE.mode.projectile_camera.previousCameraState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking.StorePrev")
+            STATE.mode.projectile_camera.previousCameraState = Spring.GetCameraState()
         end
     end
 
     STATE.mode.projectile_camera.cameraMode = subMode
 
     if subMode == "static" then
-        local camState = CameraManager.getCameraState("ProjectileCamera.armProjectileTracking.StaticInitialPos")
+        local camState = Spring.GetCameraState()
         STATE.mode.projectile_camera.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
     else
         STATE.mode.projectile_camera.initialCamPos = nil
@@ -186,7 +186,7 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
     STATE.mode.projectile_camera.cameraMode = newSubMode
     if newSubMode == "static" and not STATE.mode.projectile_camera.initialCamPos then
         if STATE.mode.name == 'projectile_camera' or STATE.mode.projectile_camera.armed then
-            local camState = CameraManager.getCameraState("ProjectileCamera.switchCameraSubModes.Static")
+            local camState = Spring.GetCameraState()
             STATE.mode.projectile_camera.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
         end
     end
@@ -463,7 +463,7 @@ function ProjectileCamera.handleImpactView(unitID, dt)
         STATE.mode.projectile_camera.isImpactDecelerating = true
         STATE.mode.projectile_camera.impactDecelerationStartTime = Spring.GetTimer()
         STATE.mode.projectile_camera.impactTimer = Spring.GetTimer()
-        local vel, _, rotVel, _ = CameraManager.getCurrentVelocity()
+        local vel, _, rotVel, _ = VelocityTracker.getCurrentVelocity()
         STATE.mode.projectile_camera.initialImpactVelocity = Util.deepCopy(vel)
         STATE.mode.projectile_camera.initialImpactRotVelocity = Util.deepCopy(rotVel)
         Log.trace("ProjectileCamera: Projectile lost. Starting impact deceleration.")
@@ -485,7 +485,7 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     end
 
     local impactWorldPos = STATE.mode.projectile_camera.impactPosition.pos
-    local currentCamState = CameraManager.getCameraState("ProjectileCamera.decelerateToImpactPosition")
+    local currentCamState = Spring.GetCameraState()
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
 
     -- 2. Calculate progress (0.0 to 1.0)
@@ -538,7 +538,7 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
     finalCamState.dz = finalDir.z
 
     -- 10. Set the final camera state
-    CameraManager.setCameraState(finalCamState, 0, "ProjectileCamera.decelerateToImpact")
+    Spring.SetCameraState(finalCamState, 0)
     ModeManager.updateTrackingState(finalCamState)
 
     -- 11. Final check if duration ended, in case TransitionUtil didn't return nil yet.
@@ -558,7 +558,7 @@ function ProjectileCamera.focusOnImpactPosition()
     end
     local impactWorldPos = STATE.mode.projectile_camera.impactPosition.pos
     local impactWorldVel = STATE.mode.projectile_camera.impactPosition.vel or { x = 0, y = 0, z = 0 }
-    local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnImpactPosition.Hold")
+    local currentCamState = Spring.GetCameraState()
     local settledCamPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
     local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, impactWorldVel)
     ProjectileCameraUtils.applyProjectileCameraState(settledCamPos, targetLookPos, "impact_view_hold")
@@ -567,7 +567,7 @@ end
 function ProjectileCamera.focusOnUnit(unitID)
     local ux, uy, uz = Spring.GetUnitPosition(unitID)
     if ux then
-        local currentCamState = CameraManager.getCameraState("ProjectileCamera.focusOnUnit")
+        local currentCamState = Spring.GetCameraState()
         local camPos = { x = currentCamState.px, y = currentCamState.py, z = currentCamState.pz }
         local targetPos = { x = ux, y = uy + (Util.getUnitHeight(unitID) * 0.5 or 50), z = uz }
         ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, "unit_fallback_view")

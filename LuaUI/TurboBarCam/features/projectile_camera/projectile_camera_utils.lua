@@ -2,8 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type ProjectileCameraPersistence
 local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua")
 ---@type TransitionManager
@@ -28,7 +26,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
 
     if subMode == "static" then
-        local camState = CameraManager.getCameraState("ProjectileCameraUtils.calculateCameraPositionForProjectile.StaticCurrent")
+        local camState = Spring.GetCameraState()
         return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
@@ -235,7 +233,7 @@ function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, con
 
     local actualPosFactor, actualRotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
 
-    local currentCamState = CameraManager.getCameraState("ProjectileCameraUtils.applyProjectileCameraState.Context." .. context)
+    local currentCamState = Spring.GetCameraState()
     local fullCamPos = {
         x = camPos.px or camPos.x or currentCamState.px,
         y = camPos.py or camPos.y or currentCamState.py,
@@ -250,7 +248,7 @@ function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, con
     finalState.pz = camPos.pz or finalState.pz
     finalState.fov = currentCamState.fov
 
-    CameraManager.setCameraState(finalState, 0, "ProjectileCamera.update." .. (context or "apply"))
+    Spring.SetCameraState(finalState, 0)
     ModeManager.updateTrackingState(finalState)
 end
 

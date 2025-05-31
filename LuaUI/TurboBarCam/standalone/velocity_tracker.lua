@@ -9,10 +9,10 @@ local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
 
 local STATE = WidgetContext.STATE
 
----@class CameraManager
-local CameraManager = {}
+---@class VelocityTracker
+local VelocityTracker = {}
 
-function CameraManager.update()
+function VelocityTracker.update()
     if not STATE.cameraVelocity.initialized then
         STATE.cameraVelocity.isTracking = true
         STATE.cameraVelocity.initialized = true
@@ -20,7 +20,7 @@ function CameraManager.update()
     end
 
     if STATE.cameraVelocity.isTracking then
-        CameraManager.updateVelocityTracking()
+        VelocityTracker.updateVelocityTracking()
     end
 end
 
@@ -34,7 +34,7 @@ local function getAngleDiff(a1, a2)
     return diff
 end
 
-function CameraManager.updateVelocityTracking()
+function VelocityTracker.updateVelocityTracking()
     local currentState = Spring.GetCameraState()
     local velocityState = STATE.cameraVelocity
     local currentTime = Spring.GetTimer()
@@ -88,7 +88,7 @@ function CameraManager.updateVelocityTracking()
     STATE.cameraVelocity.lastRotation = rot -- ADDED
 end
 
-function CameraManager.calculateVelocity()
+function VelocityTracker.calculateVelocity()
     local velocityState = STATE.cameraVelocity
     local history = velocityState.positionHistory
 
@@ -130,19 +130,19 @@ function CameraManager.calculateVelocity()
     end
 end
 
-function CameraManager.startVelocityTracking()
+function VelocityTracker.startVelocityTracking()
     STATE.cameraVelocity.isTracking = true
     Log.trace("Camera velocity tracking enabled")
 end
 
-function CameraManager.stopVelocityTracking()
+function VelocityTracker.stopVelocityTracking()
     STATE.cameraVelocity.isTracking = false
     STATE.cameraVelocity.positionHistory = {}
     STATE.cameraVelocity.currentVelocity = {x = 0, y = 0, z = 0}
     Log.trace("Camera velocity tracking disabled")
 end
 
-function CameraManager.getCurrentVelocity()
+function VelocityTracker.getCurrentVelocity()
     local vel = STATE.cameraVelocity.currentVelocity
     local rotVel = STATE.cameraVelocity.currentRotationalVelocity
     local magnitude = CameraCommons.vectorMagnitude(vel)
@@ -150,7 +150,7 @@ function CameraManager.getCurrentVelocity()
     return vel, magnitude, rotVel, rotMagnitude
 end
 
-function CameraManager.applyVelocityDecay(decayRate, deltaTime)
+function VelocityTracker.applyVelocityDecay(decayRate, deltaTime)
     local velocityState = STATE.cameraVelocity
     local vel = velocityState.currentVelocity
     local decayFactor = math.exp(-decayRate * deltaTime)
@@ -169,7 +169,7 @@ end
 ---@param deltaTime number Time delta
 ---@param decayRate number Decay rate
 ---@return table predictedState Predicted camera state {px, py, pz, rx, ry, rz}
-function CameraManager.predictState(currentState, vel, rotVel, deltaTime, decayRate)
+function VelocityTracker.predictState(currentState, vel, rotVel, deltaTime, decayRate)
     -- If no decay or dt is zero, return current state
     if decayRate <= 0 or deltaTime <= 0 then
         return Util.deepCopy(currentState) -- Return a copy
@@ -190,39 +190,10 @@ function CameraManager.predictState(currentState, vel, rotVel, deltaTime, decayR
     return predictedState
 end
 
-function CameraManager.hasSignificantVelocity(threshold)
+function VelocityTracker.hasSignificantVelocity(threshold)
     threshold = threshold or 10.0
-    local _, magnitude = CameraManager.getCurrentVelocity()
+    local _, magnitude = VelocityTracker.getCurrentVelocity()
     return magnitude > threshold
 end
 
-function CameraManager.toggleZoom()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-    local cycle = { [45] = 24, [24] = 12, [12] = 45 }
-    local camState = CameraManager.getCameraState("WidgetControl.toggleZoom")
-    local fov = cycle[camState.fov] or 45
-    CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.toggleZoom")
-end
-
-function CameraManager.setFov(fov)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-    local camState = CameraManager.getCameraState("WidgetControl.setFov")
-    if camState.fov == fov then
-        return
-    end
-    CameraManager.setCameraState({fov = fov}, 1, "WidgetControl.setFov")
-end
-
-function CameraManager.getCameraState(source)
-    return Spring.GetCameraState()
-end
-
-function CameraManager.setCameraState(cameraState, smoothing, source)
-    Spring.SetCameraState(cameraState, smoothing)
-end
-
-return  CameraManager
+return  VelocityTracker

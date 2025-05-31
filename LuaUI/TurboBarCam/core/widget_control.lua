@@ -2,8 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CameraQuickControls
 local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua").CameraQuickControls
 
@@ -154,6 +152,27 @@ function WidgetControl.changeConfig(path, value)
         -- Handle cases where the path might be empty, though this usually indicates an error.
         Log.debug("Attempted to change config with an empty path.")
     end
+end
+
+function WidgetControl.toggleZoom()
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    local cycle = { [45] = 24, [24] = 12, [12] = 45 }
+    local camState = Spring.GetCameraState()
+    local fov = cycle[camState.fov] or 45
+    Spring.SetCameraState({fov = fov}, 1)
+end
+
+function WidgetControl.setFov(fov)
+    if Util.isTurboBarCamDisabled() then
+        return
+    end
+    local camState = Spring.GetCameraState()
+    if camState.fov == fov then
+        return
+    end
+    Spring.SetCameraState({fov = fov}, 1)
 end
 
 return {

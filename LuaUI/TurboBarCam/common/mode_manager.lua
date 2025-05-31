@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
 ---@type Util
@@ -84,7 +82,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
     STATE.mode.name = newModeName
     STATE.mode.targetType = finalValidType
 
-    STATE.mode.initialCameraStateForModeEntry = CameraManager.getCameraState("ModeManager.initializeMode.CamStateForEntry")
+    STATE.mode.initialCameraStateForModeEntry = Spring.GetCameraState()
     STATE.mode.optionalTargetCameraStateForModeEntry = optionalTargetCameraState
 
     if finalValidType == STATE.TARGET_TYPES.UNIT then

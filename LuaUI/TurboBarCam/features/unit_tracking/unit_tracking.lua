@@ -1,7 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+---@type VelocityTracker
+local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
 ---@type TransitionUtil
 local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util.lua")
 ---@type CommonModules
@@ -34,7 +34,7 @@ local function startModeTransition(unitID, initialCamStateAtModeEntry)
         return
     end
 
-    local currentActualVelocity, _, currentActualRotVelocity, _ = CameraManager.getCurrentVelocity()
+    local currentActualVelocity, _, currentActualRotVelocity, _ = VelocityTracker.getCurrentVelocity()
     local profile = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE
     local _, gameSpeed = Spring.GetGameSpeed()
     local duration = profile.DURATION
@@ -48,7 +48,7 @@ local function startModeTransition(unitID, initialCamStateAtModeEntry)
         easingFn = CameraCommons.easeOut,
         respectGameSpeed = true, -- Assuming deceleration should respect game speed
         onUpdate = function(progress, easedProgress, effectiveDt)
-            local currentUpdateState = CameraManager.getCameraState("UnitTrackingCamera.DecelUpdate")
+            local currentUpdateState = Spring.GetCameraState()
             if not Spring.ValidUnitID(unitID) then
                 TransitionManager.cancel(STANDARD_DECEL_TRANSITION_ID)
                 ModeManager.disableMode()
@@ -86,7 +86,7 @@ local function startModeTransition(unitID, initialCamStateAtModeEntry)
             camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
             camStatePatch.rz = 0
             ModeManager.updateTrackingState(camStatePatch)
-            CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.DecelUpdate.Set")
+            Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
             Log.trace("UnitTrackingCamera: Standard deceleration entry finished for unit " .. unitID)
@@ -125,7 +125,7 @@ local function startTargetedEntryTransition(unitID, initialCamStateAtModeEntry, 
         easingFn = CameraCommons.easeInOut,
         respectGameSpeed = false,
         onUpdate = function(progress, easedProgress, effectiveDt)
-            local currentUpdateState = CameraManager.getCameraState("UnitTrackingCamera.LerpUpdate")
+            local currentUpdateState = Spring.GetCameraState()
             if not Spring.ValidUnitID(unitID) then
                 TransitionManager.cancel(TARGETED_LERP_TRANSITION_ID)
                 ModeManager.disableMode()
@@ -159,7 +159,7 @@ local function startTargetedEntryTransition(unitID, initialCamStateAtModeEntry, 
             camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
             camStatePatch.rz = 0
             ModeManager.updateTrackingState(camStatePatch)
-            CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.LerpUpdate.Set")
+            Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
             Log.trace("UnitTrackingCamera: Targeted LERP entry finished for unit " .. unitID)
@@ -237,7 +237,7 @@ function UnitTrackingCamera.update(dt)
         return
     end
 
-    local currentState = CameraManager.getCameraState("UnitTrackingCamera.SteadyState")
+    local currentState = Spring.GetCameraState()
     local uX, uY, uZ = Spring.GetUnitPosition(unitID)
     if not uX then
         Log.trace("UnitTrackingCamera: Could not get position for unit " .. unitID .. " in steady state. Disabling.")
@@ -257,7 +257,7 @@ function UnitTrackingCamera.update(dt)
         fov = currentState.fov
     }
     ModeManager.updateTrackingState(camStatePatch)
-    CameraManager.setCameraState(camStatePatch, 0, "UnitTrackingCamera.SteadyState.Set")
+    Spring.SetCameraState(camStatePatch, 0)
 end
 
 function UnitTrackingCamera.adjustParams(params)

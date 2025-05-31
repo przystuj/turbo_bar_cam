@@ -2,10 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type MouseManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
 ---@type DollyCamPathPlanner

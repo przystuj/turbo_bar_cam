@@ -4,8 +4,6 @@ local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 
 ---@class Actions
 local Actions = {}
@@ -51,13 +49,13 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_toggle_zoom", 'p',
             function()
-                CameraManager.toggleZoom()
+                CoreModules.WidgetControl.toggleZoom()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_set_fov", 'tp',
             function(_, param)
-                CameraManager.setFov(param)
+                CoreModules.WidgetControl.setFov(param)
                 return true
             end)
 

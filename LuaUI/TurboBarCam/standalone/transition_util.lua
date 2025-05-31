@@ -4,10 +4,8 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
+---@type VelocityTracker
+local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 
@@ -56,7 +54,7 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
 
     if (velMagnitude > MIN_VELOCITY_THRESHOLD or rotVelMagnitude > MIN_ROT_VEL_THRESHOLD) and easedProgress < 0.999 then
 
-        local predictedState = CameraManager.predictState(currentState, clampedVelocity, clampedRotVelocity, dt, decayRate)
+        local predictedState = VelocityTracker.predictState(currentState, clampedVelocity, clampedRotVelocity, dt, decayRate)
 
         local newState = {
             px = CameraCommons.smoothStep(currentState.px, predictedState.px, posControlFactor),

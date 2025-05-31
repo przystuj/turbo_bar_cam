@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type GroupTrackingUtils
@@ -386,7 +384,7 @@ end
 --- Initializes camera position for group tracking
 function GroupTrackingCamera.initializeCameraPosition()
     local center = STATE.mode.group_tracking.centerOfMass
-    local currentState = CameraManager.getCameraState("GroupTrackingCamera.initializeCameraPosition")
+    local currentState = Spring.GetCameraState()
 
     -- Calculate a good initial position more to the side than directly behind the group
     -- Try to position camera between current pos and center for a smooth transition
@@ -450,7 +448,7 @@ function GroupTrackingCamera.initializeCameraPosition()
     STATE.mode.group_tracking.targetHeight = targetHeight
 
     -- Apply camera state with a slower initial transition
-    CameraManager.setCameraState(camState, 0, "GroupTrackingCamera.initializeCameraPosition")
+    Spring.SetCameraState(camState, 0)
 end
 
 --- Calculates required camera distance to see all units
@@ -581,7 +579,7 @@ function GroupTrackingCamera.update()
     local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
 
     -- Check if we're still in FPS mode
-    local currentState = CameraManager.getCameraState("GroupTrackingCamera.update")
+    local currentState = Spring.GetCameraState()
 
     -- Determine camera height
     local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
@@ -708,7 +706,7 @@ function GroupTrackingCamera.update()
     STATE.mode.group_tracking.lastCameraDir = newCameraDir
 
     -- Apply camera state
-    CameraManager.setCameraState(camStatePatch, 0, "GroupTrackingCamera.update")
+    Spring.SetCameraState(camStatePatch, 0)
 end
 
 ---@see ModifiableParams

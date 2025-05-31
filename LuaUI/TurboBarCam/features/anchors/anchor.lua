@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraAnchorUtils
@@ -35,7 +33,7 @@ function CameraAnchor.set(index)
 
     index = tonumber(index)
     if index and index >= 0 and index <= 9 then
-        STATE.anchors[index] = CameraManager.getCameraState("CameraAnchor.set")
+        STATE.anchors[index] = Spring.GetCameraState()
         Log.info("Saved camera anchor: " .. index)
     end
     return
@@ -99,7 +97,7 @@ function CameraAnchor.focus(index, easingType)
         -- Instant camera jump
         local targetState = Util.deepCopy(STATE.anchors[index])
         -- Ensure the target state is in FPS mode
-        CameraManager.setCameraState(targetState, 0, "CameraAnchor.focus")
+        Spring.SetCameraState(targetState, 0)
         Log.trace("Instantly jumped to camera anchor: " .. index)
         return true
     end
@@ -175,7 +173,7 @@ function CameraAnchor.focusAndTrack(index, easingType)
     local easingFunc = CameraAnchor.getEasingFunction(easingType)
 
     -- Create a specialized transition that maintains focus on the unit
-    local startState = CameraManager.getCameraState("CameraAnchor.focusAndTrack")
+    local startState = Spring.GetCameraState()
 
     -- Enable tracking camera on the unit
     STATE.mode.name = 'unit_tracking'
@@ -227,7 +225,7 @@ function CameraAnchor.update()
         local camState = STATE.transition.steps[STATE.transition.currentStepIndex]
 
         -- Apply the base camera state (position)
-        CameraManager.setCameraState(camState, 0, "CameraTransition.update")
+        Spring.SetCameraState(camState, 0)
 
         -- Check if we've reached the end
         if STATE.transition.currentStepIndex >= totalSteps then

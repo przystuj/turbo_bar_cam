@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type OrbitCameraUtils
@@ -63,7 +61,7 @@ local function startOrbitEntryTransition(targetPosActual, initialCamStateAtModeE
             if ModeManager and ModeManager.updateTrackingState then
                 ModeManager.updateTrackingState(camStatePatch)
             end
-            CameraManager.setCameraState(camStatePatch, 0, "OrbitingCamera.EntryTransition.OnUpdate")
+            Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
             Log.trace("[ORBIT] Smooth entry transition finished.")
@@ -82,7 +80,7 @@ local function startOrbitEntryTransition(targetPosActual, initialCamStateAtModeE
                 if MM and ModeManager.updateTrackingState then
                     ModeManager.updateTrackingState(finalCamState)
                 end
-                CameraManager.setCameraState(finalCamState, 0, "OrbitingCamera.EntryTransition.Finalize")
+                Spring.SetCameraState(finalCamState, 0)
             end
         end
     })
@@ -197,7 +195,7 @@ function OrbitingCamera.update(dt)
     if MM and ModeManager.updateTrackingState then
         ModeManager.updateTrackingState(camStatePatch)
     end
-    CameraManager.setCameraState(camStatePatch, 0, "OrbitingCamera.update")
+    Spring.SetCameraState(camStatePatch, 0)
 end
 
 function OrbitingCamera.pauseOrbit()

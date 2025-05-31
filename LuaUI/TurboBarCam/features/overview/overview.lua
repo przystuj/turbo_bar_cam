@@ -2,8 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type MouseManager
 local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
 ---@type OverviewCameraUtils
@@ -151,7 +149,7 @@ end
 
 --- Handles the camera update logic during a mode transition (e.g., movement).
 --- Calculates the intermediate state and applies it to the camera.
----@param camState table Current camera state from CameraManager.
+---@param camState table Current camera state
 ---@param currentHeight number The target or current height (potentially changing due to zoom).
 ---@param userControllingView boolean Whether the user is manually controlling rotation.
 local function handleModeTransition(camState, currentHeight, userControllingView)
@@ -193,7 +191,7 @@ local function handleModeTransition(camState, currentHeight, userControllingView
     }
 
     -- Apply the intermediate camera state for this frame
-    CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.handleModeTransition")
+    Spring.SetCameraState(camStatePatch, 0)
 
     -- Update tracking state with the state we just applied, so the next frame interpolates correctly
     -- Use the manager's function
@@ -256,7 +254,7 @@ local function updateRotationMode(currentHeight)
                 exactPos.x, exactPos.z))
 
         -- Apply camera state DIRECTLY to ensure exact match with transition end
-        CameraManager.setCameraState(exactCamState, 0, "TurboOverviewCamera.firstRotationFrame")
+        Spring.SetCameraState(exactCamState, 0)
 
         -- Update tracking state
         ModeManager.updateTrackingState(exactCamState)
@@ -325,7 +323,7 @@ local function updateRotationMode(currentHeight)
         }
 
         -- Apply camera state
-        CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.firstRotationStep")
+        Spring.SetCameraState(camStatePatch, 0)
 
         -- Update tracking state
         ModeManager.updateTrackingState(camStatePatch)
@@ -370,7 +368,7 @@ local function updateRotationMode(currentHeight)
     }
 
     -- Apply camera state DIRECTLY to ensure immediate effect
-    CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.updateRotationMode")
+    Spring.SetCameraState(camStatePatch, 0)
 
     -- Update tracking state AFTER applying (important order!)
     ModeManager.updateTrackingState(camStatePatch)
@@ -427,7 +425,7 @@ local function updateNormalMode(camState, currentHeight)
     ModeManager.updateTrackingState(camStatePatch)
 
     -- Apply camera state
-    CameraManager.setCameraState(camStatePatch, 0, "TurboOverviewCamera.update")
+    Spring.SetCameraState(camStatePatch, 0)
 end
 
 --- Main update loop for the overview camera.
@@ -446,7 +444,7 @@ function TurboOverviewCamera.update()
     end
 
     -- Get current camera state *once* per frame
-    local camState = CameraManager.getCameraState("TurboOverviewCamera.update")
+    local camState = Spring.GetCameraState()
 
     -- Ensure we're intended to be in FPS mode for overview camera control
     if camState.mode ~= 0 then
@@ -540,7 +538,7 @@ function TurboOverviewCamera.toggle()
     STATE.mode.overview.movementVelocity = nil
     STATE.mode.overview.velocityDecay = 0.95
 
-    local currentCamState = CameraManager.getCameraState("TurboOverviewCamera.toggle")
+    local currentCamState = Spring.GetCameraState()
     local targetPoint, targetCamPos
     local selectedUnits = Spring.GetSelectedUnits()
 

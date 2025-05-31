@@ -1,7 +1,5 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type EasingFunctions
@@ -157,7 +155,7 @@ end
 ---@param interpolationFunc function|nil Optional interpolation function
 function CameraAnchorUtils.startTransitionToAnchor(endState, duration, interpolationFunc)
     -- Generate transition steps for smooth transition
-    local startState = CameraManager.getCameraState("CameraAnchorUtils.start")
+    local startState = Spring.GetCameraState()
     local numSteps = math.max(2, math.floor(duration * CONFIG.PERFORMANCE.ANCHOR_STEPS_PER_SECOND))
 
     STATE.transition.steps = CameraAnchorUtils.generateSteps(startState, endState, numSteps, interpolationFunc)

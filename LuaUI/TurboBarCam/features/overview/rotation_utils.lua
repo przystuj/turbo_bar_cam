@@ -2,10 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
----@type OverviewCameraUtils
-local OverviewCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/overview_utils.lua").OverviewCameraUtils
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -128,7 +124,7 @@ function RotationUtils.toggleRotation()
         end
 
         -- Get current camera state
-        local currentCamState = CameraManager.getCameraState("RotationUtils.toggleRotation")
+        local currentCamState = Spring.GetCameraState()
         Log.trace(string.format("[DEBUG-ROTATION] Initial camera position: (%.2f, %.2f, %.2f)",
                 currentCamState.px, currentCamState.py, currentCamState.pz))
 
@@ -266,7 +262,7 @@ function RotationUtils.updateRotation()
     STATE.mode.overview.rotationAngle = CameraCommons.normalizeAngle(STATE.mode.overview.rotationAngle)
 
     -- Get current camera state to obtain height
-    local camState = CameraManager.getCameraState("RotationUtils.updateRotationMode")
+    local camState = Spring.GetCameraState()
 
     -- Calculate sin/cos of the angle
     local sinAngle = math.sin(STATE.mode.overview.rotationAngle)

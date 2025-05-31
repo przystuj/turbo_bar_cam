@@ -2,8 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 ---@type DollyCamPathPlanner
 local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
 ---@type DollyCamDataStructures
@@ -56,7 +54,7 @@ function DollyCamEditor.editWaypoint(waypointIndex, newPosition, newRotation)
     end
 
     if not newPosition or not newRotation then
-        local camState = CameraManager.getCameraState("DollyCamEditor.editWaypoint")
+        local camState = Spring.GetCameraState()
 
         newPosition = newPosition or {
             x = camState.px,
@@ -144,7 +142,7 @@ function DollyCamEditor.findClosestWaypointToEdit(position)
 
     -- If no position provided, use current camera position
     if not position then
-        local camState = CameraManager.getCameraState("DollyCamEditor.findClosestWaypointToEdit")
+        local camState = Spring.GetCameraState()
         position = {
             x = camState.px,
             y = camState.py,
@@ -192,7 +190,7 @@ end
 ---@return number|nil waypointIndex Index of the added or edited waypoint, or nil if failed
 function DollyCamEditor.addOrEditWaypointAtCurrentPosition()
     -- Get current camera position
-    local camState = CameraManager.getCameraState("DollyCamEditor.addOrEditWaypointAtCurrentPosition")
+    local camState = Spring.GetCameraState()
     local position = {
         x = camState.px,
         y = camState.py,

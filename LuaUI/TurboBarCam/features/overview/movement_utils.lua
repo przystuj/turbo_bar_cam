@@ -2,8 +2,6 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraManager
-local CameraManager = VFS.Include("LuaUI/TurboBarCam/standalone/camera_manager.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -46,7 +44,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     RotationUtils.cancelRotation("movement")
 
     -- Get current camera state and height
-    local currentCamState = CameraManager.getCameraState("MovementUtils.startMoveToTarget")
+    local currentCamState = Spring.GetCameraState()
 
     -- Use STATE.mode.overview.targetHeight if it's set, otherwise calculate current height
     local currentHeight
