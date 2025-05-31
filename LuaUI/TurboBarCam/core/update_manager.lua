@@ -101,13 +101,6 @@ function UpdateManager.isSpectating()
     return spec
 end
 
---- Handles transitions between camera modes
-function UpdateManager.handleDisabledMode()
-    -- If we're in a mode transition but not tracking any unit,
-    -- then we're transitioning back to normal camera from a tracking mode
-    CameraCommons.handleModeTransition(1,1)
-end
-
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
@@ -118,8 +111,6 @@ function UpdateManager.updateCameraMode(dt)
         Features.CameraAnchor.update(dt)
     elseif STATE.dollyCam.isNavigating then
         Features.DollyCam.update(dt)
-    elseif not STATE.mode.name then
-        UpdateManager.handleDisabledMode(dt)
     elseif STATE.mode.name == 'fps' then
         Features.FPSCamera.update(dt)
     elseif STATE.mode.name == 'unit_tracking' then

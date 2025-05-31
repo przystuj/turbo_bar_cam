@@ -20,6 +20,10 @@ if not WG.TurboBarCam.STATE then
             initialized = false
         },
 
+        projectileTracking = {
+            unitProjectiles = {}
+        },
+
         -- Core widget state
         enabled = false,
         originalCameraState = nil,
@@ -161,20 +165,19 @@ if not WG.TurboBarCam.STATE then
                 armed = false,
                 watchedUnitID = nil,
                 continuouslyArmedUnitID = nil,
+                returnToPreviousMode = false,
                 lastArmingTime = 0,
                 previousMode = nil,
                 previousCameraState = nil,
-                impactTimer = nil,
                 impactPosition = nil,
                 cameraMode = nil, -- 'follow' or 'static' submodes
                 initialCamPos = nil,
-                isImpactDecelerating = false,
-                impactDecelerationStartTime = nil,
                 initialImpactVelocity = nil,
                 initialImpactRotVelocity = nil,
                 isHighArc = false,
-                -- transitioningDirection = false, -- Managed by TransitionManager now
-                -- currentFactor = nil,           -- Managed by TransitionManager now
+                highArcGoingUpward = false,
+                transitionFactor = nil,
+                rampUpFactor = 1, -- for gradual approaching set camera distance
 
                 projectile = { -- Data about the projectile itself
                     selectedProjectileID = nil,

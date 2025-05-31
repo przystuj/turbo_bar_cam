@@ -201,6 +201,7 @@ function CameraCommons.easeInOut(t)
     end
 end
 
+--- @deprecated
 --- Adjusts smoothing factors based on the current mode transition progress.
 --- Reads progress from STATE.mode.transitionProgress.
 ---@param targetPosSmoothingFactor number The target position smoothing factor.

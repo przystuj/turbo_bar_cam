@@ -62,7 +62,6 @@ local function ensureTargetTracking(targetKey)
             velocityZ = 0,
             speed = 0,
             ySpeed = 0,
-            lastVelocityLogTime = Spring.GetTimer(),
             lastLogTime = Spring.GetTimer(),
             isMovingFast = false,
             isMovingUpFast = false,
@@ -188,13 +187,6 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
         -- For cached targets, we generally won't detect "fast upward movement"
         targetData.isMovingFast = targetData.speed > 150
         targetData.isMovingUpFast = false
-
-        -- Log estimated velocity periodically
-        if Spring.DiffTimers(currentTime, targetData.lastVelocityLogTime) > 1.0 then
-            Log.trace(string.format("Estimated target velocity: %.1f units/s (x=%.1f, y=%.1f, z=%.1f)",
-                    targetData.speed, targetData.velocityX, targetData.velocityY, targetData.velocityZ))
-            targetData.lastVelocityLogTime = currentTime
-        end
     else
         -- Normal velocity sampling (only useful for actively tracked targets)
         targetData.frameCounter = targetData.frameCounter + 1
@@ -250,13 +242,6 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
                                 targetData.ySpeed, upSpeedThreshold))
                     elseif not targetData.isMovingUpFast and prevIsMovingUpFast then
                         Log.info("Target no longer moving fast upward")
-                    end
-
-                    -- Log velocity periodically
-                    if Spring.DiffTimers(currentTime, targetData.lastVelocityLogTime) > 1.0 then
-                        Log.trace(string.format("Target velocity: %.1f units/s (x=%.1f, y=%.1f, z=%.1f)",
-                                targetData.speed, targetData.velocityX, targetData.velocityY, targetData.velocityZ))
-                        targetData.lastVelocityLogTime = currentTime
                     end
                 end
             end
@@ -562,16 +547,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
 
         -- Store adjusted position for next frame
         targetData.lastAdjustedPosition = {x = x, y = y, z = z}
-
-        -- Enhanced logging with more details - but only once per second
-        if Spring.DiffTimers(currentTime, targetData.lastVelocityLogTime) > 1.0 then
-            Log.trace(string.format(
-                    "Air target adjustment: up=%.1f, back=%.1f, angle=%.2f, dist=%.1f, stabilized=%s",
-                    moveUp, moveBack, verticalAngle, horizontalDist,
-                    STATE.mode.fps.stableCamPos and "true" or "false"))
-        end
-
-        return { x = x, y = y, z = z }
+        return targetData.lastAdjustedPosition
     else
         if targetData.airAdjustmentActive then
             -- Only log the deactivation message once per second at most

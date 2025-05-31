@@ -18,7 +18,6 @@ local CameraCommons = CommonModules.CameraCommons
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
 
-local DIRECTION_TRANSITION_ID = "ProjectileCamera.projectileDirectionTransition"
 --------------------------------------------------------------------------------
 -- Camera Calculation and Smoothing Helpers
 --------------------------------------------------------------------------------
@@ -31,7 +30,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
-    local rampUpFactor = ProjectileCameraUtils.getRampUpFactor()
+    local rampUpFactor = STATE.mode.projectile_camera.rampUpFactor
     local modeCfg = cfg.FOLLOW
     local distance = modeCfg.DISTANCE * rampUpFactor
     local height = modeCfg.HEIGHT * rampUpFactor
@@ -172,88 +171,6 @@ function ProjectileCameraUtils.resetSmoothedPositions()
     end
 end
 
-function ProjectileCameraUtils.initializeSmoothedPositionsIfNil(idealCamPos, idealTargetPos)
-    STATE.mode.projectile_camera.projectile = STATE.mode.projectile_camera.projectile or {}
-    STATE.mode.projectile_camera.projectile.smoothedPositions = STATE.mode.projectile_camera.projectile.smoothedPositions or {}
-
-    if not STATE.mode.projectile_camera.projectile.smoothedPositions.camPos then
-        STATE.mode.projectile_camera.projectile.smoothedPositions.camPos = Util.deepCopy(idealCamPos)
-    end
-    if not STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos then
-        STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos = Util.deepCopy(idealTargetPos)
-    end
-end
-
-function ProjectileCameraUtils.calculateSmoothedCameraPosition(idealCamPos)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
-
-    if STATE.mode.projectile_camera.cameraMode == "static" then
-        return idealCamPos
-    end
-
-    if not STATE.mode.projectile_camera.projectile.smoothedPositions.camPos then
-        STATE.mode.projectile_camera.projectile.smoothedPositions.camPos = Util.deepCopy(idealCamPos)
-    end
-
-    return {
-        x = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.camPos.x, idealCamPos.x, smoothFactor),
-        y = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.camPos.y, idealCamPos.y, smoothFactor),
-        z = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.camPos.z, idealCamPos.z, smoothFactor)
-    }
-end
-
-function ProjectileCameraUtils.calculateSmoothedTargetPosition(idealTargetPos)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local smoothFactor = cfgSmoothing.INTERPOLATION_FACTOR
-
-    if not STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos then
-        STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos = Util.deepCopy(idealTargetPos)
-    end
-
-    return {
-        x = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos.x, idealTargetPos.x, smoothFactor),
-        y = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos.y, idealTargetPos.y, smoothFactor),
-        z = CameraCommons.smoothStep(STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos.z, idealTargetPos.z, smoothFactor)
-    }
-end
-
---- Applies the camera state, using an optional override for rotation factor.
----@param camPos table Camera position
----@param targetPos table Target position
----@param context string Logging context
-function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, context)
-    local cfgSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING
-    local factorOverride
-    if TransitionManager.isTransitioning(DIRECTION_TRANSITION_ID) then
-        factorOverride = STATE.mode.projectile_camera.currentFactor
-    end
-
-    local posFactor = factorOverride or cfgSmoothing.POSITION_FACTOR
-    local rotFactor = factorOverride or cfgSmoothing.ROTATION_FACTOR
-
-    local actualPosFactor, actualRotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
-
-    local currentCamState = Spring.GetCameraState()
-    local fullCamPos = {
-        x = camPos.px or camPos.x or currentCamState.px,
-        y = camPos.py or camPos.y or currentCamState.py,
-        z = camPos.pz or camPos.z or currentCamState.pz
-    }
-
-    -- Use the (potentially overridden and transitioned) rotation factor
-    local finalState = CameraCommons.focusOnPoint(fullCamPos, targetPos, actualPosFactor, actualRotFactor)
-
-    finalState.px = camPos.px or finalState.px
-    finalState.py = camPos.py or finalState.py
-    finalState.pz = camPos.pz or finalState.pz
-    finalState.fov = currentCamState.fov
-
-    Spring.SetCameraState(finalState, 0)
-    CameraTracker.updateLastKnownCameraState(finalState)
-end
-
-
 function ProjectileCameraUtils.resetToDefaults()
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     cfg.FOLLOW.DISTANCE = cfg.DEFAULT_FOLLOW.DISTANCE
@@ -316,7 +233,6 @@ function ProjectileCameraUtils.loadSettings(unitID)
     end
 end
 
-
 function ProjectileCameraUtils.adjustParams(params)
     if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'projectile_camera' then
         return
@@ -342,22 +258,6 @@ end
 
 function ProjectileCameraUtils.isUnitCentricMode(mode)
     return mode == 'fps' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
-end
-
---- Calculates a ramp-up factor based on projectile tracking time.
----@return number rampUpFactor (0.0 to 1.0)
-function ProjectileCameraUtils.getRampUpFactor(duration)
-    local _, gameSpeed = Spring.GetGameSpeed()
-    local RAMP_UP_DURATION = (duration or 1) / gameSpeed
-
-    if not STATE.mode.projectile_camera.projectile or not STATE.mode.projectile_camera.projectile.trackingStartTime then
-        return RAMP_UP_DURATION -- Default to 1 if not tracking or no start time
-    end
-
-    local elapsed = Spring.DiffTimers(Spring.GetTimer(), STATE.mode.projectile_camera.projectile.trackingStartTime)
-    local factor = math.min(elapsed / RAMP_UP_DURATION, RAMP_UP_DURATION)
-
-    return CameraCommons.easeOut(factor)
 end
 
 return ProjectileCameraUtils

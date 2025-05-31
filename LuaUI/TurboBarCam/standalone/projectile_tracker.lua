@@ -8,13 +8,6 @@ local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 
--- Initialize projectile tracking in STATE if it doesn't exist
-if not STATE.projectileTracking then
-    STATE.projectileTracking = {
-        unitProjectiles = {}  -- Will store projectiles by unit ID
-    }
-end
-
 ---@class ProjectileTracker
 local ProjectileTracker = {}
 
@@ -40,7 +33,7 @@ function ProjectileTracker.initUnitTracking(unitID)
     if not STATE.projectileTracking.unitProjectiles[unitID] then
         STATE.projectileTracking.unitProjectiles[unitID] = {
             lastUpdateTime = Spring.GetGameSeconds(),
-            active = true,  -- Whether this unit is actively being tracked
+            active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
         }
         Log.trace("Initialized projectile tracking for unit " .. unitID)
@@ -83,7 +76,9 @@ function ProjectileTracker.findNewProjectiles(unitID)
 
     -- Get unit position
     local ux, uy, uz = Spring.GetUnitPosition(unitID)
-    if not ux then return {} end
+    if not ux then
+        return {}
+    end
 
     -- Define search box around unit
     local boxSize = 200  -- Box to catch newly fired projectiles
@@ -98,7 +93,7 @@ function ProjectileTracker.findNewProjectiles(unitID)
     local currentTime = Spring.GetGameSeconds()
 
     -- Look for projectiles owned by our unit
-    for i=1, #projectiles do
+    for i = 1, #projectiles do
         local projectileID = projectiles[i]
         local ownerID = Spring.GetProjectileOwnerID(projectileID)
 
@@ -155,12 +150,15 @@ function ProjectileTracker.update(frameNum)
             end
 
             -- Add the new projectile
-            table.insert(STATE.projectileTracking.unitProjectiles[currentUnitID].projectiles, {
+            ---@class Projectile
+            local projectile = {
                 id = proj.id,
                 creationTime = proj.creationTime,
-                lastPosition = nil,  -- Will be updated below
-                lastVelocity = nil   -- Will be updated below
-            })
+                position = { x = 0, y = 0, z = 0 }, -- Will be updated below
+                velocity = { x = 0, y = 0, z = 0, speed = 0 }, -- Will be updated below
+                previousVelocity = { x = 0, y = 0, z = 0, speed = 0 }   -- Will be updated below
+            }
+            table.insert(STATE.projectileTracking.unitProjectiles[currentUnitID].projectiles, projectile)
 
             Log.trace("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
         end
@@ -176,20 +174,23 @@ function ProjectileTracker.update(frameNum)
             -- Update projectile data for this unit
             local validProjectiles = {}
 
-            for _, projectile in ipairs(unitData.projectiles) do
+            for _, projectile_item in ipairs(unitData.projectiles) do
+                ---@type Projectile
+                local projectile = projectile_item
                 local px, py, pz = Spring.GetProjectilePosition(projectile.id)
                 local vx, vy, vz = Spring.GetProjectileVelocity(projectile.id)
 
                 if px and vx then
                     -- Projectile still exists, update position
-                    local speed = math.sqrt(vx*vx + vy*vy + vz*vz)
-                    projectile.lastPosition = { x = px, y = py, z = pz }
-                    projectile.lastVelocity = {
-                        x = speed > 0 and vx/speed or 0,
-                        y = speed > 0 and vy/speed or 0,
-                        z = speed > 0 and vz/speed or 0,
+                    local speed = math.sqrt(vx * vx + vy * vy + vz * vz)
+                    projectile.position = { x = px, y = py, z = pz }
+                    projectile.previousVelocity = projectile.velocity
+                    projectile.velocity = {
+                        x = speed > 0 and vx / speed or 0,
+                        y = speed > 0 and vy / speed or 0,
+                        z = speed > 0 and vz / speed or 0,
                         speed = speed
-                    }
+                    },
                     table.insert(validProjectiles, projectile)
                 else
                     -- Projectile no longer exists
@@ -218,7 +219,7 @@ function ProjectileTracker.getNewestProjectile(unitID)
 
     -- Find newest projectile by creation time
     local newest = projectiles[1]
-    for i=2, #projectiles do
+    for i = 2, #projectiles do
         if projectiles[i].creationTime > newest.creationTime then
             newest = projectiles[i]
         end

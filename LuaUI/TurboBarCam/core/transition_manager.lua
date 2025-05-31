@@ -64,6 +64,38 @@ function TransitionManager.cancel(id)
     return false
 end
 
+--- Instantly finishes active transition. OnComplete will be called
+---@param id string The ID of the transition to finish.
+---@return boolean success Whether a transition was found and finished.
+function TransitionManager.finish(id)
+    if STATE.transitions[id] then
+        STATE.transitions[id].onComplete()
+        STATE.transitions[id] = nil
+        Log.trace("TransitionManager: Finished transition [" .. id .. "].")
+        return true
+    end
+    return false
+end
+
+local function stringStartsWith(s, prefix)
+    return string.sub(s, 1, #prefix) == prefix
+end
+
+--- Cancels and removes an active transitions by the prefix.
+---@param prefix string Prefix of the IDs of the transitions to cancel.
+---@return boolean success Whether a transitions were found and canceled.
+function TransitionManager.cancelPrefix(prefix)
+    local canceled = false
+    for id, _ in pairs(STATE.transitions) do
+        if stringStartsWith(id, prefix) then
+            STATE.transitions[id] = nil
+            Log.trace("TransitionManager: Canceled transition [" .. id .. "].")
+            canceled = true
+        end
+    end
+    return canceled
+end
+
 --- Cancels and removes all active transitions.
 --- Does not call onComplete callbacks.
 function TransitionManager.stopAll()
