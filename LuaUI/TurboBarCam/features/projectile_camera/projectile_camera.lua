@@ -12,6 +12,8 @@ local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util
 local ProjectileCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_utils.lua")
 ---@type TransitionManager
 local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -539,7 +541,7 @@ function ProjectileCamera.decelerateToImpactPosition(dt)
 
     -- 10. Set the final camera state
     Spring.SetCameraState(finalCamState, 0)
-    ModeManager.updateTrackingState(finalCamState)
+    CameraTracker.updateLastKnownCameraState(finalCamState)
 
     -- 11. Final check if duration ended, in case TransitionUtil didn't return nil yet.
     if linearProgress >= 1.0 and STATE.mode.projectile_camera.isImpactDecelerating then

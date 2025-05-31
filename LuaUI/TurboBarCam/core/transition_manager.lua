@@ -17,24 +17,26 @@ STATE.transitions = STATE.transitions or {}
 local function linearEase(t)
     return t
 end
+---@class TransitionConfig
+---@field id string | number Unique ID for this transition
+---@field duration number Duration in "effective seconds". If 'respectGameSpeed' is true, this is in game-time seconds; otherwise, real-time seconds.
+---@field respectGameSpeed? If true, transition speed scales with game speed and pauses if game speed is 0.
+---@field easingFn? fun(progress: number): number defaults to linearEase
+---@field onUpdate fun(rawProgress: number, easedProgress: number, dtEffective: number) called each frame. 'effectiveDt' is game-time scaled if respectGameSpeed is true.
+---@field onComplete? fun() Optional function called when finished
 
 --- Starts or replaces a transition.
----@param config table Configuration for the transition:
----  {
----    id = string,           -- Unique ID for this transition
----    duration = number,       -- Duration in "effective seconds". If 'respectGameSpeed' is true, this is in game-time seconds; otherwise, real-time seconds.
----    respectGameSpeed = boolean, -- Optional (default: false). If true, transition speed scales with game speed and pauses if game speed is 0.
----    easingFn = function,   -- Easing function (e.g., CameraCommons.easeInOut), defaults to linear
----    onUpdate = function,   -- Function(progress, easedProgress, effectiveDt) called each frame. 'effectiveDt' is game-time scaled if respectGameSpeed is true.
----    onComplete = function  -- Optional function called when finished
----  }
+---@param config TransitionConfig Configuration for the transition:
 ---@return boolean success Whether the transition was started
 function TransitionManager.start(config)
-    if not config or not config.id or not config.duration or not config.onUpdate then
-        Log.warn("TransitionManager: Cannot start transition - missing id, duration, or onUpdate.")
+    if not config or not config.duration or not config.onUpdate then
+        Log.warn("TransitionManager: Cannot start transition - missing duration or onUpdate.")
         return false
     end
 
+    config.id = config.id or math.random(1000,9999)
+
+    ---@field onUpdate fun(raw_progress: number, eased_progress: number, dt_effective: number)
     STATE.transitions[config.id] = {
         id = config.id,
         startTime = Spring.GetTimer(), -- For reference, not directly used for progress if using elapsedEffectiveTime
@@ -84,12 +86,19 @@ function TransitionManager.force(config)
     return TransitionManager.start(config)
 end
 
-
 --- Checks if a transition with the given ID is currently active.
 ---@param id string The ID to check.
 ---@return boolean isTransitioning
 function TransitionManager.isTransitioning(id)
-    return STATE.transitions[id] ~= nil
+    if id then
+        return STATE.transitions[id] ~= nil
+    else
+        local count = 0
+        for _ in pairs(STATE.transitions) do
+            count = count + 1
+        end
+        return count > 0
+    end
 end
 
 --- Updates all active transitions. Called every frame by UpdateManager.
@@ -108,17 +117,20 @@ function TransitionManager.update(dt_real)
         if t.respectGameSpeed then
             if actualGameSpeed > 0 then
                 effectiveDt = dt_real * actualGameSpeed
-            else -- actualGameSpeed is 0 (paused) or potentially negative (if engine supports)
+            else
+                -- actualGameSpeed is 0 (paused) or potentially negative (if engine supports)
                 effectiveDt = 0 -- Transition effectively pauses if respecting game speed and game is paused
             end
         end
 
-        if t.duration > 0 then -- Only advance time if duration is positive
+        if t.duration > 0 then
+            -- Only advance time if duration is positive
             t.elapsedEffectiveTime = t.elapsedEffectiveTime + effectiveDt
         end
 
         local progress
-        if t.duration <= 0 then -- Treat zero or negative duration as instantly complete
+        if t.duration <= 0 then
+            -- Treat zero or negative duration as instantly complete
             progress = 1.0
         else
             progress = math.min(t.elapsedEffectiveTime / t.duration, 1.0)

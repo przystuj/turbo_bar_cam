@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -126,7 +128,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     STATE.mode.transitionStartTime = Spring.GetTimer()
 
     -- Update tracking state
-    ModeManager.updateTrackingState(currentCamState)
+    CameraTracker.updateLastKnownCameraState(currentCamState)
 
     Log.trace(string.format("Starting move to target. Initial Distance: %.1f", moveDistance))
 end

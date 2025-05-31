@@ -2,13 +2,14 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
 
 ---@class RotationUtils
 local RotationUtils = {}
@@ -210,7 +211,7 @@ function RotationUtils.toggleRotation()
         STATE.mode.overview.enableRotationAfterToggle = true
 
         -- Update tracking state
-        ModeManager.updateTrackingState(currentCamState)
+        CameraTracker.updateLastKnownCameraState(currentCamState)
 
         Log.trace("Starting rotation setup (zero-distance transition)")
         return true

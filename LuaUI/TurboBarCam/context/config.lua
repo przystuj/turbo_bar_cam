@@ -51,6 +51,8 @@ if not WG.TurboBarCam.CONFIG then
             -- FPS camera settings
             FPS = {
                 MOUSE_SENSITIVITY = 0.004,
+                INITIAL_TRANSITION_DURATION = 1.2,  -- Duration of the entry transition into FPS mode
+                INITIAL_TRANSITION_FACTOR = 0.01,
                 OFFSETS = {
                     -- PEACE mode offsets (normal FPS view)
                     PEACE = {
@@ -121,6 +123,8 @@ if not WG.TurboBarCam.CONFIG then
 
             -- Orbit camera settings
             ORBIT = {
+                INITIAL_TRANSITION_DURATION = 2,
+                INITIAL_TRANSITION_FACTOR = 0.01,
                 HEIGHT_FACTOR = 8, -- Height is 8x unit height
                 DISTANCE = 800, -- Distance from unit
                 SPEED = 0.05, -- Orbit speed in radians per frame
@@ -128,14 +132,7 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_SPEED = 0.05,
                 DEFAULT_DISTANCE = 800,
                 DEFAULT_HEIGHT = nil, -- It's calculated from unit height
-                SMOOTHING = {
-                    POSITION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
-                },
-                DEFAULT_SMOOTHING = {
-                    POSITION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
-                    ROTATION_FACTOR = 0.06, -- Lower = smoother but more lag (0.0-1.0)
-                },
+                SMOOTHING_FACTOR = 0.06,
             },
 
             -- Overview camera settings

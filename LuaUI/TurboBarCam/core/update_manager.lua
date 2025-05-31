@@ -33,10 +33,11 @@ function UpdateManager.processCycle(dt)
     end
 
     if STATE.reloadFeatures then
+        Features.FPSCamera = VFS.Include("LuaUI/TurboBarCam/features/fps/fps.lua").FPSCamera
         Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
-        Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
+        --Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
         Features.UnitTrackingCamera = VFS.Include("LuaUI/TurboBarCam/features/unit_tracking/unit_tracking.lua").UnitTrackingCamera
-        Features.ProjectileCamera = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua").ProjectileCamera
+        --Features.ProjectileCamera = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua").ProjectileCamera
         STATE.reloadFeatures = false
     end
 
@@ -105,43 +106,6 @@ function UpdateManager.handleDisabledMode()
     -- If we're in a mode transition but not tracking any unit,
     -- then we're transitioning back to normal camera from a tracking mode
     CameraCommons.handleModeTransition(1,1)
-end
-
-local function printAverageDt()
-    -- Initialize STATE.perf if it doesn't exist
-    if not STATE.perf then
-        STATE.perf = {
-            dtSum = 0,
-            frameCount = 0,
-            lastReportTime = Spring.GetTimer(),
-            averageDt = 0
-        }
-    end
-
-    -- Get current dt value (passed to this function)
-    local dt = Spring.GetFrameTimeOffset()
-
-    -- Accumulate dt and increment frame count
-    STATE.perf.dtSum = STATE.perf.dtSum + dt
-    STATE.perf.frameCount = STATE.perf.frameCount + 1
-
-    -- Check if 3 seconds have passed
-    local currentTime = Spring.GetTimer()
-    local timeDiff = Spring.DiffTimers(currentTime, STATE.perf.lastReportTime)
-
-    if timeDiff >= 3.0 then
-        -- Calculate average dt
-        STATE.perf.averageDt = STATE.perf.dtSum / STATE.perf.frameCount
-
-        -- Log or display the average dt
-        Log.debug(string.format("Average dt over last 3s: %.6f seconds (from %d frames)",
-                STATE.perf.averageDt, STATE.perf.frameCount))
-
-        -- Reset counters
-        STATE.perf.dtSum = 0
-        STATE.perf.frameCount = 0
-        STATE.perf.lastReportTime = currentTime
-    end
 end
 
 --- Updates the camera based on current mode

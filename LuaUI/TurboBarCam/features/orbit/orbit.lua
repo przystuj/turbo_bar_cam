@@ -8,6 +8,8 @@ local OrbitCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_uti
 local OrbitPersistence = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_persistence.lua").OrbitPersistence
 ---@type TransitionManager
 local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -20,68 +22,23 @@ local ModeManager = CommonModules.ModeManager
 local OrbitingCamera = {}
 
 local ORBIT_ENTRY_TRANSITION_ID = "OrbitingCamera.EntryTransition"
-local ORBIT_ENTRY_TRANSITION_DURATION = 0.75
 
 --- Internal: Starts a smooth LERP transition onto the orbit path.
----@param targetPosActual table The actual current target position {x,y,z}.
 ---@param initialCamStateAtModeEntry table Camera state when mode was initialized.
-local function startOrbitEntryTransition(targetPosActual, initialCamStateAtModeEntry)
-    local desiredInitialAngle
-    if STATE.mode.orbit.loadedAngleForEntry ~= nil then
-        desiredInitialAngle = STATE.mode.orbit.loadedAngleForEntry
-        STATE.mode.orbit.loadedAngleForEntry = nil -- Consume the loaded angle
-        Log.trace("[ORBIT] Using loaded angle for entry transition: " .. desiredInitialAngle)
-    else
-        desiredInitialAngle = math.atan2(initialCamStateAtModeEntry.px - targetPosActual.x, initialCamStateAtModeEntry.pz - targetPosActual.z)
-    end
-
-    local targetCamPosOnOrbit = OrbitCameraUtils.calculateOrbitPositionWithAngle(targetPosActual, desiredInitialAngle)
-    local targetCamStateOnOrbit = CameraCommons.calculateCameraDirectionToThePoint(targetCamPosOnOrbit, targetPosActual)
-    targetCamStateOnOrbit.px = targetCamPosOnOrbit.x
-    targetCamStateOnOrbit.py = targetCamPosOnOrbit.y
-    targetCamStateOnOrbit.pz = targetCamPosOnOrbit.z
-    targetCamStateOnOrbit.fov = initialCamStateAtModeEntry.fov -- Keep FOV from before transition
-
+local function startOrbitEntryTransition(initialCamStateAtModeEntry)
+    STATE.mode.orbit.isModeInitialized = true
     TransitionManager.force({
         id = ORBIT_ENTRY_TRANSITION_ID,
-        duration = ORBIT_ENTRY_TRANSITION_DURATION,
-        easingFn = CameraCommons.easeInOut,
-        onUpdate = function(progress, easedProgress, dt)
-            local camStatePatch = {
-                px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamStateOnOrbit.px, easedProgress),
-                py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamStateOnOrbit.py, easedProgress),
-                pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamStateOnOrbit.pz, easedProgress),
-                rx = CameraCommons.smoothStepAngle(initialCamStateAtModeEntry.rx, targetCamStateOnOrbit.rx, easedProgress),
-                ry = CameraCommons.smoothStepAngle(initialCamStateAtModeEntry.ry, targetCamStateOnOrbit.ry, easedProgress),
-                fov = CameraCommons.lerp(initialCamStateAtModeEntry.fov or 45, targetCamStateOnOrbit.fov or 45, easedProgress)
-            }
-            local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
-            camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
-            camStatePatch.rz = 0
-            if ModeManager and ModeManager.updateTrackingState then
-                ModeManager.updateTrackingState(camStatePatch)
-            end
+        duration = CONFIG.CAMERA_MODES.ORBIT.INITIAL_TRANSITION_DURATION,
+        easingFn = CameraCommons.easeOut,
+        onUpdate = function(raw_progress, eased_progress, dt)
+            local transitionFactor = CameraCommons.lerp(CONFIG.CAMERA_MODES.ORBIT.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR, eased_progress)
+            local camStatePatch = OrbitingCamera.getNewCameraState(dt, transitionFactor)
+
+            CameraTracker.updateLastKnownCameraState(camStatePatch)
             Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
-            Log.trace("[ORBIT] Smooth entry transition finished.")
-            STATE.mode.orbit.angle = desiredInitialAngle
-
-            -- FIX for slight jump: Set camera to the exact end state of transition
-            local finalTargetPosOnComplete = OrbitCameraUtils.getTargetPosition() -- Re-fetch in case unit moved
-            if finalTargetPosOnComplete then
-                OrbitCameraUtils.ensureHeightIsSet()
-                local finalCamPos = OrbitCameraUtils.calculateOrbitPositionWithAngle(finalTargetPosOnComplete, STATE.mode.orbit.angle)
-                local finalCamState = CameraCommons.calculateCameraDirectionToThePoint(finalCamPos, finalTargetPosOnComplete)
-                finalCamState.px, finalCamState.py, finalCamState.pz = finalCamPos.x, finalCamPos.y, finalCamPos.z
-                finalCamState.fov = targetCamStateOnOrbit.fov -- Use the FOV we transitioned to
-
-                local MM = ModeManager or WidgetContext.ModeManager
-                if MM and ModeManager.updateTrackingState then
-                    ModeManager.updateTrackingState(finalCamState)
-                end
-                Spring.SetCameraState(finalCamState, 0)
-            end
         end
     })
 end
@@ -123,6 +80,9 @@ function OrbitingCamera.toggle(unitID)
 
     if ModeManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT, false, nil) then
         STATE.mode.orbit.isPaused = false
+        local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
+        local camState = Spring.GetCameraState()
+        STATE.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
         Log.trace("[ORBIT] Orbiting camera enabled for unit " .. unitID)
     end
 end
@@ -147,7 +107,8 @@ function OrbitingCamera.togglePointOrbit(point)
 
     if ModeManager.initializeMode('orbit', point, STATE.TARGET_TYPES.POINT, false, nil) then
         STATE.mode.orbit.isPaused = false
-        Log.trace(string.format("[ORBIT] Orbiting camera enabled for point (%.1f, %.1f, %.1f)", point.x, point.y, point.z))
+        local camState = Spring.GetCameraState()
+        STATE.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
     end
 end
 
@@ -155,21 +116,9 @@ function OrbitingCamera.update(dt)
     if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
-    local MM = ModeManager or WidgetContext.ModeManager
-
-    local targetPos = OrbitCameraUtils.getTargetPosition()
-    if not targetPos then
-        if MM and ModeManager.disableMode then
-            ModeManager.disableMode()
-        end
-        Log.debug("[ORBIT] Target lost, disabling orbit.")
-        return
-    end
 
     if STATE.mode.orbit and not STATE.mode.orbit.isModeInitialized then
-        STATE.mode.orbit.isModeInitialized = true
-        local initialCamState = STATE.mode.initialCameraStateForModeEntry
-        startOrbitEntryTransition(targetPos, initialCamState)
+        startOrbitEntryTransition(STATE.mode.initialCameraStateForModeEntry)
     end
 
     if TransitionManager.isTransitioning(ORBIT_ENTRY_TRANSITION_ID) then
@@ -180,22 +129,30 @@ function OrbitingCamera.update(dt)
         return
     end
 
+    local camState = OrbitingCamera.getNewCameraState(dt)
+    if camState then
+        CameraTracker.updateLastKnownCameraState(camState)
+        Spring.SetCameraState(camState, 0)
+    end
+end
+
+function OrbitingCamera.getNewCameraState(dt, transitionFactor)
+    local targetPos = OrbitCameraUtils.getTargetPosition()
+    if not targetPos then
+        ModeManager.disableMode()
+        Log.debug("[ORBIT] Target lost, disabling orbit.")
+        return
+    end
+
+    local orbitConfig = CONFIG.CAMERA_MODES.ORBIT
+
     if not STATE.mode.orbit.isPaused then
-        local speed = CONFIG.CAMERA_MODES.ORBIT.SPEED
-        local validDt = (type(dt) == "number" and dt > 0) and dt or (1 / 60)
-        STATE.mode.orbit.angle = (STATE.mode.orbit.angle or 0) + speed * validDt
+        STATE.mode.orbit.angle = STATE.mode.orbit.angle + orbitConfig.SPEED * dt
     end
+    local smoothing = transitionFactor or orbitConfig.SMOOTHING_FACTOR
 
-    OrbitCameraUtils.ensureHeightIsSet() -- Uses STATE for context
-    local posSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.POSITION_FACTOR
-    local rotSmoothFactor = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING.ROTATION_FACTOR
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
-    local camStatePatch = CameraCommons.focusOnPoint(camPos, targetPos, posSmoothFactor, rotSmoothFactor)
-
-    if MM and ModeManager.updateTrackingState then
-        ModeManager.updateTrackingState(camStatePatch)
-    end
-    Spring.SetCameraState(camStatePatch, 0)
+    return CameraCommons.focusOnPoint(camPos, targetPos, smoothing, smoothing)
 end
 
 function OrbitingCamera.pauseOrbit()
@@ -306,7 +263,7 @@ function OrbitingCamera.loadOrbit(orbitId)
     end
 
     if ModeManager.initializeMode('orbit', targetToUse, targetTypeToUse, false, nil) then
-        STATE.mode.orbit.loadedAngleForEntry = loadedData.angle -- Store for entry transition
+        STATE.mode.orbit.loadedAngleForEntry = loadedData.angle
         STATE.mode.orbit.isPaused = loadedData.isPaused or false
         Log.info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.mode.orbit.isPaused and " (PAUSED)" or ""))
     else
@@ -336,7 +293,7 @@ function OrbitingCamera.loadSettings(identifier)
         CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
         CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
     end
-    OrbitCameraUtils.ensureHeightIsSet() -- Recalculate based on current target after loading/defaulting
+    OrbitCameraUtils.ensureHeightIsSet()
 end
 
 return {

@@ -6,13 +6,14 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua")
 ---@type TransitionManager
 local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
 
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
@@ -249,7 +250,7 @@ function ProjectileCameraUtils.applyProjectileCameraState(camPos, targetPos, con
     finalState.fov = currentCamState.fov
 
     Spring.SetCameraState(finalState, 0)
-    ModeManager.updateTrackingState(finalState)
+    CameraTracker.updateLastKnownCameraState(finalState)
 end
 
 

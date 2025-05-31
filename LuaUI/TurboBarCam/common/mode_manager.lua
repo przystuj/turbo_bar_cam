@@ -8,6 +8,8 @@ local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
 local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
 ---@type TransitionManager
 local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -21,7 +23,8 @@ local ModeManager = {}
 local function resetFeatureInitializationFlag(modeNameKey)
     if modeNameKey and STATE.mode[modeNameKey] then
         local featureState = STATE.mode[modeNameKey]
-        if featureState.isModeInitialized ~= nil then -- Check if the flag exists
+        if featureState.isModeInitialized ~= nil then
+            -- Check if the flag exists
             featureState.isModeInitialized = false
             Log.trace("ModeManager: Reset isModeInitialized for mode: " .. modeNameKey)
         end
@@ -91,7 +94,8 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
         STATE.mode.targetPoint = { x = x, y = y, z = z }
         STATE.mode.lastTargetPoint = { x = x, y = y, z = z }
         SettingsManager.loadModeSettings(newModeName, validTarget)
-    else -- STATE.TARGET_TYPES.POINT
+    else
+        -- STATE.TARGET_TYPES.POINT
         STATE.mode.targetPoint = validTarget
         STATE.mode.lastTargetPoint = Util.deepCopy(validTarget)
         STATE.mode.unitID = nil
@@ -100,22 +104,9 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
 
     resetFeatureInitializationFlag(newModeName)
 
+    CameraTracker.updateLastKnownCameraState(Spring.GetCameraState())
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
-end
-
---- Updates last known camera position and direction.
----@param camState table Camera state that was applied {px,py,pz, dx,dy,dz, rx,ry,rz}
-function ModeManager.updateTrackingState(camState)
-    STATE.mode.lastCamPos.x = camState.px
-    STATE.mode.lastCamPos.y = camState.py
-    STATE.mode.lastCamPos.z = camState.pz
-    STATE.mode.lastCamDir.x = camState.dx
-    STATE.mode.lastCamDir.y = camState.dy
-    STATE.mode.lastCamDir.z = camState.dz
-    STATE.mode.lastRotation.rx = camState.rx
-    STATE.mode.lastRotation.ry = camState.ry
-    STATE.mode.lastRotation.rz = camState.rz
 end
 
 --- Disables active camera mode and resets relevant state.
@@ -133,8 +124,6 @@ function ModeManager.disableMode()
         end
     end
 
-    local previousModeName = STATE.mode.name
-
     STATE.mode.name = nil
     STATE.mode.targetType = STATE.TARGET_TYPES.NONE
     STATE.mode.unitID = nil
@@ -148,58 +137,19 @@ function ModeManager.disableMode()
     STATE.mode.isModeTransitionInProgress = false
     STATE.mode.transitionProgress = nil
 
-    -- Reset feature-specific initialization flags
-    local featureNames = {"fps", "unit_tracking", "orbit", "overview", "projectile_camera", "group_tracking"}
-    for _, featureKey in ipairs(featureNames) do
-        resetFeatureInitializationFlag(featureKey)
-    end
-
-    -- Reset specific fields within feature states to their defaults
-    -- FPS
-    STATE.mode.fps = STATE.mode.fps or { isModeInitialized = false } -- Ensure table exists
-    STATE.mode.fps.isModeInitialized = false -- Explicitly ensure if resetFeatureInitializationFlag didn't catch it due to table not existing
-    STATE.mode.fps.targetUnitID = nil
-    STATE.mode.fps.isFreeCameraActive = false
-    STATE.mode.fps.fixedPoint = nil
-    STATE.mode.fps.isFixedPointActive = false
-    STATE.mode.fps.inTargetSelectionMode = false
-    STATE.mode.fps.combatModeEnabled = false
-    if STATE.mode.fps.freeCam then STATE.mode.fps.freeCam = {} else STATE.mode.fps.freeCam = {} end
-    if STATE.mode.fps.targetSmoothing then STATE.mode.fps.targetSmoothing = {} else STATE.mode.fps.targetSmoothing = {} end
-
-    -- Projectile Camera
-    STATE.mode.projectile_camera = STATE.mode.projectile_camera or { isModeInitialized = false, projectile = {} }
-    STATE.mode.projectile_camera.isModeInitialized = false
-    STATE.mode.projectile_camera.armed = false
-    STATE.mode.projectile_camera.watchedUnitID = nil
-    STATE.mode.projectile_camera.continuouslyArmedUnitID = nil
-    STATE.mode.projectile_camera.impactTimer = nil
-    STATE.mode.projectile_camera.isImpactDecelerating = false
-    STATE.mode.projectile_camera.projectile = {}
-
-
-    -- Orbit
-    STATE.mode.orbit = STATE.mode.orbit or { isModeInitialized = false }
-    STATE.mode.orbit.isModeInitialized = false
-    STATE.mode.orbit.lastPosition = nil
-    STATE.mode.orbit.isPaused = false
-
-    -- Overview (assuming it's now STATE.mode.overview)
-    STATE.mode.overview = STATE.mode.overview or { isModeInitialized = false }
-    STATE.mode.overview.isModeInitialized = false
-    -- Add more overview-specific field resets if necessary, e.g., targetPoint, fixedCamPos etc.
-    STATE.mode.overview.targetPoint = nil
-    STATE.mode.overview.fixedCamPos = nil
-
+    -- Reset modes to default state
+    STATE.mode = Util.deepCopy(STATE.DEFAULT.mode)
 
     -- Old anchor queue and transition state (assuming these are top-level in STATE)
-    if STATE.anchorQueue then STATE.anchorQueue.active = false end
-    if STATE.transition then STATE.transition.active = false end -- Old anchor system
+    if STATE.anchorQueue then
+        STATE.anchorQueue.active = false
+    end
+    if STATE.transition then
+        STATE.transition.active = false
+    end -- Old anchor system
 
     -- DollyCam (assuming top-level in STATE)
     STATE.dollyCam = { route = { points = {} }, isNavigating = false }
-
-    Log.trace("ModeManager: Mode " .. (previousModeName or "None") .. " disabled.")
 end
 
 return ModeManager

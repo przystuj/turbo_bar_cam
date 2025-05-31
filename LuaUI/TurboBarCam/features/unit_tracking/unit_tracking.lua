@@ -8,6 +8,8 @@ local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type TransitionManager
 local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -46,7 +48,7 @@ local function startModeTransition(unitID, initialCamStateAtModeEntry)
         id = STANDARD_DECEL_TRANSITION_ID,
         duration = duration,
         easingFn = CameraCommons.easeOut,
-        respectGameSpeed = true, -- Assuming deceleration should respect game speed
+        respectGameSpeed = false,
         onUpdate = function(progress, easedProgress, effectiveDt)
             local currentUpdateState = Spring.GetCameraState()
             if not Spring.ValidUnitID(unitID) then
@@ -85,7 +87,7 @@ local function startModeTransition(unitID, initialCamStateAtModeEntry)
             local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
             camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
             camStatePatch.rz = 0
-            ModeManager.updateTrackingState(camStatePatch)
+            CameraTracker.updateLastKnownCameraState(camStatePatch)
             Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
@@ -158,7 +160,7 @@ local function startTargetedEntryTransition(unitID, initialCamStateAtModeEntry, 
             local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
             camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
             camStatePatch.rz = 0
-            ModeManager.updateTrackingState(camStatePatch)
+            CameraTracker.updateLastKnownCameraState(camStatePatch)
             Spring.SetCameraState(camStatePatch, 0)
         end,
         onComplete = function()
@@ -256,7 +258,7 @@ function UnitTrackingCamera.update(dt)
         dx = idealState.dx, dy = idealState.dy, dz = idealState.dz,
         fov = currentState.fov
     }
-    ModeManager.updateTrackingState(camStatePatch)
+    CameraTracker.updateLastKnownCameraState(camStatePatch)
     Spring.SetCameraState(camStatePatch, 0)
 end
 

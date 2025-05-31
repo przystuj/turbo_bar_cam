@@ -50,7 +50,6 @@ function WidgetManager.disable()
 
     -- Restore original camera state
     if STATE.originalCameraState then
-        -- using direct Spring call to ensure it happens
         Spring.SetCameraState(STATE.originalCameraState, 1)
         STATE.originalCameraState = nil
     end
@@ -146,6 +145,7 @@ function WidgetManager.changeConfig(path, value)
     -- Set the value at the final level using the last segment
     if segmentCount > 0 then
         local lastSegment = segments[segmentCount]
+        value = tonumber(value) or value
         Log.debug(string.format("Changing %s=%s to %s", path, currentTable[lastSegment], value))
         currentTable[lastSegment] = value
     else

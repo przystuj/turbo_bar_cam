@@ -18,45 +18,8 @@ local FPSTargetingSmoothing = {}
 local TARGET_HISTORY_SIZE = 20       -- Maximum number of recent targets to track
 local TARGET_HISTORY_DURATION = 3.0  -- How long targets remain in history (seconds)
 local MIN_TARGETS_FOR_CLOUD = 3      -- Minimum targets needed to form a "cloud"
-local CLOUD_RADIUS = 300             -- Maximum radius for targets to be considered in the same cloud
 local CLOUD_BLEND_FACTOR = 0.7       -- How much to blend between actual target and cloud center (0-1)
 local TARGET_SWITCH_THRESHOLD = 0.3  -- Time threshold (seconds) to detect rapid target switching
-
--- Initialize state if needed
-local function ensureTargetSmoothingState()
-    if not STATE.mode.fps.targetSmoothing then
-        local currentTime = Spring.GetTimer()
-        STATE.mode.fps.targetSmoothing = {
-            targetHistory = {},
-            cloudCenter = nil,
-            cloudRadius = 0,
-            useCloudTargeting = false,
-            cloudStartTime = nil,
-            lastCloudUpdateTime = currentTime,
-            highActivityDetected = false,
-            activityLevel = 0,
-            lastTargetSwitchTime = currentTime,
-            targetSwitchCount = 0,
-            lastStatusLogTime = currentTime,
-            currentTargetKey = nil,
-            targetAimOffset = { x = 0, y = 0, z = 0 },
-            targetPrediction = {
-                enabled = false,
-                velocityX = 0,
-                velocityY = 0,
-                velocityZ = 0,
-                lastUpdateTime = currentTime
-            },
-            rotationConstraint = {
-                enabled = true,
-                maxRotationRate = 0.07,
-                lastYaw = nil,
-                lastPitch = nil,
-                damping = 0.8
-            }
-        }
-    end
-end
 
 --- Creates a unique key for a target position
 --- @param targetPos table Target position {x, y, z}
@@ -76,16 +39,12 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
         return
     end
 
-    ensureTargetSmoothingState()
     local state = STATE.mode.fps.targetSmoothing
     local currentTime = Spring.GetTimer()
 
     -- Ensure all timer values are initialized
     if not state.lastTargetSwitchTime then
         state.lastTargetSwitchTime = currentTime
-    end
-    if not state.lastStatusLogTime then
-        state.lastStatusLogTime = currentTime
     end
     if not state.lastCloudUpdateTime then
         state.lastCloudUpdateTime = currentTime
@@ -185,15 +144,6 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
         end
     end
 
-    -- Periodically log status
-    if Spring.DiffTimers(currentTime, state.lastStatusLogTime) > 1.0 then
-        if state.activityLevel > 0.5 then
-            Log.debug(string.format("Targeting activity: %.2f (%d unique targets, %d rapid switches)",
-                    state.activityLevel, uniqueTargetCount, state.targetSwitchCount))
-        end
-        state.lastStatusLogTime = currentTime
-    end
-
     -- Decide whether to use cloud targeting
     state.useCloudTargeting = (state.highActivityDetected and
             (uniqueTargetCount >= MIN_TARGETS_FOR_CLOUD or state.targetSwitchCount >= 3))
@@ -212,7 +162,6 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         return nil
     end
 
-    ensureTargetSmoothingState()
     local state = STATE.mode.fps.targetSmoothing
 
     -- Get unit position
@@ -299,7 +248,6 @@ function FPSTargetingSmoothing.predictTargetPosition(targetPos, targetUnitID)
         return nil
     end
 
-    ensureTargetSmoothingState()
     local state = STATE.mode.fps.targetSmoothing
 
     -- Skip prediction if not enabled
@@ -342,9 +290,7 @@ end
 --- @return number constrainedYaw Constrained yaw angle
 --- @return number constrainedPitch Constrained pitch angle
 function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
-    ensureTargetSmoothingState()
     local state = STATE.mode.fps.targetSmoothing
-    local fpsState = STATE.mode.fps -- Access FPS state
 
     -- *** Reset constraints state on target switch signal ***
     if state.rotationConstraint.resetForSwitch then
@@ -466,27 +412,24 @@ end
 --- Configures target smoothing settings
 --- @param settings table Settings to apply
 function FPSTargetingSmoothing.configure(settings)
-    ensureTargetSmoothingState()
-    local state = STATE.mode.fps.targetSmoothing
-
     if settings.cloudBlendFactor then
         CLOUD_BLEND_FACTOR = math.max(0, math.min(1, settings.cloudBlendFactor))
     end
 
     if settings.targetPrediction ~= nil then
-        state.targetPrediction.enabled = settings.targetPrediction
+        STATE.mode.fps.targetSmoothing.targetPrediction.enabled = settings.targetPrediction
     end
 
     if settings.rotationConstraint ~= nil then
-        state.rotationConstraint.enabled = settings.rotationConstraint
+        STATE.mode.fps.targetSmoothing.rotationConstraint.enabled = settings.rotationConstraint
     end
 
     if settings.maxRotationRate then
-        state.rotationConstraint.maxRotationRate = settings.maxRotationRate
+        STATE.mode.fps.targetSmoothing.rotationConstraint.maxRotationRate = settings.maxRotationRate
     end
 
     if settings.rotationDamping then
-        state.rotationConstraint.damping = settings.rotationDamping
+        STATE.mode.fps.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
     end
 
     Log.info("Target smoothing settings updated")

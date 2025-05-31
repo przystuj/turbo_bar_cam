@@ -4,11 +4,14 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Scheduler
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
+---@type TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
 local Util = CommonModules.Util
 local Log = CommonModules.Log
+local CameraCommons = CommonModules.CameraCommons
 
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "fps_attack_state_debounce"
@@ -16,154 +19,6 @@ local ATTACK_STATE_COOLDOWN = 1.5
 
 ---@class FPSCombatMode
 local FPSCombatMode = {}
-
---- Calculates the angle difference between two rotations
---- @param oldRy number Old rotation Y (yaw)
---- @param newRy number New rotation Y (yaw)
---- @return number diff Angle difference in radians
-function FPSCombatMode.getRotationDifference(oldRy, newRy)
-    if not oldRy or not newRy then
-        return 0
-    end
-
-    -- Normalize both angles to 0-2π range
-    local normalizeAngle = function(angle)
-        angle = angle % (2 * math.pi)
-        if angle < 0 then
-            angle = angle + 2 * math.pi
-        end
-        return angle
-    end
-
-    oldRy = normalizeAngle(oldRy)
-    newRy = normalizeAngle(newRy)
-
-    -- Find the shortest angle between the two directions
-    local diff = math.abs(newRy - oldRy)
-    if diff > math.pi then
-        diff = 2 * math.pi - diff
-    end
-
-    return diff
-end
-
---- Logs target acquisition with detailed information
---- @param targetPos table The target position
---- @param targetUnitID number|nil The target unit ID if targeting a unit
---- @param targetType number The target type (1 = unit, 2 = ground)
---- @param weaponNum number The weapon number used for targeting
-function FPSCombatMode.logTargetAcquisition(targetPos, targetUnitID, targetType, weaponNum)
-    if CONFIG.DEBUG.LOG_LEVEL == "INFO" then
-        return
-    end
-
-    if not targetPos then
-        return
-    end
-
-    -- Check if this is a new target
-    local isNewTarget = true
-    local isNewPosition = true
-
-    if STATE.mode.fps.lastTargetPos then
-        -- Check if position is significantly different (more than 5 units away)
-        local dx = targetPos.x - STATE.mode.fps.lastTargetPos.x
-        local dy = targetPos.y - STATE.mode.fps.lastTargetPos.y
-        local dz = targetPos.z - STATE.mode.fps.lastTargetPos.z
-        local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-
-        if distance < 5 then
-            isNewPosition = false
-        end
-
-        -- Also check if unit ID is the same (for unit targets)
-        if targetUnitID and targetUnitID == STATE.mode.fps.lastTargetUnitID then
-            isNewTarget = false
-        end
-    end
-
-    -- Only log if it's a new target or position
-    if isNewTarget or isNewPosition then
-        local targetInfo = ""
-
-        -- Add unit information if it's a unit target
-        if targetType == 1 and targetUnitID then
-            local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
-            local unitName = unitDef and unitDef.name or "Unnamed unit"
-            targetInfo = " (Unit: " .. unitName .. ", ID: " .. targetUnitID .. ")"
-            STATE.mode.fps.lastTargetUnitName = unitName
-            STATE.mode.fps.lastTargetUnitID = targetUnitID
-        else
-            targetInfo = " (Ground target)"
-        end
-
-        -- Format position
-        local posStr = string.format("x=%.1f, y=%.1f, z=%.1f",
-                targetPos.x, targetPos.y, targetPos.z)
-
-        -- Log the target acquisition
-        if isNewTarget then
-            Log.info("New target acquired" .. targetInfo .. " at " .. posStr ..
-                    " using weapon #" .. weaponNum)
-
-            -- Reset target history for new target
-            STATE.mode.fps.initialTargetAcquisitionTime = Spring.GetGameSeconds()
-            STATE.mode.fps.targetRotationHistory = {}
-        elseif isNewPosition then
-            Log.trace("Target moved to " .. posStr)
-        end
-    end
-
-    -- Always update the last target position
-    STATE.mode.fps.lastTargetPos = targetPos
-    STATE.mode.fps.lastTargetType = targetType
-end
-
---- Logs camera rotation changes when targeting
---- @param rx number New rotation X (pitch)
---- @param ry number New rotation Y (yaw)
---- @param rz number New rotation Z (roll)
-function FPSCombatMode.logRotationChange(rx, ry, rz)
-    if CONFIG.DEBUG.LOG_LEVEL == "INFO" then
-        return
-    end
-    -- Skip if we're not in attacking mode
-    if not STATE.mode.fps.isAttacking then
-        return
-    end
-
-    -- Calculate rotation change from last recorded values
-    local rotationDiff = FPSCombatMode.getRotationDifference(
-            STATE.mode.fps.lastRotationRy, ry)
-
-    -- Only log significant changes
-    if rotationDiff > STATE.mode.fps.rotationChangeThreshold then
-        -- Format angle in degrees for readability
-        local rotationDiffDeg = math.floor(rotationDiff * 180 / math.pi)
-
-        -- Add entry to rotation history
-        table.insert(STATE.mode.fps.targetRotationHistory, {
-            time = Spring.GetGameSeconds(),
-            diff = rotationDiff,
-            rx = rx,
-            ry = ry
-        })
-
-        -- Check if this is a very large sudden change (potential jump)
-        if rotationDiff > 0.5 then
-            -- ~28 degrees
-            Log.info("LARGE camera rotation: " .. rotationDiffDeg ..
-                    "° while tracking " ..
-                    (STATE.mode.fps.lastTargetUnitName or "target"))
-        else
-            Log.debug("Camera rotation: " .. rotationDiffDeg .. "°")
-        end
-    end
-
-    -- Update last rotation values
-    STATE.mode.fps.lastRotationRx = rx
-    STATE.mode.fps.lastRotationRy = ry
-end
 
 --- Cycles through unit's weapons
 function FPSCombatMode.nextWeapon()
@@ -648,7 +503,6 @@ function FPSCombatMode.setCombatMode(enable, unitID)
                 STATE.mode.fps.activeWeaponNum = weaponNum
             end
         end
-
         Log.info("Combat mode enabled")
     else
         -- Disable combat mode - immediately clear attacking state
@@ -656,13 +510,21 @@ function FPSCombatMode.setCombatMode(enable, unitID)
         STATE.mode.fps.isAttacking = false
         STATE.mode.fps.weaponPos = nil
         STATE.mode.fps.weaponDir = nil
-
         Log.info("Combat mode disabled")
     end
 
     -- Trigger a transition for smooth camera movement
-    STATE.mode.isModeTransitionInProgress = true
-    STATE.mode.transitionStartTime = Spring.GetTimer()
+    TransitionManager.start({
+        id = "FPSCombatMode.CombatToWeaponMode",
+        easingFn = CameraCommons.easeOut,
+        duration = 1.5,
+        onUpdate = function(_, easedProgress, _)
+            STATE.mode.fps.transitionFactor = CameraCommons.lerp(0.001, CONFIG.CAMERA_MODES.FPS.SMOOTHING.COMBAT.ROTATION_FACTOR, easedProgress)
+        end,
+        onComplete = function()
+            STATE.mode.fps.transitionFactor = nil
+        end
+    })
     return true
 end
 

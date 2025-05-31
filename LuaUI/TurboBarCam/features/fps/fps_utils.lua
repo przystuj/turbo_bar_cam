@@ -185,11 +185,6 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
         directionState.rx = constrainedPitch
     end
 
-    -- Log rotation changes when we have a valid direction state
-    if directionState then
-        FPSCombatMode.logRotationChange(directionState.rx, directionState.ry, directionState.rz)
-    end
-
     return directionState
 end
 
@@ -267,30 +262,22 @@ function FPSCameraUtils.handleNewTarget()
         return
     end
 
-    -- Calculate target distance
-    local dx = newTargetPos.x - previousTargetPos.x
-    local dy = newTargetPos.y - previousTargetPos.y
-    local dz = newTargetPos.z - previousTargetPos.z
-    local targetDistance = math.sqrt(dx * dx + dy * dy + dz * dz)
-
     -- Get current time
     local currentTime = Spring.GetTimer()
 
     -- Rate limiting criteria
     local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.mode.fps.lastTargetSwitchTime)
     local minTimeBetweenTransitions = STATE.mode.fps.isTargetSwitchTransition and 0.5 or 1.0  -- Shorter if already in transition
-    local distanceThreshold = 200  -- Only transition for targets over this distance
 
     -- Enhanced decision criteria:
     local isInTransition = STATE.mode.fps.isTargetSwitchTransition
-    local isDistanceSignificant = targetDistance > distanceThreshold
     local isTimeSufficientForNewTransition = timeSinceLastTransition > minTimeBetweenTransitions
 
     -- Skip transition if:
     -- 1. Already in transition, OR
     -- 2. Distance too small, OR
     -- 3. Last transition was too recent
-    if isInTransition or (not isDistanceSignificant) or (not isTimeSufficientForNewTransition) then
+    if isInTransition or (not isTimeSufficientForNewTransition) then
         -- Just update the previous target position without starting a new transition
         STATE.mode.fps.previousTargetPos = {
             x = newTargetPos.x,
@@ -299,20 +286,14 @@ function FPSCameraUtils.handleNewTarget()
         }
 
         -- Log why we're skipping (only if distance significant or debugging enabled)
-        if isDistanceSignificant or CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
+        if CONFIG.DEBUG.LOG_LEVEL == "DEBUG" then
             local reason = ""
             if isInTransition then
                 reason = "already in transition"
-            elseif not isDistanceSignificant then
-                reason = "distance too small"
             else
                 reason = "too soon after last transition"
             end
-
-            Log.debug(string.format("Target switch skipped (%s): distance=%.1f, time=%.1fs",
-                    reason, targetDistance, timeSinceLastTransition))
         end
-
         return
     end
 
@@ -348,17 +329,6 @@ function FPSCameraUtils.handleNewTarget()
     STATE.mode.fps.targetSwitchStartTime = currentTime
     STATE.mode.fps.lastTargetSwitchTime = currentTime
     STATE.mode.fps.transitionCounter = (STATE.mode.fps.transitionCounter or 0) + 1
-
-    -- Set shorter transition for smaller changes
-    if targetDistance > 400 then
-        STATE.mode.fps.targetSwitchDuration = 0.4
-    else
-        STATE.mode.fps.targetSwitchDuration = 0.3
-    end
-
-    -- Log transition start
-    Log.info(string.format("Target switch #%d: distance=%.1f units, starting transition",
-            STATE.mode.fps.transitionCounter, targetDistance))
 
     -- Signal rotation constraints to reset
     if STATE.mode.fps.targetSmoothing and STATE.mode.fps.targetSmoothing.rotationConstraint then
@@ -465,10 +435,9 @@ function FPSCameraUtils.updateFixedPointTarget()
 end
 
 --- Determines appropriate smoothing factors based on current state
----@param isTransitioning boolean Whether we're in a mode transition
 ---@param smoothType string Type of smoothing ('position', 'rotation', 'direction')
 ---@return number smoothingFactor The smoothing factor to use
-function FPSCameraUtils.getSmoothingFactor(smoothType)
+function FPSCameraUtils.getSmoothingFactor(smoothType, additionalFactor)
     -- Determine which mode we're in
     local smoothingMode
     if STATE.mode.fps.combatModeEnabled then
@@ -481,15 +450,17 @@ function FPSCameraUtils.getSmoothingFactor(smoothType)
         smoothingMode = "PEACE"
     end
 
+    local result = CONFIG.CAMERA_MODES.FPS.SMOOTHING.PEACE.POSITION_FACTOR
+
+    additionalFactor = additionalFactor or 1
     -- Get the appropriate smoothing factor based on mode and type
     if smoothType == 'position' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].POSITION_FACTOR
+        result = CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].POSITION_FACTOR
     elseif smoothType == 'rotation' then
-        return CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].ROTATION_FACTOR
+        result = CONFIG.CAMERA_MODES.FPS.SMOOTHING[smoothingMode].ROTATION_FACTOR
     end
 
-    -- Default fallback (should never happen)
-    return CONFIG.CAMERA_MODES.FPS.SMOOTHING.PEACE.POSITION_FACTOR
+    return STATE.mode.fps.transitionFactor or (result * additionalFactor)
 end
 
 local function getFPSParamPrefixes()

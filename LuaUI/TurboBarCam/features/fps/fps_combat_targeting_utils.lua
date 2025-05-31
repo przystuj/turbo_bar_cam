@@ -666,14 +666,6 @@ function FPSTargetingUtils.calculateCloudCenter()
         end
 
         state.cloudCenter = center
-
-        -- Log cloud updates periodically
-        if state.useCloudTargeting and state.lastCloudUpdateTime and
-                Spring.DiffTimers(currentTime, state.lastCloudUpdateTime) > 1.0 then
-            Log.debug(string.format("Target cloud: center=(%.1f, %.1f, %.1f), radius=%.1f",
-                    center.x, center.y, center.z, state.cloudRadius))
-            state.lastCloudUpdateTime = currentTime
-        end
     end
 end
 

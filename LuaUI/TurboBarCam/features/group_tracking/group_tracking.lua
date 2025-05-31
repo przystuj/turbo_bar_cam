@@ -6,6 +6,8 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 local TrackingUtils = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/group_tracking_utils.lua").TrackingUtils
 ---@type DBSCAN
 local DBSCAN = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/dbscan.lua").DBSCAN
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -442,7 +444,7 @@ function GroupTrackingCamera.initializeCameraPosition()
 
     -- Initialize tracking state with this position
 
-    ModeManager.updateTrackingState(camState)
+    CameraTracker.updateLastKnownCameraState(camState)
 
     -- Store the target height for smooth transition in the update function
     STATE.mode.group_tracking.targetHeight = targetHeight

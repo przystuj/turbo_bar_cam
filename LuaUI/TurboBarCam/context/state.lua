@@ -1,5 +1,6 @@
 if not WG.TurboBarCam.STATE then
     ---@class WidgetState
+    ---@field DEFAULT WidgetState
     WG.TurboBarCam.STATE = {
         -- Target types
         TARGET_TYPES = {
@@ -82,7 +83,9 @@ if not WG.TurboBarCam.STATE then
             },
 
             fps = {
-                isModeInitialized = false, -- For feature-led entry transition
+                isModeInitialized = false,
+                transitionFactor = nil,
+                entrySubmode = nil, -- Used to determine target view for entry transition (PEACE or COMBAT)
                 inTargetSelectionMode = false,
                 prevFreeCamState = false,
                 prevMode = nil,
@@ -130,12 +133,10 @@ if not WG.TurboBarCam.STATE then
                     cloudRadius = 0,
                     useCloudTargeting = false,
                     cloudStartTime = nil,
-                    lastCloudUpdateTime = nil,
                     highActivityDetected = false,
                     activityLevel = 0,
                     lastTargetSwitchTime = nil,
                     targetSwitchCount = 0,
-                    lastStatusLogTime = nil,
                     currentTargetKey = nil,
                     targetAimOffset = { x = 0, y = 0, z = 0 },
                     targetPrediction = {
@@ -293,3 +294,19 @@ if not WG.TurboBarCam.STATE then
         }
     }
 end
+
+local function deepCopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = deepCopy(orig_value)
+        end
+    else
+        copy = orig
+    end
+    return copy
+end
+
+WG.TurboBarCam.STATE.DEFAULT = WG.TurboBarCam.STATE.DEFAULT or deepCopy(WG.TurboBarCam.STATE)

@@ -2,6 +2,8 @@
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
 local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
+---@type TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -136,7 +138,7 @@ function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, pr
 end
 
 function CameraCommons.shouldUseSphericalInterpolation(currentPos, targetPos, center)
-    if STATE.mode.isModeTransitionInProgress then
+    if TransitionManager.isTransitioning() then
         return false
     end
 
@@ -175,6 +177,10 @@ end
 ---@return boolean hasCompleted True if transition is complete
 function CameraCommons.isTransitionComplete()
     return CameraCommons.getTransitionProgress() == 1
+end
+
+function CameraCommons.linear(t)
+    return t
 end
 
 function CameraCommons.easeIn(t)

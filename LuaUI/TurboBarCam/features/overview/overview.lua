@@ -12,6 +12,8 @@ local RotationUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/rotation_
 local MovementUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/movement_utils.lua").MovementUtils
 ---@type Scheduler
 local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
+---@type CameraTracker
+local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -142,7 +144,7 @@ local function completeTransition(finalCamState, userControllingView)
     -- STATE.mode.overview.targetCamPos = nil
 
     -- Update tracking state one last time with the final state using the manager's function
-    ModeManager.updateTrackingState(finalCamState)
+    CameraTracker.updateLastKnownCameraState(finalCamState)
 
     Log.trace("[DEBUG-ROTATION] Overview camera transition complete")
 end
@@ -195,7 +197,7 @@ local function handleModeTransition(camState, currentHeight, userControllingView
 
     -- Update tracking state with the state we just applied, so the next frame interpolates correctly
     -- Use the manager's function
-    ModeManager.updateTrackingState(camStatePatch)
+    CameraTracker.updateLastKnownCameraState(camStatePatch)
 
     -- Check if we should end the transition based on distance and progress
     local currentDistance = 0
@@ -257,7 +259,7 @@ local function updateRotationMode(currentHeight)
         Spring.SetCameraState(exactCamState, 0)
 
         -- Update tracking state
-        ModeManager.updateTrackingState(exactCamState)
+        CameraTracker.updateLastKnownCameraState(exactCamState)
 
         -- Update fixed camera position to match exact position
         STATE.mode.overview.fixedCamPos = {
@@ -326,7 +328,7 @@ local function updateRotationMode(currentHeight)
         Spring.SetCameraState(camStatePatch, 0)
 
         -- Update tracking state
-        ModeManager.updateTrackingState(camStatePatch)
+        CameraTracker.updateLastKnownCameraState(camStatePatch)
 
         -- Clear the first frame flag
         STATE.mode.overview.firstRotationFrame = nil
@@ -371,7 +373,7 @@ local function updateRotationMode(currentHeight)
     Spring.SetCameraState(camStatePatch, 0)
 
     -- Update tracking state AFTER applying (important order!)
-    ModeManager.updateTrackingState(camStatePatch)
+    CameraTracker.updateLastKnownCameraState(camStatePatch)
 end
 
 -- Update camera in normal overview mode (Assumed mostly correct, ensure it uses currentHeight)
@@ -422,7 +424,7 @@ local function updateNormalMode(camState, currentHeight)
     }
 
     -- Update tracking state using the manager's function
-    ModeManager.updateTrackingState(camStatePatch)
+    CameraTracker.updateLastKnownCameraState(camStatePatch)
 
     -- Apply camera state
     Spring.SetCameraState(camStatePatch, 0)
@@ -489,7 +491,7 @@ function TurboOverviewCamera.update()
     if STATE.mode.lastCamPos.x == 0 and STATE.mode.lastCamPos.y == 0 and STATE.mode.lastCamPos.z == 0 then
         Log.trace("First update: Initializing tracking state and fixed position.")
         -- Use the manager's function to initialize tracking state fully
-        ModeManager.updateTrackingState(camState)
+        CameraTracker.updateLastKnownCameraState(camState)
         -- Initialize fixed camera position from current state
         STATE.mode.overview.fixedCamPos = { x = camState.px, z = camState.pz }
         -- Ensure target rotations match current state initially
@@ -637,7 +639,7 @@ function TurboOverviewCamera.toggle()
     Log.trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
 
     -- Use manager's function to initialize tracking state for the transition
-    ModeManager.updateTrackingState(currentCamState)
+    CameraTracker.updateLastKnownCameraState(currentCamState)
 
     TurboOverviewCamera.registerMouseHandlers()
     ModeManager.startModeTransition('overview')
