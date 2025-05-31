@@ -1,7 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 
 local STATE = WidgetContext.STATE
 
@@ -143,6 +143,4 @@ function TransitionManager.update(dt_real)
     end
 end
 
-return {
-    TransitionManager = TransitionManager
-}
+return TransitionManager

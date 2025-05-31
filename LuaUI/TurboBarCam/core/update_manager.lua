@@ -13,15 +13,15 @@ local CameraCommons = CommonModules.CameraCommons
 local ModeManager = CommonModules.ModeManager
 
 ---@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
+local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
 ---@type Scheduler
-local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
+local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
 ---@type VelocityTracker
 local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
 ---@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -176,6 +176,4 @@ function UpdateManager.reload()
     STATE.reloadFeatures = true
 end
 
-return {
-    UpdateManager = UpdateManager
-}
+return UpdateManager

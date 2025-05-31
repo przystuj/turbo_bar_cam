@@ -1,7 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

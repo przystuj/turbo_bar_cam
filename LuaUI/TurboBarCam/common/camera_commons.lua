@@ -1,7 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -459,6 +459,4 @@ function CameraCommons.getDirectionFromRotation(rx, ry, rz)
     return CameraCommons.normalizeVector({ x = dx, y = dy, z = dz })
 end
 
-return {
-    CameraCommons = CameraCommons
-}
+return CameraCommons

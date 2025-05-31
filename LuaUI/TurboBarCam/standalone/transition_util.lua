@@ -1,9 +1,9 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 ---@type VelocityTracker
 local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
 

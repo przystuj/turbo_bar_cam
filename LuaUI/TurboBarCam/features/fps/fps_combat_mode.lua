@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Scheduler
-local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua").Scheduler
+local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG

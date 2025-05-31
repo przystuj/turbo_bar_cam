@@ -119,6 +119,4 @@ function Log.formatCamState(camState)
     return nil
 end
 
-return {
-    Log = Log
-}
+return Log

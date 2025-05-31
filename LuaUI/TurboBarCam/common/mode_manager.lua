@@ -1,13 +1,13 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 ---@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
+local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
 ---@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE
@@ -202,6 +202,4 @@ function ModeManager.disableMode()
     Log.trace("ModeManager: Mode " .. (previousModeName or "None") .. " disabled.")
 end
 
-return {
-    ModeManager = ModeManager
-}
+return ModeManager

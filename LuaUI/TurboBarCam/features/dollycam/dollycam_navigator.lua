@@ -1,13 +1,13 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 ---@type DollyCamPathPlanner
 local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
 ---@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
 ---@type ModeManager
-local ModeManager = VFS.Include("LuaUI/TurboBarCam/common/mode_manager.lua").ModeManager
+local ModeManager = VFS.Include("LuaUI/TurboBarCam/common/mode_manager.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

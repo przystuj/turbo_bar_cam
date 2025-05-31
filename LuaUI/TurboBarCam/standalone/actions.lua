@@ -33,35 +33,35 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
-                CoreModules.WidgetControl.toggle()
+                CoreModules.WidgetManager.toggle()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_debug", 'tp',
             function()
-                return CoreModules.WidgetControl.toggleDebug()
+                return CoreModules.WidgetManager.toggleDebug()
             end)
 
     Actions.registerAction("turbobarcam_toggle_playercam_selection", 'tp',
             function()
-                return CoreModules.WidgetControl.toggleLockUnitSelection()
+                return CoreModules.WidgetManager.toggleLockUnitSelection()
             end)
 
     Actions.registerAction("turbobarcam_toggle_zoom", 'p',
             function()
-                CoreModules.WidgetControl.toggleZoom()
+                CoreModules.WidgetManager.toggleZoom()
                 return true
             end)
 
     Actions.registerAction("turbobarcam_set_fov", 'tp',
             function(_, param)
-                CoreModules.WidgetControl.setFov(param)
+                CoreModules.WidgetManager.setFov(param)
                 return true
             end)
 
     Actions.registerAction("turbobarcam_toggle_require_unit_selection", 'tp',
             function()
-                CoreModules.WidgetControl.toggleRequireUnitSelection()
+                CoreModules.WidgetManager.toggleRequireUnitSelection()
                 return true
             end)
 
@@ -73,7 +73,7 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_dev_config", 't',
             function(_, params, args)
-                CoreModules.WidgetControl.changeConfig(args[1], args[2])
+                CoreModules.WidgetManager.changeConfig(args[1], args[2])
                 return false
             end)
 end
@@ -376,6 +376,4 @@ function Actions.registerAction(actionName, flags, handler)
     w.widgetHandler.actionHandler:AddAction(w, actionName, handler, nil, flags)
 end
 
-return {
-    Actions = Actions
-}
+return Actions

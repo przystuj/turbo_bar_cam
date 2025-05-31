@@ -5,7 +5,7 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type FPSCamera
 local FPSCamera = VFS.Include("LuaUI/TurboBarCam/features/fps/fps.lua").FPSCamera
 ---@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/settings/settings_manager.lua").SettingsManager
+local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
 
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
@@ -70,6 +70,4 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
     end
 end
 
-return {
-    SelectionManager = SelectionManager
-}
+return SelectionManager

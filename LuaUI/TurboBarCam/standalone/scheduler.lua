@@ -119,8 +119,4 @@ function Scheduler.handleSchedules()
     end
 end
 
-
-
-return {
-    Scheduler = Scheduler
-}
+return Scheduler

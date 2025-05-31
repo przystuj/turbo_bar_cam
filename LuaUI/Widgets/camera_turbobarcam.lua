@@ -23,7 +23,7 @@ local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type Actions
-local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua").Actions
+local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua")
 ---@type ProjectileTracker
 local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
 
@@ -32,7 +32,7 @@ local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
 local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
-local WidgetControl = CoreModules.WidgetControl
+local WidgetManager = CoreModules.WidgetManager
 local FPSCamera = FeatureModules.FPSCamera
 local UpdateManager = CoreModules.UpdateManager
 local SelectionManager = CoreModules.SelectionManager
@@ -89,7 +89,7 @@ end
 function widget:Shutdown()
     -- Make sure we clean up
     if STATE.enabled then
-        WidgetControl.disable()
+        WidgetManager.disable()
     end
     WG.TurboBarCam = nil
     -- refresh units command bar to remove custom command

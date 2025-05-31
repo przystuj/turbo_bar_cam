@@ -11,7 +11,7 @@ local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util
 ---@type ProjectileCameraUtils
 local ProjectileCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_utils.lua")
 ---@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

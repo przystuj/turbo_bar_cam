@@ -7,7 +7,7 @@ local OrbitCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_uti
 ---@type OrbitPersistence
 local OrbitPersistence = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_persistence.lua").OrbitPersistence
 ---@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/standalone/transition_manager.lua").TransitionManager
+local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
 
 local CONFIG = WidgetContext.CONFIG
 local STATE = WidgetContext.STATE

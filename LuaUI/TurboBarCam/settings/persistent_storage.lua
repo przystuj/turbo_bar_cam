@@ -1,5 +1,5 @@
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 
 ---@class PersistentStorage
 local PersistentStorage = {}

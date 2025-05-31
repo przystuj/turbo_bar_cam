@@ -3,7 +3,7 @@ local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type CommonModules
 local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type CameraQuickControls
-local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua").CameraQuickControls
+local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua")
 
 local STATE = WidgetContext.STATE
 local CONFIG = WidgetContext.CONFIG
@@ -12,11 +12,11 @@ local Log = CommonModules.Log
 local CameraCommons = CommonModules.CameraCommons
 local ModeManager = CommonModules.ModeManager
 
----@class WidgetControl
-local WidgetControl = {}
+---@class WidgetManager
+local WidgetManager = {}
 
 --- Enables the widget
-function WidgetControl.enable()
+function WidgetManager.enable()
     if STATE.enabled then
         Log.trace("Already enabled")
         return
@@ -29,13 +29,13 @@ function WidgetControl.enable()
     -- Set required configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
     STATE.enabled = true
-    WidgetControl.switchToFpsCamera()
+    WidgetManager.switchToFpsCamera()
     CameraQuickControls.initialize()
     Log.debug("Enabled")
 end
 
 --- Disables the widget
-function WidgetControl.disable()
+function WidgetManager.disable()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -61,11 +61,11 @@ end
 
 --- Toggles the widget state
 ---@return boolean success Always returns true
-function WidgetControl.toggle()
+function WidgetManager.toggle()
     if STATE.enabled then
-        WidgetControl.disable()
+        WidgetManager.disable()
     else
-        WidgetControl.enable()
+        WidgetManager.enable()
     end
     return true
 end
@@ -81,7 +81,7 @@ end
 --- 2. Calculates position based on current Spring camera parameters
 --- Special handling:
 --- First flips the Spring camera downward briefly to prevent visual glitches
-function WidgetControl.switchToFpsCamera()
+function WidgetManager.switchToFpsCamera()
     local selectedUnits = Spring.GetSelectedUnits()
 
     if #selectedUnits > 0 then
@@ -93,7 +93,7 @@ function WidgetControl.switchToFpsCamera()
     Spring.SetCameraState({ fov = 45 }, 1)
 end
 
-function WidgetControl.toggleDebug()
+function WidgetManager.toggleDebug()
     local logLevelCycle = {
         INFO = "DEBUG",
         DEBUG = "TRACE",
@@ -107,7 +107,7 @@ end
 
 --- When spectating with Player Camera it mimics unit selection of the player
 --- When this is set to true then that behaviour is disabled
-function WidgetControl.toggleLockUnitSelection()
+function WidgetManager.toggleLockUnitSelection()
     STATE.allowPlayerCamUnitSelection = not STATE.allowPlayerCamUnitSelection
     Log.info("Unit selection is " .. (STATE.allowPlayerCamUnitSelection and "unlocked" or "locked"))
     return true
@@ -115,7 +115,7 @@ end
 
 --- By default when you track unit and you don't have anything selected then tracking is disabled after 1s
 --- This allows you to track units and then deselect it
-function WidgetControl.toggleRequireUnitSelection()
+function WidgetManager.toggleRequireUnitSelection()
     CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION = not CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION
     Log.info("Tracking without selected unit is " .. (CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION and "enabled" or "disabled"))
     return true
@@ -125,7 +125,7 @@ end
 -- If the path doesn't exist, it creates the necessary nested tables.
 -- @param path The string path (e.g., "CAMERA_MODES.FPS.OFFSETS.UP").
 -- @param value The value to set at the specified path.
-function WidgetControl.changeConfig(path, value)
+function WidgetManager.changeConfig(path, value)
     local segments = Util.splitPath(path)
     local currentTable = CONFIG
     local segmentCount = #segments
@@ -154,7 +154,7 @@ function WidgetControl.changeConfig(path, value)
     end
 end
 
-function WidgetControl.toggleZoom()
+function WidgetManager.toggleZoom()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -164,7 +164,7 @@ function WidgetControl.toggleZoom()
     Spring.SetCameraState({fov = fov}, 1)
 end
 
-function WidgetControl.setFov(fov)
+function WidgetManager.setFov(fov)
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -175,6 +175,4 @@ function WidgetControl.setFov(fov)
     Spring.SetCameraState({fov = fov}, 1)
 end
 
-return {
-    WidgetControl = WidgetControl
-}
+return WidgetManager

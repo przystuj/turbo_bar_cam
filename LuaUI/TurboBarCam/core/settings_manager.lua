@@ -1,7 +1,7 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 ---@type PersistentStorage
 local PersistentStorage = VFS.Include("LuaUI/TurboBarCam/settings/persistent_storage.lua")
 
@@ -219,6 +219,4 @@ function SettingsManager.loadUserSetting(name, id)
     return STATE.settings.storages[name]:get(id)
 end
 
-return {
-    SettingsManager = SettingsManager
-}
+return SettingsManager

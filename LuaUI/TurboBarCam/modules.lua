@@ -2,7 +2,7 @@
 -- This file centralizes all type annotations for easier imports
 
 ---@class CoreModules
----@field WidgetControl WidgetControl
+---@field WidgetManager WidgetManager
 ---@field UpdateManager UpdateManager
 ---@field SelectionManager SelectionManager
 

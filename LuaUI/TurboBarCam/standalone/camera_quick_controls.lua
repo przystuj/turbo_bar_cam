@@ -5,7 +5,7 @@ local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
 ---@type FeatureModules
 local Features = VFS.Include("LuaUI/TurboBarCam/features.lua")
 ---@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua").MouseManager
+local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
 
 local STATE = WidgetContext.STATE
 local Util = CommonModules.Util
@@ -33,6 +33,4 @@ function CameraQuickControls.initialize()
     Log.info("Camera quick controls initialized")
 end
 
-return {
-    CameraQuickControls = CameraQuickControls
-}
+return CameraQuickControls

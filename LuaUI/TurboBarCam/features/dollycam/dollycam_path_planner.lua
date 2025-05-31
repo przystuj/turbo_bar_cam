@@ -1,11 +1,11 @@
 ---@type WidgetContext
 local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
 ---@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua").Log
+local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
 ---@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua").CameraCommons
+local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
 ---@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua").Util
+local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
 
 local STATE = WidgetContext.STATE
 

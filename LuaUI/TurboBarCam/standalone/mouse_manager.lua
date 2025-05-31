@@ -210,6 +210,4 @@ MouseManager.onMouseMove = function(modeName, callback)
     registerCallback("onMouseMove", modeName, callback)
 end
 
-return {
-    MouseManager = MouseManager
-}
+return MouseManager
