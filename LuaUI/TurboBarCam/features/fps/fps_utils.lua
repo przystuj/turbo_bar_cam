@@ -172,7 +172,7 @@ function FPSCameraUtils.createTargetingDirectionState(unitID, targetPos, weaponN
     local camPos = FPSCombatMode.getCameraPositionForActiveWeapon(unitID, FPSCameraUtils.applyFPSOffsets)
 
     -- Create focusing direction to look at target
-    local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor, 1.8)
+    local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
 
     -- Apply rotation constraints to prevent too rapid rotation
     if directionState and STATE.mode.fps.isAttacking then

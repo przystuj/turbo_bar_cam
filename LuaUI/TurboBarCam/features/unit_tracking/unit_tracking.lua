@@ -117,11 +117,10 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
             local posStateForRotation
 
             if isTargetedTransition then
-                local factor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR)
-
-                camStatePatch.px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamState.px, easedProgress)
-                camStatePatch.py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamState.py, easedProgress)
-                camStatePatch.pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamState.pz, easedProgress)
+                local factor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR, easedProgress)
+                camStatePatch.px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamState.px, factor)
+                camStatePatch.py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamState.py, factor)
+                camStatePatch.pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamState.pz, factor)
                 posStateForRotation = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
             else
                 -- Deceleration transition

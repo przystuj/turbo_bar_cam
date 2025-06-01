@@ -184,8 +184,7 @@ function FPSCamera.getCameraDirection(cameraPosition, additionalFactor)
                 cameraPosition,
                 STATE.mode.fps.fixedPoint,
                 rotFactor,
-                rotFactor,
-                1.8
+                rotFactor
         )
     elseif STATE.mode.fps.isFreeCameraActive then
         local rotation = FreeCam.updateMouseRotation(rotFactor)

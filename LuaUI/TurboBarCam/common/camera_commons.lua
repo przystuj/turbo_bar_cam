@@ -220,9 +220,9 @@ end
 ---@param posFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
-function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor, pitchModifier)
+function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
     -- Calculate look direction to the target point
-    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos, pitchModifier)
+    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
@@ -245,33 +245,65 @@ function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor, pit
     return cameraDirectionState
 end
 
---- Calculates camera direction and rotation to look at a point
----@param camPos table Camera position {x, y, z}
----@param targetPos table Target position {x, y, z}
----@return table direction and rotation values
-function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos, pitchModifier)
-    -- 1.65 looks at target. 1.8 above target
-    pitchModifier = pitchModifier or 1.65
+--- Calculates camera direction vector and rotation angles to look from camPos to targetPos.
+--- Uses engine conventions for pitch and yaw.
+---
+---@param camPos table Camera position {x, y, z} or {px, py, pz}.
+---@param targetPos table Target position {x, y, z}.
+---@return table A table containing:
+---             dx (number): X component of the normalized direction vector.
+---             dy (number): Y component of the normalized direction vector.
+---             dz (number): Z component of the normalized direction vector.
+---             rx (number): Pitch angle in radians (angle from +Y axis, range [0, PI]).
+---             ry (number): Yaw angle in radians (angle in XZ plane, 0 towards -Z, range [-PI, PI]).
+---             rz (number): Roll angle in radians (always 0).
+function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
+    local cX = camPos.x or camPos.px
+    local cY = camPos.y or camPos.py
+    local cZ = camPos.z or camPos.pz
 
-    -- Calculate direction vector from camera to target
-    local dirX = targetPos.x - (camPos.x or camPos.px)
-    local dirY = targetPos.y - (camPos.y or camPos.py)
-    local dirZ = targetPos.z - (camPos.z or camPos.pz)
+    local dirX = targetPos.x - cX
+    local dirY = targetPos.y - cY
+    local dirZ = targetPos.z - cZ
 
-    -- Normalize the direction vector
     local length = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
-    if length > 0 then
-        dirX = dirX / length
-        dirY = dirY / length
-        dirZ = dirZ / length
+
+    if length < 0.00001 then -- Use a small epsilon for floating point comparison
+        -- Camera is at the target, direction is undefined.
+        -- Fallback to a default direction (looking along -Z axis in world space)
+        -- and calculate consistent rotation for it based on engine math.
+        -- For dir = {0,0,-1}:
+        -- rx (pitch) = acos(dirY) = acos(0) = PI/2
+        -- ry (yaw)   = atan2(dirX, -dirZ) = atan2(0, -(-1)) = atan2(0,1) = 0
+        return {
+            dx = 0,
+            dy = 0,
+            dz = -1,          -- Default direction
+            rx = math.pi / 2, -- Pitch for this direction
+            ry = 0,           -- Yaw for this direction
+            rz = 0            -- Roll is typically 0
+        }
     end
 
-    -- Calculate appropriate rotation for FPS camera
-    local ry = -math.atan2(dirX, dirZ) - math.pi
+    -- Normalize the direction vector
+    dirX = dirX / length
+    dirY = dirY / length
+    dirZ = dirZ / length
 
-    -- Calculate pitch (rx)
-    local horizontalLength = math.sqrt(dirX * dirX + dirZ * dirZ)
-    local rx = -((math.atan2(dirY, horizontalLength) - math.pi) / pitchModifier)
+    -- Calculate rotation angles based on CCamera::GetRotFromDir(fwd)
+    -- where fwd = {dirX, dirY, dirZ}:
+    -- r.x = math::acos(fwd.y);          (Pitch)
+    -- r.y = math::atan2(fwd.x, -fwd.z); (Yaw)
+
+    local rx = math.acos(dirY) -- Pitch: angle from positive Y-axis. Range [0, PI].
+    -- Clamping dirY to [-1, 1] for acos robustness if needed,
+    -- but normalized dirY should already be in this range.
+    -- rx = math.acos(math.max(-1.0, math.min(1.0, dirY)))
+
+
+    local ry = math.atan2(dirX, -dirZ) -- Yaw: angle in XZ plane.
+    -- 0 means horizontal component is along -Z.
+    -- Range [-PI, PI].
 
     return {
         dx = dirX,
@@ -427,33 +459,38 @@ function CameraCommons.getDefaultUnitView(x, z)
 end
 
 --- Converts rotation angles (pitch, yaw) into a normalized direction vector.
---- Assumes FPS-style camera where roll (rz) is ignored for direction.
----@param rx number Pitch angle (rotation around X-axis) in radians.
----@param ry number Yaw angle (rotation around Y-axis) in radians.
----@param rz number|nil Roll angle (optional, currently ignored).
----@return table Direction vector {x, y, z}.
+--- The engine's convention is used:
+--- Pitch is the angle from the positive Y-axis.
+--- Yaw is the angle in the XZ plane, measured from the -Z axis towards the +X axis.
+--- Roll (rz) is ignored for calculating the forward direction vector.
+---
+---@param rx number Pitch angle in radians.
+---                 0 looks along +Y (up), PI/2 is horizontal, PI looks along -Y (down).
+---@param ry number Yaw angle in radians.
+---                 0 means the horizontal component of direction is along -Z.
+---                 PI/2 means the horizontal component of direction is along +X.
+---@param rz number|nil Roll angle in radians (optional, ignored for the forward vector).
+---@return table Direction vector {x, y, z}, normalized.
 function CameraCommons.getDirectionFromRotation(rx, ry, rz)
-    -- Ensure we have valid angles, default to 0 if nil
+    -- Default angles to 0 if nil, matching original behavior.
     rx = rx or 0
     ry = ry or 0
-    -- rz = rz or 0 -- We ignore roll (rz) for the direction vector itself.
+    -- rz is passed but not used in the C++ GetFwdFromRot for the forward vector calculation.
 
-    local cos_rx = math.cos(rx)
     local sin_rx = math.sin(rx)
-    local cos_ry = math.cos(ry)
+    local cos_rx = math.cos(rx)
     local sin_ry = math.sin(ry)
+    local cos_ry = math.cos(ry)
 
-    -- Calculate direction based on standard Euler-to-Vector conversion (Y-up)
-    -- Note: The exact formula can depend on the engine's coordinate system
-    -- and how ry=0 and rx=0 is defined. This assumes ry=0 looks down -Z.
-    -- If your camera looks down +Z or +X at ry=0, these might need swapping/negating.
-    -- This matches the 'dx = sin(ry)*cos(rx)', 'dy = -sin(rx)', 'dz = -cos(ry)*cos(rx)' pattern
-    local dx = cos_rx * sin_ry
-    local dy = -sin_rx
-    local dz = -cos_rx * cos_ry
+    -- This calculation matches CCamera::GetFwdFromRot(const float3& r)
+    -- where r.x is pitch and r.y is yaw:
+    -- fwd.x = std::sin(r.x) * std::sin(r.y);
+    -- fwd.y = std::cos(r.x);
+    -- fwd.z = std::sin(r.x) * (-std::cos(r.y));
+    local dx = sin_rx * sin_ry
+    local dy = cos_rx
+    local dz = -sin_rx * cos_ry
 
-    -- The result should inherently be normalized if rx/ry are standard,
-    -- but normalizing here ensures it.
     return CameraCommons.normalizeVector({ x = dx, y = dy, z = dz })
 end
 
