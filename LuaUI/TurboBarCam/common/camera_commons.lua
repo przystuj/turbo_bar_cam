@@ -192,6 +192,22 @@ function CameraCommons.easeInOut(t)
     end
 end
 
+function CameraCommons.dipAndReturn(t, dipTarget)
+    if t < 0.5 then
+        -- Animate from 1.0 down to dipTarget
+        -- Normalize t for the first half: [0, 0.5) -> [0, 1.0)
+        local normalizedT = t * 2
+        local easedT = CameraCommons.easeInOut(normalizedT)
+        return 1.0 - (1.0 - dipTarget) * easedT
+    else
+        -- Animate from dipTarget back up to 1.0
+        -- Normalize t for the second half: [0.5, 1.0] -> [0, 1.0]
+        local normalizedT = (t - 0.5) * 2
+        local easedT = CameraCommons.easeInOut(normalizedT)
+        return dipTarget + (1.0 - dipTarget) * easedT
+    end
+end
+
 --- @deprecated
 --- Adjusts smoothing factors based on the current mode transition progress.
 --- Reads progress from STATE.mode.transitionProgress.
@@ -214,32 +230,43 @@ function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotS
     return posSmoothFactor, rotSmoothFactor
 end
 
---- Focuses camera on a point with appropriate smoothing
----@param camPos table Camera position {x, y, z}
----@param targetPos table Target position {x, y, z}
----@param posFactor number Direction smoothing factor
----@param rotFactor number Rotation smoothing factor
----@return table cameraDirectionState Camera direction and rotation state
+--- Focuses camera on a point with appropriate smoothing.
+--- The camera's actual position for the current frame is first calculated by lerping from its previous position.
+--- Then, the look direction is determined from this new actual position towards the target point.
+--- Finally, the camera's orientation is lerped towards this calculated look direction.
+---@param camPos table The target/ideal camera position {x, y, z} for this frame (e.g., after rampUpFactor).
+---@param targetPos table The target look-at position {x, y, z}.
+---@param posFactor number Smoothing factor for camera position interpolation.
+---@param rotFactor number Smoothing factor for camera orientation (direction and rotation) interpolation.
+---@return table cameraDirectionState The new camera state {px,py,pz, dx,dy,dz, rx,ry,rz}.
 function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
-    -- Calculate look direction to the target point
-    local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
+    -- Calculate the camera's actual position for this frame by interpolating from the last known position.
+    local currentFrameActualPx = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor)
+    local currentFrameActualPy = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor)
+    local currentFrameActualPz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor)
 
-    -- Create camera direction state with smoothed values
+    -- Define the point from which the camera will be looking in this frame.
+    local lookFromPos = { x = currentFrameActualPx, y = currentFrameActualPy, z = currentFrameActualPz }
+
+    -- Calculate the ideal look direction and rotation from the camera's actual position for this frame to the target point.
+    local lookDirFromActualPos = CameraCommons.calculateCameraDirectionToThePoint(lookFromPos, targetPos)
+
+    -- Construct the new camera state.
     local cameraDirectionState = {
-        -- Smooth camera position
-        px = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor),
-        py = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor),
-        pz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor),
+        -- Set the camera's actual position for this frame.
+        px = currentFrameActualPx,
+        py = currentFrameActualPy,
+        pz = currentFrameActualPz,
 
-        -- Smooth direction vector
-        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, lookDir.dx, posFactor),
-        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, lookDir.dy, posFactor),
-        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, lookDir.dz, posFactor),
+        -- Smooth the direction vector towards the look direction calculated from the actual current position.
+        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, lookDirFromActualPos.dx, rotFactor),
+        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, lookDirFromActualPos.dy, rotFactor),
+        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, lookDirFromActualPos.dz, rotFactor),
 
-        -- Smooth rotations
-        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, lookDir.ry, rotFactor),
-        rz = 0
+        -- Smooth the rotation angles towards those derived from the look direction calculated from the actual current position.
+        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, lookDirFromActualPos.rx, rotFactor),
+        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, lookDirFromActualPos.ry, rotFactor),
+        rz = 0 -- Assuming roll is always 0 for this camera mode.
     }
 
     return cameraDirectionState

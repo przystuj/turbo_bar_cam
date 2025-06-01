@@ -176,6 +176,7 @@ if not WG.TurboBarCam.STATE then
                 initialImpactRotVelocity = nil,
                 isHighArc = false,
                 highArcGoingUpward = false,
+                highArcDirectionChangeCompleted = false,
                 transitionFactor = nil,
                 rampUpFactor = 1, -- for gradual approaching set camera distance
 

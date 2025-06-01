@@ -44,34 +44,17 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     local camX, camY, camZ
 
     if STATE.mode.projectile_camera.isHighArc then
-        -- Calculate horizontal direction
-        local projectileDirXZ = { x = projectileDir.x, y = 0, z = projectileDir.z }
-        local magXZ = CameraCommons.vectorMagnitude(projectileDirXZ)
-
-        if magXZ < 0.05 then
-            -- Projectile is moving (almost) vertically.
-            -- Pull back opposite to the camera's current XZ direction.
-            local awayDirXZ
-            if STATE.mode.lastCamDir and (STATE.mode.lastCamDir.x ~= 0 or STATE.mode.lastCamDir.z ~= 0) then
-                -- Use inverted XZ component of camera's forward vector.
-                awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.mode.lastCamDir.x, y = 0, z = -STATE.mode.lastCamDir.z })
-            else
-                awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
-            end
-            -- Apply distance along 'awayDirXZ' and height along World Y
-            camX = pPos.x + awayDirXZ.x * distance
-            camZ = pPos.z + awayDirXZ.z * distance
-            camY = pPos.y + height
-            STATE.mode.projectile_camera.highArcGoingUpward = true
+        local awayDirXZ
+        if STATE.mode.lastCamDir and (STATE.mode.lastCamDir.x ~= 0 or STATE.mode.lastCamDir.z ~= 0) then
+            -- Use inverted XZ component of camera's forward vector.
+            awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.mode.lastCamDir.x, y = 0, z = -STATE.mode.lastCamDir.z })
         else
-            -- Projectile has horizontal movement. Pull back opposite to it.
-            projectileDirXZ = CameraCommons.normalizeVector(projectileDirXZ)
-            -- Apply distance opposite to 'projectileDirXZ' and height along World Y
-            camX = pPos.x - projectileDirXZ.x * distance
-            camZ = pPos.z - projectileDirXZ.z * distance
-            camY = pPos.y + height
-            STATE.mode.projectile_camera.highArcGoingUpward = false
+            awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
         end
+        -- Apply distance along 'awayDirXZ' and height along World Y
+        camX = pPos.x + awayDirXZ.x * distance
+        camZ = pPos.z + awayDirXZ.z * distance
+        camY = pPos.y + height
     else
         local worldUp = { x = 0, y = 1, z = 0 }
         local right = CameraCommons.crossProduct(projectileDir, worldUp)

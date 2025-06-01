@@ -191,11 +191,9 @@ if not WG.TurboBarCam.CONFIG then
                 IMPACT_TIMEOUT = 0, -- Time to stay on impact after deceleration
 
                 ENTRY_TRANSITION_DURATION = 1,
-                ENTRY_TRANSITION_FACTOR = 0.005,
 
-                DIRECTION_TRANSITION_DURATION = 3,
-                DIRECTION_TRANSITION_THRESHOLD = 1.5,
-                DIRECTION_TRANSITION_FACTOR = 0.01,
+                DIRECTION_TRANSITION_DURATION = 5,
+                DIRECTION_TRANSITION_THRESHOLD = 0.0003,
 
                 SMOOTHING_FACTOR = 0.05,
 

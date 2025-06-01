@@ -132,9 +132,9 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     STATE.mode.projectile_camera.initialImpactVelocity = nil
     STATE.mode.projectile_camera.initialImpactRotVelocity = nil
     STATE.mode.projectile_camera.isHighArc = false
+    STATE.mode.projectile_camera.highArcDirectionChangeCompleted = false
 
     TransitionManager.cancelPrefix(PROJECTILE_CAMERA_TRANSITION_PREFIX)
-    STATE.mode.projectile_camera.transitionFactor = nil
 
     if STATE.mode.projectile_camera.projectile then
         STATE.mode.projectile_camera.projectile.selectedProjectileID = nil
@@ -143,6 +143,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     end
 
     ProjectileTracker.initUnitTracking(unitID)
+    Log.debug("Projectile tracking enabled in mode = " .. subMode)
     return true
 end
 
@@ -170,6 +171,7 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
             STATE.mode.projectile_camera.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
         end
     end
+    Log.debug("Projectile tracking switched to " .. newSubMode)
     ProjectileCameraUtils.resetSmoothedPositions()
     return true
 end
@@ -327,33 +329,35 @@ end
 
 ---@param currentProjectile Projectile
 function ProjectileCamera.trackActiveProjectile(currentProjectile)
-    if STATE.mode.projectile_camera.isHighArc and not TransitionManager.isTransitioning(HIGH_ARC_DIRECTION_TRANSITION_ID) then
-        ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
-    end
-
     if not STATE.mode.projectile_camera.isModeInitialized and not TransitionManager.isTransitioning(MODE_ENTRY_TRANSITION_ID) then
         ProjectileCamera.startModeTransition(currentProjectile)
         return
     end
 
-    if TransitionManager.isTransitioning(MODE_ENTRY_TRANSITION_ID) then
+    if STATE.mode.projectile_camera.isHighArc and not TransitionManager.isTransitioning(HIGH_ARC_DIRECTION_TRANSITION_ID) then
+        ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
+    end
+
+    if TransitionManager.isTransitioning(MODE_ENTRY_TRANSITION_ID) or TransitionManager.isTransitioning(HIGH_ARC_DIRECTION_TRANSITION_ID) then
         return
     end
 
     ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
 end
 
-function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
+function ProjectileCamera.updateCameraStateForProjectile(currentProjectile, posFactorMultiplier, rotFactorMultiplier)
+    posFactorMultiplier = posFactorMultiplier or 1
+    rotFactorMultiplier = rotFactorMultiplier or 1
     local projectilePos = currentProjectile.position
     local projectileVelocity = currentProjectile.velocity
     local camPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVelocity, STATE.mode.projectile_camera.cameraMode, STATE.mode.projectile_camera.isHighArc)
     local targetPos = ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVelocity)
 
-    local smoothingFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING_FACTOR
-    -- STATE.mode.projectile_camera.transitionFactor can be set by transitions
-    smoothingFactor = STATE.mode.projectile_camera.transitionFactor or smoothingFactor
+    local defaultFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING_FACTOR
+    local posFactor = defaultFactor * posFactorMultiplier
+    local rotFactor = defaultFactor * rotFactorMultiplier
 
-    local finalState = CameraCommons.focusOnPoint(camPos, targetPos, smoothingFactor, smoothingFactor)
+    local finalState = CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
 
     CameraTracker.updateLastKnownCameraState(finalState)
     Spring.SetCameraState(finalState, 0)
@@ -361,23 +365,23 @@ end
 
 function ProjectileCamera.startModeTransition(currentProjectile)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local transitionFactor = cfg.ENTRY_TRANSITION_FACTOR
     local transitionDuration = cfg.ENTRY_TRANSITION_DURATION
-    local finalFactor = cfg.SMOOTHING_FACTOR
     STATE.mode.projectile_camera.isModeInitialized = true
     TransitionManager.force({
         id = MODE_ENTRY_TRANSITION_ID,
         duration = transitionDuration,
-        easingFn = CameraCommons.easeOut,
         respectGameSpeed = true,
-        onUpdate = function(progress, easedProgress, effectiveDt)
-            STATE.mode.projectile_camera.transitionFactor = CameraCommons.lerp(transitionFactor, finalFactor, easedProgress)
-            STATE.mode.projectile_camera.rampUpFactor = math.max(0.5, easedProgress)
-            ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
+        onUpdate = function(progress, _, effectiveDt)
+            local rotFactorMultiplier = 1
+            if STATE.mode.projectile_camera.cameraMode == "follow" then
+                rotFactorMultiplier = CameraCommons.lerp(2, 1, CameraCommons.easeIn(progress))
+            end
+            local posFactorMultiplier = CameraCommons.easeInOut(progress)
+            STATE.mode.projectile_camera.rampUpFactor = CameraCommons.easeOut(progress)
+            ProjectileCamera.updateCameraStateForProjectile(currentProjectile, posFactorMultiplier, rotFactorMultiplier)
         end,
         onComplete = function()
             STATE.mode.projectile_camera.rampUpFactor = 1
-            STATE.mode.projectile_camera.transitionFactor = nil
         end
     })
 end
@@ -386,7 +390,7 @@ end
 function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
     local projectileVelocity = currentProjectile.velocity
     local projectilePreviousVelocity = currentProjectile.previousVelocity
-    if projectileVelocity.speed > MIN_PROJECTILE_SPEED_FOR_TURN_DETECT or projectilePreviousVelocity.speed > MIN_PROJECTILE_SPEED_FOR_TURN_DETECT then
+    if projectileVelocity.speed < MIN_PROJECTILE_SPEED_FOR_TURN_DETECT or projectilePreviousVelocity.speed < MIN_PROJECTILE_SPEED_FOR_TURN_DETECT then
         return
     end
 
@@ -399,33 +403,27 @@ function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
     local lastDirXZ = { x = lastDir.x, y = 0, z = lastDir.z }
 
     local angle = 0
-    local magV1_xz = CameraCommons.vectorMagnitude(currentDirXZ)
-    local magV2_xz = CameraCommons.vectorMagnitude(lastDirXZ)
-    if magV1_xz > 0.01 and magV2_xz > 0.01 then
+    local currentMagnitude = CameraCommons.vectorMagnitude(currentDirXZ)
+    local previousMagnitude = CameraCommons.vectorMagnitude(lastDirXZ)
+    if currentMagnitude > 0.01 and previousMagnitude > 0.01 then
         local dot_xz = CameraCommons.dotProduct(CameraCommons.normalizeVector(currentDirXZ), CameraCommons.normalizeVector(lastDirXZ))
         dot_xz = math.max(-1.0, math.min(1.0, dot_xz))
         angle = math.acos(dot_xz)
     end
 
-
-    Log.debug(angle, ROTATION_THRESHOLD, STATE.mode.projectile_camera.highArcGoingUpward)
-    if angle > ROTATION_THRESHOLD and STATE.mode.projectile_camera.highArcGoingUpward then
-        local highArcFactor = cfg.DIRECTION_TRANSITION_FACTOR
-        local normalFactor = cfg.SMOOTHING_FACTOR
-        local duration = cfg.DIRECTION_TRANSITION_DURATION
-
-
+    if angle > ROTATION_THRESHOLD and not STATE.mode.projectile_camera.highArcDirectionChangeCompleted then
         TransitionManager.start({
             id = HIGH_ARC_DIRECTION_TRANSITION_ID,
-            duration = duration,
-            easingFn = CameraCommons.easeInOut,
+            duration = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DIRECTION_TRANSITION_DURATION,
+            easingFn = function(t)
+                return CameraCommons.dipAndReturn(t, 0.5)
+            end,
             respectGameSpeed = true,
             onUpdate = function(progress, easedProgress)
-                STATE.mode.projectile_camera.transitionFactor = CameraCommons.lerp(highArcFactor, normalFactor, easedProgress)
+                ProjectileCamera.updateCameraStateForProjectile(currentProjectile, easedProgress)
             end,
             onComplete = function()
-                Log.debug("ProjectileCamera: TrackActiveProjectile - DirectionTransition Complete.")
-                STATE.mode.projectile_camera.transitionFactor = nil
+                STATE.mode.projectile_camera.highArcDirectionChangeCompleted = true
             end
         })
     end
@@ -451,10 +449,9 @@ function ProjectileCamera.decelerateToImpactPosition()
     TransitionManager.force({
         id = IMPACT_DECELERATION_TRANSITION_ID,
         duration = profile.DURATION,
-        easingFn = CameraCommons.easeInOut,
+        easingFn = CameraCommons.easeOut,
         respectGameSpeed = true,
         onUpdate = function(progress, easedProgress, transition_dt)
-            local impactWorldPos = STATE.mode.projectile_camera.impactPosition.pos
             local currentCamState = Spring.GetCameraState()
 
             local initialVelocity = STATE.mode.projectile_camera.initialImpactVelocity or { x = 0, y = 0, z = 0 }
@@ -473,14 +470,17 @@ function ProjectileCamera.decelerateToImpactPosition()
                 return
             end
 
+            -- point camera back towards the impact site
+            local impactWorldPos = STATE.mode.projectile_camera.impactPosition.pos
             local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, STATE.mode.projectile_camera.impactPosition.vel or { x = 0, y = 0, z = 0 })
 
             local focusFromPos = { x = finalCamState.px, y = finalCamState.py, z = finalCamState.pz }
             local smoothFactor = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING_FACTOR
-            local targetDirState = CameraCommons.focusOnPoint(focusFromPos, targetLookPos, smoothFactor, smoothFactor)
 
-            finalCamState.rx = CameraCommons.lerpAngle(finalCamState.rx, targetDirState.rx, easedProgress)
-            finalCamState.ry = CameraCommons.lerpAngle(finalCamState.ry, targetDirState.ry, easedProgress)
+            local targetDirState = CameraCommons.calculateCameraDirectionToThePoint(focusFromPos, targetLookPos)
+
+            finalCamState.rx = CameraCommons.lerpAngle(finalCamState.rx, targetDirState.rx, smoothFactor / 10)
+            finalCamState.ry = CameraCommons.lerpAngle(finalCamState.ry, targetDirState.ry, smoothFactor / 10)
 
             local finalDir = CameraCommons.getDirectionFromRotation(finalCamState.rx, finalCamState.ry, finalCamState.rz)
             finalCamState.dx = finalDir.x
@@ -555,14 +555,14 @@ function ProjectileCamera.selectProjectile(unitID)
             local upComponent = projectileVelocity.y
             if upComponent > HIGH_ARC_THRESHOLD then
                 STATE.mode.projectile_camera.isHighArc = true
-                STATE.mode.projectile_camera.highArcGoingUpward = false -- Initialize based on some criteria if needed
+                STATE.mode.projectile_camera.highArcDirectionChangeCompleted = false -- Initialize based on some criteria if needed
                 Log.trace("ProjectileCamera: High Arc detected.") -- Original log
             else
                 STATE.mode.projectile_camera.isHighArc = false
             end
         else
             STATE.mode.projectile_camera.isHighArc = false
-            STATE.mode.projectile_camera.highArcGoingUpward = false
+            STATE.mode.projectile_camera.highArcDirectionChangeCompleted = false
         end
     elseif newProjectileSelected then
         STATE.mode.projectile_camera.projectile = STATE.mode.projectile_camera.projectile or {}
