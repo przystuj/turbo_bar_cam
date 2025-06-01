@@ -170,8 +170,8 @@ local function handleModeTransition(camState, currentHeight, userControllingView
 
     -- Smoothly interpolate rotation angles towards the target for this frame
     -- Use the last known rotation from the tracking state as the source
-    local rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, targetRx, rotFactor)
-    local ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor)
+    local rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, targetRx, rotFactor)
+    local ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor)
 
     -- Calculate direction vector from smoothed rotation angles
     local cosRx = math.cos(rx)
@@ -407,8 +407,8 @@ local function updateNormalMode(camState, currentHeight)
 
     -- Normal rotation interpolation towards targetRx/Ry
     local rotationFactor = CONFIG.CAMERA_MODES.OVERVIEW.SMOOTHING.FREE_CAMERA_FACTOR
-    local rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, STATE.mode.overview.targetRx, rotationFactor)
-    local ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, STATE.mode.overview.targetRy, rotationFactor)
+    local rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, STATE.mode.overview.targetRx, rotationFactor)
+    local ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, STATE.mode.overview.targetRy, rotationFactor)
 
     -- Calculate direction vector from rotation angles
     local cosRx = math.cos(rx)
@@ -462,7 +462,7 @@ function TurboOverviewCamera.update()
     if math.abs(currentActualHeight - targetHeight) > 1 then
         -- Height difference threshold
         -- Interpolate height for this frame
-        heightForThisFrame = CameraCommons.smoothStep(currentActualHeight, targetHeight, CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_TRANSITION_FACTOR)
+        heightForThisFrame = CameraCommons.lerp(currentActualHeight, targetHeight, CONFIG.CAMERA_MODES.OVERVIEW.ZOOM_TRANSITION_FACTOR)
     else
         -- Snap to target height if close enough
         heightForThisFrame = targetHeight

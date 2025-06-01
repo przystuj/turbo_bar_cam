@@ -48,8 +48,8 @@ function FreeCam.updateMouseRotation(rotFactor)
     end
 
     -- Create smoothed camera rotation values
-    local rx = CameraCommons.smoothStep(lastRotation.rx, STATE.mode.fps.freeCam.targetRx, rotFactor)
-    local ry = CameraCommons.smoothStepAngle(lastRotation.ry, STATE.mode.fps.freeCam.targetRy, rotFactor)
+    local rx = CameraCommons.lerp(lastRotation.rx, STATE.mode.fps.freeCam.targetRx, rotFactor)
+    local ry = CameraCommons.lerpAngle(lastRotation.ry, STATE.mode.fps.freeCam.targetRy, rotFactor)
 
     return {
         rx = rx,
@@ -119,9 +119,9 @@ function FreeCam.createCameraState(position, rotation, lastCamDir, lastRotation,
         py = position.y,
         pz = position.z,
         -- Direction (smoothed)
-        dx = CameraCommons.smoothStep(lastCamDir.x, dx, rotFactor),
-        dy = CameraCommons.smoothStep(lastCamDir.y, dy, rotFactor),
-        dz = CameraCommons.smoothStep(lastCamDir.z, dz, rotFactor),
+        dx = CameraCommons.lerp(lastCamDir.x, dx, rotFactor),
+        dy = CameraCommons.lerp(lastCamDir.y, dy, rotFactor),
+        dz = CameraCommons.lerp(lastCamDir.z, dz, rotFactor),
         -- Rotation (smoothed)
         rx = rotation.rx,
         ry = rotation.ry,

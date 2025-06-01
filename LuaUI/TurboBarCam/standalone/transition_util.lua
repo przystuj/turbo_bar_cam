@@ -57,12 +57,12 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
         local predictedState = VelocityTracker.predictState(currentState, clampedVelocity, clampedRotVelocity, dt, decayRate)
 
         local newState = {
-            px = CameraCommons.smoothStep(currentState.px, predictedState.px, posControlFactor),
-            py = CameraCommons.smoothStep(currentState.py, predictedState.py, posControlFactor),
-            pz = CameraCommons.smoothStep(currentState.pz, predictedState.pz, posControlFactor),
-            rx = CameraCommons.smoothStepAngle(currentState.rx, predictedState.rx, rotControlFactor),
-            ry = CameraCommons.smoothStepAngle(currentState.ry, predictedState.ry, rotControlFactor),
-            rz = CameraCommons.smoothStepAngle(currentState.rz, predictedState.rz, rotControlFactor),
+            px = CameraCommons.lerp(currentState.px, predictedState.px, posControlFactor),
+            py = CameraCommons.lerp(currentState.py, predictedState.py, posControlFactor),
+            pz = CameraCommons.lerp(currentState.pz, predictedState.pz, posControlFactor),
+            rx = CameraCommons.lerpAngle(currentState.rx, predictedState.rx, rotControlFactor),
+            ry = CameraCommons.lerpAngle(currentState.ry, predictedState.ry, rotControlFactor),
+            rz = CameraCommons.lerpAngle(currentState.rz, predictedState.rz, rotControlFactor),
             fov = currentState.fov
         }
         return newState

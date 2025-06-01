@@ -42,8 +42,7 @@ local FPS_ENTRY_TRANSITION_ID = "FPSCamera.EntryTransition"
 
 --- Internal: Starts a smooth transition into FPS mode by scaling steady-state smoothing factors.
 ---@param unitID number The ID of the unit to focus on.
----@param initialCamStateAtModeEntry table Camera state when mode was initialized (not directly used in LERP here).
-local function startFPSEntryTransition(unitID, initialCamStateAtModeEntry)
+local function startFPSEntryTransition(unitID)
     -- init camera state when starting transition
     STATE.mode.fps.isModeInitialized = true
     if not Spring.ValidUnitID(unitID) then
@@ -136,7 +135,7 @@ function FPSCamera.update()
     end
 
     if STATE.mode.fps and not STATE.mode.fps.isModeInitialized then
-        startFPSEntryTransition(STATE.mode.unitID, STATE.mode.initialCameraStateForModeEntry)
+        startFPSEntryTransition(STATE.mode.unitID)
     end
 
     if TransitionManager.isTransitioning(FPS_ENTRY_TRANSITION_ID) then
@@ -167,9 +166,9 @@ function FPSCamera.getCameraPosition(additionalFactor)
         smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.mode.lastCamPos, camPos, posFactor, true)
     else
         smoothedPos = {
-            x = CameraCommons.smoothStep(STATE.mode.lastCamPos.x, camPos.x, posFactor),
-            y = CameraCommons.smoothStep(STATE.mode.lastCamPos.y, camPos.y, posFactor),
-            z = CameraCommons.smoothStep(STATE.mode.lastCamPos.z, camPos.z, posFactor)
+            x = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor),
+            y = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor),
+            z = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor)
         }
     end
     return smoothedPos

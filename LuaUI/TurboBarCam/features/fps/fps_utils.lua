@@ -113,12 +113,12 @@ function FPSCameraUtils.createHullDirectionState(unitID, offsets, rotFactor)
 
     -- Create camera direction state with smoothed values
     return {
-        dx = CameraCommons.smoothStep(STATE.mode.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.smoothStep(STATE.mode.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.smoothStep(STATE.mode.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.smoothStep(STATE.mode.lastRotation.rz, targetRz, rotFactor),
+        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.lerp(STATE.mode.lastRotation.rz, targetRz, rotFactor),
     }
 end
 

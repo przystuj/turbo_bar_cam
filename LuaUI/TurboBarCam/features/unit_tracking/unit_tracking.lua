@@ -21,150 +21,130 @@ local ModeManager = CommonModules.ModeManager
 ---@class UnitTrackingCamera
 local UnitTrackingCamera = {}
 
-local STANDARD_DECEL_TRANSITION_ID = "UnitTrackingCamera.StandardDecelTransition"
-local TARGETED_LERP_TRANSITION_ID = "UnitTrackingCamera.TargetedLerpTransition"
+local ENTRY_TRANSITION_ID = "UnitTrackingCamera.ENTRY_TRANSITION_ID"
 local INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION = 0.001
 
----@param unitID number
----@param initialCamStateAtModeEntry table Captured camera state from ModeManager at mode entry.
-local function startModeTransition(unitID, initialCamStateAtModeEntry)
+---
+--- Helper function to apply common camera rotation logic.
+--- Updates rx, ry, dx, dy, dz, rz in camStatePatch.
+---
+---@param camStatePatch table The camera state patch to populate.
+---@param posForRotation {x: number, y: number, z: number} The camera's current position coordinates for calculating look direction.
+---@param targetLookPos {x: number, y: number, z: number} The world coordinates the camera should be looking at.
+---@param currentActualRx number The camera's current actual rotation X (e.g., from Spring.GetCameraState().rx).
+---@param currentActualRy number The camera's current actual rotation Y (e.g., from Spring.GetCameraState().ry).
+---@param easedProgressForRotFactor number The eased progress (0-1) of the transition, used for LERPing rotation factor.
+local function applySharedCameraRotationLogic(camStatePatch, posForRotation, targetLookPos, currentActualRx, currentActualRy, easedProgressForRotFactor)
+    local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(posForRotation, targetLookPos)
+
+    local steadyStateRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
+    local currentFrameRotFactor = CameraCommons.lerp(INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION, steadyStateRotFactor, easedProgressForRotFactor)
+
+    camStatePatch.rx = CameraCommons.lerpAngle(currentActualRx, targetLookDir.rx, currentFrameRotFactor)
+    camStatePatch.ry = CameraCommons.lerpAngle(currentActualRy, targetLookDir.ry, currentFrameRotFactor)
+
+    local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
+    camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
+    camStatePatch.rz = 0 -- Explicitly set roll to 0
+end
+
+---
+--- Unified function to start a camera transition for unit tracking.
+--- Behaves as a deceleration transition if targetCamState is nil.
+--- Behaves as a targeted LERP transition if targetCamState is provided.
+---
+---@param unitID number The ID of the unit to track.
+---@param initialCamStateAtModeEntry table? Captured camera state from ModeManager at mode entry. Required if targetCamState is provided. Ignored otherwise.
+---@param targetCamState table? The target camera state (px,py,pz,fov) for a targeted transition.If nil, a standard deceleration transition is performed.
+local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, targetCamState)
+    -- Initial validation for unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.warn("UnitTrackingCamera: Invalid unitID for startModeTransition (decel).")
+        local context = targetCamState and "targeted" or "deceleration"
+        Log.warn("UnitTrackingCamera: Invalid unitID for startUnitTrackingTransition (" .. context .. ").")
         if STATE.mode.unit_tracking then
-            STATE.mode.unit_tracking.isModeInitialized = true
+            STATE.mode.unit_tracking.isModeInitialized = true -- Mark as initialized to allow re-entry or prevent errors
         end
         return
     end
 
-    local currentActualVelocity, _, currentActualRotVelocity, _ = VelocityTracker.getCurrentVelocity()
-    local profile = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE
-    local _, gameSpeed = Spring.GetGameSpeed()
-    local duration = profile.DURATION
-    if gameSpeed > 0 then
-        duration = profile.DURATION / math.max(0.1, gameSpeed)
+    local isTargetedTransition = targetCamState ~= nil
+
+    -- Validation specific to targeted transition
+    if isTargetedTransition then
+        if not initialCamStateAtModeEntry then
+            Log.warn("UnitTrackingCamera: initialCamStateAtModeEntry missing for targeted transition. Aborting.")
+            if STATE.mode.unit_tracking then
+                STATE.mode.unit_tracking.isModeInitialized = true
+            end
+            return
+        end
+        -- targetCamState is already confirmed not nil by isTargetedTransition check
     end
 
+    -- Transition-specific parameters
+    local duration
+    if isTargetedTransition then
+        duration = CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_DURATION
+    else
+        duration = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE.DURATION
+    end
+
+    local currentActualVelocity, _, currentActualRotVelocity, _ = VelocityTracker.getCurrentVelocity()
+
     TransitionManager.force({
-        id = STANDARD_DECEL_TRANSITION_ID,
+        id = ENTRY_TRANSITION_ID,
         duration = duration,
         easingFn = CameraCommons.easeOut,
         respectGameSpeed = false,
         onUpdate = function(progress, easedProgress, effectiveDt)
-            local currentUpdateState = Spring.GetCameraState()
+            local currentSpringCamState = Spring.GetCameraState()
+
             if not Spring.ValidUnitID(unitID) then
-                TransitionManager.cancel(STANDARD_DECEL_TRANSITION_ID)
+                TransitionManager.cancel(ENTRY_TRANSITION_ID)
                 ModeManager.disableMode()
                 return
             end
             local uX, uY, uZ = Spring.GetUnitPosition(unitID)
             if not uX then
-                TransitionManager.cancel(STANDARD_DECEL_TRANSITION_ID)
+                -- Unit likely died or was removed
+                TransitionManager.cancel(ENTRY_TRANSITION_ID)
                 ModeManager.disableMode()
                 return
             end
-            local targetLookPos = { x = uX, y = uY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT, z = uZ }
-            local deceleratedState = TransitionUtil.smoothDecelerationTransition(currentUpdateState, effectiveDt, easedProgress, currentActualVelocity, currentActualRotVelocity, profile)
 
+            local targetLookPos = { x = uX, y = uY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT, z = uZ }
             local camStatePatch = {}
-            local posStateToUseForRotation = currentUpdateState -- Default to current if deceleratedState is nil
-            if deceleratedState then
-                camStatePatch.px, camStatePatch.py, camStatePatch.pz = deceleratedState.px, deceleratedState.py, deceleratedState.pz
-                posStateToUseForRotation = deceleratedState
+            local posStateForRotation
+
+            if isTargetedTransition then
+                local factor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR)
+
+                camStatePatch.px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamState.px, easedProgress)
+                camStatePatch.py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamState.py, easedProgress)
+                camStatePatch.pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamState.pz, easedProgress)
+                posStateForRotation = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
             else
-                camStatePatch.px, camStatePatch.py, camStatePatch.pz = currentUpdateState.px, currentUpdateState.py, currentUpdateState.pz
+                -- Deceleration transition
+                local deceleratedPosState = TransitionUtil.smoothDecelerationTransition(currentSpringCamState, effectiveDt, easedProgress,
+                        currentActualVelocity, currentActualRotVelocity, CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE)
+
+                if deceleratedPosState then
+                    camStatePatch.px, camStatePatch.py, camStatePatch.pz = deceleratedPosState.px, deceleratedPosState.py, deceleratedPosState.pz
+                    posStateForRotation = { x = deceleratedPosState.px, y = deceleratedPosState.py, z = deceleratedPosState.pz }
+                else
+                    -- Fallback to current Spring camera state position if deceleration logic returns nil
+                    camStatePatch.px, camStatePatch.py, camStatePatch.pz = currentSpringCamState.px, currentSpringCamState.py, currentSpringCamState.pz
+                    posStateForRotation = { x = currentSpringCamState.px, y = currentSpringCamState.py, z = currentSpringCamState.pz }
+                end
+                camStatePatch.fov = currentSpringCamState.fov -- Deceleration transition doesn't alter FOV itself
             end
 
-            local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(posStateToUseForRotation, targetLookPos)
+            -- Apply common rotation logic using the determined position and current actual rotations
+            applySharedCameraRotationLogic(camStatePatch, posStateForRotation, targetLookPos, currentSpringCamState.rx, currentSpringCamState.ry, easedProgress)
 
-            -- Gradual ramp-up for rotation factor
-            local steadyStateRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
-            local currentFrameRotFactor = CameraCommons.lerp(INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION, steadyStateRotFactor, easedProgress)
-
-            camStatePatch.rx = CameraCommons.smoothStepAngle(posStateToUseForRotation.rx, targetLookDir.rx, currentFrameRotFactor)
-            camStatePatch.ry = CameraCommons.smoothStepAngle(posStateToUseForRotation.ry, targetLookDir.ry, currentFrameRotFactor)
-
-            camStatePatch.fov = currentUpdateState.fov
-            local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
-            camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
-            camStatePatch.rz = 0
+            -- Update systems
             CameraTracker.updateLastKnownCameraState(camStatePatch)
             Spring.SetCameraState(camStatePatch, 0)
-        end,
-        onComplete = function()
-            Log.trace("UnitTrackingCamera: Standard deceleration entry finished for unit " .. unitID)
-        end
-    })
-end
-
---- Internal: Starts a transition to a specific target camera state (LERP position/FOV, focus unit).
----@param unitID number
----@param initialCamStateAtModeEntry table Captured camera state from ModeManager at mode entry.
----@param targetCamState table The target camera state (px,py,pz,fov) from ModeManager.
-local function startTargetedEntryTransition(unitID, initialCamStateAtModeEntry, targetCamState)
-    if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.warn("UnitTrackingCamera: Invalid unitID for startTargetedEntryTransition.")
-        STATE.mode.unit_tracking.isModeInitialized = true
-        return
-    end
-    -- No need for: if TransitionManager.isTransitioning(TARGETED_LERP_TRANSITION_ID) then return end
-    if not initialCamStateAtModeEntry then
-        Log.warn("UnitTrackingCamera: initialCamStateAtModeEntry missing for startTargetedEntryTransition.")
-        STATE.mode.unit_tracking.isModeInitialized = true
-        return
-    end
-    if not targetCamState then
-        Log.warn("UnitTrackingCamera: targetCamState missing for startTargetedEntryTransition.")
-        STATE.mode.unit_tracking.isModeInitialized = true
-        return
-    end
-
-    Log.trace("UnitTrackingCamera: Starting targeted LERP entry for unit " .. unitID)
-    local duration = CONFIG.TRANSITION.MODE_TRANSITION_DURATION
-
-    TransitionManager.force({
-        id = TARGETED_LERP_TRANSITION_ID,
-        duration = duration,
-        easingFn = CameraCommons.easeInOut,
-        respectGameSpeed = false,
-        onUpdate = function(progress, easedProgress, effectiveDt)
-            local currentUpdateState = Spring.GetCameraState()
-            if not Spring.ValidUnitID(unitID) then
-                TransitionManager.cancel(TARGETED_LERP_TRANSITION_ID)
-                ModeManager.disableMode()
-                return
-            end
-            local uX, uY, uZ = Spring.GetUnitPosition(unitID)
-            if not uX then
-                TransitionManager.cancel(TARGETED_LERP_TRANSITION_ID)
-                ModeManager.disableMode()
-                return
-            end
-            local targetLookPos = { x = uX, y = uY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT, z = uZ }
-
-            local camStatePatch = {}
-            camStatePatch.px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamState.px, easedProgress)
-            camStatePatch.py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamState.py, easedProgress)
-            camStatePatch.pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamState.pz, easedProgress)
-            camStatePatch.fov = CameraCommons.lerp(initialCamStateAtModeEntry.fov or 45, targetCamState.fov or 45, easedProgress)
-
-            local currentLerpedPos = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
-            local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(currentLerpedPos, targetLookPos)
-
-            -- Gradual ramp-up for rotation factor
-            local steadyStateRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
-            local currentFrameRotFactor = CameraCommons.lerp(INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION, steadyStateRotFactor, easedProgress)
-
-            camStatePatch.rx = CameraCommons.smoothStepAngle(currentUpdateState.rx, targetLookDir.rx, currentFrameRotFactor)
-            camStatePatch.ry = CameraCommons.smoothStepAngle(currentUpdateState.ry, targetLookDir.ry, currentFrameRotFactor)
-
-            local finalDir = CameraCommons.getDirectionFromRotation(camStatePatch.rx, camStatePatch.ry, 0)
-            camStatePatch.dx, camStatePatch.dy, camStatePatch.dz = finalDir.x, finalDir.y, finalDir.z
-            camStatePatch.rz = 0
-            CameraTracker.updateLastKnownCameraState(camStatePatch)
-            Spring.SetCameraState(camStatePatch, 0)
-        end,
-        onComplete = function()
-            Log.trace("UnitTrackingCamera: Targeted LERP entry finished for unit " .. unitID)
         end
     })
 end
@@ -226,16 +206,11 @@ function UnitTrackingCamera.update(dt)
             Log.warn("UnitTrackingCamera: initialCameraStateForModeEntry is nil. Cannot start entry transition properly.")
             -- Allow steady state to take over, or consider disabling
         else
-            if optionalTargetCamState then
-                startTargetedEntryTransition(unitID, initialCamState, optionalTargetCamState)
-            else
-                startModeTransition(unitID, initialCamState) -- This is the renamed standard decel starter
-            end
+            startUnitTrackingTransition(unitID, initialCamState, optionalTargetCamState)
         end
     end
 
-    if TransitionManager.isTransitioning(STANDARD_DECEL_TRANSITION_ID) or
-            TransitionManager.isTransitioning(TARGETED_LERP_TRANSITION_ID) then
+    if TransitionManager.isTransitioning(ENTRY_TRANSITION_ID) then
         return
     end
 
@@ -248,10 +223,10 @@ function UnitTrackingCamera.update(dt)
     end
     local targetFocusPos = { x = uX, y = uY + CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT, z = uZ }
 
-    local dirFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.TRACKING_FACTOR
+    local posFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR
     local rotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
 
-    local idealState = CameraCommons.focusOnPoint(currentState, targetFocusPos, dirFactor, rotFactor)
+    local idealState = CameraCommons.focusOnPoint(currentState, targetFocusPos, posFactor, rotFactor)
     local camStatePatch = {
         px = currentState.px, py = currentState.py, pz = currentState.pz,
         rx = idealState.rx, ry = idealState.ry, rz = 0,

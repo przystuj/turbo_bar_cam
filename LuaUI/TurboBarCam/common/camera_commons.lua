@@ -50,15 +50,6 @@ function CameraCommons.crossProduct(v1, v2)
     }
 end
 
---- Linear interpolation between two values
----@param a number Start value
----@param b number End value
----@param t number Interpolation factor (0.0-1.0)
----@return number interpolated value
-function CameraCommons.lerp(a, b, t)
-    return a + (b - a) * t
-end
-
 function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, preserveHeight)
     -- If preserveHeight is true, we'll maintain the Y component's relative position
     local preserveY = preserveHeight or false
@@ -226,28 +217,28 @@ end
 --- Focuses camera on a point with appropriate smoothing
 ---@param camPos table Camera position {x, y, z}
 ---@param targetPos table Target position {x, y, z}
----@param smoothFactor number Direction smoothing factor
+---@param posFactor number Direction smoothing factor
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraDirectionState Camera direction and rotation state
-function CameraCommons.focusOnPoint(camPos, targetPos, smoothFactor, rotFactor, pitchModifier)
+function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor, pitchModifier)
     -- Calculate look direction to the target point
     local lookDir = CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos, pitchModifier)
 
     -- Create camera direction state with smoothed values
     local cameraDirectionState = {
         -- Smooth camera position
-        px = CameraCommons.smoothStep(STATE.mode.lastCamPos.x, camPos.x, smoothFactor),
-        py = CameraCommons.smoothStep(STATE.mode.lastCamPos.y, camPos.y, smoothFactor),
-        pz = CameraCommons.smoothStep(STATE.mode.lastCamPos.z, camPos.z, smoothFactor),
+        px = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor),
+        py = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor),
+        pz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor),
 
         -- Smooth direction vector
-        dx = CameraCommons.smoothStep(STATE.mode.lastCamDir.x, lookDir.dx, smoothFactor),
-        dy = CameraCommons.smoothStep(STATE.mode.lastCamDir.y, lookDir.dy, smoothFactor),
-        dz = CameraCommons.smoothStep(STATE.mode.lastCamDir.z, lookDir.dz, smoothFactor),
+        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, lookDir.dx, posFactor),
+        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, lookDir.dy, posFactor),
+        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, lookDir.dz, posFactor),
 
         -- Smooth rotations
-        rx = CameraCommons.smoothStep(STATE.mode.lastRotation.rx, lookDir.rx, rotFactor),
-        ry = CameraCommons.smoothStepAngle(STATE.mode.lastRotation.ry, lookDir.ry, rotFactor),
+        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, lookDir.rx, rotFactor),
+        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, lookDir.ry, rotFactor),
         rz = 0
     }
 
@@ -297,9 +288,9 @@ end
 ---@param target number|nil Target value
 ---@param factor number Smoothing factor (0.0-1.0)
 ---@return number smoothed value
-function CameraCommons.smoothStep(current, target, factor)
+function CameraCommons.lerp(current, target, factor)
     if current == nil or target == nil or factor == nil then
-        return current or target or 0
+        return current or target
     end
     return current + (target - current) * factor
 end
@@ -309,9 +300,9 @@ end
 ---@param target number|nil Target angle (in radians)
 ---@param factor number Smoothing factor (0.0-1.0)
 ---@return number smoothed angle
-function CameraCommons.smoothStepAngle(current, target, factor)
+function CameraCommons.lerpAngle(current, target, factor)
     if current == nil or target == nil or factor == nil then
-        return current or target or 0 -- Return whichever is not nil, or 0 if both are nil
+        return current or target
     end
 
     -- Normalize both angles to -pi to pi range

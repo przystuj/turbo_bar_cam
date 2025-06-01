@@ -18,7 +18,7 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         TRANSITION = {
-            MODE_TRANSITION_DURATION = 2.0, -- Duration of transition between modes in seconds
+            MODE_TRANSITION_DURATION = 1.0, -- Duration of transition between modes in seconds
             DECELERATION = {
                 -- The minimum rate at which velocity decays towards the end of the transition.
                 -- A higher value means the camera stops more sharply, a lower value means a gentler stop.
@@ -166,17 +166,19 @@ if not WG.TurboBarCam.CONFIG then
             },
 
             UNIT_TRACKING = {
+                INITIAL_TRANSITION_DURATION = 2,
+                INITIAL_TRANSITION_FACTOR = 0.01,
                 HEIGHT = 0, -- Height offset for look-at point in world units
                 SMOOTHING = {
                     ROTATION_FACTOR = 0.05, -- Lower = smoother but more lag (0.0-1.0)
-                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode (likely for direction, not position)
+                    POSITION_FACTOR = 0.1, -- Specific for Tracking Camera mode (likely for direction, not position)
                 },
                 DEFAULT_SMOOTHING = {
                     ROTATION_FACTOR = 0.05,
                     TRACKING_FACTOR = 0.1,
                 },
                 DECELERATION_PROFILE = { -- When transitioning into unit tracking mode
-                    DURATION = 2.5,
+                    DURATION = 1,
                     INITIAL_BRAKING = 1.0,
                     PATH_ADHERENCE = 1,
                 },

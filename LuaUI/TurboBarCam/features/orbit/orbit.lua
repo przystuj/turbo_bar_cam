@@ -23,10 +23,19 @@ local OrbitingCamera = {}
 
 local ORBIT_ENTRY_TRANSITION_ID = "OrbitingCamera.EntryTransition"
 
---- Internal: Starts a smooth LERP transition onto the orbit path.
----@param initialCamStateAtModeEntry table Camera state when mode was initialized.
-local function startOrbitEntryTransition(initialCamStateAtModeEntry)
+local function setupAngleForUnit(unitID)
+    local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
+    local camState = Spring.GetCameraState()
+    STATE.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
+end
+
+local function startOrbitEntryTransition()
     STATE.mode.orbit.isModeInitialized = true
+    -- angle will be null when transitioning back from projectile camera
+    if not STATE.mode.orbit.angle then
+        setupAngleForUnit(STATE.mode.unitID)
+    end
+
     TransitionManager.force({
         id = ORBIT_ENTRY_TRANSITION_ID,
         duration = CONFIG.CAMERA_MODES.ORBIT.INITIAL_TRANSITION_DURATION,
@@ -80,20 +89,13 @@ function OrbitingCamera.toggle(unitID)
 
     if ModeManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT, false, nil) then
         STATE.mode.orbit.isPaused = false
-        local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
-        local camState = Spring.GetCameraState()
-        STATE.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
-        Log.trace("[ORBIT] Orbiting camera enabled for unit " .. unitID)
+        setupAngleForUnit(unitID)
+        Log.debug("[ORBIT] Orbiting camera enabled for unit " .. unitID)
     end
 end
 
 function OrbitingCamera.togglePointOrbit(point)
     if Util.isTurboBarCamDisabled() then
-        return
-    end
-    local MM = ModeManager or WidgetContext.ModeManager
-    if not MM then
-        Log.error("[ORBIT] ModeManager not available in togglePointOrbit.");
         return
     end
 
@@ -118,7 +120,7 @@ function OrbitingCamera.update(dt)
     end
 
     if STATE.mode.orbit and not STATE.mode.orbit.isModeInitialized then
-        startOrbitEntryTransition(STATE.mode.initialCameraStateForModeEntry)
+        startOrbitEntryTransition()
     end
 
     if TransitionManager.isTransitioning(ORBIT_ENTRY_TRANSITION_ID) then
@@ -129,10 +131,10 @@ function OrbitingCamera.update(dt)
         return
     end
 
-    local camState = OrbitingCamera.getNewCameraState(dt)
-    if camState then
-        CameraTracker.updateLastKnownCameraState(camState)
-        Spring.SetCameraState(camState, 0)
+    local camStatePatch = OrbitingCamera.getNewCameraState(dt)
+    if camStatePatch then
+        CameraTracker.updateLastKnownCameraState(camStatePatch)
+        Spring.SetCameraState(camStatePatch, 0)
     end
 end
 
@@ -210,11 +212,6 @@ function OrbitingCamera.loadOrbit(orbitId)
     end
     if not orbitId or orbitId == "" then
         Log.warn("[ORBIT] orbitId is required.");
-        return
-    end
-    local MM = ModeManager or WidgetContext.ModeManager
-    if not MM then
-        Log.error("[ORBIT] ModeManager not available in loadOrbit.");
         return
     end
 

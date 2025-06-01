@@ -201,12 +201,12 @@ function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userC
 
     -- Smoothly interpolate position (X and Z) towards the target
     -- The source is the current STATE.mode.overview.fixedCamPos from the previous frame
-    STATE.mode.overview.fixedCamPos.x = CameraCommons.smoothStep(
+    STATE.mode.overview.fixedCamPos.x = CameraCommons.lerp(
             STATE.mode.overview.fixedCamPos.x,
             STATE.mode.overview.targetCamPos.x,
             smoothFactor
     )
-    STATE.mode.overview.fixedCamPos.z = CameraCommons.smoothStep(
+    STATE.mode.overview.fixedCamPos.z = CameraCommons.lerp(
             STATE.mode.overview.fixedCamPos.z,
             STATE.mode.overview.targetCamPos.z,
             smoothFactor

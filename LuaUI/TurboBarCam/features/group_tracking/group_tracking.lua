@@ -151,9 +151,9 @@ function GroupTrackingCamera.calculateCenterOfMass()
         else
             -- Smooth the velocity
             STATE.mode.group_tracking.smoothedVelocity = {
-                x = CameraCommons.smoothStep(STATE.mode.group_tracking.smoothedVelocity.x, rawVelocity.x, velocitySmoothingFactor),
-                y = CameraCommons.smoothStep(STATE.mode.group_tracking.smoothedVelocity.y, rawVelocity.y, velocitySmoothingFactor),
-                z = CameraCommons.smoothStep(STATE.mode.group_tracking.smoothedVelocity.z, rawVelocity.z, velocitySmoothingFactor)
+                x = CameraCommons.lerp(STATE.mode.group_tracking.smoothedVelocity.x, rawVelocity.x, velocitySmoothingFactor),
+                y = CameraCommons.lerp(STATE.mode.group_tracking.smoothedVelocity.y, rawVelocity.y, velocitySmoothingFactor),
+                z = CameraCommons.lerp(STATE.mode.group_tracking.smoothedVelocity.z, rawVelocity.z, velocitySmoothingFactor)
             }
         end
 
@@ -472,7 +472,7 @@ function GroupTrackingCamera.calculateRequiredDistance()
             math.min(CONFIG.CAMERA_MODES.GROUP_TRACKING.MAX_DISTANCE, requiredDistance))
 
     -- Smoothly update target distance
-    STATE.mode.group_tracking.targetDistance = CameraCommons.smoothStep(
+    STATE.mode.group_tracking.targetDistance = CameraCommons.lerp(
             STATE.mode.group_tracking.targetDistance,
             requiredDistance,
             0.03
@@ -687,9 +687,9 @@ function GroupTrackingCamera.update()
         smoothedPos = CameraCommons.sphericalInterpolate(center, camPos, newCamPos, posFactor, true)
     else
         smoothedPos = {
-            x = CameraCommons.smoothStep(camPos.x, newCamPos.x, posFactor),
-            y = CameraCommons.smoothStep(camPos.y, newCamPos.y, posFactor),
-            z = CameraCommons.smoothStep(camPos.z, newCamPos.z, posFactor)
+            x = CameraCommons.lerp(camPos.x, newCamPos.x, posFactor),
+            y = CameraCommons.lerp(camPos.y, newCamPos.y, posFactor),
+            z = CameraCommons.lerp(camPos.z, newCamPos.z, posFactor)
         }
     end
 
