@@ -22,7 +22,6 @@ local ModeManager = CommonModules.ModeManager
 local UnitTrackingCamera = {}
 
 local ENTRY_TRANSITION_ID = "UnitTrackingCamera.ENTRY_TRANSITION_ID"
-local INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION = 0.001
 
 ---
 --- Helper function to apply common camera rotation logic.
@@ -38,7 +37,7 @@ local function applySharedCameraRotationLogic(camStatePatch, posForRotation, tar
     local targetLookDir = CameraCommons.calculateCameraDirectionToThePoint(posForRotation, targetLookPos)
 
     local steadyStateRotFactor = CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.ROTATION_FACTOR
-    local currentFrameRotFactor = CameraCommons.lerp(INITIAL_ROT_SMOOTH_FACTOR_DURING_TRANSITION, steadyStateRotFactor, easedProgressForRotFactor)
+    local currentFrameRotFactor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, steadyStateRotFactor, easedProgressForRotFactor)
 
     camStatePatch.rx = CameraCommons.lerpAngle(currentActualRx, targetLookDir.rx, currentFrameRotFactor)
     camStatePatch.ry = CameraCommons.lerpAngle(currentActualRy, targetLookDir.ry, currentFrameRotFactor)
@@ -57,13 +56,12 @@ end
 ---@param initialCamStateAtModeEntry table? Captured camera state from ModeManager at mode entry. Required if targetCamState is provided. Ignored otherwise.
 ---@param targetCamState table? The target camera state (px,py,pz,fov) for a targeted transition.If nil, a standard deceleration transition is performed.
 local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, targetCamState)
+    STATE.mode.unit_tracking.isModeInitialized = true
+
     -- Initial validation for unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
         local context = targetCamState and "targeted" or "deceleration"
         Log.warn("UnitTrackingCamera: Invalid unitID for startUnitTrackingTransition (" .. context .. ").")
-        if STATE.mode.unit_tracking then
-            STATE.mode.unit_tracking.isModeInitialized = true -- Mark as initialized to allow re-entry or prevent errors
-        end
         return
     end
 
@@ -73,9 +71,6 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
     if isTargetedTransition then
         if not initialCamStateAtModeEntry then
             Log.warn("UnitTrackingCamera: initialCamStateAtModeEntry missing for targeted transition. Aborting.")
-            if STATE.mode.unit_tracking then
-                STATE.mode.unit_tracking.isModeInitialized = true
-            end
             return
         end
         -- targetCamState is already confirmed not nil by isTargetedTransition check
@@ -117,11 +112,11 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
             local posStateForRotation
 
             if isTargetedTransition then
-                local factor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR, easedProgress)
-                camStatePatch.px = CameraCommons.lerp(initialCamStateAtModeEntry.px, targetCamState.px, factor)
-                camStatePatch.py = CameraCommons.lerp(initialCamStateAtModeEntry.py, targetCamState.py, factor)
-                camStatePatch.pz = CameraCommons.lerp(initialCamStateAtModeEntry.pz, targetCamState.pz, factor)
-                posStateForRotation = { x = camStatePatch.px, y = camStatePatch.py, z = camStatePatch.pz }
+                local factor = CameraCommons.lerp(CONFIG.CAMERA_MODES.UNIT_TRACKING.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.UNIT_TRACKING.SMOOTHING.POSITION_FACTOR, CameraCommons.easeInOut(progress))
+                posStateForRotation = CameraCommons.interpolateToPoint(targetCamState, factor)
+                camStatePatch.px = posStateForRotation.x
+                camStatePatch.py = posStateForRotation.y
+                camStatePatch.pz = posStateForRotation.z
             else
                 -- Deceleration transition
                 local deceleratedPosState = TransitionUtil.smoothDecelerationTransition(currentSpringCamState, effectiveDt, easedProgress,
@@ -135,7 +130,6 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
                     camStatePatch.px, camStatePatch.py, camStatePatch.pz = currentSpringCamState.px, currentSpringCamState.py, currentSpringCamState.pz
                     posStateForRotation = { x = currentSpringCamState.px, y = currentSpringCamState.py, z = currentSpringCamState.pz }
                 end
-                camStatePatch.fov = currentSpringCamState.fov -- Deceleration transition doesn't alter FOV itself
             end
 
             -- Apply common rotation logic using the determined position and current actual rotations

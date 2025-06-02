@@ -230,6 +230,18 @@ function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotS
     return posSmoothFactor, rotSmoothFactor
 end
 
+--- Calculate the camera's actual position for this frame by interpolating from the last known position.
+---@param camPos table The target/ideal camera position for this frame.
+---@param smoothingFactor number Smoothing factor for camera position interpolation.
+---@return table The new camera state {x,y,z}.
+function CameraCommons.interpolateToPoint(camPos, smoothingFactor)
+    -- Calculate the camera's actual position for this frame by interpolating from the last known position.
+    local currentFrameActualPx = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x or camPos.px, smoothingFactor)
+    local currentFrameActualPy = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y or camPos.py, smoothingFactor)
+    local currentFrameActualPz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z or camPos.pz, smoothingFactor)
+    return { x = currentFrameActualPx, y = currentFrameActualPy, z = currentFrameActualPz }
+end
+
 --- Focuses camera on a point with appropriate smoothing.
 --- The camera's actual position for the current frame is first calculated by lerping from its previous position.
 --- Then, the look direction is determined from this new actual position towards the target point.
@@ -241,22 +253,17 @@ end
 ---@return table cameraDirectionState The new camera state {px,py,pz, dx,dy,dz, rx,ry,rz}.
 function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
     -- Calculate the camera's actual position for this frame by interpolating from the last known position.
-    local currentFrameActualPx = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor)
-    local currentFrameActualPy = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor)
-    local currentFrameActualPz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor)
-
-    -- Define the point from which the camera will be looking in this frame.
-    local lookFromPos = { x = currentFrameActualPx, y = currentFrameActualPy, z = currentFrameActualPz }
+    local currentFrameActualPosition = CameraCommons.interpolateToPoint(camPos, posFactor)
 
     -- Calculate the ideal look direction and rotation from the camera's actual position for this frame to the target point.
-    local lookDirFromActualPos = CameraCommons.calculateCameraDirectionToThePoint(lookFromPos, targetPos)
+    local lookDirFromActualPos = CameraCommons.calculateCameraDirectionToThePoint(currentFrameActualPosition, targetPos)
 
     -- Construct the new camera state.
     local cameraDirectionState = {
         -- Set the camera's actual position for this frame.
-        px = currentFrameActualPx,
-        py = currentFrameActualPy,
-        pz = currentFrameActualPz,
+        px = currentFrameActualPosition.x,
+        py = currentFrameActualPosition.y,
+        pz = currentFrameActualPosition.z,
 
         -- Smooth the direction vector towards the look direction calculated from the actual current position.
         dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, lookDirFromActualPos.dx, rotFactor),
@@ -295,7 +302,8 @@ function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
 
     local length = math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
 
-    if length < 0.00001 then -- Use a small epsilon for floating point comparison
+    if length < 0.00001 then
+        -- Use a small epsilon for floating point comparison
         -- Camera is at the target, direction is undefined.
         -- Fallback to a default direction (looking along -Z axis in world space)
         -- and calculate consistent rotation for it based on engine math.
@@ -305,9 +313,9 @@ function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
         return {
             dx = 0,
             dy = 0,
-            dz = -1,          -- Default direction
+            dz = -1, -- Default direction
             rx = math.pi / 2, -- Pitch for this direction
-            ry = 0,           -- Yaw for this direction
+            ry = 0, -- Yaw for this direction
             rz = 0            -- Roll is typically 0
         }
     end
