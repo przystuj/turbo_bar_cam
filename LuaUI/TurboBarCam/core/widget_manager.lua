@@ -23,11 +23,14 @@ function WidgetManager.enable()
     end
 
     -- Save current camera state before enabling
-    -- using direct Spring call as camera manager isn't active yet
     STATE.originalCameraState = Spring.GetCameraState()
+    STATE.originalFpsCameraFov = Spring.GetConfigInt("FPSFOV", 45)
 
     -- Set required configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 0)
+    Spring.SetConfigInt("FPSClampPos", 0)
+    Spring.SetConfigInt("FPSFOV", 45)
+
     STATE.enabled = true
     WidgetManager.switchToFpsCamera()
     CameraQuickControls.initialize()
@@ -47,6 +50,8 @@ function WidgetManager.disable()
 
     -- Reset configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 1)
+    Spring.SetConfigInt("FPSClampPos", 1)
+    Spring.SetConfigInt("FPSFOV", STATE.originalFpsCameraFov or 45)
 
     -- Restore original camera state
     if STATE.originalCameraState then
@@ -88,8 +93,8 @@ function WidgetManager.switchToFpsCamera()
         local fpsState = CameraCommons.getDefaultUnitView(x, z)
         Spring.SetCameraState(fpsState, 1)
     end
-    Spring.SendCommands("viewfps")
     Spring.SetCameraState({ fov = 45 }, 1)
+    Spring.SendCommands("viewfps")
 end
 
 function WidgetManager.toggleDebug()
