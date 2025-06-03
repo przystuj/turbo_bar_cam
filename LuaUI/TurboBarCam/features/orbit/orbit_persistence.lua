@@ -1,14 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG -- Used for accessing STATE.TARGET_TYPES
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local OrbitCameraUtils = ModuleManager.OrbitCameraUtils(function(m) OrbitCameraUtils = m end)
 
 ---@class OrbitPersistence
 local OrbitPersistence = {}
@@ -17,7 +14,7 @@ local OrbitPersistence = {}
 ---@return table|nil serializedData Serialized orbit data, or nil if not in orbit mode
 function OrbitPersistence.serializeCurrentOrbitState()
     if STATE.mode.name ~= 'orbit' then
-        Log.warn("[OrbitPersistence] Not in orbit mode, cannot serialize state.")
+        Log:warn("[OrbitPersistence] Not in orbit mode, cannot serialize state.")
         return nil
     end
 
@@ -38,11 +35,11 @@ function OrbitPersistence.serializeCurrentOrbitState()
         if STATE.mode.targetPoint then
             data.targetPoint = Util.deepCopy(STATE.mode.targetPoint)
         else
-            Log.warn("[OrbitPersistence] Target type is POINT but targetPoint is nil. Saving without point.")
+            Log:warn("[OrbitPersistence] Target type is POINT but targetPoint is nil. Saving without point.")
         end
     end
 
-    Log.trace("[OrbitPersistence] Serialized orbit state: angle=" .. data.angle .. ", speed=" .. data.speed)
+    Log:trace("[OrbitPersistence] Serialized orbit state: angle=" .. data.angle .. ", speed=" .. data.speed)
     return data
 end
 
@@ -52,12 +49,12 @@ end
 ---@return boolean success Whether saving was successful
 function OrbitPersistence.saveToFile(orbitSetId, dataToSave)
     if not orbitSetId or orbitSetId == "" then
-        Log.warn("[OrbitPersistence] Cannot save - no identifier specified for orbit set.")
+        Log:warn("[OrbitPersistence] Cannot save - no identifier specified for orbit set.")
         return false
     end
 
     if not dataToSave then
-        Log.warn("[OrbitPersistence] No data provided to save for orbit set ID: " .. orbitSetId)
+        Log:warn("[OrbitPersistence] No data provided to save for orbit set ID: " .. orbitSetId)
         return false
     end
 
@@ -68,9 +65,9 @@ function OrbitPersistence.saveToFile(orbitSetId, dataToSave)
     local success = SettingsManager.saveUserSetting("orbit_presets", mapName, mapOrbitPresets)
 
     if success then
-        Log.info(string.format("[OrbitPersistence] Saved orbit configuration with ID '%s' for map '%s'.", orbitSetId, mapName))
+        Log:info(string.format("[OrbitPersistence] Saved orbit configuration with ID '%s' for map '%s'.", orbitSetId, mapName))
     else
-        Log.error("[OrbitPersistence] Failed to save orbit configuration with ID: " .. orbitSetId)
+        Log:error("[OrbitPersistence] Failed to save orbit configuration with ID: " .. orbitSetId)
     end
 
     return success
@@ -81,7 +78,7 @@ end
 ---@return table|nil loadedData The loaded orbit data, or nil if not found or error.
 function OrbitPersistence.loadFromFile(orbitSetId)
     if not orbitSetId or orbitSetId == "" then
-        Log.warn("[OrbitPersistence] Cannot load - no identifier specified for orbit set.")
+        Log:warn("[OrbitPersistence] Cannot load - no identifier specified for orbit set.")
         return nil
     end
 
@@ -89,15 +86,38 @@ function OrbitPersistence.loadFromFile(orbitSetId)
     local mapOrbitPresets = SettingsManager.loadUserSetting("orbit_presets", mapName)
 
     if not mapOrbitPresets or not mapOrbitPresets[orbitSetId] then
-        Log.warn(string.format("[OrbitPersistence] No saved orbit configuration found with ID '%s' for map '%s'.", orbitSetId, mapName))
+        Log:warn(string.format("[OrbitPersistence] No saved orbit configuration found with ID '%s' for map '%s'.", orbitSetId, mapName))
         return nil
     end
 
     local loadedData = mapOrbitPresets[orbitSetId]
-    Log.info(string.format("[OrbitPersistence] Successfully loaded orbit configuration with ID '%s' for map '%s'.", orbitSetId, mapName))
+    Log:info(string.format("[OrbitPersistence] Successfully loaded orbit configuration with ID '%s' for map '%s'.", orbitSetId, mapName))
     return loadedData
 end
 
-return {
-    OrbitPersistence = OrbitPersistence
-}
+function OrbitPersistence.saveSettings(_, _)
+    SettingsManager.saveUserSetting("orbit_offsets", "orbit", {
+        SPEED = CONFIG.CAMERA_MODES.ORBIT.SPEED,
+        DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
+        HEIGHT = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
+    })
+end
+
+function OrbitPersistence.loadSettings(_, _)
+    local settings = SettingsManager.loadUserSetting("orbit_offsets", "orbit")
+    if settings then
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = settings.SPEED
+        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = settings.DISTANCE
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = settings.HEIGHT
+    else
+        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+    end
+    OrbitCameraUtils.ensureHeightIsSet()
+end
+
+STATE.settings.loadModeSettingsFn.orbit = OrbitPersistence.saveSettings
+STATE.settings.saveModeSettingsFn.orbit = OrbitPersistence.loadSettings
+
+return OrbitPersistence

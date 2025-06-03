@@ -1,13 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class OverviewCameraUtils
 local OverviewCameraUtils = {}
@@ -239,7 +234,7 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
 
     -- If we still don't have a valid position, default to directly above target
     if not validPosition then
-        Log.trace("Could not find valid position in same direction, positioning above target")
+        Log:trace("Could not find valid position in same direction, positioning above target")
         return {
             x = targetPoint.x,
             y = currentHeight,
@@ -247,7 +242,7 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
         }
     end
 
-    Log.trace(string.format("Camera positioned at straight line offset (%.1f, %.1f)", newX - targetPoint.x, newZ - targetPoint.z))
+    Log:trace(string.format("Camera positioned at straight line offset (%.1f, %.1f)", newX - targetPoint.x, newZ - targetPoint.z))
 
     return {
         x = newX,
@@ -257,6 +252,4 @@ function OverviewCameraUtils.calculateCameraPosition(targetPoint, currentHeight,
 end
 
 
-return {
-    OverviewCameraUtils = OverviewCameraUtils
-}
+return OverviewCameraUtils

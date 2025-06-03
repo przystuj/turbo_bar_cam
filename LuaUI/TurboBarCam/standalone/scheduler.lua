@@ -1,10 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local STATE = WidgetContext.STATE
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class Scheduler
 local Scheduler = {}
@@ -26,7 +24,7 @@ function Scheduler.schedule(fn, delay, id)
         startTime = Spring.GetTimer(),  -- Current time using stable timer
         type = "normal"
     }
-    Log.trace(string.format("Scheduled function [%s] to run in [%ss].", id, delay))
+    Log:trace(string.format("Scheduled function [%s] to run in [%ss].", id, delay))
 end
 
 --- Debounces a function call - will only execute after the specified delay
@@ -54,7 +52,7 @@ function Scheduler.debounce(fn, delay, id)
             startTime = currentTime,
             type = "debounce"
         }
-        Log.trace(string.format("Debounced function [%s] set to run in [%ss] if not called again.", id, delay))
+        Log:trace(string.format("Debounced function [%s] set to run in [%ss] if not called again.", id, delay))
     end
 end
 
@@ -65,7 +63,7 @@ end
 function Scheduler.cancel(id)
     if STATE.scheduler.schedules[id] then
         STATE.scheduler.schedules[id] = nil
-        Log.trace(string.format("Canceled scheduled function [%s].", id))
+        Log:trace(string.format("Canceled scheduled function [%s].", id))
         return true
     end
     return false
@@ -100,7 +98,7 @@ end
 
 --- Handles and executes all due schedules
 function Scheduler.handleSchedules()
-    if not STATE.scheduler.schedules or #STATE.scheduler.schedules == 0 then
+    if not STATE.scheduler.schedules or Util.tableCount(STATE.scheduler.schedules) == 0 then
         return
     end
 
@@ -112,7 +110,7 @@ function Scheduler.handleSchedules()
         local timePassed = Spring.DiffTimers(currentTime, schedule.startTime)
         if timePassed >= schedule.delay then
             local type = schedule.type or "normal"
-            Log.trace(string.format("Executing %s function [%s] after [%ss].", type, id, schedule.delay))
+            Log:trace(string.format("Executing %s function [%s] after [%ss].", type, id, schedule.delay))
             schedule.fn()  -- Execute the scheduled function
             STATE.scheduler.schedules[id] = nil  -- Remove the schedule after execution
         end

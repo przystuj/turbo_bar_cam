@@ -1,17 +1,12 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type Scheduler
-local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "fps_attack_state_debounce"
@@ -29,7 +24,7 @@ function FPSCombatMode.nextWeapon()
         return
     end
     if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
-        Log.debug("No unit selected.")
+        Log:debug("No unit selected.")
         return
     end
 
@@ -38,7 +33,7 @@ function FPSCombatMode.nextWeapon()
     local unitDef = UnitDefs[unitDefID]
 
     if not unitDef or not unitDef.weapons then
-        Log.info("Unit has no weapons")
+        Log:info("Unit has no weapons")
         return
     end
 
@@ -55,7 +50,7 @@ function FPSCombatMode.nextWeapon()
     table.sort(weaponNumbers)
 
     if #weaponNumbers == 0 then
-        Log.info("Unit has no usable weapons")
+        Log:info("Unit has no usable weapons")
         return
     end
 
@@ -91,7 +86,7 @@ function FPSCombatMode.nextWeapon()
     STATE.mode.isModeTransitionInProgress = true
     STATE.mode.transitionStartTime = Spring.GetTimer()
 
-    Log.info("Current weapon: " .. tostring(STATE.mode.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.mode.fps.forcedWeaponNumber].name .. ")")
+    Log:info("Current weapon: " .. tostring(STATE.mode.fps.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.mode.fps.forcedWeaponNumber].name .. ")")
 end
 
 --- Clear forced weapon
@@ -132,7 +127,7 @@ function FPSCombatMode.clearWeaponSelection()
         FPSCombatMode.scheduleAttackStateDisable()
     end
 
-    Log.info("Cleared weapon selection.")
+    Log:info("Cleared weapon selection.")
 end
 
 --- Sets the attacking state with debounce handling
@@ -145,7 +140,7 @@ function FPSCombatMode.setAttackingState(isAttacking)
         -- Only update state if it's changing
         if not STATE.mode.fps.isAttacking then
             STATE.mode.fps.isAttacking = true
-            Log.trace("Attack state enabled")
+            Log:trace("Attack state enabled")
         end
     else
         -- If not attacking now, schedule disabling after cooldown
@@ -161,7 +156,7 @@ function FPSCombatMode.scheduleAttackStateDisable()
             -- Only clear if we're still in combat mode
             if STATE.mode.fps.combatModeEnabled then
                 FPSCombatMode.clearAttackingState()
-                Log.trace("Attack state disabled after cooldown")
+                Log:trace("Attack state disabled after cooldown")
             end
         end, ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
     end
@@ -176,7 +171,7 @@ function FPSCombatMode.clearAttackingState()
         return
     end
 
-    Log.debug("clear attack state")
+    Log:debug("clear attack state")
     STATE.mode.fps.isAttacking = false
     STATE.mode.fps.weaponPos = nil
     STATE.mode.fps.weaponDir = nil
@@ -348,7 +343,7 @@ function FPSCombatMode.getCurrentAttackTarget(unitID)
 
     -- If no target was found, but we have a last target position and we're in attacking state
     if not targetPos and STATE.mode.fps.isAttacking and STATE.mode.fps.lastTargetPos then
-        Log.debug("Using last target position for " .. (STATE.mode.fps.lastTargetUnitName or "unknown target"))
+        Log:debug("Using last target position for " .. (STATE.mode.fps.lastTargetUnitName or "unknown target"))
         FPSCombatMode.scheduleAttackStateDisable()
         -- Return the last known target position and the active weapon number
         return STATE.mode.fps.lastTargetPos, STATE.mode.fps.activeWeaponNum
@@ -439,7 +434,7 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     unitID = unitID or STATE.mode.unitID
 
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("No valid unit for combat mode")
+        Log:trace("No valid unit for combat mode")
         return false
     end
 
@@ -478,7 +473,7 @@ function FPSCombatMode.setCombatMode(enable, unitID)
                 Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
             else
                 -- Unit is not attacking - start with attacking false
-                Log.debug("unit not attacking")
+                Log:debug("unit not attacking")
                 STATE.mode.fps.isAttacking = false
             end
 
@@ -503,14 +498,14 @@ function FPSCombatMode.setCombatMode(enable, unitID)
                 STATE.mode.fps.activeWeaponNum = weaponNum
             end
         end
-        Log.info("Combat mode enabled")
+        Log:info("Combat mode enabled")
     else
         -- Disable combat mode - immediately clear attacking state
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
         STATE.mode.fps.isAttacking = false
         STATE.mode.fps.weaponPos = nil
         STATE.mode.fps.weaponDir = nil
-        Log.info("Combat mode disabled")
+        Log:info("Combat mode disabled")
     end
 
     -- Trigger a transition for smooth camera movement
@@ -528,6 +523,4 @@ function FPSCombatMode.setCombatMode(enable, unitID)
     return true
 end
 
-return {
-    FPSCombatMode = FPSCombatMode
-}
+return FPSCombatMode

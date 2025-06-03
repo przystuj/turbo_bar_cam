@@ -1,15 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type FPSTargetingUtils
-local FPSTargetingUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_targeting_utils.lua").FPSTargetingUtils
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local FPSTargetingUtils = ModuleManager.FPSTargetingUtils(function(m) FPSTargetingUtils = m end)
 
 ---@class FPSTargetingSmoothing
 local FPSTargetingSmoothing = {}
@@ -70,7 +64,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
 
             -- If we're switching targets rapidly, enable cloud targeting
             if state.targetSwitchCount >= 3 and not state.highActivityDetected then
-                Log.info("Rapid target switching detected - enabling cloud targeting")
+                Log:info("Rapid target switching detected - enabling cloud targeting")
                 state.highActivityDetected = true
                 state.cloudStartTime = currentTime
             end
@@ -127,7 +121,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
     -- Update high activity flag
     if state.activityLevel >= 0.7 and not state.highActivityDetected then
         state.highActivityDetected = true
-        Log.info("High targeting activity detected - enabling cloud targeting")
+        Log:info("High targeting activity detected - enabling cloud targeting")
         state.cloudStartTime = currentTime
 
         -- Add a minimum duration for cloud targeting (3 seconds)
@@ -139,7 +133,7 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
 
         if hasMinDurationPassed then
             state.highActivityDetected = false
-            Log.info("Targeting activity normalized - disabling cloud targeting")
+            Log:info("Targeting activity normalized - disabling cloud targeting")
             state.cloudStartTime = nil
         end
     end
@@ -294,7 +288,7 @@ function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
 
     -- *** Reset constraints state on target switch signal ***
     if state.rotationConstraint.resetForSwitch then
-        Log.debug("Resetting rotation constraints state now.")
+        Log:debug("Resetting rotation constraints state now.")
         state.rotationConstraint.lastYaw = nil -- Force reinitialization on next valid run
         state.rotationConstraint.lastPitch = nil
         state.rotationConstraint.yawVelocity = 0
@@ -432,7 +426,7 @@ function FPSTargetingSmoothing.configure(settings)
         STATE.mode.fps.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
     end
 
-    Log.info("Target smoothing settings updated")
+    Log:info("Target smoothing settings updated")
 end
 
 -- In fps_targeting_smoothing.lua, add this function:
@@ -483,23 +477,23 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     if isCircular then
         -- Much stronger smoothing for circular patterns
         smoothFactor = 0.03
-        Log.trace("Circular aerial motion detected - using stronger smoothing")
+        Log:trace("Circular aerial motion detected - using stronger smoothing")
     elseif targetData.isMovingFast then
         -- Fast-moving targets need stronger prediction but not too much smoothing
         smoothFactor = 0.06
-        Log.trace("Fast aerial motion detected - using prediction")
+        Log:trace("Fast aerial motion detected - using prediction")
     end
 
     -- Further adjust smoothing based on target's position relative to unit
     if verticalAngle > 0.8 then  -- Target is nearly overhead
         smoothFactor = smoothFactor * 0.7  -- Even stronger smoothing for overhead targets
-        Log.trace("Overhead target - applying stronger smoothing")
+        Log:trace("Overhead target - applying stronger smoothing")
     end
 
     -- For targets that are very close and high above, increase smoothing even more
     if horizontalDist < 200 and heightDiff > 200 then
         smoothFactor = smoothFactor * 0.6
-        Log.trace("Close overhead target - applying maximum smoothing")
+        Log:trace("Close overhead target - applying maximum smoothing")
     end
 
     -- Apply trajectory prediction for fast-moving targets
@@ -531,6 +525,4 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     return aerial.smoothedPosition
 end
 
-return {
-    FPSTargetingSmoothing = FPSTargetingSmoothing
-}
+return FPSTargetingSmoothing

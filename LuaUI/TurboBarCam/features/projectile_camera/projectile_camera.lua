@@ -1,26 +1,17 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type VelocityTracker
-local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
----@type ProjectileTracker
-local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
----@type TransitionUtil
-local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util.lua")
----@type ProjectileCameraUtils
-local ProjectileCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_utils.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
+local TransitionUtil = ModuleManager.TransitionUtil(function(m) TransitionUtil = m end)
+local ProjectileCameraUtils = ModuleManager.ProjectileCameraUtils(function(m) ProjectileCameraUtils = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class ProjectileCamera
 local ProjectileCamera = {}
@@ -64,7 +55,7 @@ function ProjectileCamera.toggle(requestedSubMode)
 
     if isFollowingProjectileMode or isImpactDecelerating then
         if currentSubMode == requestedSubMode and not isImpactDecelerating then
-            ProjectileCamera.saveSettings(unitToWatchForToggle)
+            ProjectileCameraUtils.saveSettings(unitToWatchForToggle)
             STATE.mode.projectile_camera.continuouslyArmedUnitID = nil
             ProjectileCamera.returnToPreviousMode(false)
             return true
@@ -73,7 +64,7 @@ function ProjectileCamera.toggle(requestedSubMode)
         end
     elseif isArmed then
         if currentSubMode == requestedSubMode then
-            ProjectileCamera.saveSettings(unitToWatchForToggle)
+            ProjectileCameraUtils.saveSettings(unitToWatchForToggle)
             STATE.mode.projectile_camera.continuouslyArmedUnitID = nil
             ProjectileCamera.disableProjectileArming()
             return true
@@ -82,12 +73,12 @@ function ProjectileCamera.toggle(requestedSubMode)
         end
     elseif isContinuous then
         if currentSubMode == requestedSubMode then
-            ProjectileCamera.saveSettings(unitToWatchForToggle)
+            ProjectileCameraUtils.saveSettings(unitToWatchForToggle)
             STATE.mode.projectile_camera.continuouslyArmedUnitID = nil
             ProjectileCamera.disableProjectileArming()
             return true
         else
-            ProjectileCamera.loadSettings(unitToWatchForToggle)
+            ProjectileCameraUtils.loadSettings(unitToWatchForToggle)
             return ProjectileCamera.armProjectileTracking(requestedSubMode, unitToWatchForToggle)
         end
     else
@@ -99,7 +90,7 @@ function ProjectileCamera.toggle(requestedSubMode)
         end
 
         STATE.mode.projectile_camera.continuouslyArmedUnitID = unitToWatchForToggle
-        ProjectileCamera.loadSettings(unitToWatchForToggle)
+        ProjectileCameraUtils.loadSettings(unitToWatchForToggle)
         return ProjectileCamera.armProjectileTracking(requestedSubMode, unitToWatchForToggle)
     end
 end
@@ -143,7 +134,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     end
 
     ProjectileTracker.initUnitTracking(unitID)
-    Log.debug("Projectile tracking enabled in mode = " .. subMode)
+    Log:debug("Projectile tracking enabled in mode = " .. subMode)
     return true
 end
 
@@ -160,7 +151,7 @@ function ProjectileCamera.disableProjectileArming()
         STATE.mode.projectile_camera.projectile.selectedProjectileID = nil
         STATE.mode.projectile_camera.projectile.currentProjectileID = nil
     end
-    Log.debug("Projectile tracking disabled") -- This was an original log message
+    Log:debug("Projectile tracking disabled") -- This was an original log message
 end
 
 function ProjectileCamera.switchCameraSubModes(newSubMode)
@@ -171,7 +162,7 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
             STATE.mode.projectile_camera.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
         end
     end
-    Log.debug("Projectile tracking switched to " .. newSubMode)
+    Log:debug("Projectile tracking switched to " .. newSubMode)
     ProjectileCameraUtils.resetSmoothedPositions()
     return true
 end
@@ -206,7 +197,7 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
         STATE.mode.projectile_camera.previousMode = nil
         STATE.mode.projectile_camera.previousCameraState = nil
     else
-        ProjectileCamera.loadSettings(unitToReArmWith)
+        ProjectileCameraUtils.loadSettings(unitToReArmWith)
         ProjectileCamera.armProjectileTracking(STATE.mode.projectile_camera.cameraMode, unitToReArmWith)
     end
 end
@@ -219,7 +210,7 @@ function ProjectileCamera.checkAndActivate()
         local unitID = STATE.mode.projectile_camera.watchedUnitID
         local reArm = (STATE.mode.projectile_camera.continuouslyArmedUnitID == unitID and Spring.ValidUnitID(unitID))
         if unitID and not reArm then
-            ProjectileCamera.saveSettings(unitID)
+            ProjectileCameraUtils.saveSettings(unitID)
         end
         ProjectileCamera.returnToPreviousMode(reArm)
         STATE.mode.projectile_camera.returnToPreviousMode = false
@@ -253,7 +244,7 @@ function ProjectileCamera.checkAndActivate()
     if ModeManager.initializeMode('projectile_camera', unitID, STATE.TARGET_TYPES.UNIT) then
         STATE.mode.projectile_camera = modeState
         STATE.mode.projectile_camera.armed = false -- Consume armed state
-        Log.trace("ProjectileCamera: CheckAndActivate - Activated, tracking new projectile from unit", unitID, "(Original log trace)")
+        Log:trace("ProjectileCamera: CheckAndActivate - Activated, tracking new projectile from unit", unitID, "(Original log trace)")
         return true
     else
         local reArm = (STATE.mode.projectile_camera.continuouslyArmedUnitID == unitID)
@@ -272,7 +263,7 @@ function ProjectileCamera.update(dt)
     if not ProjectileCamera.validateUnit(unitID) then
         local reArm = (STATE.mode.projectile_camera.continuouslyArmedUnitID == unitID)
         if unitID and not reArm then
-            ProjectileCamera.saveSettings(unitID)
+            ProjectileCameraUtils.saveSettings(unitID)
         end
         ProjectileCamera.returnToPreviousMode(reArm)
         return
@@ -432,7 +423,7 @@ end
 function ProjectileCamera.handleImpactView()
     -- todo handle this somehow if it ever happens
     if not STATE.mode.projectile_camera.impactPosition then
-        Log.warn("No impact position available!! Please report a bug")
+        Log:warn("No impact position available!! Please report a bug")
         ModeManager.disableMode()
         return
     end
@@ -538,7 +529,7 @@ function ProjectileCamera.selectProjectile(unitID)
     if newProjectileSelected then
         TransitionManager.cancelPrefix(PROJECTILE_CAMERA_TRANSITION_PREFIX)
         STATE.mode.projectile_camera.isHighArc = false
-        Log.trace("Projectile changed/lost, resetting direction transition state.") -- Original log
+        Log:trace("Projectile changed/lost, resetting direction transition state.") -- Original log
     end
 
     if latestValidProjectile and newProjectileSelected then
@@ -546,7 +537,7 @@ function ProjectileCamera.selectProjectile(unitID)
         STATE.mode.projectile_camera.projectile.selectedProjectileID = latestValidProjectile.id
         STATE.mode.projectile_camera.projectile.currentProjectileID = latestValidProjectile.id
         ProjectileCameraUtils.resetSmoothedPositions()
-        Log.trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id) -- Original log
+        Log:trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id) -- Original log
         STATE.mode.projectile_camera.impactPosition = nil
         STATE.mode.projectile_camera.projectile.trackingStartTime = Spring.GetTimer()
 
@@ -556,7 +547,7 @@ function ProjectileCamera.selectProjectile(unitID)
             if upComponent > HIGH_ARC_THRESHOLD then
                 STATE.mode.projectile_camera.isHighArc = true
                 STATE.mode.projectile_camera.highArcDirectionChangeCompleted = false -- Initialize based on some criteria if needed
-                Log.trace("ProjectileCamera: High Arc detected.") -- Original log
+                Log:trace("ProjectileCamera: High Arc detected.") -- Original log
             else
                 STATE.mode.projectile_camera.isHighArc = false
             end
@@ -582,14 +573,15 @@ function ProjectileCamera.resetToDefaults()
     return ProjectileCameraUtils.resetToDefaults()
 end
 
-function ProjectileCamera.saveSettings(unitID)
+function ProjectileCamera.saveSettings(_, unitID)
     return ProjectileCameraUtils.saveSettings(unitID)
 end
 
-function ProjectileCamera.loadSettings(unitID)
+function ProjectileCamera.loadSettings(_, unitID)
     return ProjectileCameraUtils.loadSettings(unitID)
 end
 
-return {
-    ProjectileCamera = ProjectileCamera
-}
+STATE.settings.loadModeSettingsFn.projectile_camera = ProjectileCamera.loadSettings
+STATE.settings.saveModeSettingsFn.projectile_camera = ProjectileCamera.saveSettings
+
+return ProjectileCamera

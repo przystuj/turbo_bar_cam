@@ -1,27 +1,23 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type FeatureModules
-local Features = VFS.Include("LuaUI/TurboBarCam/features.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
-
----@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
----@type Scheduler
-local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
----@type VelocityTracker
-local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
+local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
+local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
+local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
+local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
+local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
+local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
+local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
+local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -30,15 +26,6 @@ local UpdateManager = {}
 function UpdateManager.processCycle(dt)
     if Util.isTurboBarCamDisabled() then
         return
-    end
-
-    if STATE.reloadFeatures then
-        Features.FPSCamera = VFS.Include("LuaUI/TurboBarCam/features/fps/fps.lua").FPSCamera
-        Features.OrbitingCamera = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit.lua").OrbitingCamera
-        --Features.CameraAnchor = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor.lua").CameraAnchor
-        Features.UnitTrackingCamera = VFS.Include("LuaUI/TurboBarCam/features/unit_tracking/unit_tracking.lua").UnitTrackingCamera
-        --Features.ProjectileCamera = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera.lua").ProjectileCamera
-        STATE.reloadFeatures = false
     end
 
     -- Handle camera velocity tracking
@@ -58,9 +45,9 @@ function UpdateManager.processCycle(dt)
     UpdateManager.handleTrackingGracePeriod()
 
     -- Handle fixed point command activation
-    Features.FPSCamera.checkFixedPointCommandActivation()
+    FPSCamera.checkFixedPointCommandActivation()
 
-    Features.ProjectileCamera.checkAndActivate()
+    ProjectileCamera.checkAndActivate()
 
     -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode(dt)
@@ -86,7 +73,7 @@ function UpdateManager.handleTrackingGracePeriod()
         -- If grace period expired (1 second), disable tracking for unit targets
         if elapsed > 1.0 and not UpdateManager.isSpectating() then
             ModeManager.disableMode()
-            Log.debug("Camera tracking disabled - no units selected")
+            Log:debug("Camera tracking disabled - no units selected")
             return
         end
     end
@@ -105,30 +92,23 @@ end
 function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
 
-    if STATE.anchorQueue and STATE.anchorQueue.active then
-        Features.CameraAnchor.updateQueue(dt)
-    elseif STATE.transition.active then
-        Features.CameraAnchor.update(dt)
+    if STATE.transition.active then
+        CameraAnchor.update(dt)
     elseif STATE.dollyCam.isNavigating then
-        Features.DollyCam.update(dt)
+        DollyCam.update(dt)
     elseif STATE.mode.name == 'fps' then
-        Features.FPSCamera.update(dt)
+        FPSCamera.update(dt)
     elseif STATE.mode.name == 'unit_tracking' then
-        Features.UnitTrackingCamera.update(dt)
+        UnitTrackingCamera.update(dt)
     elseif STATE.mode.name == 'orbit' then
-        Features.OrbitingCamera.update(dt)
+        OrbitingCamera.update(dt)
     elseif STATE.mode.name == 'overview' then
-        Features.TurboOverviewCamera.update(dt)
+        OverviewCamera.update(dt)
     elseif STATE.mode.name == 'group_tracking' then
-        Features.GroupTrackingCamera.update(dt)
+        GroupTrackingCamera.update(dt)
     elseif STATE.mode.name == 'projectile_camera' then
-        Features.ProjectileCamera.update(dt)
+        ProjectileCamera.update(dt)
     end
-end
-
-function UpdateManager.reload()
-    Log.debug("reload")
-    STATE.reloadFeatures = true
 end
 
 return UpdateManager

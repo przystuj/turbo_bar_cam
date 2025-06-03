@@ -1,12 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 --------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
@@ -95,7 +92,7 @@ function Util.throttleExecution(fn, interval, id)
 
     local currentTime = Spring.GetGameSeconds()
     if currentTime - lastThrottledExecutionTimes[functionId] >= interval then
-        Log.trace(string.format("[%s] [%ss] Executing...", functionId, interval))
+        Log:trace(string.format("[%s] [%ss] Executing...", functionId, interval))
         fn()
         lastThrottledExecutionTimes[functionId] = currentTime
     end
@@ -103,7 +100,7 @@ end
 
 function Util.isTurboBarCamDisabled()
     if not STATE.enabled then
-        Log.trace("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
+        Log:trace("TurboBarCam must be enabled first. Use /turbobarcam_toggle")
         return true
     end
 end
@@ -121,13 +118,13 @@ end
 local function parseParams(params, moduleName)
     -- Check if the moduleName string is empty or nil
     if not moduleName or moduleName == "" or not CONFIG.MODIFIABLE_PARAMS[moduleName] then
-        Log.error("Invalid moduleName " .. tostring(moduleName))
+        Log:error("Invalid moduleName " .. tostring(moduleName))
         return nil -- Return nil on error
     end
 
     -- Check if the params string is empty or nil
     if not params or params == "" then
-        Log.error("Empty parameters string")
+        Log:error("Empty parameters string")
         return nil -- Return nil on error
     end
 
@@ -140,7 +137,7 @@ local function parseParams(params, moduleName)
     -- Get the command type (first part)
     local command = parts[1]
     if not command then
-        Log.error("No command specified")
+        Log:error("No command specified")
         return nil -- Return nil on error
     end
 
@@ -155,7 +152,7 @@ local function parseParams(params, moduleName)
 
     -- Check if command is valid
     if command ~= "set" and command ~= "add" then
-        Log.error("Invalid command '" .. command .. "', must be 'set', 'add', or 'reset'")
+        Log:error("Invalid command '" .. command .. "', must be 'set', 'add', or 'reset'")
         return nil -- Return nil on error
     end
 
@@ -167,7 +164,7 @@ local function parseParams(params, moduleName)
 
         -- Check if parameter name and value are valid
         if not paramName then
-            Log.error("Invalid parameter format at '" .. paramPair .. "'")
+            Log:error("Invalid parameter format at '" .. paramPair .. "'")
             return nil -- Return nil on error
         end
 
@@ -191,14 +188,14 @@ local function parseParams(params, moduleName)
         end
 
         if not isValidParam then
-            Log.error("Unknown parameter '" .. paramName .. "'")
+            Log:error("Unknown parameter '" .. paramName .. "'")
             return nil -- Return nil on error
         end
 
         -- Convert value to number
         local value = tonumber(valueStr)
         if not value then
-            Log.error("Invalid numeric value for parameter '" .. paramName .. "'")
+            Log:error("Invalid numeric value for parameter '" .. paramName .. "'")
             return nil -- Return nil on error
         end
 
@@ -231,7 +228,7 @@ local function adjustParam(command, module)
         if currentConfigTable[paramParts[i]] then
             currentConfigTable = currentConfigTable[paramParts[i]]
         else
-            Log.error("Invalid parameter path: " .. table.concat(paramPath, "."))
+            Log:error("Invalid parameter path: " .. table.concat(paramPath, "."))
             return
         end
     end
@@ -239,7 +236,7 @@ local function adjustParam(command, module)
     -- Get the current value
     local currentValue = currentConfigTable[paramName]
     if currentValue == nil then
-        Log.error("Parameter not found: " .. command.param)
+        Log:error("Parameter not found: " .. command.param)
         return
     end
 
@@ -253,7 +250,7 @@ local function adjustParam(command, module)
     end
 
     if not boundaries then
-        Log.error("Parameter boundaries not found for: " .. command.param)
+        Log:error("Parameter boundaries not found for: " .. command.param)
         return
     end
 
@@ -284,7 +281,7 @@ local function adjustParam(command, module)
 
     -- Check if value has changed
     if newValue == currentValue then
-        Log.trace("Value has not changed.")
+        Log:trace("Value has not changed.")
         return
     end
 
@@ -298,7 +295,7 @@ local function adjustParam(command, module)
         displayValue = math.floor(newValue * 180 / math.pi)
     end
 
-    Log.debug(string.format("%s.%s = %s", module, command.param, displayValue))
+    Log:debug(string.format("%s.%s = %s", module, command.param, displayValue))
 end
 
 ---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
@@ -307,7 +304,7 @@ end
 ---@param currentSubmode string|nil Optional current submode name (e.g., "PEACE", "FOLLOW")
 ---@param getSubmodeParamPrefixes function|nil Optional function that returns a table of submode_name -> prefix_string (e.g., {PEACE = "PEACE.", FOLLOW = "FOLLOW."})
 function Util.adjustParams(params, module, resetFunction, currentSubmode, getSubmodeParamPrefixes)
-    Log.trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
+    Log:trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
     local adjustments = parseParams(params, module)
 
     if not adjustments then -- parseParams returned an error
@@ -325,11 +322,11 @@ function Util.adjustParams(params, module, resetFunction, currentSubmode, getSub
 
         if adjustment.name == "reset" then
             if resetFunction then
-                Log.debug("Resetting params for module " .. module)
+                Log:debug("Resetting params for module " .. module)
                 resetFunction()
                 return -- Exit after reset
             else
-                Log.error("Reset function missing for module " .. module)
+                Log:error("Reset function missing for module " .. module)
                 return
             end
         else
@@ -354,7 +351,7 @@ function Util.adjustParams(params, module, resetFunction, currentSubmode, getSub
 
                 -- If it's a submode param but *not* for the current submode, skip it
                 if isSubmodeParam and not belongsToCurrentSubmode then
-                    Log.trace("Skipping param '" .. paramName .. "' as it belongs to a different submode.")
+                    Log:trace("Skipping param '" .. paramName .. "' as it belongs to a different submode.")
                     shouldProcess = false
                 end
             end
@@ -459,7 +456,7 @@ function Util.hermiteInterpolate(p0, p1, v0, v1, t)
 
     -- Check for NaN values (can occur with certain tangent combinations)
     if result.x ~= result.x or result.y ~= result.y or result.z ~= result.z then
-        Log.warn("NaN detected in Hermite interpolation")
+        Log:warn("NaN detected in Hermite interpolation")
         -- Fall back to linear interpolation if Hermite produces NaN
         result.x = (1-t) * p0x + t * p1x
         result.y = (1-t) * p0y + t * p1y
@@ -537,7 +534,7 @@ end
 function Util.subtractTable(t1, t2)
     -- Check if inputs are tables
     if type(t1) ~= "table" or type(t2) ~= "table" then
-        Spring.Log("Util.subtractTable", LOG.WARNING, "Both inputs must be tables.")
+        Log:warn("Both inputs must be tables.")
         return {} -- Return an empty table on invalid input
     end
 

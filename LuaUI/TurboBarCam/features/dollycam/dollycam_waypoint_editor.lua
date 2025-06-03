@@ -1,17 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
----@type DollyCamPathPlanner
-local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
----@type DollyCamEditor
-local DollyCamEditor = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_editor.lua").DollyCamEditor
----@type DollyCamDataStructures
-local DollyCamDataStructures = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_data_structures.lua").DollyCamDataStructures
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
+local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
+local DollyCamEditor = ModuleManager.DollyCamEditor(function(m) DollyCamEditor = m end)
+local DollyCamDataStructures = ModuleManager.DollyCamDataStructures(function(m) DollyCamDataStructures = m end)
 
 -- Initialize required STATE properties
 STATE.dollyCam = STATE.dollyCam or {}
@@ -50,7 +44,7 @@ function DollyCamWaypointEditor.initialize()
     -- Set editing state
     STATE.dollyCam.isEditing = true
     STATE.dollyCam.visualizationEnabled = true
-    Log.info("[DollyCam] Waypoint Editor enabled")
+    Log:info("[DollyCam] Waypoint Editor enabled")
 end
 
 -- Clean up and disable the waypoint editor
@@ -64,7 +58,7 @@ function DollyCamWaypointEditor.disable()
     STATE.dollyCam.isEditing = false
     STATE.mode.name = nil
 
-    Log.info("[DollyCam] Waypoint Editor disabled")
+    Log:info("[DollyCam] Waypoint Editor disabled")
 end
 
 -- Toggle the waypoint editor on/off
@@ -179,7 +173,7 @@ end
 function DollyCamWaypointEditor.addWaypointToSelection(index)
     if not DollyCamWaypointEditor.isWaypointSelected(index) then
         table.insert(STATE.dollyCam.selectedWaypoints, index)
-        Log.info(string.format("Added waypoint %d to selection", index))
+        Log:info(string.format("Added waypoint %d to selection", index))
     end
 end
 
@@ -189,7 +183,7 @@ function DollyCamWaypointEditor.removeWaypointFromSelection(index)
     for i, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
         if selectedIndex == index then
             table.remove(STATE.dollyCam.selectedWaypoints, i)
-            Log.info(string.format("Removed waypoint %d from selection", index))
+            Log:info(string.format("Removed waypoint %d from selection", index))
             return
         end
     end
@@ -217,7 +211,7 @@ function DollyCamWaypointEditor.selectWaypoint(index)
     STATE.dollyCam.selectedWaypoints = {}
     -- Add the waypoint to selection
     DollyCamWaypointEditor.addWaypointToSelection(index)
-    Log.info(string.format("Selected waypoint %d", index))
+    Log:info(string.format("Selected waypoint %d", index))
     return true
 end
 
@@ -235,7 +229,7 @@ function DollyCamWaypointEditor.selectAllWaypoints()
         table.insert(STATE.dollyCam.selectedWaypoints, i)
     end
 
-    Log.info(string.format("Selected all %d waypoints", #STATE.dollyCam.route.points))
+    Log:info(string.format("Selected all %d waypoints", #STATE.dollyCam.route.points))
     return true
 end
 
@@ -305,7 +299,7 @@ function DollyCamWaypointEditor.handleDoubleMiddleClick()
     local success, action, index = DollyCamEditor.addOrEditWaypointAtMousePosition()
 
     if success then
-        Log.info("Added new waypoint with MMB")
+        Log:info("Added new waypoint with MMB")
         -- Make sure to select the new waypoint
         if index then
             DollyCamWaypointEditor.selectWaypoint(index)
@@ -340,7 +334,7 @@ function DollyCamWaypointEditor.deleteSelectedWaypoint(index)
 
     -- Don't allow deleting if only 2 waypoints remain
     if #STATE.dollyCam.route.points <= 2 then
-        Log.warn("Cannot delete waypoint: Route needs at least 2 waypoints")
+        Log:warn("Cannot delete waypoint: Route needs at least 2 waypoints")
         return false
     end
 
@@ -348,7 +342,7 @@ function DollyCamWaypointEditor.deleteSelectedWaypoint(index)
     local success = DollyCamEditor.deleteWaypoint(index)
 
     if success then
-        Log.info(string.format("Deleted waypoint %d", index))
+        Log:info(string.format("Deleted waypoint %d", index))
         STATE.dollyCam.hoveredWaypointIndex = nil
 
         -- Remove from selection
@@ -433,7 +427,7 @@ function DollyCamWaypointEditor.addWaypointAtPathPoint(pathPointIndex)
         end
     end
 
-    Log.info(string.format("Added waypoint at path point %d at position (%.1f, %.1f, %.1f)",
+    Log:info(string.format("Added waypoint at path point %d at position (%.1f, %.1f, %.1f)",
             pathPointIndex, position.x, position.y, position.z))
 
     return true
@@ -469,7 +463,7 @@ function DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
                 waypoint.position.z = waypoint.position.z + amount
                 moved = true
             else
-                Log.warn("Invalid axis: " .. axis)
+                Log:warn("Invalid axis: " .. axis)
                 return false
             end
         end
@@ -480,7 +474,7 @@ function DollyCamWaypointEditor.moveWaypointAlongAxis(axis, value)
         DollyCamPathPlanner.generateSmoothPath()
 
         local count = #STATE.dollyCam.selectedWaypoints
-        Log.info(string.format("Moved %d waypoint%s along %s axis by %.1f units",
+        Log:info(string.format("Moved %d waypoint%s along %s axis by %.1f units",
                 count, count > 1 and "s" or "", axis, amount))
     end
 
@@ -515,7 +509,7 @@ function DollyCamWaypointEditor.setWaypointTargetSpeed(speed)
             STATE.dollyCam.route.points[index].hasExplicitSpeed = true
 
             changed = true
-            Log.info(string.format("Set waypoint %d target speed from %.2f to %.2f",
+            Log:info(string.format("Set waypoint %d target speed from %.2f to %.2f",
                     index, oldSpeed, speed))
         end
     end
@@ -540,7 +534,7 @@ function DollyCamWaypointEditor.setWaypointLookAtUnit()
                 waypoint.lookAtPoint = nil
                 waypoint.lookAtUnitID = nil
 
-                Log.info(string.format("Disabled unit tracking for waypoint %d", index))
+                Log:info(string.format("Disabled unit tracking for waypoint %d", index))
             end
         end
         return true
@@ -559,7 +553,7 @@ function DollyCamWaypointEditor.setWaypointLookAtUnit()
 
             -- Get unit position for logging
             local x, y, z = Spring.GetUnitPosition(unitID)
-            Log.info(string.format("Set waypoint %d to track unit %d at (%.1f, %.1f, %.1f)",
+            Log:info(string.format("Set waypoint %d to track unit %d at (%.1f, %.1f, %.1f)",
                     index, unitID, x, y, z))
         end
     end
@@ -587,7 +581,7 @@ function DollyCamWaypointEditor.resetWaypointSpeed()
             waypoint.hasExplicitSpeed = true
 
             changed = true
-            Log.info(string.format("Reset waypoint %d speed to default %.2f (explicit)",
+            Log:info(string.format("Reset waypoint %d speed to default %.2f (explicit)",
                     index, DollyCamWaypointEditor.DEFAULT_TARGET_SPEED))
         end
     end
@@ -615,13 +609,11 @@ function DollyCamWaypointEditor.clearWaypointLookAt()
             waypoint.lookAtUnitID = nil
 
             changed = true
-            Log.info(string.format("Explicitly cleared lookAt for waypoint %d", index))
+            Log:info(string.format("Explicitly cleared lookAt for waypoint %d", index))
         end
     end
 
     return changed
 end
 
-return {
-    DollyCamWaypointEditor = DollyCamWaypointEditor
-}
+return DollyCamWaypointEditor

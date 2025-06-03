@@ -1,11 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class GroupTrackingUtils
 local GroupTrackingUtils = {}
@@ -76,7 +73,7 @@ function GroupTrackingUtils.resetGroupTrackingSettings()
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_POSITION
     CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_SMOOTHING.STABLE_ROTATION
 
-    Log.trace("Group tracking camera settings reset to defaults")
+    Log:trace("Group tracking camera settings reset to defaults")
     return true
 end
 
@@ -231,6 +228,4 @@ function GroupTrackingUtils.getDirectionAngle(dir)
     return math.atan2(dir.z, dir.x)
 end
 
-return {
-    TrackingUtils = GroupTrackingUtils
-}
+return GroupTrackingUtils

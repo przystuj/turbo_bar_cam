@@ -1,11 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class MouseManager
 local MouseManager = {}
@@ -13,7 +10,7 @@ local MouseManager = {}
 function MouseManager.registerMode(modeName)
     if not STATE.mouse.registeredModes[modeName] then
         STATE.mouse.registeredModes[modeName] = true
-        Log.trace("Mouse input tracking registered for mode: " .. modeName)
+        Log:trace("Mouse input tracking registered for mode: " .. modeName)
     end
 end
 
@@ -42,7 +39,7 @@ local function registerCallback(eventType, modeName, callback)
     end
 
     STATE.mouse.callbacks[eventType][modeName] = callback
-    Log.trace("Registered " .. eventType .. " callback for mode: " .. modeName)
+    Log:trace("Registered " .. eventType .. " callback for mode: " .. modeName)
 end
 
 local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, currentTime)

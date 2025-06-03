@@ -1,7 +1,6 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
 
 ---@class CameraTracker
 local CameraTracker = {}

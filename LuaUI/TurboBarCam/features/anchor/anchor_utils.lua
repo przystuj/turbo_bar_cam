@@ -1,57 +1,13 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type EasingFunctions
-local EasingFunctions = VFS.Include("LuaUI/TurboBarCam/features/anchors/anchor_easing_functions.lua").EasingFunctions
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local CameraCommons = CommonModules.CameraCommons
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local EasingFunctions = ModuleManager.EasingFunctions(function(m) EasingFunctions = m end)
 
 ---@class CameraAnchorUtils
 local CameraAnchorUtils = {}
-
---- Interpolates between two angles along the shortest path
----@param a number Start angle (in radians)
----@param b number End angle (in radians)
----@param t number Interpolation factor (0.0-1.0)
----@return number interpolated angle
-function CameraAnchorUtils.lerpAngle(a, b, t)
-    -- Normalize both angles to -pi to pi range
-    a = CameraAnchorUtils.normalizeAngle(a)
-    b = CameraAnchorUtils.normalizeAngle(b)
-
-    -- Find the shortest path
-    local diff = b - a
-
-    -- If the difference is greater than pi, we need to go the other way around
-    if diff > math.pi then
-        diff = diff - 2 * math.pi
-    elseif diff < -math.pi then
-        diff = diff + 2 * math.pi
-    end
-
-    return a + diff * t
-end
-
---- Normalizes an angle to be within -pi to pi range
----@param angle number|nil Angle to normalize (in radians)
----@return number normalized angle
-function CameraAnchorUtils.normalizeAngle(angle)
-    if angle == nil then
-        return 0 -- Default to 0 if angle is nil
-    end
-
-    local twoPi = 2 * math.pi
-    angle = angle % twoPi
-    if angle > math.pi then
-        angle = angle - twoPi
-    end
-    return angle
-end
 
 --- Generates a sequence of camera states for smooth transition
 ---@param startState table Start camera state
@@ -104,7 +60,7 @@ function CameraAnchorUtils.generateSteps(startState, endState, numSteps, interpo
         -- Camera rotation parameters (need special angle interpolation)
         for _, param in ipairs(rotationParams) do
             if startState[param] ~= nil and endState[param] ~= nil then
-                statePatch[param] = CameraAnchorUtils.lerpAngle(startState[param], endState[param], easedT)
+                statePatch[param] = CameraCommons.lerpAngle(startState[param], endState[param], easedT)
             end
         end
 
@@ -164,6 +120,4 @@ function CameraAnchorUtils.startTransitionToAnchor(endState, duration, interpola
     STATE.transition.active = true
 end
 
-return {
-    CameraAnchorUtils = CameraAnchorUtils
-}
+return CameraAnchorUtils

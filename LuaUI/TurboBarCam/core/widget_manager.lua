@@ -1,16 +1,12 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraQuickControls
-local CameraQuickControls = VFS.Include("LuaUI/TurboBarCam/standalone/camera_quick_controls.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local CameraQuickControls = ModuleManager.CameraQuickControls(function(m) CameraQuickControls = m end)
 
 ---@class WidgetManager
 local WidgetManager = {}
@@ -18,7 +14,7 @@ local WidgetManager = {}
 --- Enables the widget
 function WidgetManager.enable()
     if STATE.enabled then
-        Log.trace("Already enabled")
+        Log:trace("Already enabled")
         return
     end
 
@@ -34,7 +30,7 @@ function WidgetManager.enable()
     STATE.enabled = true
     WidgetManager.switchToFpsCamera()
     CameraQuickControls.initialize()
-    Log.debug("Enabled")
+    Log:debug("Enabled")
 end
 
 --- Disables the widget
@@ -60,7 +56,6 @@ function WidgetManager.disable()
     end
 
     STATE.enabled = false
-    Log.debug("Disabled")
 end
 
 --- Toggles the widget state
@@ -104,7 +99,7 @@ function WidgetManager.toggleDebug()
         TRACE = "INFO"
     }
     CONFIG.DEBUG.LOG_LEVEL = logLevelCycle[CONFIG.DEBUG.LOG_LEVEL] or "INFO"
-    Log.info("Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    Log:info("Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
     return true
 end
 
@@ -113,7 +108,7 @@ end
 --- When this is set to true then that behaviour is disabled
 function WidgetManager.toggleLockUnitSelection()
     STATE.allowPlayerCamUnitSelection = not STATE.allowPlayerCamUnitSelection
-    Log.info("Unit selection is " .. (STATE.allowPlayerCamUnitSelection and "unlocked" or "locked"))
+    Log:info("Unit selection is " .. (STATE.allowPlayerCamUnitSelection and "unlocked" or "locked"))
     return true
 end
 
@@ -121,7 +116,7 @@ end
 --- This allows you to track units and then deselect it
 function WidgetManager.toggleRequireUnitSelection()
     CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION = not CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION
-    Log.info("Tracking without selected unit is " .. (CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION and "enabled" or "disabled"))
+    Log:info("Tracking without selected unit is " .. (CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION and "enabled" or "disabled"))
     return true
 end
 
@@ -151,11 +146,11 @@ function WidgetManager.changeConfig(path, value)
     if segmentCount > 0 then
         local lastSegment = segments[segmentCount]
         value = tonumber(value) or value
-        Log.debug(string.format("Changing %s=%s to %s", path, currentTable[lastSegment], value))
+        Log:debug(string.format("Changing %s=%s to %s", path, currentTable[lastSegment], value))
         currentTable[lastSegment] = value
     else
         -- Handle cases where the path might be empty, though this usually indicates an error.
-        Log.debug("Attempted to change config with an empty path.")
+        Log:debug("Attempted to change config with an empty path.")
     end
 end
 

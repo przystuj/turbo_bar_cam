@@ -1,41 +1,36 @@
+---@class Main just for navigation in IDE
 function widget:GetInfo()
     return {
-        name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
-        desc = "Smooths the view, so you don’t have to.",
-        author = "SuperKitowiec",
-        date = "Mar 2025",
+        name    = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
+        desc    = "Smooths the view, so you don’t have to.",
+        author  = "SuperKitowiec",
+        date    = "Mar 2025",
         license = "GNU GPL, v2 or later",
-        layer = 1,
+        layer   = 1,
         enabled = true,
         version = 1.8,
         handler = true,
     }
 end
 
----@class Main just for navigation in IDE
+WG.TurboBarCam = {}
+WG.TurboBarCam.ModuleManager = WG.TurboBarCam.ModuleManager or VFS.Include("LuaUI/TurboBarCam/module_manager.lua")
 
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type FeatureModules
-local FeatureModules = VFS.Include("LuaUI/TurboBarCam/features.lua")
----@type CoreModules
-local CoreModules = VFS.Include("LuaUI/TurboBarCam/core.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type Actions
-local Actions = VFS.Include("LuaUI/TurboBarCam/standalone/actions.lua")
----@type ProjectileTracker
-local ProjectileTracker = VFS.Include("LuaUI/TurboBarCam/standalone/projectile_tracker.lua")
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local Actions = ModuleManager.Actions(function(m) Actions = m end)
+local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
+local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
+local UpdateManager = ModuleManager.UpdateManager(function(m) UpdateManager = m end)
+local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionManager = m end)
+local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local WidgetManager = CoreModules.WidgetManager
-local FPSCamera = FeatureModules.FPSCamera
-local UpdateManager = CoreModules.UpdateManager
-local SelectionManager = CoreModules.SelectionManager
 local cameraStateOnInit = Spring.GetCameraState()
 
 --------------------------------------------------------------------------------
@@ -43,11 +38,10 @@ local cameraStateOnInit = Spring.GetCameraState()
 --------------------------------------------------------------------------------
 
 function widget:Initialize()
+    cameraStateOnInit = Spring.GetCameraState()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
 
-    -- it's required in settings_manager unfortunately
-    WG.TurboBarCam.FeatureModules = FeatureModules
     Actions.registerAllActions()
 
     -- external hooks
@@ -64,7 +58,7 @@ function widget:Initialize()
         Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
     end
 
-    Log.info("Loaded - use /turbobarcam_toggle to enable.\n[TurboBarCam] Loaded with log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    Log:info("Loaded - use /turbobarcam_toggle to enable. Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
 end
 
 ---@param selectedUnits number[] Array of selected unit IDs
@@ -82,23 +76,25 @@ end
 
 function widget:DrawWorld()
     if Spring.IsGUIHidden() == false then
-        FeatureModules.DollyCam.draw()
+        DollyCam.draw()
     end
 end
 
 function widget:Shutdown()
-    -- Make sure we clean up
-    if STATE.enabled then
-        WidgetManager.disable()
-    end
-    WG.TurboBarCam = nil
+    --make sure that camera mode is restored
+    Spring.SetCameraState({ mode = cameraStateOnInit.mode, name = cameraStateOnInit.name })
     -- refresh units command bar to remove custom command
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then
         Spring.SelectUnitArray(selectedUnits)
     end
-    --make sure that camera mode is restored
-    Spring.SetCameraState({ mode = cameraStateOnInit.mode, name = cameraStateOnInit.name })
+    Spring.SetConfigInt("CamSpringLockCardinalDirections", 1)
+    Spring.SetConfigInt("FPSClampPos", 1)
+    Spring.SetConfigInt("FPSFOV", STATE.originalFpsCameraFov or 45)
+    if STATE.enabled then
+        WidgetManager.disable()
+    end
+    WG.TurboBarCam = nil
 end
 
 ---@param cmdID number Command ID
@@ -136,8 +132,8 @@ if CONFIG and CONFIG.DEBUG and CONFIG.DEBUG.TRACE_BACK then
                         return func(unpack(args))
                     end,
                     function(err)
-                        Log.warn("[TurboBar] Error in " .. name .. ": " .. tostring(err))
-                        Log.warn(debug.traceback("", 2))
+                        Log:warn("[TurboBar] Error in " .. name .. ": " .. tostring(err))
+                        Log:warn(debug.traceback("", 2))
                         return nil
                     end
             )

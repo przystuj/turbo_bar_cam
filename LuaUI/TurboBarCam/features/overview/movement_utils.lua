@@ -1,20 +1,13 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
----@type RotationUtils
-local RotationUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/rotation_utils.lua").RotationUtils
----@type OverviewCameraUtils
-local OverviewCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/overview_utils.lua").OverviewCameraUtils
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
+local RotationUtils = ModuleManager.RotationUtils(function(m) RotationUtils = m end)
+local OverviewCameraUtils = ModuleManager.OverviewCameraUtils(function(m) OverviewCameraUtils = m end)
 
 ---@class MovementUtils
 local MovementUtils = {}
@@ -52,7 +45,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     local currentHeight
     if STATE.mode.overview.targetHeight then
         currentHeight = STATE.mode.overview.targetHeight
-        Log.trace(string.format("Using target height: %.1f for move operation", currentHeight))
+        Log:trace(string.format("Using target height: %.1f for move operation", currentHeight))
     else
         currentHeight = OverviewCameraUtils.calculateCurrentHeight()
     end
@@ -95,7 +88,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
 
     -- IMPORTANT: Also store as lastTargetPoint for future rotation reference
     STATE.mode.overview.lastTargetPoint = targetPoint
-    Log.trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
+    Log:trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
 
     -- Calculate look direction
     local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
@@ -130,7 +123,7 @@ function MovementUtils.startMoveToTarget(targetPoint)
     -- Update tracking state
     CameraTracker.updateLastKnownCameraState(currentCamState)
 
-    Log.trace(string.format("Starting move to target. Initial Distance: %.1f", moveDistance))
+    Log:trace(string.format("Starting move to target. Initial Distance: %.1f", moveDistance))
 end
 
 --- Checks if a transition has made enough progress or should be considered completed.
@@ -152,14 +145,14 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
     -- If we're very close to the target position, consider transition complete
     if currentDistance < 20 then
         -- Threshold for closeness
-        Log.trace("Transition complete: Very close to target.")
+        Log:trace("Transition complete: Very close to target.")
         return true
     end
 
     -- If we've completed at least 98% of the journey, also consider it complete
     -- Ensure initialDistance is valid and positive before division
     if initialDistance and initialDistance > 0 and currentDistance < (initialDistance * 0.02) then
-        Log.trace("Transition complete: Reached 98% of distance.")
+        Log:trace("Transition complete: Reached 98% of distance.")
         return true
     end
 
@@ -172,7 +165,7 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
         STATE.mode.overview.stuckFrameCount = (STATE.mode.overview.stuckFrameCount or 0) + 1
         if STATE.mode.overview.stuckFrameCount > 5 then
             -- Number of frames threshold for being stuck
-            Log.trace("Transition complete: Stuck (no progress).")
+            Log:trace("Transition complete: Stuck (no progress).")
             return true
         end
     else
@@ -195,7 +188,7 @@ end
 function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userControllingView)
     -- Ensure we have a target position to move towards
     if not STATE.mode.overview.targetCamPos then
-        Log.trace("UpdateTransition called without targetCamPos")
+        Log:trace("UpdateTransition called without targetCamPos")
         return false -- Indicate nothing happened
     end
 
@@ -243,7 +236,7 @@ function MovementUtils.moveToTarget()
 
     -- If targetPoint is nil, it means the click was outside the map and should be ignored
     if not targetPoint then
-        Log.trace("Move target outside map boundaries - ignoring")
+        Log:trace("Move target outside map boundaries - ignoring")
         return false
     end
 
@@ -253,6 +246,4 @@ function MovementUtils.moveToTarget()
     return true
 end
 
-return {
-    MovementUtils = MovementUtils
-}
+return MovementUtils

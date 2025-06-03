@@ -1,12 +1,7 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class FPSTargetingUtils
 local FPSTargetingUtils = {}
@@ -80,7 +75,7 @@ local function ensureTargetTracking(targetKey)
 
             -- If we're switching targets rapidly, this is a good indicator to use cloud targeting
             if globalState.targetSwitchCount >= 3 and not globalState.highActivityDetected then
-                Log.info("Rapid target switching detected - enabling cloud targeting")
+                Log:info("Rapid target switching detected - enabling cloud targeting")
                 globalState.highActivityDetected = true
                 globalState.cloudStartTime = currentTime
             end
@@ -238,10 +233,10 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
 
                     -- Log when movement state changes
                     if targetData.isMovingUpFast and not prevIsMovingUpFast then
-                        Log.info(string.format("Fast upward movement detected: %.1f units/s (threshold: %.1f)",
+                        Log:info(string.format("Fast upward movement detected: %.1f units/s (threshold: %.1f)",
                                 targetData.ySpeed, upSpeedThreshold))
                     elseif not targetData.isMovingUpFast and prevIsMovingUpFast then
-                        Log.info("Target no longer moving fast upward")
+                        Log:info("Target no longer moving fast upward")
                     end
                 end
             end
@@ -297,18 +292,18 @@ local function updateTargetHistory(targetPos, targetKey)
     -- Update high activity flag
     if globalState.activityLevel >= 0.8 and not globalState.highActivityDetected then
         globalState.highActivityDetected = true
-        Log.info("High targeting activity detected - enabling cloud targeting")
+        Log:info("High targeting activity detected - enabling cloud targeting")
         globalState.cloudStartTime = currentTime
     elseif globalState.activityLevel < 0.4 and globalState.highActivityDetected then
         globalState.highActivityDetected = false
-        Log.info("Targeting activity normalized - disabling cloud targeting")
+        Log:info("Targeting activity normalized - disabling cloud targeting")
         globalState.cloudStartTime = nil
     end
 
     -- Periodically log activity level
     if Spring.DiffTimers(currentTime, globalState.lastStatusLogTime) > 1.0 then
         if globalState.activityLevel > 0.5 then
-            Log.trace(string.format("Targeting activity level: %.2f (%d unique targets in %d history, %d rapid switches)",
+            Log:trace(string.format("Targeting activity level: %.2f (%d unique targets in %d history, %d rapid switches)",
                     globalState.activityLevel, uniqueTargetCount, #globalState.targetHistory, globalState.targetSwitchCount))
         end
         globalState.lastStatusLogTime = currentTime
@@ -369,10 +364,10 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
     local currentTime = Spring.GetTimer()
     if Spring.DiffTimers(currentTime, targetData.lastLogTime) > 1.0 then
         if using_cached_target then
-            Log.trace(string.format("Using cached target position (duration: %d frames)",
+            Log:trace(string.format("Using cached target position (duration: %d frames)",
                     targetData.cachedTargetDuration))
         else
-            Log.trace("Using real-time target position")
+            Log:trace("Using real-time target position")
         end
         targetData.lastLogTime = currentTime
     end
@@ -422,14 +417,14 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         -- Log this modified behavior
         if not targetData.lastStabilizedAdjustmentLog or
                 Spring.DiffTimers(currentTime, targetData.lastStabilizedAdjustmentLog) > 2.0 then
-            Log.debug("Using higher air adjustment threshold during stabilization")
+            Log:debug("Using higher air adjustment threshold during stabilization")
             targetData.lastStabilizedAdjustmentLog = currentTime
         end
     end
 
     -- Skip adjustment if target is moving too fast upward and we're not already tracking it
     if targetData.isMovingUpFast and not targetData.airAdjustmentActive then
-        Log.trace("Skipping adjustment for fast upward-moving target")
+        Log:trace("Skipping adjustment for fast upward-moving target")
         return position
     end
 
@@ -439,7 +434,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         if not targetData.airAdjustmentActive then
             -- Only log the activation message once per second at most
             if Spring.DiffTimers(currentTime, targetData.lastAdjustmentStateTime) > 1.0 then
-                Log.info(string.format("Activating air target adjustment mode (angle: %.2f, threshold: %.2f)",
+                Log:info(string.format("Activating air target adjustment mode (angle: %.2f, threshold: %.2f)",
                         verticalAngle, activationAngle))
                 targetData.lastAdjustmentStateTime = currentTime
             end
@@ -552,7 +547,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         if targetData.airAdjustmentActive then
             -- Only log the deactivation message once per second at most
             if Spring.DiffTimers(currentTime, targetData.lastAdjustmentStateTime) > 1.0 then
-                Log.info(string.format("Deactivating air target adjustment (angle: %.2f, threshold: %.2f)",
+                Log:info(string.format("Deactivating air target adjustment (angle: %.2f, threshold: %.2f)",
                         verticalAngle, activationAngle))
                 targetData.lastAdjustmentStateTime = currentTime
             end
@@ -638,13 +633,11 @@ function FPSTargetingUtils.calculateCloudCenter()
 
         if state.cloudRadius > MAX_CLOUD_RADIUS then
             state.cloudRadius = MAX_CLOUD_RADIUS
-            Log.trace(string.format("Cloud radius clamped to maximum (%d)", MAX_CLOUD_RADIUS))
+            Log:trace(string.format("Cloud radius clamped to maximum (%d)", MAX_CLOUD_RADIUS))
         end
 
         state.cloudCenter = center
     end
 end
 
-return {
-    FPSTargetingUtils = FPSTargetingUtils
-}
+return FPSTargetingUtils

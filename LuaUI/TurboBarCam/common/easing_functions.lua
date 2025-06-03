@@ -19,6 +19,4 @@ EasingFunctions["inout"] = function(t)
     end
 end
 
-return {
-    EasingFunctions = EasingFunctions
-}
+return EasingFunctions

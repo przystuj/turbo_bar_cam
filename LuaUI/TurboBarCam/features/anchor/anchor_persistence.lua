@@ -1,0 +1,75 @@
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+
+---@class CameraAnchorPersistence
+local CameraAnchorPersistence = {}
+
+--- Saves current anchors to a settings file, organized by map
+---@param anchorSetId string Identifier for the saved configuration
+---@return boolean success Whether saving was successful
+function CameraAnchorPersistence.saveToFile(anchorSetId)
+    if not anchorSetId or anchorSetId == "" then
+        Log:warn("Cannot save - no identifier specified")
+        return false
+    end
+
+    -- Check if we have any anchors to save
+    Util.tableCount(STATE.anchor.points)
+
+    if Util.tableCount(STATE.anchor.points) == 0 then
+        Log:warn("No anchors to save")
+        return false
+    end
+
+    -- Get clean map name
+    local mapName = Util.getCleanMapName()
+
+    -- Load existing camera presets for all maps
+    local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
+
+    -- Save preset for current map
+    mapPresets[anchorSetId] = Util.deepCopy(STATE.anchor)
+
+    -- Save the entire structure back to storage
+    local success = SettingsManager.saveUserSetting("anchors", mapName, mapPresets)
+
+    if success then
+        Log:info(string.format("Saved anchor set with ID: %s for map: %s", anchorSetId, mapName))
+    else
+        Log:error("Failed to save configuration")
+    end
+
+    return success
+end
+
+--- Loads anchors from a settings file for the current map
+---@param id string Identifier for the saved configuration
+---@return boolean success Whether loading was successful
+function CameraAnchorPersistence.loadFromFile(id)
+    if not id or id == "" then
+        Log:warn("Cannot load - no identifier specified")
+        return false
+    end
+
+    -- Get clean map name
+    local mapName = Util.getCleanMapName()
+
+    -- Load all map presets
+    local mapPresets = SettingsManager.loadUserSetting("anchors", mapName)
+
+    -- Check if we have presets for this map
+    if not mapPresets or not mapPresets[id] then
+        Log:warn("No saved configuration found with ID: " .. id .. " for map: " .. mapName)
+        return false
+    end
+    STATE.anchor = Util.deepCopy(mapPresets[id])
+
+    Log:info("Loaded ID: " .. id .. " for map: " .. mapName .. ". Easing: " .. STATE.anchor.easing)
+    return true
+end
+
+return CameraAnchorPersistence

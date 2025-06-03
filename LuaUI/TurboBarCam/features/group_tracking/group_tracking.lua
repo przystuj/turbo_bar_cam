@@ -1,20 +1,14 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type GroupTrackingUtils
-local TrackingUtils = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/group_tracking_utils.lua").TrackingUtils
----@type DBSCAN
-local DBSCAN = VFS.Include("LuaUI/TurboBarCam/features/group_tracking/dbscan.lua").DBSCAN
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local ModeManager = CommonModules.ModeManager
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local GroupTrackingUtils = ModuleManager.GroupTrackingUtils(function(m) GroupTrackingUtils = m end)
+local DBSCAN = ModuleManager.DBSCAN(function(m) DBSCAN = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class GroupTrackingCamera
 local GroupTrackingCamera = {}
@@ -32,9 +26,9 @@ function GroupTrackingCamera.toggle()
         -- If no units are selected and tracking is currently on, turn it off
         if STATE.mode.name == 'group_tracking' then
             ModeManager.disableMode()
-            Log.trace("Group Tracking Camera disabled")
+            Log:trace("Group Tracking Camera disabled")
         else
-            Log.trace("No units selected for Group Tracking Camera")
+            Log:trace("No units selected for Group Tracking Camera")
         end
         return true
     end
@@ -42,7 +36,7 @@ function GroupTrackingCamera.toggle()
     -- If we're already in group tracking mode, turn it off
     if STATE.mode.name == 'group_tracking' then
         ModeManager.disableMode()
-        Log.trace("Group Tracking Camera disabled")
+        Log:trace("Group Tracking Camera disabled")
         return true
     end
 
@@ -87,7 +81,7 @@ function GroupTrackingCamera.toggle()
         GroupTrackingCamera.calculateCenterOfMass()
         GroupTrackingCamera.calculateGroupRadius()
 
-        Log.trace(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.mode.group_tracking.unitIDs))
+        Log:trace(string.format("Group Tracking Camera enabled. Tracking %d units", #STATE.mode.group_tracking.unitIDs))
     end
 
     return true
@@ -233,14 +227,14 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- Check if we're dealing with aircraft units
-    local hasAircraft = TrackingUtils.groupContainsAircraft(units)
+    local hasAircraft = GroupTrackingUtils.groupContainsAircraft(units)
 
     -- If all aircraft, skip clustering and use all units
     local allAircraft = true
     for _, unitID in ipairs(units) do
         if Spring.ValidUnitID(unitID) then
             local unitDefID = Spring.GetUnitDefID(unitID)
-            if unitDefID and not TrackingUtils.isAircraftUnit(unitID) then
+            if unitDefID and not GroupTrackingUtils.isAircraftUnit(unitID) then
                 allAircraft = false
                 break
             end
@@ -260,7 +254,7 @@ function GroupTrackingCamera.detectClusters()
     end
 
     -- If there are very few units, don't bother with clustering
-    local validUnits = TrackingUtils.countValidUnits(units)
+    local validUnits = GroupTrackingUtils.countValidUnits(units)
     if validUnits <= 2 then
         STATE.mode.group_tracking.outliers = {}
         STATE.mode.group_tracking.currentCluster = {}
@@ -291,7 +285,7 @@ function GroupTrackingCamera.detectClusters()
     local newOutliers = {}
     for _, unitID in ipairs(noise) do
         -- Don't mark aircraft as outliers if we want to include them
-        if not (hasAircraft and TrackingUtils.isAircraftUnit(unitID) and true) then
+        if not (hasAircraft and GroupTrackingUtils.isAircraftUnit(unitID) and true) then
             newOutliers[unitID] = true
         end
     end
@@ -316,7 +310,7 @@ function GroupTrackingCamera.detectClusters()
         if hasAircraft then
             for _, unitID in ipairs(units) do
                 if Spring.ValidUnitID(unitID) and
-                        TrackingUtils.isAircraftUnit(unitID) and
+                        GroupTrackingUtils.isAircraftUnit(unitID) and
                         not Util.tableContains(significantCluster, unitID) then
                     table.insert(significantCluster, unitID)
                 end
@@ -327,7 +321,7 @@ function GroupTrackingCamera.detectClusters()
         for _, unitID in ipairs(units) do
             if Spring.ValidUnitID(unitID) and not Util.tableContains(significantCluster, unitID) then
                 -- Don't mark aircraft as outliers if we want to include them
-                if not (hasAircraft and TrackingUtils.isAircraftUnit(unitID)) then
+                if not (hasAircraft and GroupTrackingUtils.isAircraftUnit(unitID)) then
                     newOutliers[unitID] = true
                 end
             end
@@ -659,7 +653,7 @@ function GroupTrackingCamera.update()
     -- Apply orbit-style camera adjustments
     local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
     local totalHeight = targetHeight + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
-    local newCamPos = TrackingUtils.applyCameraAdjustments(
+    local newCamPos = GroupTrackingUtils.applyCameraAdjustments(
             center,
             newCameraDir,
             totalDistance,
@@ -714,9 +708,7 @@ end
 ---@see ModifiableParams
 ---@see Util#adjustParams
 function GroupTrackingCamera.adjustParams(params)
-    TrackingUtils.adjustGroupTrackingParams(params)
+    GroupTrackingUtils.adjustGroupTrackingParams(params)
 end
 
-return {
-    GroupTrackingCamera = GroupTrackingCamera
-}
+return GroupTrackingCamera

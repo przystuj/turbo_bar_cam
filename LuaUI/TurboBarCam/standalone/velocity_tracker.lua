@@ -1,13 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class VelocityTracker
 local VelocityTracker = {}
@@ -16,7 +12,7 @@ function VelocityTracker.update()
     if not STATE.cameraVelocity.initialized then
         STATE.cameraVelocity.isTracking = true
         STATE.cameraVelocity.initialized = true
-        Log.trace("Camera velocity tracking initialized")
+        Log:trace("Camera velocity tracking initialized")
     end
 
     if STATE.cameraVelocity.isTracking then
@@ -132,14 +128,14 @@ end
 
 function VelocityTracker.startVelocityTracking()
     STATE.cameraVelocity.isTracking = true
-    Log.trace("Camera velocity tracking enabled")
+    Log:trace("Camera velocity tracking enabled")
 end
 
 function VelocityTracker.stopVelocityTracking()
     STATE.cameraVelocity.isTracking = false
     STATE.cameraVelocity.positionHistory = {}
     STATE.cameraVelocity.currentVelocity = {x = 0, y = 0, z = 0}
-    Log.trace("Camera velocity tracking disabled")
+    Log:trace("Camera velocity tracking disabled")
 end
 
 function VelocityTracker.getCurrentVelocity()

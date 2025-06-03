@@ -9,6 +9,21 @@ if not WG.TurboBarCam.STATE then
             NONE = "NONE"
         },
 
+        settings = {
+            initialized = false,
+            storages = {},
+            loadModeSettingsFn = {
+                fps = nil,
+                orbit = nil,
+                projectile_camera = nil,
+            },
+            saveModeSettingsFn = {
+                fps = nil,
+                orbit = nil,
+                projectile_camera = nil,
+            },
+        },
+
         cameraVelocity = {
             positionHistory = {},
             rotationHistory = {},
@@ -30,7 +45,10 @@ if not WG.TurboBarCam.STATE then
         allowPlayerCamUnitSelection = true,
 
         -- Camera anchors
-        anchors = {},
+        anchor = {
+            points = {},
+            easing = "none",
+        },
         lastUsedAnchor = nil,
 
         scheduler = { schedules = {} },
@@ -314,3 +332,5 @@ local function deepCopy(orig)
 end
 
 WG.TurboBarCam.STATE.DEFAULT = WG.TurboBarCam.STATE.DEFAULT or deepCopy(WG.TurboBarCam.STATE)
+
+return WG.TurboBarCam.STATE

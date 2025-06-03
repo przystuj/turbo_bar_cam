@@ -1,9 +1,7 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class TransitionManager
 local TransitionManager = {}
@@ -30,7 +28,7 @@ end
 ---@return boolean success Whether the transition was started
 function TransitionManager.start(config)
     if not config or not config.duration or not config.onUpdate then
-        Log.warn("TransitionManager: Cannot start transition - missing duration or onUpdate.")
+        Log:warn("TransitionManager: Cannot start transition - missing duration or onUpdate.")
         return false
     end
 
@@ -47,7 +45,7 @@ function TransitionManager.start(config)
         onUpdate = config.onUpdate,
         onComplete = config.onComplete,
     }
-    Log.trace("TransitionManager: Started transition [" .. config.id .. "] for " .. config.duration ..
+    Log:trace("TransitionManager: Started transition [" .. config.id .. "] for " .. config.duration ..
             (config.respectGameSpeed and " effective game seconds." or " effective real seconds."))
     return true
 end
@@ -58,7 +56,7 @@ end
 function TransitionManager.cancel(id)
     if STATE.transitions[id] then
         STATE.transitions[id] = nil
-        Log.trace("TransitionManager: Canceled transition [" .. id .. "].")
+        Log:trace("TransitionManager: Canceled transition [" .. id .. "].")
         return true
     end
     return false
@@ -71,7 +69,7 @@ function TransitionManager.finish(id)
     if STATE.transitions[id] then
         STATE.transitions[id].onComplete()
         STATE.transitions[id] = nil
-        Log.trace("TransitionManager: Finished transition [" .. id .. "].")
+        Log:trace("TransitionManager: Finished transition [" .. id .. "].")
         return true
     end
     return false
@@ -89,7 +87,7 @@ function TransitionManager.cancelPrefix(prefix)
     for id, _ in pairs(STATE.transitions) do
         if stringStartsWith(id, prefix) then
             STATE.transitions[id] = nil
-            Log.trace("TransitionManager: Canceled transition [" .. id .. "].")
+            Log:trace("TransitionManager: Canceled transition [" .. id .. "].")
             canceled = true
         end
     end
@@ -105,7 +103,7 @@ function TransitionManager.stopAll()
         count = count + 1
     end
     if count > 0 then
-        Log.trace("TransitionManager: Stopped all " .. count .. " transitions.")
+        Log:debug("TransitionManager: Stopped all " .. count .. " transitions.")
     end
 end
 
@@ -113,7 +111,7 @@ end
 ---@param config table Configuration for the transition (same as start).
 ---@return boolean success Whether the transition was started.
 function TransitionManager.force(config)
-    Log.trace("TransitionManager: Forcing transition [" .. (config.id or "unknown") .. "], stopping all others first.")
+    Log:trace("TransitionManager: Forcing transition [" .. (config.id or "unknown") .. "], stopping all others first.")
     TransitionManager.stopAll()
     return TransitionManager.start(config)
 end
@@ -183,7 +181,7 @@ function TransitionManager.update(dt_real)
 
     for _, idToRemove in ipairs(transitionsToRemove) do
         STATE.transitions[idToRemove] = nil
-        Log.trace("TransitionManager: Finished transition [" .. idToRemove .. "].")
+        Log:trace("TransitionManager: Finished transition [" .. idToRemove .. "].")
     end
 end
 

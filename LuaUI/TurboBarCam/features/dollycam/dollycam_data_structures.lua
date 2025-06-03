@@ -1,10 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
 
 ---@class DollyCamDataStructures
 local DollyCamDataStructures = {}
@@ -57,13 +55,13 @@ function DollyCamDataStructures.removeWaypoint(route, index)
     end
 
     if index < 1 or index > #route.points then
-        Log.warn("Invalid waypoint index: " .. index)
+        Log:warn("Invalid waypoint index: " .. index)
         return false
     end
 
     -- Don't allow removing the last waypoint
     if #route.points <= 1 then
-        Log.warn("Cannot remove the last waypoint")
+        Log:warn("Cannot remove the last waypoint")
         return false
     end
 
@@ -113,7 +111,7 @@ end
 
 function DollyCamDataStructures.deserializeRoute(serialized)
     if not serialized then
-        Log.warn("Failed to deserialize route data")
+        Log:warn("Failed to deserialize route data")
         return nil
     end
 
@@ -160,6 +158,4 @@ function DollyCamDataStructures.deserializeRoute(serialized)
     return route
 end
 
-return {
-    DollyCamDataStructures = DollyCamDataStructures
-}
+return DollyCamDataStructures

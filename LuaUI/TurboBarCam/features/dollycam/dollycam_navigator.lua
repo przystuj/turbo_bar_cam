@@ -1,16 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type DollyCamPathPlanner
-local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class DollyCamNavigator
 local DollyCamNavigator = {}
@@ -21,7 +16,7 @@ function DollyCamNavigator.startNavigation(noCamera)
     STATE.dollyCam.route = STATE.dollyCam.route or { points = {} }
 
     if #STATE.dollyCam.route.points < 2 then
-        Log.warn("Cannot start navigation: Route needs at least 2 waypoints")
+        Log:warn("Cannot start navigation: Route needs at least 2 waypoints")
         return false
     end
 
@@ -38,7 +33,7 @@ function DollyCamNavigator.startNavigation(noCamera)
     STATE.dollyCam.direction = 1
     STATE.dollyCam.noCamera = noCamera
 
-    Log.info("[DollyCam] Started navigation")
+    Log:info("[DollyCam] Started navigation")
     return true
 end
 
@@ -55,7 +50,7 @@ function DollyCamNavigator.stopNavigation()
     STATE.dollyCam.direction = 1
     STATE.dollyCam.noCamera = false
 
-    Log.info("[DollyCam] Stopped navigation")
+    Log:info("[DollyCam] Stopped navigation")
 end
 
 -- Set the target speed for navigation
@@ -63,7 +58,7 @@ end
 ---@return boolean success Whether speed was set
 function DollyCamNavigator.adjustSpeed(speed)
     if not STATE.dollyCam.isNavigating then
-        Log.trace("Cannot set speed when not navigating")
+        Log:trace("Cannot set speed when not navigating")
         return false
     end
 
@@ -74,7 +69,7 @@ function DollyCamNavigator.adjustSpeed(speed)
 
     STATE.dollyCam.targetSpeed = newSpeed
 
-    Log.debug("Speed set to " .. newSpeed)
+    Log:debug("Speed set to " .. newSpeed)
     return true
 end
 
@@ -83,7 +78,7 @@ end
 ---@return boolean success Whether alpha was set
 function DollyCamNavigator.setAlpha(alpha)
     if alpha < 0.0 or alpha > 1.0 then
-        Log.warn("Alpha value must be between 0.0 and 1.0")
+        Log:warn("Alpha value must be between 0.0 and 1.0")
         return false
     end
 
@@ -93,11 +88,11 @@ function DollyCamNavigator.setAlpha(alpha)
     -- Set the new value
     STATE.dollyCam.alpha = alpha
 
-    Log.info(string.format("Changed centripetal alpha from %.2f to %.2f", oldAlpha, alpha))
+    Log:info(string.format("Changed centripetal alpha from %.2f to %.2f", oldAlpha, alpha))
 
     if STATE.dollyCam.route then
         DollyCamPathPlanner.generateSmoothPath()
-        Log.info("Regenerated path with new alpha value")
+        Log:info("Regenerated path with new alpha value")
     end
 
     return true
@@ -130,7 +125,7 @@ function DollyCamNavigator.update(deltaTime)
     end
 
     if not STATE.dollyCam.route then
-        Log.warn("Active route not found, stopping navigation")
+        Log:warn("Active route not found, stopping navigation")
         DollyCamNavigator.stopNavigation()
         return
     end
@@ -170,7 +165,7 @@ function DollyCamNavigator.update(deltaTime)
     -- Get position at current distance
     local positionData = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
     if not positionData then
-        Log.debug("positionData is missing")
+        Log:debug("positionData is missing")
         return -- Continue navigation even if position retrieval fails
     end
 
@@ -261,12 +256,12 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
         STATE.dollyCam.targetSpeed = waypoint.targetSpeed
         -- Remember this speed for propagation
         STATE.dollyCam.lastExplicitSpeed = waypoint.targetSpeed
-        Log.debug(string.format("Waypoint %d: Set explicit target speed to %.2f",
+        Log:debug(string.format("Waypoint %d: Set explicit target speed to %.2f",
                 waypointIndex, waypoint.targetSpeed))
     elseif STATE.dollyCam.lastExplicitSpeed then
         -- Apply propagated speed if no explicit speed is set at this waypoint
         STATE.dollyCam.targetSpeed = STATE.dollyCam.lastExplicitSpeed
-        Log.debug(string.format("Waypoint %d: Using propagated speed %.2f",
+        Log:debug(string.format("Waypoint %d: Using propagated speed %.2f",
                 waypointIndex, STATE.dollyCam.lastExplicitSpeed))
     end
 
@@ -283,7 +278,7 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
                 unitID = waypoint.lookAtUnitID,
                 point = nil
             }
-            Log.debug(string.format("Waypoint %d: Set lookAt to track unit %d",
+            Log:debug(string.format("Waypoint %d: Set lookAt to track unit %d",
                     waypointIndex, waypoint.lookAtUnitID))
         elseif waypoint.lookAtPoint then
             -- Setup fixed point lookAt
@@ -300,21 +295,19 @@ function DollyCamNavigator.applyWaypointProperties(waypointIndex)
                     z = waypoint.lookAtPoint.z
                 }
             }
-            Log.debug(string.format("Waypoint %d: Set lookAt to fixed point (%.1f, %.1f, %.1f)",
+            Log:debug(string.format("Waypoint %d: Set lookAt to fixed point (%.1f, %.1f, %.1f)",
                     waypointIndex, waypoint.lookAtPoint.x, waypoint.lookAtPoint.y, waypoint.lookAtPoint.z))
         else
             -- Explicit reset of lookAt
             STATE.dollyCam.activeLookAt = nil
             STATE.dollyCam.lastExplicitLookAt = nil
-            Log.debug(string.format("Waypoint %d: Reset lookAt properties", waypointIndex))
+            Log:debug(string.format("Waypoint %d: Reset lookAt properties", waypointIndex))
         end
     elseif STATE.dollyCam.lastExplicitLookAt then
         -- Apply propagated lookAt if no explicit lookAt is set at this waypoint
         STATE.dollyCam.activeLookAt = STATE.dollyCam.lastExplicitLookAt
-        Log.debug(string.format("Waypoint %d: Using propagated lookAt", waypointIndex))
+        Log:debug(string.format("Waypoint %d: Using propagated lookAt", waypointIndex))
     end
 end
 
-return {
-    DollyCamNavigator = DollyCamNavigator
-}
+return DollyCamNavigator

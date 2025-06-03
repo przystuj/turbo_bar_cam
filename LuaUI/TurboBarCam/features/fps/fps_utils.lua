@@ -1,22 +1,16 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
----@type FPSCombatMode
-local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
----@type FPSTargetingUtils
-local FPSTargetingUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_targeting_utils.lua").FPSTargetingUtils
----@type FPSTargetingSmoothing
-local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local ModeManager = CommonModules.ModeManager
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local FPSCombatMode = ModuleManager.FPSCombatMode(function(m) FPSCombatMode = m end)
+local FPSTargetingUtils = ModuleManager.FPSTargetingUtils(function(m) FPSTargetingUtils = m end)
+local FPSTargetingSmoothing = ModuleManager.FPSTargetingSmoothing(function(m) FPSTargetingSmoothing = m end)
+local FPSPersistence = ModuleManager.FPSPersistence(function(m) FPSPersistence = m end)
 
 ---@class FPSCameraUtils
 local FPSCameraUtils = {}
@@ -30,7 +24,7 @@ function FPSCameraUtils.shouldUpdateFPSCamera()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.mode.unitID) then
-        Log.trace("Unit no longer exists")
+        Log:trace("Unit no longer exists")
         ModeManager.disableMode()
         return false
     end
@@ -333,7 +327,7 @@ function FPSCameraUtils.handleNewTarget()
     -- Signal rotation constraints to reset
     if STATE.mode.fps.targetSmoothing and STATE.mode.fps.targetSmoothing.rotationConstraint then
         STATE.mode.fps.targetSmoothing.rotationConstraint.resetForSwitch = true
-        Log.debug("Signaling rotation constraint reset.")
+        Log:debug("Signaling rotation constraint reset.")
     end
 
     -- Store this target position for future comparisons
@@ -356,7 +350,7 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
         return false
     end
     if not STATE.mode.unitID then
-        Log.trace("No unit being tracked for fixed point camera")
+        Log:trace("No unit being tracked for fixed point camera")
         return false
     end
 
@@ -380,11 +374,11 @@ function FPSCameraUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     end
 
     if not STATE.mode.fps.targetUnitID then
-        Log.trace("Camera will follow unit but look at fixed point")
+        Log:trace("Camera will follow unit but look at fixed point")
     else
         local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.mode.fps.targetUnitID)]
         local targetName = unitDef and unitDef.name or "Unnamed unit"
-        Log.trace("Camera will follow unit but look at unit " .. STATE.mode.fps.targetUnitID ..
+        Log:trace("Camera will follow unit but look at unit " .. STATE.mode.fps.targetUnitID ..
                 " (" .. targetName .. ")")
     end
 
@@ -410,9 +404,9 @@ function FPSCameraUtils.clearFixedLookPoint()
         STATE.mode.transitionStartTime = Spring.GetTimer()
 
         if STATE.mode.fps.isFreeCameraActive then
-            Log.trace("Fixed point tracking disabled, maintaining free camera mode")
+            Log:trace("Fixed point tracking disabled, maintaining free camera mode")
         else
-            Log.trace("Fixed point tracking disabled, returning to FPS mode")
+            Log:trace("Fixed point tracking disabled, returning to FPS mode")
         end
     end
 end
@@ -482,14 +476,14 @@ function FPSCameraUtils.adjustParams(params)
 
     -- Make sure we have a unit to track
     if not STATE.mode.unitID then
-        Log.trace("No unit being tracked")
+        Log:trace("No unit being tracked")
         return
     end
 
     -- Handle reset directly
     if params == "reset" then
         FPSCameraUtils.resetOffsets()
-        SettingsManager.saveModeSettings("fps", STATE.mode.unitID)
+        FPSPersistence.saveUnitSettings("fps", STATE.mode.unitID)
         return
     end
 
@@ -505,14 +499,14 @@ function FPSCameraUtils.adjustParams(params)
         currentFPSMode = "PEACE"
     end
 
-    Log.trace("Adjusting FPS parameters for submode: " .. currentFPSMode)
+    Log:trace("Adjusting FPS parameters for submode: " .. currentFPSMode)
 
     -- Call the generic adjustParams function
     Util.adjustParams(params, "FPS", function()
         FPSCameraUtils.resetOffsets()
     end, currentFPSMode, getFPSParamPrefixes)
 
-    SettingsManager.saveModeSettings("fps", STATE.mode.unitID)
+    FPSPersistence.saveUnitSettings("fps", STATE.mode.unitID)
 end
 
 --- Resets camera offsets to default values
@@ -529,7 +523,7 @@ function FPSCameraUtils.resetOffsets()
     reset("WEAPON")
 
     FPSCameraUtils.ensureHeightIsSet()
-    Log.trace("Restored fps camera settings to defaults")
+    Log:trace("Restored fps camera settings to defaults")
     return true
 end
 
@@ -691,7 +685,7 @@ function FPSCameraUtils.handleTransition(targetCamPosWorld)
         -- Transition finished this frame
         STATE.mode.fps.isTargetSwitchTransition = false
         STATE.mode.fps.previousCamPosWorld = nil
-        Log.info("Target switch transition finished.")
+        Log:info("Target switch transition finished.")
     end
 
     return nil
@@ -765,7 +759,7 @@ function FPSCameraUtils.logStabilizationInfo(factor, targetSmoothing)
     local currentTime = Spring.GetTimer()
     if not STATE.mode.fps.lastStabilizationLog or
             Spring.DiffTimers(currentTime, STATE.mode.fps.lastStabilizationLog) > 1.0 then
-        Log.debug(string.format("Camera stabilization active: factor=%.3f, activity=%.2f, switches=%d",
+        Log:debug(string.format("Camera stabilization active: factor=%.3f, activity=%.2f, switches=%d",
                 factor, targetSmoothing.activityLevel, targetSmoothing.targetSwitchCount or 0))
         STATE.mode.fps.lastStabilizationLog = currentTime
     end
@@ -814,6 +808,4 @@ function FPSCameraUtils.getMinimumCameraHeight(unitID)
     return math.max(baseUnitHeight * 0.5, 50) -- At least half unit height or 50 units
 end
 
-return {
-    FPSCameraUtils = FPSCameraUtils
-}
+return FPSCameraUtils

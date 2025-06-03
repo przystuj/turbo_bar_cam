@@ -1,12 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
-
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 
 ---@class CameraCommons
 local CameraCommons = {}
@@ -484,11 +480,11 @@ function CameraCommons.getDefaultUnitView(x, z)
     if forwardPosition >= Game.mapSizeZ * 0.95 then
         camState.pz = z - offsetDistance
         camState.ry = camState.ry + math.pi -- Rotate 180 degrees
-        Log.trace("Boundary detected, positioning camera behind unit")
+        Log:trace("Boundary detected, positioning camera behind unit")
     else
         -- Normal positioning in front of unit
         camState.pz = forwardPosition
-        Log.trace("Normal positioning in front of unit")
+        Log:trace("Normal positioning in front of unit")
     end
     return camState
 end

@@ -1,22 +1,15 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type VelocityTracker
-local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
----@type TransitionUtil
-local TransitionUtil = VFS.Include("LuaUI/TurboBarCam/standalone/transition_util.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local TransitionUtil = ModuleManager.TransitionUtil(function(m) TransitionUtil = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class UnitTrackingCamera
 local UnitTrackingCamera = {}
@@ -61,7 +54,7 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
     -- Initial validation for unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
         local context = targetCamState and "targeted" or "deceleration"
-        Log.warn("UnitTrackingCamera: Invalid unitID for startUnitTrackingTransition (" .. context .. ").")
+        Log:warn("UnitTrackingCamera: Invalid unitID for startUnitTrackingTransition (" .. context .. ").")
         return
     end
 
@@ -70,7 +63,7 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
     -- Validation specific to targeted transition
     if isTargetedTransition then
         if not initialCamStateAtModeEntry then
-            Log.warn("UnitTrackingCamera: initialCamStateAtModeEntry missing for targeted transition. Aborting.")
+            Log:warn("UnitTrackingCamera: initialCamStateAtModeEntry missing for targeted transition. Aborting.")
             return
         end
         -- targetCamState is already confirmed not nil by isTargetedTransition check
@@ -151,9 +144,9 @@ function UnitTrackingCamera.toggle()
     if #selectedUnits == 0 then
         if STATE.mode.name == 'unit_tracking' then
             ModeManager.disableMode()
-            Log.trace("UnitTrackingCamera: Disabled (no units selected).")
+            Log:trace("UnitTrackingCamera: Disabled (no units selected).")
         else
-            Log.trace("UnitTrackingCamera: No unit selected.")
+            Log:trace("UnitTrackingCamera: No unit selected.")
         end
         return
     end
@@ -163,14 +156,14 @@ function UnitTrackingCamera.toggle()
             STATE.mode.unitID == selectedUnitID and
             not STATE.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableMode()
-        Log.trace("UnitTrackingCamera: Disabled for unit " .. selectedUnitID)
+        Log:trace("UnitTrackingCamera: Disabled for unit " .. selectedUnitID)
         return
     end
 
     if ModeManager.initializeMode('unit_tracking', selectedUnitID, STATE.TARGET_TYPES.UNIT, false, nil) then
-        Log.trace("UnitTrackingCamera: Enabled for unit " .. selectedUnitID)
+        Log:trace("UnitTrackingCamera: Enabled for unit " .. selectedUnitID)
     else
-        Log.warn("UnitTrackingCamera: Failed to initializeMode for unit_tracking.")
+        Log:warn("UnitTrackingCamera: Failed to initializeMode for unit_tracking.")
     end
 end
 
@@ -182,7 +175,7 @@ function UnitTrackingCamera.update(dt)
 
     local unitID = STATE.mode.unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("UnitTrackingCamera: Tracked unit " .. tostring(unitID) .. " no longer exists, disabling.")
+        Log:trace("UnitTrackingCamera: Tracked unit " .. tostring(unitID) .. " no longer exists, disabling.")
         if STATE.mode.name == 'unit_tracking' then
             ModeManager.disableMode()
         end
@@ -196,7 +189,7 @@ function UnitTrackingCamera.update(dt)
         local optionalTargetCamState = STATE.mode.optionalTargetCameraStateForModeEntry
 
         if not initialCamState then
-            Log.warn("UnitTrackingCamera: initialCameraStateForModeEntry is nil. Cannot start entry transition properly.")
+            Log:warn("UnitTrackingCamera: initialCameraStateForModeEntry is nil. Cannot start entry transition properly.")
             -- Allow steady state to take over, or consider disabling
         else
             startUnitTrackingTransition(unitID, initialCamState, optionalTargetCamState)
@@ -210,7 +203,7 @@ function UnitTrackingCamera.update(dt)
     local currentState = Spring.GetCameraState()
     local uX, uY, uZ = Spring.GetUnitPosition(unitID)
     if not uX then
-        Log.trace("UnitTrackingCamera: Could not get position for unit " .. unitID .. " in steady state. Disabling.")
+        Log:trace("UnitTrackingCamera: Could not get position for unit " .. unitID .. " in steady state. Disabling.")
         ModeManager.disableMode()
         return
     end
@@ -238,7 +231,7 @@ function UnitTrackingCamera.adjustParams(params)
         return
     end
     if not STATE.mode.unitID then
-        Log.trace("UnitTrackingCamera: No unit is tracked for adjustParams.")
+        Log:trace("UnitTrackingCamera: No unit is tracked for adjustParams.")
         return
     end
     Util.adjustParams(params, "UNIT_TRACKING", function()
@@ -246,6 +239,4 @@ function UnitTrackingCamera.adjustParams(params)
     end)
 end
 
-return {
-    UnitTrackingCamera = UnitTrackingCamera
-}
+return UnitTrackingCamera

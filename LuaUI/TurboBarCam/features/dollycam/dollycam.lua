@@ -1,27 +1,16 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
----@type ModeManager
-local ModeManager = VFS.Include("LuaUI/TurboBarCam/common/mode_manager.lua")
----@type DollyCamPathPlanner
-local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
----@type DollyCamNavigator
-local DollyCamNavigator = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_navigator.lua").DollyCamNavigator
----@type DollyCamEditor
-local DollyCamEditor = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_editor.lua").DollyCamEditor
----@type DollyCamDataStructures
-local DollyCamDataStructures = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_data_structures.lua").DollyCamDataStructures
----@type DollyCamVisualization
-local DollyCamVisualization = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_visualization.lua").DollyCamVisualization
----@type DollyCamWaypointEditor
-local DollyCamWaypointEditor = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_waypoint_editor.lua").DollyCamWaypointEditor
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
+local DollyCamNavigator = ModuleManager.DollyCamNavigator(function(m) DollyCamNavigator = m end)
+local DollyCamEditor = ModuleManager.DollyCamEditor(function(m) DollyCamEditor = m end)
+local DollyCamDataStructures = ModuleManager.DollyCamDataStructures(function(m) DollyCamDataStructures = m end)
+local DollyCamVisualization = ModuleManager.DollyCamVisualization(function(m) DollyCamVisualization = m end)
+local DollyCamWaypointEditor = ModuleManager.DollyCamWaypointEditor(function(m) DollyCamWaypointEditor = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 -- Initialize STATE.dollyCam if not already done
 STATE.dollyCam = STATE.dollyCam or {}
@@ -51,7 +40,7 @@ function DollyCam.addCurrentPositionToRoute()
     if success then
         if STATE.dollyCam.route and #STATE.dollyCam.route.points >= 2 then
             DollyCamPathPlanner.generateSmoothPath()
-            Log.debug("Regenerated path for active route after waypoint " .. action)
+            Log:debug("Regenerated path for active route after waypoint " .. action)
             STATE.dollyCam.visualizationEnabled = true
         end
     end
@@ -136,9 +125,9 @@ function DollyCam.saveRoute(name)
     local success = SettingsManager.saveUserSetting("dollycam", mapName, mapPresets)
 
     if success then
-        Log.info(string.format("Saved route %s for map: %s", name, mapName))
+        Log:info(string.format("Saved route %s for map: %s", name, mapName))
     else
-        Log.error("Failed to save")
+        Log:error("Failed to save")
     end
     return true
 end
@@ -158,7 +147,7 @@ function DollyCam.loadRoute(name)
 
     -- Check if we have presets for this map
     if not mapPresets or not mapPresets[name] then
-        Log.warn("No saved route " .. name .. " for map: " .. mapName)
+        Log:warn("No saved route " .. name .. " for map: " .. mapName)
         return false
     end
 
@@ -166,9 +155,9 @@ function DollyCam.loadRoute(name)
     local route = DollyCamDataStructures.deserializeRoute(mapPresets[name])
 
     if route then
-        Log.info("Successfully loaded route " .. name .. " for map: " .. mapName)
+        Log:info("Successfully loaded route " .. name .. " for map: " .. mapName)
     else
-        Log.error("Failed to load route " .. name)
+        Log:error("Failed to load route " .. name)
     end
 
     STATE.dollyCam.route = route
@@ -213,7 +202,7 @@ function DollyCam.adjustSpeed(speed)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.trace("Cannot set speed: Not currently navigating")
+        Log:trace("Cannot set speed: Not currently navigating")
         return false
     end
 
@@ -229,17 +218,17 @@ function DollyCam.setDirection(direction)
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.trace("Cannot set direction: Not currently navigating")
+        Log:trace("Cannot set direction: Not currently navigating")
         return false
     end
 
     if direction ~= "-1" and direction ~= "1" then
-        Log.warn("Wrong value. Only 1 and -1 is allowed")
+        Log:warn("Wrong value. Only 1 and -1 is allowed")
         return false
     end
 
     STATE.dollyCam.direction = tonumber(direction)
-    Log.debug("Direction set to " .. STATE.dollyCam.direction)
+    Log:debug("Direction set to " .. STATE.dollyCam.direction)
 end
 
 -- Set navigation speed
@@ -250,12 +239,12 @@ function DollyCam.toggleDirection()
     end
 
     if not STATE.dollyCam.isNavigating then
-        Log.trace("Cannot set direction: Not currently navigating")
+        Log:trace("Cannot set direction: Not currently navigating")
         return false
     end
 
     STATE.dollyCam.direction = STATE.dollyCam.direction * -1
-    Log.debug("Direction set to " .. STATE.dollyCam.direction)
+    Log:debug("Direction set to " .. STATE.dollyCam.direction)
 end
 
 -- Toggle waypoint editor mode
@@ -311,6 +300,4 @@ function DollyCam.test()
     DollyCam.loadRoute("test")
 end
 
-return {
-    DollyCam = DollyCam
-}
+return DollyCam

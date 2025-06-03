@@ -1,15 +1,10 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type FPSCamera
-local FPSCamera = VFS.Include("LuaUI/TurboBarCam/features/fps/fps.lua").FPSCamera
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
-
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class SelectionManager
 local SelectionManager = {}
@@ -44,10 +39,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
     -- Update tracking if it's enabled
     if STATE.mode.name and STATE.mode.unitID ~= unitID then
         -- Save settings for the old unit before switching
-        local oldIdentifier = SettingsManager.chooseIdentifier(STATE.mode.name, STATE.mode.unitID)
-        if oldIdentifier then
-            SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
-        end
+        SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
 
         if STATE.mode.name == 'fps' then
             FPSCamera.handleSelectNewUnit()
@@ -61,12 +53,9 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         STATE.mode.group_tracking.unitIDs = selectedUnits
 
         -- Load settings for the new unit
-        local newIdentifier = SettingsManager.chooseIdentifier(STATE.mode.name, unitID)
-        if newIdentifier then
-            SettingsManager.loadModeSettings(STATE.mode.name, unitID)
-        end
+        SettingsManager.loadModeSettings(STATE.mode.name, unitID)
 
-        Log.trace("Tracking switched to unit " .. unitID)
+        Log:trace("Tracking switched to unit " .. unitID)
     end
 end
 

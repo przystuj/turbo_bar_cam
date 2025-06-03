@@ -1,28 +1,17 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-
----@type FreeCam
-local FreeCam = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_free_camera.lua").FreeCam
----@type FPSCameraUtils
-local FPSCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_utils.lua").FPSCameraUtils
----@type FPSCombatMode
-local FPSCombatMode = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_combat_mode.lua").FPSCombatMode
----@type FPSTargetingSmoothing
-local FPSTargetingSmoothing = VFS.Include("LuaUI/TurboBarCam/features/fps/fps_targeting_smoothing.lua").FPSTargetingSmoothing
-
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
+local FreeCam = ModuleManager.FreeCam(function(m) FreeCam = m end)
+local FPSCameraUtils = ModuleManager.FPSCameraUtils(function(m) FPSCameraUtils = m end)
+local FPSCombatMode = ModuleManager.FPSCombatMode(function(m) FPSCombatMode = m end)
+local FPSTargetingSmoothing = ModuleManager.FPSTargetingSmoothing(function(m) FPSTargetingSmoothing = m end)
 
 local prevActiveCmd
 
@@ -46,7 +35,7 @@ local function startFPSEntryTransition(unitID)
     -- init camera state when starting transition
     STATE.mode.fps.isModeInitialized = true
     if not Spring.ValidUnitID(unitID) then
-        Log.warn("[FPSCamera] Invalid unitID for startFPSEntryTransition: " .. unitID)
+        Log:warn("[FPSCamera] Invalid unitID for startFPSEntryTransition: " .. unitID)
         return
     end
 
@@ -96,13 +85,13 @@ function FPSCamera.toggle(unitID, targetSubmode)
         if #selectedUnits > 0 then
             unitID = selectedUnits[1]
         else
-            Log.debug("No unit selected for FPS view")
+            Log:debug("No unit selected for FPS view")
             return
         end
     end
 
     if not Spring.ValidUnitID(unitID) then
-        Log.trace("Invalid unit ID for FPS view: " .. tostring(unitID))
+        Log:trace("Invalid unit ID for FPS view: " .. tostring(unitID))
         return
     end
 
@@ -124,7 +113,7 @@ function FPSCamera.toggle(unitID, targetSubmode)
             rotationDamping = 0.9
         })
 
-        Log.trace("FPS camera attached to unit " .. unitID .. " with target entry submode: " .. targetSubmode)
+        Log:trace("FPS camera attached to unit " .. unitID .. " with target entry submode: " .. targetSubmode)
     end
 end
 
@@ -233,18 +222,18 @@ function FPSCamera.checkFixedPointCommandActivation()
                     STATE.mode.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
                 end
                 STATE.mode.fps.isFreeCameraActive = true
-                Log.trace("Target selection mode activated - select a target to look at")
+                Log:trace("Target selection mode activated - select a target to look at")
             end
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.mode.fps.inTargetSelectionMode then
             STATE.mode.fps.inTargetSelectionMode = false
             if STATE.mode.fps.prevFixedPointActive and STATE.mode.fps.prevFixedPoint then
                 STATE.mode.fps.isFixedPointActive = true
                 STATE.mode.fps.fixedPoint = STATE.mode.fps.prevFixedPoint
-                Log.trace("Target selection canceled, returning to fixed point view")
+                Log:trace("Target selection canceled, returning to fixed point view")
             end
             STATE.mode.fps.isFreeCameraActive = STATE.mode.fps.prevFreeCamState
             if not STATE.mode.fps.prevFixedPointActive then
-                Log.trace("Target selection canceled, returning to unit view")
+                Log:trace("Target selection canceled, returning to unit view")
             end
         end
     end
@@ -259,7 +248,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
         return
     end
     if not STATE.mode.unitID then
-        Log.debug("No unit being tracked for fixed point camera")
+        Log:debug("No unit being tracked for fixed point camera")
         return false
     end
 
@@ -272,7 +261,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
             if Spring.ValidUnitID(unitID) then
                 STATE.mode.fps.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
-                Log.trace("Camera will follow current unit but look at unit " .. unitID)
+                Log:trace("Camera will follow current unit but look at unit " .. unitID)
             end
         elseif #cmdParams == 3 then
             x, y, z = cmdParams[1], cmdParams[2], cmdParams[3]
@@ -285,7 +274,7 @@ function FPSCamera.setFixedLookPoint(cmdParams)
     end
 
     if not x or not y or not z then
-        Log.trace("Could not find a valid position")
+        Log:trace("Could not find a valid position")
         return false
     end
 
@@ -302,7 +291,7 @@ function FPSCamera.toggleFreeCam()
         return
     end
     if STATE.mode.name ~= 'fps' or not STATE.mode.unitID then
-        Log.debug("Free camera only works when tracking a unit in FPS mode")
+        Log:debug("Free camera only works when tracking a unit in FPS mode")
         return
     end
     FreeCam.toggle()
@@ -319,7 +308,7 @@ function FPSCamera.nextWeapon()
         return
     end
     if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
-        Log.debug("No unit selected.")
+        Log:debug("No unit selected.")
         return
     end
     FPSCombatMode.nextWeapon()
@@ -353,6 +342,4 @@ function FPSCamera.handleSelectNewUnit()
     FPSCombatMode.clearAttackingState()
 end
 
-return {
-    FPSCamera = FPSCamera
-}
+return FPSCamera

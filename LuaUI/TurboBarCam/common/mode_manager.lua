@@ -1,18 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class ModeManager
 local ModeManager = {}
@@ -26,7 +19,7 @@ local function resetFeatureInitializationFlag(modeNameKey)
         if featureState.isModeInitialized ~= nil then
             -- Check if the flag exists
             featureState.isModeInitialized = false
-            Log.trace("ModeManager: Reset isModeInitialized for mode: " .. modeNameKey)
+            Log:trace("ModeManager: Reset isModeInitialized for mode: " .. modeNameKey)
         end
     end
 end
@@ -57,7 +50,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
             validTarget = selectedUnits[1]
             finalValidType = STATE.TARGET_TYPES.UNIT
         else
-            Log.warn("ModeManager: No valid target for initializeMode: " .. newModeName)
+            Log:warn("ModeManager: No valid target for initializeMode: " .. newModeName)
             return false
         end
     end
@@ -69,7 +62,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
             not allowReinit and not TransitionManager.isTransitioning() then
         SettingsManager.saveModeSettings(newModeName, STATE.mode.unitID)
         ModeManager.disableMode()
-        Log.trace("ModeManager: Toggled off mode " .. newModeName .. " for unit " .. validTarget)
+        Log:trace("ModeManager: Toggled off mode " .. newModeName .. " for unit " .. validTarget)
         return false
     end
 
@@ -81,7 +74,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
         end
     end
 
-    Log.debug("ModeManager: Initializing mode: " .. newModeName)
+    Log:debug("ModeManager: Initializing mode: " .. newModeName)
     STATE.mode.name = newModeName
     STATE.mode.targetType = finalValidType
 
@@ -99,7 +92,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
         STATE.mode.targetPoint = validTarget
         STATE.mode.lastTargetPoint = Util.deepCopy(validTarget)
         STATE.mode.unitID = nil
-        SettingsManager.loadModeSettings(newModeName, "point")
+        SettingsManager.loadModeSettings(newModeName, validTarget)
     end
 
     resetFeatureInitializationFlag(newModeName)
@@ -112,7 +105,7 @@ end
 --- Disables active camera mode and resets relevant state.
 function ModeManager.disableMode()
     if STATE.mode.name then
-        Log.debug("ModeManager: Disabling active mode: " .. (STATE.mode.name or "None"))
+        Log:debug("ModeManager: Disabling mode: " .. (STATE.mode.name or "None"))
     end
     TransitionManager.stopAll()
 

@@ -1,13 +1,10 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local STATE = WidgetContext.STATE
-local CONFIG = WidgetContext.CONFIG
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class FreeCam
 local FreeCam = {}
@@ -155,7 +152,7 @@ function FreeCam.toggle()
             STATE.mode.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
         end
 
-        Log.debug("Free camera mode enabled - use mouse to rotate view")
+        Log:debug("Free camera mode enabled - use mouse to rotate view")
     else
         -- Clear tracking data when disabling
         STATE.mode.fps.freeCam.lastMouseX = nil
@@ -164,7 +161,7 @@ function FreeCam.toggle()
         STATE.mode.fps.freeCam.targetRy = nil
         STATE.mode.fps.freeCam.lastUnitHeading = nil
 
-        Log.trace("Free camera mode disabled - view follows unit orientation")
+        Log:trace("Free camera mode disabled - view follows unit orientation")
     end
 
     -- Start a transition for smooth change
@@ -174,6 +171,4 @@ function FreeCam.toggle()
     return true
 end
 
-return {
-    FreeCam = FreeCam
-}
+return FreeCam

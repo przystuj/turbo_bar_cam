@@ -1,13 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type DollyCamPathPlanner
-local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
----@type DollyCamDataStructures
-local DollyCamDataStructures = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_data_structures.lua").DollyCamDataStructures
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
+local DollyCamDataStructures = ModuleManager.DollyCamDataStructures(function(m) DollyCamDataStructures = m end)
 
 ---@class DollyCamEditor
 local DollyCamEditor = {}
@@ -25,7 +21,7 @@ function DollyCamEditor.addWaypointAtPosition(position)
     local insertIndex = #STATE.dollyCam.route.points + 1
 
     if STATE.dollyCam.isNavigating then
-        Log.debug("Can't edit route while navigating")
+        Log:debug("Can't edit route while navigating")
         return
     end
 
@@ -36,7 +32,7 @@ function DollyCamEditor.addWaypointAtPosition(position)
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
 
-    Log.info(string.format("Added waypoint at position (%.1f, %.1f, %.1f) at index %d",
+    Log:info(string.format("Added waypoint at position (%.1f, %.1f, %.1f) at index %d",
             position.x, position.y, position.z, insertIndex))
 
     return true, insertIndex
@@ -49,7 +45,7 @@ end
 ---@return boolean success Whether the waypoint was edited
 function DollyCamEditor.editWaypoint(waypointIndex, newPosition, newRotation)
     if not STATE.dollyCam.route.points[waypointIndex] then
-        Log.warn("Cannot edit waypoint: Invalid waypoint index: " .. waypointIndex)
+        Log:warn("Cannot edit waypoint: Invalid waypoint index: " .. waypointIndex)
         return false
     end
 
@@ -80,13 +76,13 @@ end
 ---@return boolean success Whether the waypoint was deleted
 function DollyCamEditor.deleteWaypoint(waypointIndex)
     if not STATE.dollyCam.route.points[waypointIndex] then
-        Log.warn("Cannot delete waypoint: Invalid waypoint index: " .. waypointIndex)
+        Log:warn("Cannot delete waypoint: Invalid waypoint index: " .. waypointIndex)
         return false
     end
 
     -- Don't allow deleting if only 2 waypoints remain
     if #STATE.dollyCam.route.points <= 2 then
-        Log.warn("Cannot delete waypoint: Route needs at least 2 waypoints")
+        Log:warn("Cannot delete waypoint: Route needs at least 2 waypoints")
         return false
     end
 
@@ -99,7 +95,7 @@ function DollyCamEditor.deleteWaypoint(waypointIndex)
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
 
-    Log.info(string.format("Deleted waypoint %d at (%.1f, %.1f, %.1f)",
+    Log:info(string.format("Deleted waypoint %d at (%.1f, %.1f, %.1f)",
             waypointIndex, position.x, position.y, position.z))
 
     return true
@@ -111,7 +107,7 @@ end
 ---@return boolean success Whether the tension was adjusted
 function DollyCamEditor.adjustWaypointTension(waypointIndex, newTension)
     if not STATE.dollyCam.route.points[waypointIndex] then
-        Log.warn("Cannot adjust waypoint tension: Invalid waypoint index: " .. waypointIndex)
+        Log:warn("Cannot adjust waypoint tension: Invalid waypoint index: " .. waypointIndex)
         return false
     end
 
@@ -127,7 +123,7 @@ function DollyCamEditor.adjustWaypointTension(waypointIndex, newTension)
     -- Regenerate the path
     DollyCamPathPlanner.generateSmoothPath()
 
-    Log.info(string.format("Adjusted waypoint %d tension from %.2f to %.2f",
+    Log:info(string.format("Adjusted waypoint %d tension from %.2f to %.2f",
             waypointIndex, oldTension, newTension))
 
     return true
@@ -200,6 +196,4 @@ function DollyCamEditor.addOrEditWaypointAtCurrentPosition()
     return addOrEditWaypointAtPosition(position)
 end
 
-return {
-    DollyCamEditor = DollyCamEditor
-}
+return DollyCamEditor

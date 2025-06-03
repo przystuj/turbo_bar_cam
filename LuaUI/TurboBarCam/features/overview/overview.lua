@@ -1,29 +1,20 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
----@type OverviewCameraUtils
-local OverviewCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/overview_utils.lua").OverviewCameraUtils
----@type RotationUtils
-local RotationUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/rotation_utils.lua").RotationUtils
----@type MovementUtils
-local MovementUtils = VFS.Include("LuaUI/TurboBarCam/features/overview/movement_utils.lua").MovementUtils
----@type Scheduler
-local Scheduler = VFS.Include("LuaUI/TurboBarCam/standalone/scheduler.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
+local OverviewCameraUtils = ModuleManager.OverviewCameraUtils(function(m) OverviewCameraUtils = m end)
+local RotationUtils = ModuleManager.RotationUtils(function(m) RotationUtils = m end)
+local MovementUtils = ModuleManager.MovementUtils(function(m) MovementUtils = m end)
+local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local ModeManager = CommonModules.ModeManager
-local CameraCommons = CommonModules.CameraCommons
-
----@class TurboOverviewCamera
-local TurboOverviewCamera = {}
+---@class OverviewCamera
+local OverviewCamera = {}
 
 --- Helper function to complete a transition
 ---@param finalCamState table The camera state at the moment the transition is completed.
@@ -60,18 +51,18 @@ local function completeTransition(finalCamState, userControllingView)
     STATE.mode.overview.velocityDecay = 0.95 -- How quickly the velocity decays each frame
 
     -- Log the final camera position for debugging
-    Log.trace(string.format("[DEBUG-ROTATION] Transition complete. Final position: (%.2f, %.2f, %.2f)",
+    Log:trace(string.format("[DEBUG-ROTATION] Transition complete. Final position: (%.2f, %.2f, %.2f)",
             finalCamState.px, finalCamState.py, finalCamState.pz))
 
     if STATE.mode.overview.targetCamPos then
-        Log.trace(string.format("[DEBUG-ROTATION] Target position was: (%.2f, %.2f, %.2f), distance=%.2f",
+        Log:trace(string.format("[DEBUG-ROTATION] Target position was: (%.2f, %.2f, %.2f), distance=%.2f",
                 STATE.mode.overview.targetCamPos.x, STATE.mode.overview.targetCamPos.y or 0, STATE.mode.overview.targetCamPos.z,
                 math.sqrt((finalCamState.px - STATE.mode.overview.targetCamPos.x) ^ 2 + (finalCamState.pz - STATE.mode.overview.targetCamPos.z) ^ 2)))
     end
 
     -- *** Special handling for rotation transition - IMPROVED ***
     if STATE.mode.overview.enableRotationAfterToggle then
-        Log.trace("[DEBUG-ROTATION] Transition complete - enabling rotation mode")
+        Log:trace("[DEBUG-ROTATION] Transition complete - enabling rotation mode")
 
         -- Store the EXACT final camera position and rotation
         STATE.mode.overview.exactFinalPosition = {
@@ -106,10 +97,10 @@ local function completeTransition(finalCamState, userControllingView)
             z = finalCamState.pz
         }
 
-        Log.trace(string.format("[DEBUG-ROTATION] Fixed camera position set to (%.2f, %.2f)",
+        Log:trace(string.format("[DEBUG-ROTATION] Fixed camera position set to (%.2f, %.2f)",
                 STATE.mode.overview.fixedCamPos.x, STATE.mode.overview.fixedCamPos.z))
 
-        Log.trace(string.format("[DEBUG-ROTATION] Rotation activated around (%.2f, %.2f) at distance %.2f",
+        Log:trace(string.format("[DEBUG-ROTATION] Rotation activated around (%.2f, %.2f) at distance %.2f",
                 STATE.mode.overview.rotationCenter.x, STATE.mode.overview.rotationCenter.z,
                 STATE.mode.overview.rotationDistance))
     end
@@ -146,7 +137,7 @@ local function completeTransition(finalCamState, userControllingView)
     -- Update tracking state one last time with the final state using the manager's function
     CameraTracker.updateLastKnownCameraState(finalCamState)
 
-    Log.trace("[DEBUG-ROTATION] Overview camera transition complete")
+    Log:trace("[DEBUG-ROTATION] Overview camera transition complete")
 end
 
 --- Handles the camera update logic during a mode transition (e.g., movement).
@@ -252,7 +243,7 @@ local function updateRotationMode(currentHeight)
         exactCamState.dz = dz
 
         -- Log the exact state being applied
-        Log.trace(string.format("[FIXED-ROTATION] Using exact final position for first rotation frame: (%.2f, %.2f)",
+        Log:trace(string.format("[FIXED-ROTATION] Using exact final position for first rotation frame: (%.2f, %.2f)",
                 exactPos.x, exactPos.z))
 
         -- Apply camera state DIRECTLY to ensure exact match with transition end
@@ -281,7 +272,7 @@ local function updateRotationMode(currentHeight)
     if STATE.mode.overview.firstRotationFrame then
         -- Ensure we have rotation parameters for safety
         if not STATE.mode.overview.rotationCenter or not STATE.mode.overview.rotationDistance or not STATE.mode.overview.rotationAngle then
-            Log.trace("Missing rotation parameters on first rotate frame - canceling rotation")
+            Log:trace("Missing rotation parameters on first rotate frame - canceling rotation")
             RotationUtils.cancelRotation("missing parameters on first rotation frame")
             return
         end
@@ -333,7 +324,7 @@ local function updateRotationMode(currentHeight)
         -- Clear the first frame flag
         STATE.mode.overview.firstRotationFrame = nil
 
-        Log.trace(string.format("[FIXED-ROTATION] First actual rotation step (tiny adjustment): angle=%.4f", STATE.mode.overview.rotationAngle))
+        Log:trace(string.format("[FIXED-ROTATION] First actual rotation step (tiny adjustment): angle=%.4f", STATE.mode.overview.rotationAngle))
 
         return
     end
@@ -431,7 +422,7 @@ local function updateNormalMode(camState, currentHeight)
 end
 
 --- Main update loop for the overview camera.
-function TurboOverviewCamera.update()
+function OverviewCamera.update()
     if STATE.mode.name ~= 'overview' then
         -- Unregister handlers if mode changed externally (optional cleanup)
         -- MouseManager.unregisterMode('overview')
@@ -441,7 +432,7 @@ function TurboOverviewCamera.update()
     -- Handle delayed rotation mode activation (existing logic)
     if not STATE.mode.isModeTransitionInProgress and STATE.mode.overview.enableRotationAfterToggle then
         STATE.mode.overview.enableRotationAfterToggle = nil
-        Log.trace("Overview mode fully enabled, now toggling rotation mode")
+        Log:trace("Overview mode fully enabled, now toggling rotation mode")
         RotationUtils.toggleRotation()
     end
 
@@ -489,7 +480,7 @@ function TurboOverviewCamera.update()
 
     -- Initialize tracking state if this is the very first update after enabling
     if STATE.mode.lastCamPos.x == 0 and STATE.mode.lastCamPos.y == 0 and STATE.mode.lastCamPos.z == 0 then
-        Log.trace("First update: Initializing tracking state and fixed position.")
+        Log:trace("First update: Initializing tracking state and fixed position.")
         -- Use the manager's function to initialize tracking state fully
         CameraTracker.updateLastKnownCameraState(camState)
         -- Initialize fixed camera position from current state
@@ -508,7 +499,7 @@ function TurboOverviewCamera.update()
 end
 
 -- Add the toggle function here for completeness if it wasn't included before
-function TurboOverviewCamera.toggle()
+function OverviewCamera.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -560,9 +551,9 @@ function TurboOverviewCamera.toggle()
                     mapX,
                     mapZ
             )
-            Log.trace("Setting target position to look at selected unit " .. unitID)
+            Log:trace("Setting target position to look at selected unit " .. unitID)
         else
-            Log.trace("Could not get selected unit position, using default positioning")
+            Log:trace("Could not get selected unit position, using default positioning")
             targetCamPos = { x = currentCamState.px, z = currentCamState.pz }
         end
     else
@@ -572,11 +563,11 @@ function TurboOverviewCamera.toggle()
         if cursorPos then
             -- Valid cursor position on the map
             targetPoint = cursorPos
-            Log.trace(string.format("Using cursor position as target: (%.1f, %.1f)", cursorPos.x, cursorPos.z))
+            Log:trace(string.format("Using cursor position as target: (%.1f, %.1f)", cursorPos.x, cursorPos.z))
         else
             -- Fallback to map center if cursor is outside the map
             targetPoint = { x = mapX / 2, y = 0, z = mapZ / 2 }
-            Log.trace("Cursor outside map - using map center as fallback target")
+            Log:trace("Cursor outside map - using map center as fallback target")
         end
 
         -- Find the height level that would give us the closest height to what we had before
@@ -602,7 +593,7 @@ function TurboOverviewCamera.toggle()
 
         -- Set the height level that best matches the current height
         STATE.mode.overview.heightLevel = closestLevel
-        Log.trace(string.format("Selected height level %d (closest to previous height %.1f)",
+        Log:trace(string.format("Selected height level %d (closest to previous height %.1f)",
                 closestLevel, currentHeight))
 
         -- Calculate camera position using the target point
@@ -636,19 +627,19 @@ function TurboOverviewCamera.toggle()
 
     -- IMPORTANT: Store as lastTargetPoint for future rotation reference
     STATE.mode.overview.lastTargetPoint = targetPoint
-    Log.trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
+    Log:trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
 
     -- Use manager's function to initialize tracking state for the transition
     CameraTracker.updateLastKnownCameraState(currentCamState)
 
-    TurboOverviewCamera.registerMouseHandlers()
+    OverviewCamera.registerMouseHandlers()
     ModeManager.startModeTransition('overview')
 
-    Log.trace(string.format("Turbo Overview camera enabled (Target Height: %.1f units, Level: %d)",
+    Log:trace(string.format("Turbo Overview camera enabled (Target Height: %.1f units, Level: %d)",
             targetHeight, STATE.mode.overview.heightLevel))
 end
 
-function TurboOverviewCamera.registerMouseHandlers()
+function OverviewCamera.registerMouseHandlers()
     MouseManager.registerMode('overview')
 
     -- MMB click - move to point
@@ -688,7 +679,7 @@ function TurboOverviewCamera.registerMouseHandlers()
                     -- Set a flag to track that we're in RMB hold rotation mode
                     STATE.mode.overview.isRmbHoldRotation = true
                 else
-                    Log.info("Cannot enable rotation: No target point available. Use MMB first")
+                    Log:info("Cannot enable rotation: No target point available. Use MMB first")
                 end
             elseif STATE.mode.overview.isRotationModeActive then
                 -- Update rotation speed based on cursor position while holding RMB
@@ -733,7 +724,7 @@ function TurboOverviewCamera.registerMouseHandlers()
 end
 
 -- Simple height change function that updates height and triggers move to target
-function TurboOverviewCamera.changeHeightAndMove(amount)
+function OverviewCamera.changeHeightAndMove(amount)
     if Util.isModeDisabled("overview") then
         return
     end
@@ -765,16 +756,14 @@ function TurboOverviewCamera.changeHeightAndMove(amount)
             -- Call the standard move to target function which uses cursor position
             MovementUtils.moveToTarget()
 
-            Log.trace("Height changed to level " .. STATE.mode.overview.heightLevel ..
+            Log:trace("Height changed to level " .. STATE.mode.overview.heightLevel ..
                     " (target height: " .. math.floor(newTargetHeight) .. " units)")
         else
-            Log.trace("Height level unchanged: " .. STATE.mode.overview.heightLevel)
+            Log:trace("Height level unchanged: " .. STATE.mode.overview.heightLevel)
         end
     else
-        Log.info("Cannot change height level: would exceed valid range (1-" .. granularity .. ")")
+        Log:info("Cannot change height level: would exceed valid range (1-" .. granularity .. ")")
     end
 end
 
-return {
-    TurboOverviewCamera = TurboOverviewCamera
-}
+return OverviewCamera

@@ -1,12 +1,7 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class ProjectileTracker
 local ProjectileTracker = {}
@@ -36,7 +31,7 @@ function ProjectileTracker.initUnitTracking(unitID)
             active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
         }
-        Log.trace("Initialized projectile tracking for unit " .. unitID)
+        Log:trace("Initialized projectile tracking for unit " .. unitID)
     else
         -- Unit already being tracked, just mark as active
         STATE.projectileTracking.unitProjectiles[unitID].active = true
@@ -52,7 +47,7 @@ function ProjectileTracker.markUnitInactive(unitID)
     end
 
     STATE.projectileTracking.unitProjectiles[unitID].active = false
-    Log.trace("Marked unit " .. unitID .. " as inactive for projectile tracking")
+    Log:trace("Marked unit " .. unitID .. " as inactive for projectile tracking")
 end
 
 -- Remove projectile tracking data for a unit
@@ -63,7 +58,7 @@ function ProjectileTracker.removeUnitTracking(unitID)
     end
 
     STATE.projectileTracking.unitProjectiles[unitID] = nil
-    Log.trace("Removed projectile tracking for unit " .. unitID)
+    Log:trace("Removed projectile tracking for unit " .. unitID)
 end
 
 -- Find new projectiles for a tracked unit
@@ -160,7 +155,7 @@ function ProjectileTracker.update(frameNum)
             }
             table.insert(STATE.projectileTracking.unitProjectiles[currentUnitID].projectiles, projectile)
 
-            Log.trace("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
+            Log:trace("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
         end
     end
 
@@ -194,7 +189,7 @@ function ProjectileTracker.update(frameNum)
                     table.insert(validProjectiles, projectile)
                 else
                     -- Projectile no longer exists
-                    Log.trace("Projectile " .. projectile.id .. " no longer exists, removing from tracking")
+                    Log:trace("Projectile " .. projectile.id .. " no longer exists, removing from tracking")
                 end
             end
 

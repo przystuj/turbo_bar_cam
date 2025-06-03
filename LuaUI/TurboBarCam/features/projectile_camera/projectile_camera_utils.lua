@@ -1,19 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type ProjectileCameraPersistence
-local ProjectileCameraPersistence = VFS.Include("LuaUI/TurboBarCam/features/projectile_camera/projectile_camera_persistence.lua")
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local ProjectileCameraPersistence = ModuleManager.ProjectileCameraPersistence(function(m) ProjectileCameraPersistence = m end)
 
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
@@ -163,17 +155,17 @@ function ProjectileCameraUtils.resetToDefaults()
     cfg.STATIC.OFFSET_HEIGHT = cfg.DEFAULT_STATIC.OFFSET_HEIGHT
     cfg.STATIC.OFFSET_SIDE = cfg.DEFAULT_STATIC.OFFSET_SIDE
     cfg.DECELERATION_PROFILE = Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
-    Log.trace("ProjectileCamera: Restored settings to defaults.")
+    Log:trace("ProjectileCamera: Restored settings to defaults.")
 end
 
 function ProjectileCameraUtils.saveSettings(unitID)
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("ProjectileCamera: Cannot save settings, invalid unitID.")
+        Log:trace("ProjectileCamera: Cannot save settings, invalid unitID.")
         return
     end
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
     if not unitDef then
-        Log.warn("ProjectileCamera: Cannot save settings, failed to get unitDef.")
+        Log:warn("ProjectileCamera: Cannot save settings, failed to get unitDef.")
         return
     end
     local unitName = unitDef.name
@@ -188,13 +180,13 @@ end
 
 function ProjectileCameraUtils.loadSettings(unitID)
     if not unitID or not Spring.ValidUnitID(unitID) then
-        Log.trace("ProjectileCamera: Cannot load settings, invalid unitID.")
+        Log:trace("ProjectileCamera: Cannot load settings, invalid unitID.")
         ProjectileCameraUtils.resetToDefaults()
         return
     end
     local unitDef = UnitDefs[Spring.GetUnitDefID(unitID)]
     if not unitDef then
-        Log.warn("ProjectileCamera: Cannot load settings, failed to get unitDef.")
+        Log:warn("ProjectileCamera: Cannot load settings, failed to get unitDef.")
         ProjectileCameraUtils.resetToDefaults()
         return
     end
@@ -202,7 +194,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local loadedSettings = ProjectileCameraPersistence.loadSettings(unitName)
     if loadedSettings then
-        Log.trace("ProjectileCamera: Loading saved settings for " .. unitName)
+        Log:trace("ProjectileCamera: Loading saved settings for " .. unitName)
         cfg.FOLLOW.DISTANCE = loadedSettings.FOLLOW and loadedSettings.FOLLOW.DISTANCE or cfg.DEFAULT_FOLLOW.DISTANCE
         cfg.FOLLOW.HEIGHT = loadedSettings.FOLLOW and loadedSettings.FOLLOW.HEIGHT or cfg.DEFAULT_FOLLOW.HEIGHT
         cfg.FOLLOW.LOOK_AHEAD = loadedSettings.FOLLOW and loadedSettings.FOLLOW.LOOK_AHEAD or cfg.DEFAULT_FOLLOW.LOOK_AHEAD
@@ -211,7 +203,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
         cfg.STATIC.OFFSET_SIDE = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_SIDE or cfg.DEFAULT_STATIC.OFFSET_SIDE
         cfg.DECELERATION_PROFILE = loadedSettings.DECELERATION_PROFILE and Util.deepCopy(loadedSettings.DECELERATION_PROFILE) or Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
     else
-        Log.trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
+        Log:trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
         ProjectileCameraUtils.resetToDefaults()
     end
 end
@@ -228,11 +220,11 @@ function ProjectileCameraUtils.adjustParams(params)
         if STATE.mode.unitID then
             ProjectileCameraUtils.saveSettings(STATE.mode.unitID)
         end
-        Log.info("Projectile Camera settings reset to defaults" .. (STATE.mode.unitID and " and saved for current unit type." or "."))
+        Log:info("Projectile Camera settings reset to defaults" .. (STATE.mode.unitID and " and saved for current unit type." or "."))
     end
     local currentSubmode = STATE.mode.projectile_camera.cameraMode
     local currentSubmodeUpper = string.upper(currentSubmode)
-    Log.trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
+    Log:trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
     Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
     if STATE.mode.unitID then
         ProjectileCameraUtils.saveSettings(STATE.mode.unitID)

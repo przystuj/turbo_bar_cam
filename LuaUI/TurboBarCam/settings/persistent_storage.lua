@@ -1,5 +1,6 @@
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class PersistentStorage
 local PersistentStorage = {}
@@ -40,9 +41,9 @@ function PersistentStorage:initialize()
     self.isDirty = false
 
     if self.isPersistent then
-        Log.debug("Initialized persistent storage: " .. self.filepath)
+        Log:debug("Initialized persistent storage: " .. self.filepath)
     else
-        Log.debug("Initialized non-persistent storage: " .. self.name)
+        Log:debug("Initialized non-persistent storage: " .. self.name)
     end
 end
 
@@ -60,10 +61,10 @@ function PersistentStorage:load()
 
     if success and type(result) == "table" then
         self.data = result
-        Log.debug("Loaded persistent storage from " .. self.filepath)
+        Log:debug("Loaded persistent storage from " .. self.filepath)
     else
         self.data = {}
-        Log.debug("Created new persistent storage file: " .. self.filepath)
+        Log:debug("Created new persistent storage file: " .. self.filepath)
     end
 
     self.isDirty = false
@@ -161,9 +162,9 @@ function PersistentStorage:save(force)
         file:close()
         self.isDirty = false
         self.lastSaveTime = currentTime
-        Log.trace("Persistent storage saved to " .. self.filepath)
+        Log:trace("Persistent storage saved to " .. self.filepath)
     else
-        Log.error("Failed to save persistent storage to " .. self.filepath)
+        Log:error("Failed to save persistent storage to " .. self.filepath)
     end
 end
 
@@ -184,7 +185,7 @@ end
 
 --- Update data periodically
 ---@param dt number Delta time
-function PersistentStorage:update(dt)
+function PersistentStorage:update()
     if self.isPersistent and self.isDirty and (os.clock() - self.lastSaveTime) >= self.saveInterval then
         self:save()
     end

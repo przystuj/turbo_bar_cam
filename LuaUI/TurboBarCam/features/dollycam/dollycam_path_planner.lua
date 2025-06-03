@@ -1,13 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
----@type Util
-local Util = VFS.Include("LuaUI/TurboBarCam/common/utils.lua")
-
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class DollyCamPathPlanner
 local DollyCamPathPlanner = {}
@@ -45,7 +40,7 @@ end
 ---@return boolean success Whether the knot vector was created
 function DollyCamPathPlanner.createKnotVector(points, alpha)
     if not points or #points < 2 then
-        Log.warn("Cannot create knot vector: Need at least 2 points")
+        Log:warn("Cannot create knot vector: Need at least 2 points")
         return {}, false
     end
 
@@ -115,7 +110,7 @@ local function pointOperation(a, b, op)
                 z = a.z - b.z
             }
         else
-            Log.warn("Invalid operation for two points: " .. op)
+            Log:warn("Invalid operation for two points: " .. op)
             return { x = 0, y = 0, z = 0 }
         end
     elseif type(a) == "table" and type(b) == "number" then
@@ -127,11 +122,11 @@ local function pointOperation(a, b, op)
                 z = a.z * b
             }
         else
-            Log.warn("Invalid operation for point and scalar: " .. op)
+            Log:warn("Invalid operation for point and scalar: " .. op)
             return { x = 0, y = 0, z = 0 }
         end
     else
-        Log.warn("Invalid operands for pointOp: " .. type(a) .. ", " .. type(b))
+        Log:warn("Invalid operands for pointOp: " .. type(a) .. ", " .. type(b))
         return { x = 0, y = 0, z = 0 }
     end
 end
@@ -208,7 +203,7 @@ end
 ---@return boolean success Whether the path was generated
 function DollyCamPathPlanner.generateSmoothPath()
     if not STATE.dollyCam.route or not STATE.dollyCam.route.points or #STATE.dollyCam.route.points < 2 then
-        Log.warn("Cannot generate path: Need at least 2 waypoints")
+        Log:warn("Cannot generate path: Need at least 2 waypoints")
         return false
     end
 
@@ -217,7 +212,7 @@ function DollyCamPathPlanner.generateSmoothPath()
     -- Create knot vector with centripetal parameterization
     local knotVector, success = DollyCamPathPlanner.createKnotVector(STATE.dollyCam.route.points, STATE.dollyCam.alpha)
     if not success then
-        Log.warn("Failed to create knot vector")
+        Log:warn("Failed to create knot vector")
         return false
     end
 
@@ -353,7 +348,7 @@ function DollyCamPathPlanner.generateSmoothPath()
         end
     end
 
-    Log.debug(string.format("Generated path with %d segments, total distance: %.2f",
+    Log:debug(string.format("Generated path with %d segments, total distance: %.2f",
             #waypointSegments, totalPathLength))
 
     return true
@@ -582,6 +577,4 @@ function DollyCamPathPlanner.createDenseRoute(route, pointDensity)
     return denseRoute
 end
 
-return {
-    DollyCamPathPlanner = DollyCamPathPlanner
-}
+return DollyCamPathPlanner

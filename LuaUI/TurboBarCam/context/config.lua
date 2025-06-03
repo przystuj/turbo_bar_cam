@@ -2,7 +2,6 @@ if not WG.TurboBarCam.CONFIG then
     ---@class WidgetConfig
     WG.TurboBarCam.CONFIG = {
         -- Should offset values be saved after changing/disabling mode
-        PERSISTENT_UNIT_SETTINGS = "MODE", -- NONE, UNIT, MODE
         MODE_TRANSITION_SMOOTHING = 0.04, -- For smoothing between camera modes
         ALLOW_TRACKING_WITHOUT_SELECTION = true,
 
@@ -406,3 +405,5 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
 }
+
+return WG.TurboBarCam.CONFIG

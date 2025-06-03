@@ -1,15 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type FeatureModules
-local Features = VFS.Include("LuaUI/TurboBarCam/features.lua")
----@type MouseManager
-local MouseManager = VFS.Include("LuaUI/TurboBarCam/standalone/mouse_manager.lua")
-
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
+local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
 
 ---@class CameraQuickControls
 local CameraQuickControls = {}
@@ -17,7 +11,7 @@ local CameraQuickControls = {}
 local function togglePointOrbit()
     -- Only handle if no other mode is active or we're toggling an existing mode
     if not STATE.mode.name or STATE.mode.name == 'orbit' then
-        Features.OrbitingCamera.togglePointOrbit()
+        OrbitingCamera.togglePointOrbit()
     end
 end
 
@@ -30,7 +24,7 @@ function CameraQuickControls.initialize()
     MouseManager.onDoubleMMB('global', togglePointOrbit)
     MouseManager.onDoubleMMB('orbit', togglePointOrbit)
 
-    Log.info("Camera quick controls initialized")
+    Log:info("Camera quick controls initialized")
 end
 
 return CameraQuickControls

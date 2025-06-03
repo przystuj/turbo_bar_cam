@@ -1,13 +1,9 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CameraCommons
-local CameraCommons = VFS.Include("LuaUI/TurboBarCam/common/camera_commons.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type VelocityTracker
-local VelocityTracker = VFS.Include("LuaUI/TurboBarCam/standalone/velocity_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
 
 ---@class TransitionUtil
 local TransitionUtil = {}
@@ -36,12 +32,12 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
 
     if velMagnitude > MAX_POSITION_VELOCITY then
         clampedVelocity = CameraCommons.vectorMultiply(velocity, MAX_POSITION_VELOCITY / velMagnitude)
-        Log.trace("Clamping high velocity: " .. velMagnitude .. " to " .. MAX_POSITION_VELOCITY)
+        Log:trace("Clamping high velocity: " .. velMagnitude .. " to " .. MAX_POSITION_VELOCITY)
         velMagnitude = MAX_POSITION_VELOCITY
     end
     if rotVelMagnitude > MAX_ROTATION_VELOCITY then
         clampedRotVelocity = CameraCommons.vectorMultiply(rotVelocity, MAX_ROTATION_VELOCITY / rotVelMagnitude)
-        Log.trace("Clamping high rot velocity: " .. rotVelMagnitude .. " to " .. MAX_ROTATION_VELOCITY)
+        Log:trace("Clamping high rot velocity: " .. rotVelMagnitude .. " to " .. MAX_ROTATION_VELOCITY)
         rotVelMagnitude = MAX_ROTATION_VELOCITY
     end
 

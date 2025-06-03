@@ -1,15 +1,11 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type SettingsManager
-local SettingsManager = VFS.Include("LuaUI/TurboBarCam/core/settings_manager.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
@@ -18,6 +14,7 @@ local OrbitCameraUtils = {}
 ---@param targetPos table Target position {x, y, z}
 ---@return table camPos Camera position {x, y, z}
 function OrbitCameraUtils.calculateOrbitPosition(targetPos)
+    OrbitCameraUtils.ensureHeightIsSet()
     -- Calculate precise sine and cosine for the orbit angle
     local angle = STATE.mode.orbit.angle
     local distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE
@@ -68,7 +65,7 @@ function OrbitCameraUtils.resetSettings()
     CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
     CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
     CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-    Log.trace("Restored orbit camera settings to defaults")
+    Log:trace("Restored orbit camera settings to defaults")
 end
 
 --- Resets orbit settings to defaults
@@ -78,7 +75,7 @@ function OrbitCameraUtils.getTargetPosition()
     if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
         -- Check if unit still exists
         if not Spring.ValidUnitID(STATE.mode.unitID) then
-            Log.trace("Unit no longer exists, switching to point tracking")
+            Log:trace("Unit no longer exists, switching to point tracking")
 
             -- Switch to point tracking using last known position
             if STATE.mode.lastTargetPoint then
@@ -126,6 +123,4 @@ function OrbitCameraUtils.calculateOrbitPositionWithAngle(targetPos, angle)
     }
 end
 
-return {
-    OrbitCameraUtils = OrbitCameraUtils
-}
+return  OrbitCameraUtils

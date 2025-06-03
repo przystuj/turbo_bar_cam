@@ -1,22 +1,15 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
----@type OrbitCameraUtils
-local OrbitCameraUtils = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_utils.lua").OrbitCameraUtils
----@type OrbitPersistence
-local OrbitPersistence = VFS.Include("LuaUI/TurboBarCam/features/orbit/orbit_persistence.lua").OrbitPersistence
----@type TransitionManager
-local TransitionManager = VFS.Include("LuaUI/TurboBarCam/core/transition_manager.lua")
----@type CameraTracker
-local CameraTracker = VFS.Include("LuaUI/TurboBarCam/standalone/camera_tracker.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Util = CommonModules.Util
-local Log = CommonModules.Log
-local CameraCommons = CommonModules.CameraCommons
-local ModeManager = CommonModules.ModeManager
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
+local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local OrbitCameraUtils = ModuleManager.OrbitCameraUtils(function(m) OrbitCameraUtils = m end)
+local OrbitPersistence = ModuleManager.OrbitPersistence(function(m) OrbitPersistence = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class OrbitingCamera
 local OrbitingCamera = {}
@@ -67,7 +60,7 @@ function OrbitingCamera.toggle(unitID)
             if currentTargetIsPoint then
                 ModeManager.disableMode()
             end
-            Log.debug("[ORBIT] No unit selected.")
+            Log:debug("[ORBIT] No unit selected.")
             return
         end
     end
@@ -76,21 +69,21 @@ function OrbitingCamera.toggle(unitID)
         if currentTargetIsPoint then
             ModeManager.disableMode()
         end
-        Log.trace("[ORBIT] Invalid unit ID: " .. tostring(unitID))
+        Log:trace("[ORBIT] Invalid unit ID: " .. tostring(unitID))
         return
     end
 
     if STATE.mode.name == 'orbit' and STATE.mode.unitID == unitID and STATE.mode.targetType == STATE.TARGET_TYPES.UNIT and
             not STATE.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableMode()
-        Log.trace("[ORBIT] Orbiting camera detached from unit " .. unitID)
+        Log:trace("[ORBIT] Orbiting camera detached from unit " .. unitID)
         return
     end
 
     if ModeManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT, false, nil) then
         STATE.mode.orbit.isPaused = false
         setupAngleForUnit(unitID)
-        Log.debug("[ORBIT] Orbiting camera enabled for unit " .. unitID)
+        Log:debug("[ORBIT] Orbiting camera enabled for unit " .. unitID)
     end
 end
 
@@ -102,7 +95,7 @@ function OrbitingCamera.togglePointOrbit(point)
     if not point then
         point = Util.getCursorWorldPosition()
         if not point then
-            Log.debug("[ORBIT] Couldn't get cursor position.");
+            Log:debug("[ORBIT] Couldn't get cursor position.");
             return
         end
     end
@@ -142,7 +135,7 @@ function OrbitingCamera.getNewCameraState(dt, transitionFactor)
     local targetPos = OrbitCameraUtils.getTargetPosition()
     if not targetPos then
         ModeManager.disableMode()
-        Log.debug("[ORBIT] Target lost, disabling orbit.")
+        Log:debug("[ORBIT] Target lost, disabling orbit.")
         return
     end
 
@@ -162,11 +155,11 @@ function OrbitingCamera.pauseOrbit()
         return
     end
     if STATE.mode.orbit.isPaused then
-        Log.trace("[ORBIT] Orbit is already paused.");
+        Log:trace("[ORBIT] Orbit is already paused.");
         return
     end
     STATE.mode.orbit.isPaused = true
-    Log.info("[ORBIT] Orbit paused.")
+    Log:info("[ORBIT] Orbit paused.")
 end
 
 function OrbitingCamera.resumeOrbit()
@@ -174,11 +167,11 @@ function OrbitingCamera.resumeOrbit()
         return
     end
     if not STATE.mode.orbit.isPaused then
-        Log.trace("[ORBIT] Orbit is not paused.");
+        Log:trace("[ORBIT] Orbit is not paused.");
         return
     end
     STATE.mode.orbit.isPaused = false
-    Log.info("[ORBIT] Orbit resumed.")
+    Log:info("[ORBIT] Orbit resumed.")
 end
 
 function OrbitingCamera.togglePauseOrbit()
@@ -197,7 +190,7 @@ function OrbitingCamera.saveOrbit(orbitId)
         return
     end
     if not orbitId or orbitId == "" then
-        Log.warn("[ORBIT] orbitId is required.");
+        Log:warn("[ORBIT] orbitId is required.");
         return
     end
     local dataToSave = OrbitPersistence.serializeCurrentOrbitState()
@@ -211,7 +204,7 @@ function OrbitingCamera.loadOrbit(orbitId)
         return
     end
     if not orbitId or orbitId == "" then
-        Log.warn("[ORBIT] orbitId is required.");
+        Log:warn("[ORBIT] orbitId is required.");
         return
     end
 
@@ -236,7 +229,7 @@ function OrbitingCamera.loadOrbit(orbitId)
                 targetToUse = selectedUnits[1];
                 targetTypeToUse = STATE.TARGET_TYPES.UNIT
             else
-                Log.warn("[ORBIT] Invalid saved unit & no selection for load.");
+                Log:warn("[ORBIT] Invalid saved unit & no selection for load.");
                 ModeManager.disableMode();
                 return
             end
@@ -245,12 +238,12 @@ function OrbitingCamera.loadOrbit(orbitId)
         if loadedData.targetPoint then
             targetToUse = Util.deepCopy(loadedData.targetPoint)
         else
-            Log.warn("[ORBIT] No targetPoint data for load.");
+            Log:warn("[ORBIT] No targetPoint data for load.");
             ModeManager.disableMode();
             return
         end
     else
-        Log.error("[ORBIT] Unknown target type in load data: " .. tostring(targetTypeToUse));
+        Log:error("[ORBIT] Unknown target type in load data: " .. tostring(targetTypeToUse));
         ModeManager.disableMode();
         return
     end
@@ -262,9 +255,9 @@ function OrbitingCamera.loadOrbit(orbitId)
     if ModeManager.initializeMode('orbit', targetToUse, targetTypeToUse, false, nil) then
         STATE.mode.orbit.loadedAngleForEntry = loadedData.angle
         STATE.mode.orbit.isPaused = loadedData.isPaused or false
-        Log.info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.mode.orbit.isPaused and " (PAUSED)" or ""))
+        Log:info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.mode.orbit.isPaused and " (PAUSED)" or ""))
     else
-        Log.error("[ORBIT] Failed to initialize orbit for loaded data: " .. orbitId)
+        Log:error("[ORBIT] Failed to initialize orbit for loaded data: " .. orbitId)
     end
 end
 
@@ -272,27 +265,4 @@ function OrbitingCamera.adjustParams(params)
     OrbitCameraUtils.adjustParams(params)
 end
 
-function OrbitingCamera.saveSettings(identifier)
-    STATE.mode.offsets.orbit[identifier] = {
-        speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
-        distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
-        height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
-    }
-end
-
-function OrbitingCamera.loadSettings(identifier)
-    if STATE.mode.offsets.orbit[identifier] then
-        CONFIG.CAMERA_MODES.ORBIT.SPEED = STATE.mode.offsets.orbit[identifier].speed
-        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = STATE.mode.offsets.orbit[identifier].distance
-        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = STATE.mode.offsets.orbit[identifier].height
-    else
-        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
-        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-    end
-    OrbitCameraUtils.ensureHeightIsSet()
-end
-
-return {
-    OrbitingCamera = OrbitingCamera
-}
+return OrbitingCamera

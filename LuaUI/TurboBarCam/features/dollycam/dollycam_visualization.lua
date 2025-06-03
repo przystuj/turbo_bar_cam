@@ -1,14 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type Log
-local Log = VFS.Include("LuaUI/TurboBarCam/common/log.lua")
----@type DollyCamDataStructures
-local DollyCamDataStructures = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_data_structures.lua").DollyCamDataStructures
----@type DollyCamPathPlanner
-local DollyCamPathPlanner = VFS.Include("LuaUI/TurboBarCam/features/dollycam/dollycam_path_planner.lua").DollyCamPathPlanner
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
+local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
 
 ---@class DollyCamVisualization
 local DollyCamVisualization = {}
@@ -58,7 +52,7 @@ DollyCamVisualization.DEFAULT_SPEED = 1.0
 ---@return boolean enabled New state of visualization
 function DollyCamVisualization.toggle()
     STATE.dollyCam.visualizationEnabled = not STATE.dollyCam.visualizationEnabled
-    Log.info("DollyCam visualization: " .. (STATE.dollyCam.visualizationEnabled and "Enabled" or "Disabled"))
+    Log:info("DollyCam visualization: " .. (STATE.dollyCam.visualizationEnabled and "Enabled" or "Disabled"))
     return STATE.dollyCam.visualizationEnabled
 end
 
@@ -578,6 +572,4 @@ function DollyCamVisualization.draw()
     drawEditorVisualizations()
 end
 
-return {
-    DollyCamVisualization = DollyCamVisualization
-}
+return DollyCamVisualization

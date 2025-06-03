@@ -1,11 +1,8 @@
----@type WidgetContext
-local WidgetContext = VFS.Include("LuaUI/TurboBarCam/context.lua")
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-
-local CONFIG = WidgetContext.CONFIG
-local STATE = WidgetContext.STATE
-local Log = CommonModules.Log
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local Log = ModuleManager.Log(function(m) Log = m end)
 
 ---@class SpecGroups
 local SpecGroups = {}
@@ -28,27 +25,27 @@ function SpecGroups.set(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log.debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Check if we're in spectator mode
     if not SpecGroups.checkSpectatorStatus() then
-        Log.debug("Spectator unit groups only available when spectating")
+        Log:debug("Spectator unit groups only available when spectating")
         return false
     end
 
     -- Get currently selected units
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
-        Log.debug("No units selected to add to group " .. groupNum)
+        Log:debug("No units selected to add to group " .. groupNum)
         return false
     end
 
     -- Store the selected units in the group
     STATE.specGroups.groups[groupNum] = selectedUnits
 
-    Log.debug("Added " .. #selectedUnits .. " units to spectator group " .. groupNum)
+    Log:debug("Added " .. #selectedUnits .. " units to spectator group " .. groupNum)
     return true
 end
 
@@ -61,19 +58,19 @@ function SpecGroups.select(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log.debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Check if we're in spectator mode
     if not SpecGroups.checkSpectatorStatus() then
-        Log.debug("Spectator unit groups only available when spectating")
+        Log:debug("Spectator unit groups only available when spectating")
         return false
     end
 
     -- Check if the group exists
     if not STATE.specGroups.groups[groupNum] or #STATE.specGroups.groups[groupNum] == 0 then
-        Log.debug("Spectator group " .. groupNum .. " is empty")
+        Log:debug("Spectator group " .. groupNum .. " is empty")
         return false
     end
 
@@ -90,14 +87,14 @@ function SpecGroups.select(groupNum)
 
     -- If no valid units remain, report it
     if #validUnits == 0 then
-        Log.debug("No valid units remain in spectator group " .. groupNum)
+        Log:debug("No valid units remain in spectator group " .. groupNum)
         return false
     end
 
     -- Select the units
     Spring.SelectUnitArray(validUnits)
 
-    Log.debug("Selected " .. #validUnits .. " units from spectator group " .. groupNum)
+    Log:debug("Selected " .. #validUnits .. " units from spectator group " .. groupNum)
     return true
 end
 
@@ -110,14 +107,14 @@ function SpecGroups.clear(groupNum)
 
     -- Validate input
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log.debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return false
     end
 
     -- Clear the group
     STATE.specGroups.groups[groupNum] = {}
 
-    Log.debug("Cleared spectator group " .. groupNum)
+    Log:debug("Cleared spectator group " .. groupNum)
     return true
 end
 
@@ -127,14 +124,14 @@ end
 function SpecGroups.handleCommand(params)
     local action, groupNum = params:match("(%a+)%s+(%d+)")
     if not action or not groupNum then
-        Log.debug("Usage: /spec_unit_group [set|select|clear] [1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS .. "]")
+        Log:debug("Usage: /spec_unit_group [set|select|clear] [1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS .. "]")
         return true
     end
 
     groupNum = tonumber(groupNum)
 
     if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log.debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
         return true
     end
 
@@ -145,12 +142,10 @@ function SpecGroups.handleCommand(params)
     elseif action == "clear" then
         SpecGroups.clear(groupNum)
     else
-        Log.debug("Unknown action. Use 'set', 'select', or 'clear'")
+        Log:debug("Unknown action. Use 'set', 'select', or 'clear'")
     end
 
     return true
 end
 
-return {
-    SpecGroups = SpecGroups
-}
+return SpecGroups

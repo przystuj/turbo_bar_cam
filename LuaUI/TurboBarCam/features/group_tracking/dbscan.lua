@@ -1,6 +1,6 @@
----@type CommonModules
-local CommonModules = VFS.Include("LuaUI/TurboBarCam/common.lua")
-local Util = CommonModules.Util
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class DBSCAN
 local DBSCAN = {}
@@ -350,7 +350,4 @@ function DBSCAN.vectorMagnitude(vector)
     return math.sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z)
 end
 
--- Export the module
-return {
-    DBSCAN = DBSCAN
-}
+return DBSCAN
