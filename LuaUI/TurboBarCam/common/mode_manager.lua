@@ -12,7 +12,7 @@ local ModeManager = {}
 
 --- Resets the isModeInitialized flag for a given feature's state.
 --- Assumes feature state is under STATE.mode.<modeNameKey>
----@param modeNameKey string The key for the mode (e.g., "fps", "unit_tracking", "overview")
+---@param modeNameKey string The key for the mode (e.g., "unit_follow", "unit_tracking", "overview")
 local function resetFeatureInitializationFlag(modeNameKey)
     if modeNameKey and STATE.mode[modeNameKey] then
         local featureState = STATE.mode[modeNameKey]
@@ -25,7 +25,7 @@ local function resetFeatureInitializationFlag(modeNameKey)
 end
 
 --- Initializes a new mode or target.
----@param newModeName string Name of the mode to initialize (e.g., 'fps', 'unit_tracking')
+---@param newModeName string Name of the mode to initialize (e.g., 'unit_follow', 'unit_tracking')
 ---@param target any The target to track (unitID number or point table {x,y,z})
 ---@param targetTypeString string|nil Target type string (e.g., "UNIT", "POINT")
 ---@param automaticMode boolean|nil True if this is an automatic transition

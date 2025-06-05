@@ -3,10 +3,10 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
-local FPSTargetingUtils = ModuleManager.FPSTargetingUtils(function(m) FPSTargetingUtils = m end)
+local UnitFollowTargetingUtils = ModuleManager.UnitFollowTargetingUtils(function(m) UnitFollowTargetingUtils = m end)
 
----@class FPSTargetingSmoothing
-local FPSTargetingSmoothing = {}
+---@class UnitFollowTargetingSmoothing
+local UnitFollowTargetingSmoothing = {}
 
 -- Constants for target smoothing
 local TARGET_HISTORY_SIZE = 20       -- Maximum number of recent targets to track
@@ -28,12 +28,12 @@ end
 
 --- Updates the target history with the current target
 --- @param targetPos table Target position {x, y, z}
-function FPSTargetingSmoothing.updateTargetHistory(targetPos)
+function UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
     if not targetPos then
         return
     end
 
-    local state = STATE.mode.fps.targetSmoothing
+    local state = STATE.mode.unit_follow.targetSmoothing
     local currentTime = Spring.GetTimer()
 
     -- Ensure all timer values are initialized
@@ -144,19 +144,19 @@ function FPSTargetingSmoothing.updateTargetHistory(targetPos)
 
     -- Calculate cloud center if needed
     if state.useCloudTargeting then
-        FPSTargetingUtils.calculateCloudCenter()
+        UnitFollowTargetingUtils.calculateCloudCenter()
     end
 end
 
 --- Gets the effective target position (actual target or cloud center)
 --- @param targetPos table The current target position
 --- @return table effectiveTarget The position to aim at
-function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
+function UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
     if not targetPos then
         return nil
     end
 
-    local state = STATE.mode.fps.targetSmoothing
+    local state = STATE.mode.unit_follow.targetSmoothing
 
     -- Get unit position
     local unitPos = nil
@@ -165,7 +165,7 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         unitPos = { x = x, y = y, z = z }
     end
 
-    -- For aerial targets, check if we have tracking data from FPSTargetingUtils
+    -- For aerial targets, check if we have tracking data from UnitFollowTargetingUtils
     local isAerialTarget = unitPos and targetPos.y > (unitPos.y + 80)
     local targetData = nil
 
@@ -174,11 +174,11 @@ function FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         local targetKey = string.format("%.0f_%.0f_%.0f",
                 math.floor(targetPos.x), math.floor(targetPos.y), math.floor(targetPos.z))
 
-        if STATE.mode.fps.targetTracking and STATE.mode.fps.targetTracking[targetKey] then
-            targetData = STATE.mode.fps.targetTracking[targetKey]
+        if STATE.mode.unit_follow.targetTracking and STATE.mode.unit_follow.targetTracking[targetKey] then
+            targetData = STATE.mode.unit_follow.targetTracking[targetKey]
 
             -- Process aerial target using your velocity data
-            local smoothedAerialPos = FPSTargetingSmoothing.processAerialTarget(
+            local smoothedAerialPos = UnitFollowTargetingSmoothing.processAerialTarget(
                     targetPos, unitPos, targetData)
 
             -- If cloud targeting is also active, blend between cloud and aerial tracking
@@ -237,12 +237,12 @@ end
 --- @param targetPos table Current target position {x, y, z}
 --- @param targetUnitID number|nil Target unit ID if targeting a unit
 --- @return table predictedPos Predicted target position
-function FPSTargetingSmoothing.predictTargetPosition(targetPos, targetUnitID)
+function UnitFollowTargetingSmoothing.predictTargetPosition(targetPos, targetUnitID)
     if not targetPos then
         return nil
     end
 
-    local state = STATE.mode.fps.targetSmoothing
+    local state = STATE.mode.unit_follow.targetSmoothing
 
     -- Skip prediction if not enabled
     if not state.targetPrediction.enabled then
@@ -283,8 +283,8 @@ end
 --- @param desiredPitch number Desired pitch angle
 --- @return number constrainedYaw Constrained yaw angle
 --- @return number constrainedPitch Constrained pitch angle
-function FPSTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
-    local state = STATE.mode.fps.targetSmoothing
+function UnitFollowTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
+    local state = STATE.mode.unit_follow.targetSmoothing
 
     -- *** Reset constraints state on target switch signal ***
     if state.rotationConstraint.resetForSwitch then
@@ -385,19 +385,19 @@ end
 --- @param targetPos table Raw target position {x, y, z}
 --- @param targetUnitID number|nil Target unit ID if targeting a unit
 --- @return table processedTarget Processed target position for camera orientation
-function FPSTargetingSmoothing.processTarget(targetPos, targetUnitID)
+function UnitFollowTargetingSmoothing.processTarget(targetPos, targetUnitID)
     if not targetPos then
         return nil
     end
 
     -- Update target history for cloud targeting
-    FPSTargetingSmoothing.updateTargetHistory(targetPos)
+    UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
 
     -- Get the effective target (cloud center or actual target)
-    local effectiveTarget = FPSTargetingSmoothing.getEffectiveTargetPosition(targetPos)
+    local effectiveTarget = UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
 
     -- Apply target prediction if enabled
-    local predictedTarget = FPSTargetingSmoothing.predictTargetPosition(effectiveTarget, targetUnitID)
+    local predictedTarget = UnitFollowTargetingSmoothing.predictTargetPosition(effectiveTarget, targetUnitID)
 
     -- Return the processed target
     return predictedTarget
@@ -405,32 +405,31 @@ end
 
 --- Configures target smoothing settings
 --- @param settings table Settings to apply
-function FPSTargetingSmoothing.configure(settings)
+function UnitFollowTargetingSmoothing.configure(settings)
     if settings.cloudBlendFactor then
         CLOUD_BLEND_FACTOR = math.max(0, math.min(1, settings.cloudBlendFactor))
     end
 
     if settings.targetPrediction ~= nil then
-        STATE.mode.fps.targetSmoothing.targetPrediction.enabled = settings.targetPrediction
+        STATE.mode.unit_follow.targetSmoothing.targetPrediction.enabled = settings.targetPrediction
     end
 
     if settings.rotationConstraint ~= nil then
-        STATE.mode.fps.targetSmoothing.rotationConstraint.enabled = settings.rotationConstraint
+        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.enabled = settings.rotationConstraint
     end
 
     if settings.maxRotationRate then
-        STATE.mode.fps.targetSmoothing.rotationConstraint.maxRotationRate = settings.maxRotationRate
+        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.maxRotationRate = settings.maxRotationRate
     end
 
     if settings.rotationDamping then
-        STATE.mode.fps.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
+        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
     end
 
     Log:info("Target smoothing settings updated")
 end
 
--- In fps_targeting_smoothing.lua, add this function:
-function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetData)
+function UnitFollowTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetData)
     -- Use the existing velocity data that's already being tracked
     local velocityX = targetData.velocityX or 0
     local velocityY = targetData.velocityY or 0
@@ -438,8 +437,8 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     local speed = targetData.speed or 0
 
     -- Initialize aerial tracking data in targetSmoothing if not already present
-    if not STATE.mode.fps.targetSmoothing.aerialTracking then
-        STATE.mode.fps.targetSmoothing.aerialTracking = {
+    if not STATE.mode.unit_follow.targetSmoothing.aerialTracking then
+        STATE.mode.unit_follow.targetSmoothing.aerialTracking = {
             smoothedPosition = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
             lastUpdateTime = Spring.GetTimer(),
             trajectoryPredictionEnabled = true,
@@ -447,7 +446,7 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
         }
     end
 
-    local aerial = STATE.mode.fps.targetSmoothing.aerialTracking
+    local aerial = STATE.mode.unit_follow.targetSmoothing.aerialTracking
 
     -- Add to position history
     table.insert(aerial.positionHistory, {
@@ -469,7 +468,7 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
 
     -- Detect if target is moving in a circular pattern
     local isCircular = #aerial.positionHistory >= 10 and
-            FPSTargetingUtils.detectCircularMotion(aerial.positionHistory)
+            UnitFollowTargetingUtils.detectCircularMotion(aerial.positionHistory)
 
     -- Adjust smoothing based on movement pattern and position relative to unit
     local smoothFactor = 0.08 -- Default
@@ -525,4 +524,4 @@ function FPSTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetDat
     return aerial.smoothedPosition
 end
 
-return FPSTargetingSmoothing
+return UnitFollowTargetingSmoothing

@@ -3,8 +3,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 
----@class FPSTargetingUtils
-local FPSTargetingUtils = {}
+---@class UnitFollowTargetingUtils
+local UnitFollowTargetingUtils = {}
 
 -- Constants for air target handling
 local AIR_HEIGHT_THRESHOLD = 80      -- Minimum height to consider a target as "air"
@@ -21,8 +21,8 @@ local TARGET_SWITCH_THRESHOLD = 0.3  -- Time threshold (seconds) to detect rapid
 
 -- Initialize global state if needed
 local function ensureGlobalState()
-    if not STATE.mode.fps.targetingGlobal then
-        STATE.mode.fps.targetingGlobal = {
+    if not STATE.mode.unit_follow.targetingGlobal then
+        STATE.mode.unit_follow.targetingGlobal = {
             targetHistory = {}, -- Recent target positions
             cloudCenter = nil, -- Center of the target cloud
             cloudRadius = 0, -- Radius of the target cloud
@@ -41,12 +41,12 @@ end
 
 -- Initialize target-specific tracking data
 local function ensureTargetTracking(targetKey)
-    if not STATE.mode.fps.targetTracking then
-        STATE.mode.fps.targetTracking = {}
+    if not STATE.mode.unit_follow.targetTracking then
+        STATE.mode.unit_follow.targetTracking = {}
     end
 
-    if not STATE.mode.fps.targetTracking[targetKey] then
-        STATE.mode.fps.targetTracking[targetKey] = {
+    if not STATE.mode.unit_follow.targetTracking[targetKey] then
+        STATE.mode.unit_follow.targetTracking[targetKey] = {
             lastUpdateTime = Spring.GetTimer(),
             lastRealPos = nil,
             positionHistory = {},
@@ -67,7 +67,7 @@ local function ensureTargetTracking(targetKey)
 
         -- Track target switch times
         local currentTime = Spring.GetTimer()
-        local globalState = STATE.mode.fps.targetingGlobal
+        local globalState = STATE.mode.unit_follow.targetingGlobal
         local timeSinceLastSwitch = Spring.DiffTimers(currentTime, globalState.lastTargetSwitchTime)
 
         if timeSinceLastSwitch < TARGET_SWITCH_THRESHOLD then
@@ -87,7 +87,7 @@ local function ensureTargetTracking(targetKey)
         globalState.lastTargetSwitchTime = currentTime
     end
 
-    return STATE.mode.fps.targetTracking[targetKey]
+    return STATE.mode.unit_follow.targetTracking[targetKey]
 end
 
 --- Gets or creates tracking data for a specific target
@@ -249,7 +249,7 @@ end
 --- @param targetKey string The target key
 local function updateTargetHistory(targetPos, targetKey)
     local currentTime = Spring.GetTimer()
-    local globalState = STATE.mode.fps.targetingGlobal
+    local globalState = STATE.mode.unit_follow.targetingGlobal
 
     -- Add current target to history
     table.insert(globalState.targetHistory, {
@@ -315,7 +315,7 @@ local function updateTargetHistory(targetPos, targetKey)
 
     -- Calculate cloud center if needed
     if globalState.useCloudTargeting then
-        FPSTargetingUtils.calculateCloudCenter()
+        UnitFollowTargetingUtils.calculateCloudCenter()
     end
 end
 
@@ -323,7 +323,7 @@ end
 --- @param targetPos table The current target position
 --- @return table effectiveTarget The position to aim at
 local function getEffectiveTargetPosition(targetPos)
-    local globalState = STATE.mode.fps.targetingGlobal
+    local globalState = STATE.mode.unit_follow.targetingGlobal
 
     -- If cloud targeting is active, use the cloud center instead of the current target
     if globalState.useCloudTargeting and globalState.cloudCenter then
@@ -345,7 +345,7 @@ end
 --- @param targetPos table Target position {x, y, z}
 --- @param unitPos table Base unit position {x, y, z}
 --- @return table adjustedPos Adjusted camera position {x, y, z}
-function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, unitPos)
+function UnitFollowTargetingUtils.handleAirTargetRepositioning(position, targetPos, unitPos)
     if not position or not targetPos then
         return position
     end
@@ -403,8 +403,8 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
 
     -- NEW: Check if we are in a stabilized camera state
     -- If we are, be more conservative with air adjustments to prevent jumps
-    if STATE.mode.fps.stableCamPos and STATE.mode.fps.targetSmoothing and
-            STATE.mode.fps.targetSmoothing.activityLevel > 0.5 then
+    if STATE.mode.unit_follow.stableCamPos and STATE.mode.unit_follow.targetSmoothing and
+            STATE.mode.unit_follow.targetSmoothing.activityLevel > 0.5 then
         -- Higher threshold during stabilization to prevent camera jumps
         activationAngle = activationAngle * 1.3
 
@@ -448,7 +448,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         local adjustmentFactor = 0.3 + (angleRatio * 0.4)  -- Range from 0.3 to 0.7
 
         -- NEW: Reduce adjustment factor during stabilization to avoid jarring movements
-        if STATE.mode.fps.stableCamPos then
+        if STATE.mode.unit_follow.stableCamPos then
             adjustmentFactor = adjustmentFactor * 0.7
         end
 
@@ -467,7 +467,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         end
 
         -- NEW: Reduce distance adjustment during stabilization
-        if STATE.mode.fps.stableCamPos then
+        if STATE.mode.unit_follow.stableCamPos then
             distanceAdjustment = distanceAdjustment * 0.8
         end
 
@@ -496,7 +496,7 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
         local moveBack = math.min(horizontalDist * backRatio * adjustmentFactor, 220)  -- Increased maximum back distance
 
         -- NEW: When using camera stabilization, apply changes more gradually
-        if STATE.mode.fps.stableCamPos and targetData.lastAdjustedPosition then
+        if STATE.mode.unit_follow.stableCamPos and targetData.lastAdjustedPosition then
             -- Get last adjusted position
             local lastPos = targetData.lastAdjustedPosition
 
@@ -560,8 +560,8 @@ function FPSTargetingUtils.handleAirTargetRepositioning(position, targetPos, uni
     end
 end
 
--- Add to FPSTargetingUtils
-function FPSTargetingUtils.detectCircularMotion(history)
+-- Add to UnitFollowTargetingUtils
+function UnitFollowTargetingUtils.detectCircularMotion(history)
     local directionChanges = 0
     local lastDx, lastDz = 0, 0
 
@@ -585,8 +585,8 @@ function FPSTargetingUtils.detectCircularMotion(history)
 end
 
 --- Calculates the center of the target cloud
-function FPSTargetingUtils.calculateCloudCenter()
-    local state = STATE.mode.fps.targetSmoothing
+function UnitFollowTargetingUtils.calculateCloudCenter()
+    local state = STATE.mode.unit_follow.targetSmoothing
 
     if #state.targetHistory < MIN_TARGETS_FOR_CLOUD then
         return
@@ -640,4 +640,4 @@ function FPSTargetingUtils.calculateCloudCenter()
     end
 end
 
-return FPSTargetingUtils
+return UnitFollowTargetingUtils

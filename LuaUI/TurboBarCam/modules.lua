@@ -16,13 +16,13 @@
 ---@field DollyCamVisualization fun(hook: fun(module: DollyCamVisualization)):DollyCamVisualization
 ---@field DollyCamWaypointEditor fun(hook: fun(module: DollyCamWaypointEditor)):DollyCamWaypointEditor
 ---@field EasingFunctions fun(hook: fun(module: EasingFunctions)):EasingFunctions
----@field FPSCamera fun(hook: fun(module: FPSCamera)):FPSCamera
----@field FPSCameraUtils fun(hook: fun(module: FPSCameraUtils)):FPSCameraUtils
----@field FPSCombatMode fun(hook: fun(module: FPSCombatMode)):FPSCombatMode
----@field FPSTargetingSmoothing fun(hook: fun(module: FPSTargetingSmoothing)):FPSTargetingSmoothing
----@field FPSTargetingUtils fun(hook: fun(module: FPSTargetingUtils)):FPSTargetingUtils
----@field FPSPersistence fun(hook: fun(module: FPSPersistence)):FPSPersistence
----@field FreeCam fun(hook: fun(module: FreeCam)):FreeCam
+---@field UnitFollowCamera fun(hook: fun(module: UnitFollowCamera)):UnitFollowCamera
+---@field UnitFollowUtils fun(hook: fun(module: UnitFollowUtils)):UnitFollowUtils
+---@field UnitFollowCombatMode fun(hook: fun(module: UnitFollowCombatMode)):UnitFollowCombatMode
+---@field UnitFollowTargetingSmoothing fun(hook: fun(module: UnitFollowTargetingSmoothing)):UnitFollowTargetingSmoothing
+---@field UnitFollowTargetingUtils fun(hook: fun(module: UnitFollowTargetingUtils)):UnitFollowTargetingUtils
+---@field UnitFollowPersistence fun(hook: fun(module: UnitFollowPersistence)):UnitFollowPersistence
+---@field UnitFollowFreeCam fun(hook: fun(module: UnitFollowFreeCam)):UnitFollowFreeCam
 ---@field GroupTrackingCamera fun(hook: fun(module: GroupTrackingCamera)):GroupTrackingCamera
 ---@field GroupTrackingUtils fun(hook: fun(module: GroupTrackingUtils)):GroupTrackingUtils
 ---@field Log fun(hook: fun(module: Log)):Log
@@ -82,13 +82,13 @@ local Modules = {
     DollyCamPathPlanner = "features/dollycam/dollycam_path_planner.lua",
     DollyCamVisualization = "features/dollycam/dollycam_visualization.lua",
     DollyCamWaypointEditor = "features/dollycam/dollycam_waypoint_editor.lua",
-    FPSCamera = "features/fps/fps.lua",
-    FPSCameraUtils = "features/fps/fps_utils.lua",
-    FPSCombatMode = "features/fps/fps_combat_mode.lua",
-    FPSTargetingSmoothing = "features/fps/fps_targeting_smoothing.lua",
-    FPSTargetingUtils = "features/fps/fps_combat_targeting_utils.lua",
-    FPSPersistence = "features/fps/fps_persistence.lua",
-    FreeCam = "features/fps/fps_free_camera.lua",
+    UnitFollowCamera = "features/unit_follow/unit_follow.lua",
+    UnitFollowUtils = "features/unit_follow/unit_follow_utils.lua",
+    UnitFollowCombatMode = "features/unit_follow/unit_follow_combat_mode.lua",
+    UnitFollowTargetingSmoothing = "features/unit_follow/unit_follow_targeting_smoothing.lua",
+    UnitFollowTargetingUtils = "features/unit_follow/unit_follow_combat_targeting_utils.lua",
+    UnitFollowPersistence = "features/unit_follow/unit_follow_persistence.lua",
+    UnitFollowFreeCam = "features/unit_follow/unit_follow_free_camera.lua",
     GroupTrackingCamera = "features/group_tracking/group_tracking.lua",
     MovementUtils = "features/overview/movement_utils.lua",
     OrbitCameraUtils = "features/orbit/orbit_utils.lua",

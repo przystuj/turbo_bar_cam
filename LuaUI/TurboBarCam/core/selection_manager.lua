@@ -3,7 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local Util = ModuleManager.Util(function(m) Util = m end)
-local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class SelectionManager
@@ -41,11 +41,11 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         -- Save settings for the old unit before switching
         SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
 
-        if STATE.mode.name == 'fps' then
-            FPSCamera.handleSelectNewUnit()
-            STATE.mode.fps.lastUnitProjectileID = nil
-            STATE.mode.fps.projectileTrackingEnabled = false
-            STATE.mode.fps.lastProjectilePosition = nil
+        if STATE.mode.name == 'unit_follow' then
+            UnitFollowCamera.handleSelectNewUnit()
+            STATE.mode.unit_follow.lastUnitProjectileID = nil
+            STATE.mode.unit_follow.projectileTrackingEnabled = false
+            STATE.mode.unit_follow.lastProjectilePosition = nil
         end
 
         -- Switch tracking to the new unit

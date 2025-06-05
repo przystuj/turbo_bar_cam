@@ -6,47 +6,47 @@ local Log = ModuleManager.Log(function(m) Log = m end)
 local Util = ModuleManager.Util(function(m) Util = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
----@class FreeCam
-local FreeCam = {}
+---@class UnitFollowFreeCam
+local UnitFollowFreeCam = {}
 
 --- Updates free camera rotation based on mouse movement
 ---@param rotFactor number Rotation smoothing factor
 ---@return table updated rotation values {rx, ry}
-function FreeCam.updateMouseRotation(rotFactor)
+function UnitFollowFreeCam.updateMouseRotation(rotFactor)
     local mouseX, mouseY = Spring.GetMouseState()
     local lastRotation = STATE.mode.lastRotation
 
     -- Skip if no previous position recorded
-    if not STATE.mode.fps.freeCam.lastMouseX or not STATE.mode.fps.freeCam.lastMouseY then
-        STATE.mode.fps.freeCam.lastMouseX = mouseX
-        STATE.mode.fps.freeCam.lastMouseY = mouseY
+    if not STATE.mode.unit_follow.freeCam.lastMouseX or not STATE.mode.unit_follow.freeCam.lastMouseY then
+        STATE.mode.unit_follow.freeCam.lastMouseX = mouseX
+        STATE.mode.unit_follow.freeCam.lastMouseY = mouseY
         return lastRotation
     end
 
     -- Calculate delta movement
-    local deltaX = mouseX - STATE.mode.fps.freeCam.lastMouseX
-    local deltaY = mouseY - STATE.mode.fps.freeCam.lastMouseY
+    local deltaX = mouseX - STATE.mode.unit_follow.freeCam.lastMouseX
+    local deltaY = mouseY - STATE.mode.unit_follow.freeCam.lastMouseY
 
     -- Only update if mouse has moved
     if deltaX ~= 0 or deltaY ~= 0 then
         -- Update target rotations based on mouse movement
-        STATE.mode.fps.freeCam.targetRy = STATE.mode.fps.freeCam.targetRy + deltaX * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
-        STATE.mode.fps.freeCam.targetRx = STATE.mode.fps.freeCam.targetRx - deltaY * CONFIG.CAMERA_MODES.FPS.MOUSE_SENSITIVITY
+        STATE.mode.unit_follow.freeCam.targetRy = STATE.mode.unit_follow.freeCam.targetRy + deltaX * CONFIG.CAMERA_MODES.UNIT_FOLLOW.MOUSE_SENSITIVITY
+        STATE.mode.unit_follow.freeCam.targetRx = STATE.mode.unit_follow.freeCam.targetRx - deltaY * CONFIG.CAMERA_MODES.UNIT_FOLLOW.MOUSE_SENSITIVITY
 
         -- Normalize yaw angle
-        STATE.mode.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.fps.freeCam.targetRy)
+        STATE.mode.unit_follow.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.unit_follow.freeCam.targetRy)
 
         -- Constrain pitch angle (prevent flipping over)
-        STATE.mode.fps.freeCam.targetRx = math.max(0.1, math.min(math.pi - 0.1, STATE.mode.fps.freeCam.targetRx))
+        STATE.mode.unit_follow.freeCam.targetRx = math.max(0.1, math.min(math.pi - 0.1, STATE.mode.unit_follow.freeCam.targetRx))
 
         -- Remember mouse position for next frame
-        STATE.mode.fps.freeCam.lastMouseX = mouseX
-        STATE.mode.fps.freeCam.lastMouseY = mouseY
+        STATE.mode.unit_follow.freeCam.lastMouseX = mouseX
+        STATE.mode.unit_follow.freeCam.lastMouseY = mouseY
     end
 
     -- Create smoothed camera rotation values
-    local rx = CameraCommons.lerp(lastRotation.rx, STATE.mode.fps.freeCam.targetRx, rotFactor)
-    local ry = CameraCommons.lerpAngle(lastRotation.ry, STATE.mode.fps.freeCam.targetRy, rotFactor)
+    local rx = CameraCommons.lerp(lastRotation.rx, STATE.mode.unit_follow.freeCam.targetRx, rotFactor)
+    local ry = CameraCommons.lerpAngle(lastRotation.ry, STATE.mode.unit_follow.freeCam.targetRy, rotFactor)
 
     return {
         rx = rx,
@@ -57,7 +57,7 @@ end
 --- Updates rotation based on unit heading changes (for unit-following free cam)
 ---@param unitID number Unit ID being followed
 ---@return boolean updated Whether heading was updated
-function FreeCam.updateUnitHeadingTracking(unitID)
+function UnitFollowFreeCam.updateUnitHeadingTracking(unitID)
     if not Spring.ValidUnitID(unitID) then
         return false
     end
@@ -66,13 +66,13 @@ function FreeCam.updateUnitHeadingTracking(unitID)
     local unitHeading = Spring.GetUnitHeading(unitID, true)
 
     -- Skip if no previous heading recorded
-    if not STATE.mode.fps.freeCam.lastUnitHeading then
-        STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
+    if not STATE.mode.unit_follow.freeCam.lastUnitHeading then
+        STATE.mode.unit_follow.freeCam.lastUnitHeading = unitHeading
         return false
     end
 
     -- Calculate heading difference
-    local headingDiff = unitHeading - STATE.mode.fps.freeCam.lastUnitHeading
+    local headingDiff = unitHeading - STATE.mode.unit_follow.freeCam.lastUnitHeading
 
     -- Only adjust if the heading difference is significant
     if math.abs(headingDiff) > 0.01 then
@@ -83,15 +83,15 @@ function FreeCam.updateUnitHeadingTracking(unitID)
         headingDiff = -headingDiff
 
         -- Adjust the target rotation to maintain relative orientation
-        STATE.mode.fps.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.fps.freeCam.targetRy + headingDiff)
+        STATE.mode.unit_follow.freeCam.targetRy = CameraCommons.normalizeAngle(STATE.mode.unit_follow.freeCam.targetRy + headingDiff)
 
         -- Update the last heading for next frame
-        STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
+        STATE.mode.unit_follow.freeCam.lastUnitHeading = unitHeading
         return true
     end
 
     -- Update the last heading for next frame
-    STATE.mode.fps.freeCam.lastUnitHeading = unitHeading
+    STATE.mode.unit_follow.freeCam.lastUnitHeading = unitHeading
     return false
 end
 
@@ -102,7 +102,7 @@ end
 ---@param lastRotation table Last camera rotation {rx, ry, rz}
 ---@param rotFactor number Rotation smoothing factor
 ---@return table cameraState Complete camera state
-function FreeCam.createCameraState(position, rotation, lastCamDir, lastRotation, rotFactor)
+function UnitFollowFreeCam.createCameraState(position, rotation, lastCamDir, lastRotation, rotFactor)
     -- Calculate direction vector from rotation angles
     local cosRx = math.cos(rotation.rx)
     local dx = math.sin(rotation.ry) * cosRx
@@ -130,7 +130,7 @@ end
 
 --- Toggles free camera mode
 ---@return boolean success Whether mode was toggled successfully
-function FreeCam.toggle()
+function UnitFollowFreeCam.toggle()
     if Util.isTurboBarCamDisabled() then
         return
     end
@@ -142,24 +142,24 @@ function FreeCam.toggle()
     if STATE.mode.inFreeCameraMode then
         -- Initialize with current camera STATE.mode
         local camState = Spring.GetCameraState()
-        STATE.mode.fps.freeCam = STATE.mode.fps.freeCam or {}
-        STATE.mode.fps.freeCam.targetRx = camState.rx
-        STATE.mode.fps.freeCam.targetRy = camState.ry
-        STATE.mode.fps.freeCam.lastMouseX, STATE.mode.fps.freeCam.lastMouseY = Spring.GetMouseState()
+        STATE.mode.unit_follow.freeCam = STATE.mode.unit_follow.freeCam or {}
+        STATE.mode.unit_follow.freeCam.targetRx = camState.rx
+        STATE.mode.unit_follow.freeCam.targetRy = camState.ry
+        STATE.mode.unit_follow.freeCam.lastMouseX, STATE.mode.unit_follow.freeCam.lastMouseY = Spring.GetMouseState()
 
         -- Initialize unit heading tracking if we have a unit
         if STATE.mode.unitID and Spring.ValidUnitID(STATE.mode.unitID) then
-            STATE.mode.fps.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
+            STATE.mode.unit_follow.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
         end
 
         Log:debug("Free camera mode enabled - use mouse to rotate view")
     else
         -- Clear tracking data when disabling
-        STATE.mode.fps.freeCam.lastMouseX = nil
-        STATE.mode.fps.freeCam.lastMouseY = nil
-        STATE.mode.fps.freeCam.targetRx = nil
-        STATE.mode.fps.freeCam.targetRy = nil
-        STATE.mode.fps.freeCam.lastUnitHeading = nil
+        STATE.mode.unit_follow.freeCam.lastMouseX = nil
+        STATE.mode.unit_follow.freeCam.lastMouseY = nil
+        STATE.mode.unit_follow.freeCam.targetRx = nil
+        STATE.mode.unit_follow.freeCam.targetRy = nil
+        STATE.mode.unit_follow.freeCam.lastUnitHeading = nil
 
         Log:trace("Free camera mode disabled - view follows unit orientation")
     end
@@ -171,4 +171,4 @@ function FreeCam.toggle()
     return true
 end
 
-return FreeCam
+return UnitFollowFreeCam

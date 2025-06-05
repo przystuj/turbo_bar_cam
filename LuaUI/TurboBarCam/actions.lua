@@ -6,8 +6,8 @@ local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 ---@type DollyCam
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
----@type FPSCamera
-local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+---@type UnitFollowCamera
+local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 ---@type UnitTrackingCamera
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
 ---@type OrbitingCamera
@@ -31,7 +31,7 @@ local w = widget
 function Actions.registerAllActions()
     Actions.coreActions()
     Actions.dollyCamActions()
-    Actions.fpsActions()
+    Actions.unitFollowActions()
     Actions.anchorActions()
     Actions.trackingCameraActions()
     Actions.specGroupsActions()
@@ -165,48 +165,47 @@ function Actions.dollyCamActions()
 
 end
 
-function Actions.fpsActions()
-    -- FPS camera actions
-    Actions.registerAction("turbobarcam_toggle_fps_camera", 'tp',
+function Actions.unitFollowActions()
+    Actions.registerAction("turbobarcam_toggle_unit_follow_camera", 'tp',
             function()
-                FPSCamera.toggle()
+                UnitFollowCamera.toggle()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_fps_toggle_combat_mode", 'tp',
+    Actions.registerAction("turbobarcam_unit_follow_toggle_combat_mode", 'tp',
             function()
-                FPSCamera.toggleCombatMode()
+                UnitFollowCamera.toggleCombatMode()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_fps_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'pR',
             function(_, params)
-                FPSCamera.adjustParams(params)
+                UnitFollowCamera.adjustParams(params)
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_fps_toggle_free_cam", 'tp',
+    Actions.registerAction("turbobarcam_unit_follow_toggle_free_cam", 'tp',
             function()
-                FPSCamera.toggleFreeCam()
+                UnitFollowCamera.toggleFreeCam()
                 return true
             end)
 
-    --- turbobarcam_fps_set_fixed_look_point is an ui action so it's not listed here
-    Actions.registerAction("turbobarcam_fps_clear_fixed_look_point", 'tp',
+    --- turbobarcam_unit_follow_set_fixed_look_point is an ui action so it's not listed here
+    Actions.registerAction("turbobarcam_unit_follow_clear_fixed_look_point", 'tp',
             function()
-                FPSCamera.clearFixedLookPoint()
+                UnitFollowCamera.clearFixedLookPoint()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_fps_clear_weapon_selection", 'tp',
+    Actions.registerAction("turbobarcam_unit_follow_clear_weapon_selection", 'tp',
             function()
-                FPSCamera.clearWeaponSelection()
+                UnitFollowCamera.clearWeaponSelection()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_fps_next_weapon", 'tp',
+    Actions.registerAction("turbobarcam_unit_follow_next_weapon", 'tp',
             function()
-                FPSCamera.nextWeapon()
+                UnitFollowCamera.nextWeapon()
                 return true
             end)
 end
@@ -290,8 +289,8 @@ end
 
 function Actions.specGroupsActions()
     Actions.registerAction("turbobarcam_spec_unit_group", 'tp',
-            function(_, params)
-                SpecGroups.handleCommand(params)
+            function(_, _, args)
+                SpecGroups.handleCommand(args[1], args[2])
                 return true
             end)
 end
@@ -372,8 +371,8 @@ end
 function Actions.I18N()
     Spring.I18N.load({
         en = {
-            ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point"]         = "Look point",
-            ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point_tooltip"] = "Click on a point/unit to focus camera on",
+            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point"]         = "Look point",
+            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point_tooltip"] = "Click on a point/unit to focus camera on",
         }
     })
 end

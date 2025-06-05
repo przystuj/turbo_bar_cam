@@ -574,8 +574,6 @@ function GroupTrackingCamera.update()
     -- Calculate required camera distance
     local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
 
-    -- Check if we're still in FPS mode
-    local currentState = Spring.GetCameraState()
 
     -- Determine camera height
     local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
@@ -661,6 +659,7 @@ function GroupTrackingCamera.update()
     )
 
     -- Get current camera position
+    local currentState = Spring.GetCameraState()
     local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
 
     -- Determine smoothing factors based on stable mode

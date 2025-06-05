@@ -18,9 +18,9 @@ function SettingsManager.initializePersistentStorage()
         return
     end
 
-    initStorage("fps_weapon_offsets", true)
-    initStorage("fps_peace_offsets", true)
-    initStorage("fps_combat_offsets", true)
+    initStorage("unit_follow_weapon_offsets", true)
+    initStorage("unit_follow_default_offsets", true)
+    initStorage("unit_follow_combat_offsets", true)
     initStorage("anchors", true)
     initStorage("dollycam", true)
     initStorage("orbit_offsets", true)

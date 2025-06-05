@@ -12,7 +12,7 @@ local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
-local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
 local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
 local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
@@ -45,7 +45,7 @@ function UpdateManager.processCycle(dt)
     UpdateManager.handleTrackingGracePeriod()
 
     -- Handle fixed point command activation
-    FPSCamera.checkFixedPointCommandActivation()
+    UnitFollowCamera.checkFixedPointCommandActivation()
 
     ProjectileCamera.checkAndActivate()
 
@@ -96,8 +96,8 @@ function UpdateManager.updateCameraMode(dt)
         CameraAnchor.update(dt)
     elseif STATE.dollyCam.isNavigating then
         DollyCam.update(dt)
-    elseif STATE.mode.name == 'fps' then
-        FPSCamera.update(dt)
+    elseif STATE.mode.name == 'unit_follow' then
+        UnitFollowCamera.update(dt)
     elseif STATE.mode.name == 'unit_tracking' then
         UnitTrackingCamera.update(dt)
     elseif STATE.mode.name == 'orbit' then

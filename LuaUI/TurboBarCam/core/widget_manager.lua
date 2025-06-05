@@ -122,7 +122,7 @@ end
 
 --- Sets a value in the CONFIG table using a string path.
 -- If the path doesn't exist, it creates the necessary nested tables.
--- @param path The string path (e.g., "CAMERA_MODES.FPS.OFFSETS.UP").
+-- @param path The string path (e.g., "CAMERA_MODES.UNIT_FOLLOW.OFFSETS.UP").
 -- @param value The value to set at the specified path.
 function WidgetManager.changeConfig(path, value)
     local segments = Util.splitPath(path)

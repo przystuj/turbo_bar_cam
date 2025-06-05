@@ -13,12 +13,12 @@ if not WG.TurboBarCam.STATE then
             initialized = false,
             storages = {},
             loadModeSettingsFn = {
-                fps = nil,
+                unit_follow = nil,
                 orbit = nil,
                 projectile_camera = nil,
             },
             saveModeSettingsFn = {
-                fps = nil,
+                unit_follow = nil,
                 orbit = nil,
                 projectile_camera = nil,
             },
@@ -74,8 +74,6 @@ if not WG.TurboBarCam.STATE then
             lastTargetPoint = nil,
             transitionTarget = nil, -- Used for specific LERP transitions by features
 
-            offsets = { fps = {}, orbit = {}, projectile_camera = {} },
-
             graceTimer = nil,
             lastUnitID = nil,
 
@@ -104,10 +102,9 @@ if not WG.TurboBarCam.STATE then
                 isModeInitialized = false,
             },
 
-            fps = {
+            unit_follow = {
                 isModeInitialized = false,
                 transitionFactor = nil,
-                entrySubmode = nil, -- Used to determine target view for entry transition (PEACE or COMBAT)
                 inTargetSelectionMode = false,
                 prevFreeCamState = false,
                 prevMode = nil,

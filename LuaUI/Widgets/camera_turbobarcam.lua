@@ -28,7 +28,7 @@ local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) Projectile
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local UpdateManager = ModuleManager.UpdateManager(function(m) UpdateManager = m end)
 local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionManager = m end)
-local FPSCamera = ModuleManager.FPSCamera(function(m) FPSCamera = m end)
+local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 
 local cameraStateOnInit = Spring.GetCameraState()
@@ -103,7 +103,7 @@ end
 ---@return boolean handled Whether the command was handled
 function widget:CommandNotify(cmdID, cmdParams, _)
     if cmdID == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
-        return FPSCamera.setFixedLookPoint(cmdParams)
+        return UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
     return false
 end
@@ -112,14 +112,14 @@ function widget:CommandsChanged()
     if Util.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("fps") then
+    if Util.isModeDisabled("unit_follow") then
         return
     end
 
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then
         local customCommands = widgetHandler.customCommands
-        customCommands[#customCommands + 1] = FPSCamera.COMMAND_DEFINITION
+        customCommands[#customCommands + 1] = UnitFollowCamera.COMMAND_DEFINITION
     end
 end
 

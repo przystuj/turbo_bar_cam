@@ -42,7 +42,7 @@
   "turbobarcam_dev_config": {
     "description": "Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.",
     "label": "Dev: Change Config",
-    "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.FPS.OFFSETS.UP 25`)"
+    "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.UNIT_FOLLOW.OFFSETS.UP 25`)"
   },
   "turbobarcam_dev_reload": {
     "description": "Hot reloads widget files without losing the current state, useful for development to apply code changes instantly.",
@@ -51,92 +51,92 @@
   },
   "turbobarcam_dollycam_add": {
     "description": "Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode.",
-    "label": "DollyCam: Add Waypoint",
+    "label": "Add Waypoint",
     "parameters": "None"
   },
   "turbobarcam_dollycam_adjust_speed": {
     "description": "Adjusts the navigation speed of the DollyCam when a route is active. Accepts values from -1.0 (full reverse) to 1.0 (full forward).",
-    "label": "DollyCam: Adjust Speed",
+    "label": "Adjust Speed",
     "parameters": "`speed` (numeric, -1.0 to 1.0)"
   },
   "turbobarcam_dollycam_edit_lookat": {
     "description": "Sets the selected DollyCam waypoint to look at the currently selected unit. If no unit is selected, it might clear the look-at target.",
-    "label": "DollyCam: Set Waypoint LookAt",
+    "label": "Set Waypoint LookAt",
     "parameters": "None (uses selected unit)"
   },
   "turbobarcam_dollycam_edit_speed": {
     "description": "Sets the target speed for the selected waypoint in the DollyCam editor. Use '1' to reset to default speed.",
-    "label": "DollyCam: Set Waypoint Speed",
+    "label": "Set Waypoint Speed",
     "parameters": "`speed_multiplier` (numeric, e.g., `0.5` for half speed, `2` for double speed, `1` to reset)"
   },
   "turbobarcam_dollycam_load": {
     "description": "Loads a DollyCam route from the storage, specific to the current map.",
-    "label": "DollyCam: Load Route",
+    "label": "Load Route",
     "parameters": "`name` (string, identifier of the route to load)"
   },
   "turbobarcam_dollycam_move_waypoint": {
     "description": "Moves the currently selected DollyCam waypoint along a specified axis (X, Y, or Z) by a given amount when in editor mode.",
-    "label": "DollyCam: Move Waypoint",
+    "label": "Move Waypoint",
     "parameters": "`axis` (`x`|`y`|`z`), `value` (numeric amount, e.g., `x,100` or `z,-50`)"
   },
   "turbobarcam_dollycam_save": {
     "description": "Saves the current DollyCam route to the storage, specific to the current map.",
-    "label": "DollyCam: Save Route",
+    "label": "Save Route",
     "parameters": "`name` (string, identifier for saving the route)"
   },
   "turbobarcam_dollycam_test": {
     "description": "Loads a predefined DollyCam route named 'test' for development or demonstration purposes.",
-    "label": "DollyCam: Test Route",
+    "label": "Test Route",
     "parameters": "None"
   },
   "turbobarcam_dollycam_toggle_direction": {
     "description": "Toggles the playback direction (forward/reverse) of the currently active DollyCam navigation.",
-    "label": "DollyCam: Toggle Direction",
+    "label": "Toggle Direction",
     "parameters": "None"
   },
   "turbobarcam_dollycam_toggle_editor": {
     "description": "Toggles the DollyCam waypoint editor mode on or off. Allows for creation and modification of camera paths.",
-    "label": "DollyCam: Toggle Editor",
+    "label": "Toggle Editor",
     "parameters": "None"
   },
   "turbobarcam_dollycam_toggle_navigation": {
     "description": "Starts or stops the DollyCam navigation along the currently defined route. Optionally can start without immediate camera control.",
-    "label": "DollyCam: Toggle Navigation",
+    "label": "Toggle Navigation",
     "parameters": "`noCam` (optional boolean string: `true` to start without taking camera control, `false` or absent for normal start)"
   },
-  "turbobarcam_fps_adjust_params": {
-    "description": "Adjusts parameters for the FPS Camera mode, such as camera offsets in peace/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'.",
-    "label": "Adjust FPS Params",
-    "parameters": "`action;param,value;...` (e.g., `add;PEACE.HEIGHT,10` or `set;MOUSE_SENSITIVITY,0.5` or `reset`). Params: `PEACE.HEIGHT/FORWARD/SIDE/ROTATION`, `COMBAT.HEIGHT/FORWARD/SIDE/ROTATION`, `WEAPON.HEIGHT/FORWARD/SIDE/ROTATION`, `MOUSE_SENSITIVITY`."
+  "turbobarcam_unit_follow_adjust_params": {
+    "description": "Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Params",
+    "parameters": "`action;param,value;...` (e.g., `add;DEFAULT.HEIGHT,10` or `set;MOUSE_SENSITIVITY,0.5` or `reset`). Params: `DEFAULT.HEIGHT/FORWARD/SIDE/ROTATION`, `COMBAT.HEIGHT/FORWARD/SIDE/ROTATION`, `WEAPON.HEIGHT/FORWARD/SIDE/ROTATION`, `MOUSE_SENSITIVITY`."
   },
-  "turbobarcam_fps_clear_fixed_look_point": {
-    "description": "Clears any fixed look point or unit target that the FPS camera is currently focused on, returning to default forward view.",
-    "label": "FPS: Clear Look Point",
+  "turbobarcam_unit_follow_clear_fixed_look_point": {
+    "description": "Clears any fixed look point or unit target that the camera is currently focused on, returning to default forward view.",
+    "label": "Clear Look Point",
     "parameters": "None"
   },
-  "turbobarcam_fps_clear_weapon_selection": {
-    "description": "Clears the currently selected weapon in FPS combat mode, stopping any specific weapon aiming.",
-    "label": "FPS: Clear Weapon",
+  "turbobarcam_unit_follow_clear_weapon_selection": {
+    "description": "Clears the currently selected weapon in combat mode, stopping any specific weapon aiming.",
+    "label": "Clear Weapon",
     "parameters": "None"
   },
-  "turbobarcam_fps_next_weapon": {
-    "description": "Cycles to the next available weapon of the unit in FPS combat mode for aiming.",
-    "label": "FPS: Next Weapon",
+  "turbobarcam_unit_follow_next_weapon": {
+    "description": "Cycles to the next available weapon of the unit in combat mode for aiming.",
+    "label": "Next Weapon",
     "parameters": "None"
   },
-  "turbobarcam_fps_set_fixed_look_point": {
-    "description": "Activates target selection mode. Click on a point on the map or a unit to make the FPS camera continuously look at that target while following the primary unit.",
-    "label": "FPS: Set Look Point",
+  "turbobarcam_unit_follow_set_fixed_look_point": {
+    "description": "Activates target selection mode. Click on a point on the map or a unit to make the camera continuously look at that target while following the primary unit.",
+    "label": "Set Look Point",
     "parameters": "None (activates UI command for map/unit click)"
   },
-  "turbobarcam_fps_toggle_combat_mode": {
-    "description": "Toggles FPS combat mode, which may change camera offsets and enable weapon-specific aiming.",
-    "label": "FPS: Toggle Combat Mode",
+  "turbobarcam_unit_follow_toggle_combat_mode": {
+    "description": "Toggles combat mode, which may change camera offsets and enable weapon-specific aiming.",
+    "label": "Toggle Combat Mode",
     "parameters": "None"
   },
-  "turbobarcam_fps_toggle_free_cam": {
-    "description": "Toggles free camera mouse look in FPS mode, allowing manual control of the camera direction independent of unit heading.",
-    "label": "FPS: Toggle Free Cam",
+  "turbobarcam_unit_follow_toggle_free_cam": {
+    "description": "Toggles free camera mouse look in mode, allowing manual control of the camera direction independent of unit heading.",
+    "label": "Toggle Free Cam",
     "parameters": "None"
   },
   "turbobarcam_group_tracking_adjust_params": {
@@ -212,10 +212,10 @@
   "turbobarcam_spec_unit_group": {
     "description": "Manages spectator unit groups. Allows setting a group with selected units, selecting units from a group, or clearing a group. Requires spectator mode.",
     "label": "Spectator Unit Group",
-    "parameters": "`set|select|clear` `groupNum` (1-9) (e.g., `set 1` or `select 1`)"
+    "parameters": "`set|select|clear` `groupId` (e.g., `set 1` or `select 1`)"
   },
   "turbobarcam_stop_tracking": {
-    "description": "Disables any active TurboBarCam tracking mode (FPS, Orbit, Unit Track, Group Track, etc.) and returns to default camera control.",
+    "description": "Disables any active TurboBarCam mode and returns to default camera control.",
     "label": "Stop Camera Tracking",
     "parameters": "None"
   },
@@ -224,9 +224,9 @@
     "label": "Toggle TurboBarCam",
     "parameters": "None"
   },
-  "turbobarcam_toggle_fps_camera": {
-    "description": "Toggles FPS camera mode. Attaches the camera to the currently selected unit. If already in FPS mode for that unit, it disables it.",
-    "label": "Toggle FPS Camera",
+  "turbobarcam_toggle_unit_follow_camera": {
+    "description": "Toggles Unit Follow camera mode. Attaches the camera to the currently selected unit. If already in mode for that unit, it disables it.",
+    "label": "Toggle Unit Follow",
     "parameters": "None (uses selected unit)"
   },
   "turbobarcam_toggle_group_tracking_camera": {
@@ -240,7 +240,7 @@
     "parameters": "None"
   },
   "turbobarcam_toggle_require_unit_selection": {
-    "description": "Toggles whether unit tracking modes (like FPS, Orbit) can remain active even if no unit is currently selected. If this is disabled (default), tracking usually stops shortly after deselecting the unit.",
+    "description": "Toggles whether unit tracking modes (like Unit Follow, Orbit) can remain active even if no unit is currently selected. If this is disabled (default), tracking usually stops shortly after deselecting the unit.",
     "label": "Toggle Require Unit Selection for Tracking",
     "parameters": "None"
   },

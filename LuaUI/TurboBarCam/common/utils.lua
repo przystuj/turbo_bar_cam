@@ -105,7 +105,7 @@ function Util.isTurboBarCamDisabled()
     end
 end
 
----@param mode 'fps'|'unit_tracking'|'orbit'|'overview'
+---@param mode 'unit_follow'|'unit_tracking'|'orbit'|'overview'
 function Util.isModeDisabled(mode)
     if mode == "global" and STATE.mode.name then
         return true
@@ -299,10 +299,10 @@ local function adjustParam(command, module)
 end
 
 ---@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
----@param module string module name as in ModifiableParams class (FPS, ORBIT, TRANSITION)
+---@param module string module name as in ModifiableParams class (UNIT_FOLLOW, ORBIT, TRANSITION)
 ---@param resetFunction function function which will be called when 'reset' is used
----@param currentSubmode string|nil Optional current submode name (e.g., "PEACE", "FOLLOW")
----@param getSubmodeParamPrefixes function|nil Optional function that returns a table of submode_name -> prefix_string (e.g., {PEACE = "PEACE.", FOLLOW = "FOLLOW."})
+---@param currentSubmode string|nil Optional current submode name (e.g., "DEFAULT", "FOLLOW")
+---@param getSubmodeParamPrefixes function|nil Optional function that returns a table of submode_name -> prefix_string (e.g., {DEFAULT = "DEFAULT.", FOLLOW = "FOLLOW."})
 function Util.adjustParams(params, module, resetFunction, currentSubmode, getSubmodeParamPrefixes)
     Log:trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
     local adjustments = parseParams(params, module)

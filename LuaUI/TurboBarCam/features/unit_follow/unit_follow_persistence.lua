@@ -6,8 +6,8 @@ local Util = ModuleManager.Util(function(m) Util = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 
----@class FPSPersistence
-local FPSPersistence = {}
+---@class UnitFollowPersistence
+local UnitFollowPersistence = {}
 
 local function getUnitName(unitId)
     local unitDefId = Spring.GetUnitDefID(unitId)
@@ -21,10 +21,10 @@ local function getUnitName(unitId)
 end
 
 ---@param unitId number Unit ID
-function FPSPersistence.saveUnitSettings(_, unitId)
+function UnitFollowPersistence.saveUnitSettings(_, unitId)
     local function saveOffsets(mode, unitName)
-        local storageName = "fps_" .. string.lower(mode) .. "_offsets"
-        SettingsManager.saveUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.FPS.OFFSETS[mode])
+        local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
+        SettingsManager.saveUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode])
     end
 
     local unitName = getUnitName(unitId)
@@ -33,27 +33,27 @@ function FPSPersistence.saveUnitSettings(_, unitId)
         return
     end
 
-    saveOffsets("PEACE", unitName)
+    saveOffsets("DEFAULT", unitName)
     saveOffsets("COMBAT", unitName)
     saveOffsets("WEAPON", unitName)
 end
 
 ---@param unitId number Unit ID
-function FPSPersistence.loadUnitSettings(_, unitId)
+function UnitFollowPersistence.loadUnitSettings(_, unitId)
     local function loadOffsets(mode, unitName)
-        local storageName = "fps_" .. string.lower(mode) .. "_offsets"
-        local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode])
-        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode] = settings
+        local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
+        local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
+        Util.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
     end
 
     local unitName = getUnitName(unitId)
 
-    loadOffsets("PEACE", unitName)
+    loadOffsets("DEFAULT", unitName)
     loadOffsets("COMBAT", unitName)
     loadOffsets("WEAPON", unitName)
 end
 
-STATE.settings.loadModeSettingsFn.fps = FPSPersistence.loadUnitSettings
-STATE.settings.saveModeSettingsFn.fps = FPSPersistence.saveUnitSettings
+STATE.settings.loadModeSettingsFn.unit_follow = UnitFollowPersistence.loadUnitSettings
+STATE.settings.saveModeSettingsFn.unit_follow = UnitFollowPersistence.saveUnitSettings
 
-return FPSPersistence
+return UnitFollowPersistence

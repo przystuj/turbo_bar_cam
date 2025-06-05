@@ -1,6 +1,5 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 
@@ -17,15 +16,12 @@ function SpecGroups.checkSpectatorStatus()
 end
 
 --- Sets a spectator unit group
----@param groupNum number Group number (1-9)
+---@param groupId string Group id
 ---@return boolean success Whether the group was set successfully
-function SpecGroups.set(groupNum)
-    -- Convert to number
-    groupNum = tonumber(groupNum)
-
+function SpecGroups.set(groupId)
     -- Validate input
-    if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+    if not groupId then
+        Log:debug("Invalid group id.")
         return false
     end
 
@@ -38,27 +34,25 @@ function SpecGroups.set(groupNum)
     -- Get currently selected units
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
-        Log:debug("No units selected to add to group " .. groupNum)
+        Log:debug("No units selected to add to group " .. groupId)
         return false
     end
 
     -- Store the selected units in the group
-    STATE.specGroups.groups[groupNum] = selectedUnits
+    STATE.specGroups.groups[groupId] = selectedUnits
 
-    Log:debug("Added " .. #selectedUnits .. " units to spectator group " .. groupNum)
+    Log:debug("Added " .. #selectedUnits .. " units to spectator group " .. groupId)
     return true
 end
 
 --- Selects units from a spectator unit group
----@param groupNum number Group number (1-9)
+---@param groupId string Group id
 ---@return boolean success Whether the group selection was successful
-function SpecGroups.select(groupNum)
-    -- Convert to number
-    groupNum = tonumber(groupNum)
+function SpecGroups.select(groupId)
 
     -- Validate input
-    if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+    if not groupId then
+        Log:debug("Invalid group id.")
         return false
     end
 
@@ -69,78 +63,69 @@ function SpecGroups.select(groupNum)
     end
 
     -- Check if the group exists
-    if not STATE.specGroups.groups[groupNum] or #STATE.specGroups.groups[groupNum] == 0 then
-        Log:debug("Spectator group " .. groupNum .. " is empty")
+    if not STATE.specGroups.groups[groupId] or #STATE.specGroups.groups[groupId] == 0 then
+        Log:debug("Spectator group " .. groupId .. " is empty")
         return false
     end
 
     -- Filter valid units
     local validUnits = {}
-    for _, unitID in ipairs(STATE.specGroups.groups[groupNum]) do
+    for _, unitID in ipairs(STATE.specGroups.groups[groupId]) do
         if Spring.ValidUnitID(unitID) then
             table.insert(validUnits, unitID)
         end
     end
 
     -- Update the group with only valid units
-    STATE.specGroups.groups[groupNum] = validUnits
+    STATE.specGroups.groups[groupId] = validUnits
 
     -- If no valid units remain, report it
     if #validUnits == 0 then
-        Log:debug("No valid units remain in spectator group " .. groupNum)
+        Log:debug("No valid units remain in spectator group " .. groupId)
         return false
     end
 
     -- Select the units
     Spring.SelectUnitArray(validUnits)
 
-    Log:debug("Selected " .. #validUnits .. " units from spectator group " .. groupNum)
+    Log:debug("Selected " .. #validUnits .. " units from spectator group " .. groupId)
     return true
 end
 
 --- Clears a spectator unit group
----@param groupNum number Group number (1-9)
+---@param groupId string Group id
 ---@return boolean success Whether the group was cleared successfully
-function SpecGroups.clear(groupNum)
-    -- Convert to number
-    groupNum = tonumber(groupNum)
+function SpecGroups.clear(groupId)
 
     -- Validate input
-    if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+    if not groupId then
+        Log:debug("Invalid group id.")
         return false
     end
 
     -- Clear the group
-    STATE.specGroups.groups[groupNum] = {}
+    STATE.specGroups.groups[groupId] = {}
 
-    Log:debug("Cleared spectator group " .. groupNum)
+    Log:debug("Cleared spectator group " .. groupId)
     return true
 end
 
 --- Handles spectator unit group commands
----@param params string Command parameters
+---@param action string Command parameters
+---@param groupId string Group id
 ---@return boolean success Always returns true for widget handler
-function SpecGroups.handleCommand(params)
-    local action, groupNum = params:match("(%a+)%s+(%d+)")
-    if not action or not groupNum then
-        Log:debug("Usage: /spec_unit_group [set|select|clear] [1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS .. "]")
-        return true
-    end
-
-    groupNum = tonumber(groupNum)
-
-    if not groupNum or groupNum < 1 or groupNum > CONFIG.SPEC_GROUPS.MAX_GROUPS then
-        Log:debug("Invalid group number. Use 1-" .. CONFIG.SPEC_GROUPS.MAX_GROUPS)
+function SpecGroups.handleCommand(action, groupId)
+    if not groupId then
+        Log:debug("Invalid group id.")
         return true
     end
 
     if action == "set" then
-        SpecGroups.set(groupNum)
+        SpecGroups.set(groupId)
     elseif action == "select" then
-        SpecGroups.select(groupNum)
+        SpecGroups.select(groupId)
     elseif action == "clear" then
-        SpecGroups.clear(groupNum)
+        SpecGroups.clear(groupId)
     else
         Log:debug("Unknown action. Use 'set', 'select', or 'clear'")
     end

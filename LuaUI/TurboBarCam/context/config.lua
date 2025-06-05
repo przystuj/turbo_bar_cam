@@ -42,19 +42,18 @@ if not WG.TurboBarCam.CONFIG then
         CAMERA_MODES = {
             ANCHOR = {
                 -- modes which will trigger focus_while_tracking effect
-                COMPATIBLE_MODES = { "fps", "unit_tracking", "orbit", "projectile_camera" },
+                COMPATIBLE_MODES = { "unit_follow", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
             },
 
-            -- FPS camera settings
-            FPS = {
+            UNIT_FOLLOW = {
                 MOUSE_SENSITIVITY = 0.004,
-                INITIAL_TRANSITION_DURATION = 1.2,  -- Duration of the entry transition into FPS mode
+                INITIAL_TRANSITION_DURATION = 1.2,  -- Duration of the entry transition into unit_follow mode
                 INITIAL_TRANSITION_FACTOR = 0.01,
                 OFFSETS = {
-                    -- PEACE mode offsets (normal FPS view)
-                    PEACE = {
+                    -- DEFAULT mode offsets
+                    DEFAULT = {
                         HEIGHT = nil, -- It's calculated from unit height
                         FORWARD = -300,
                         SIDE = 0,
@@ -78,7 +77,7 @@ if not WG.TurboBarCam.CONFIG then
                     }
                 },
                 DEFAULT_OFFSETS = {
-                    PEACE = {
+                    DEFAULT = {
                         HEIGHT = nil, -- It's calculated from unit height
                         FORWARD = -300,
                         SIDE = 0,
@@ -100,8 +99,8 @@ if not WG.TurboBarCam.CONFIG then
                     }
                 },
                 SMOOTHING = {
-                    -- PEACE mode smoothing (normal FPS view)
-                    PEACE = {
+                    -- DEFAULT mode smoothing
+                    DEFAULT = {
                         POSITION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
                         ROTATION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
                     },
@@ -189,7 +188,7 @@ if not WG.TurboBarCam.CONFIG then
 
             PROJECTILE_CAMERA = {
                 DEFAULT_CAMERA_MODE = "follow",
-                COMPATIBLE_MODES_FROM = { "fps", "unit_tracking", "orbit" },
+                COMPATIBLE_MODES_FROM = { "unit_follow", "unit_tracking", "orbit" },
                 DEFAULT_MODE_FALLBACK = "unit_tracking",
                 IMPACT_TIMEOUT = 0, -- Time to stay on impact after deceleration
 
@@ -318,12 +317,6 @@ if not WG.TurboBarCam.CONFIG then
         COMMANDS = {
             SET_FIXED_LOOK_POINT = 455626,
         },
-
-        -- Spectator settings
-        SPEC_GROUPS = {
-            ENABLED = true, -- Enable spectator unit groups
-            MAX_GROUPS = 9  -- Maximum number of groups (1-9)
-        }
     }
 end
 
@@ -334,14 +327,14 @@ local CONFIG = WG.TurboBarCam.CONFIG
 ---@class ModifiableParams
 ---@see Util#adjustParams
 CONFIG.MODIFIABLE_PARAMS = {
-    FPS = {
-        PARAMS_ROOT = CONFIG.CAMERA_MODES.FPS.OFFSETS,
+    UNIT_FOLLOW = {
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS,
         PARAM_NAMES = {
             -- Peace mode offsets
-            ["PEACE.HEIGHT"] = { 0, nil },
-            ["PEACE.FORWARD"] = { nil, nil },
-            ["PEACE.SIDE"] = { nil, nil },
-            ["PEACE.ROTATION"] = { nil, nil, "rad" },
+            ["DEFAULT.HEIGHT"] = { 0, nil },
+            ["DEFAULT.FORWARD"] = { nil, nil },
+            ["DEFAULT.SIDE"] = { nil, nil },
+            ["DEFAULT.ROTATION"] = { nil, nil, "rad" },
 
             -- Combat mode offsets
             ["COMBAT.HEIGHT"] = { nil, nil },

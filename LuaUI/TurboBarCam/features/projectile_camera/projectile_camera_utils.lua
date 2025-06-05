@@ -232,7 +232,7 @@ function ProjectileCameraUtils.adjustParams(params)
 end
 
 function ProjectileCameraUtils.isUnitCentricMode(mode)
-    return mode == 'fps' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
+    return mode == 'unit_follow' or mode == 'unit_tracking' or mode == 'orbit' or mode == 'projectile_camera'
 end
 
 return ProjectileCameraUtils
