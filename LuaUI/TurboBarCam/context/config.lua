@@ -125,12 +125,16 @@ if not WG.TurboBarCam.CONFIG then
                 INITIAL_TRANSITION_DURATION = 2,
                 INITIAL_TRANSITION_FACTOR = 0.01,
                 HEIGHT_FACTOR = 8, -- Height is 8x unit height
-                DISTANCE = 800, -- Distance from unit
-                SPEED = 0.05, -- Orbit speed in radians per frame
-                HEIGHT = nil, -- It's calculated from unit height
-                DEFAULT_SPEED = 0.05,
-                DEFAULT_DISTANCE = 800,
-                DEFAULT_HEIGHT = nil, -- It's calculated from unit height
+                OFFSETS = {
+                    DISTANCE = 800, -- Distance from unit
+                    SPEED = 0.05, -- Orbit speed in radians per frame
+                    HEIGHT = nil, -- It's calculated from unit height
+                },
+                DEFAULT_OFFSETS = {
+                    SPEED = 0.05,
+                    DISTANCE = 800,
+                    HEIGHT = nil, -- It's calculated from unit height
+                },
                 SMOOTHING_FACTOR = 0.06,
             },
 
@@ -323,12 +327,15 @@ if not WG.TurboBarCam.CONFIG then
     }
 end
 
+---@type WidgetConfig
+local CONFIG = WG.TurboBarCam.CONFIG
+
 --- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
 ---@see Util#adjustParams
-WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
+CONFIG.MODIFIABLE_PARAMS = {
     FPS = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.FPS.OFFSETS,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.FPS.OFFSETS,
         PARAM_NAMES = {
             -- Peace mode offsets
             ["PEACE.HEIGHT"] = { 0, nil },
@@ -353,7 +360,7 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     ORBIT = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.ORBIT,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.ORBIT.OFFSETS,
         PARAM_NAMES = {
             HEIGHT = { 100, nil },
             DISTANCE = { 100, nil },
@@ -361,19 +368,19 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     ANCHOR = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.ANCHOR,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.ANCHOR,
         PARAM_NAMES = {
             DURATION = { 0, nil },
         }
     },
     UNIT_TRACKING = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.UNIT_TRACKING,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_TRACKING,
         PARAM_NAMES = {
             HEIGHT = { -2000, 2000 },
         }
     },
     GROUP_TRACKING = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.GROUP_TRACKING,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.GROUP_TRACKING,
         PARAM_NAMES = {
             -- Camera adjustments
             EXTRA_DISTANCE = { nil, nil }, -- Extra distance beyond calculated value
@@ -388,7 +395,7 @@ WG.TurboBarCam.CONFIG.MODIFIABLE_PARAMS = {
         }
     },
     PROJECTILE_CAMERA = {
-        PARAMS_ROOT = WG.TurboBarCam.CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA,
         PARAM_NAMES = {
             ["STATIC.OFFSET_SIDE"] = { nil, nil },
             ["STATIC.OFFSET_HEIGHT"] = { nil, nil },

@@ -139,12 +139,10 @@ function OrbitingCamera.getNewCameraState(dt, transitionFactor)
         return
     end
 
-    local orbitConfig = CONFIG.CAMERA_MODES.ORBIT
-
     if not STATE.mode.orbit.isPaused then
-        STATE.mode.orbit.angle = STATE.mode.orbit.angle + orbitConfig.SPEED * dt
+        STATE.mode.orbit.angle = STATE.mode.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED * dt
     end
-    local smoothing = transitionFactor or orbitConfig.SMOOTHING_FACTOR
+    local smoothing = transitionFactor or CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR
 
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
     return CameraCommons.focusOnPoint(camPos, targetPos, smoothing, smoothing)
@@ -213,9 +211,9 @@ function OrbitingCamera.loadOrbit(orbitId)
         return
     end
 
-    CONFIG.CAMERA_MODES.ORBIT.SPEED = loadedData.speed
-    CONFIG.CAMERA_MODES.ORBIT.DISTANCE = loadedData.distance
-    CONFIG.CAMERA_MODES.ORBIT.HEIGHT = loadedData.height
+    CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED = loadedData.speed
+    CONFIG.CAMERA_MODES.ORBIT.OFFSETS.DISTANCE = loadedData.distance
+    CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = loadedData.height
 
     local targetToUse
     local targetTypeToUse = loadedData.targetType

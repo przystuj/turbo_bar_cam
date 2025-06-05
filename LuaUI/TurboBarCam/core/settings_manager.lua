@@ -3,6 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local PersistentStorage = ModuleManager.PersistentStorage(function(m) PersistentStorage = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class SettingsManager
 local SettingsManager = {}
@@ -76,16 +77,17 @@ function SettingsManager.saveUserSetting(name, id, data)
         Log:warn("Storage not initialized: " .. name)
         return false
     end
-    STATE.settings.storages[name]:set(id, data)
+
+    STATE.settings.storages[name]:set(id, Util.deepCopy(data))
     return true
 end
 
-function SettingsManager.loadUserSetting(name, id)
+function SettingsManager.loadUserSetting(name, id, default)
     if not STATE.settings.storages[name] then
         Log:warn("Storage not initialized: " .. name)
         return nil
     end
-    return STATE.settings.storages[name]:get(id)
+    return Util.deepCopy(STATE.settings.storages[name]:get(id) or Util.deepCopy(default) or nil)
 end
 
 return SettingsManager

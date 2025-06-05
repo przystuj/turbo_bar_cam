@@ -12,7 +12,7 @@ local FPSPersistence = {}
 local function getUnitName(unitId)
     local unitDefId = Spring.GetUnitDefID(unitId)
     local unitDef = UnitDefs[unitDefId]
-    local unitName = unitDef.name
+    local unitName = unitDef and unitDef.name
 
     if not unitName then
         Log:warn("Cannot save settings - invalid unit id")
@@ -24,7 +24,7 @@ end
 function FPSPersistence.saveUnitSettings(_, unitId)
     local function saveOffsets(mode, unitName)
         local storageName = "fps_" .. string.lower(mode) .. "_offsets"
-        SettingsManager.saveUserSetting(storageName, unitName, Util.deepCopy(CONFIG.CAMERA_MODES.FPS.OFFSETS[mode]))
+        SettingsManager.saveUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.FPS.OFFSETS[mode])
     end
 
     local unitName = getUnitName(unitId)
@@ -42,8 +42,8 @@ end
 function FPSPersistence.loadUnitSettings(_, unitId)
     local function loadOffsets(mode, unitName)
         local storageName = "fps_" .. string.lower(mode) .. "_offsets"
-        local settings = SettingsManager.loadUserSetting(storageName, unitName) or CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode]
-        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode] = Util.deepCopy(settings)
+        local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.FPS.DEFAULT_OFFSETS[mode])
+        CONFIG.CAMERA_MODES.FPS.OFFSETS[mode] = settings
     end
 
     local unitName = getUnitName(unitId)

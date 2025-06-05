@@ -20,9 +20,9 @@ function OrbitPersistence.serializeCurrentOrbitState()
 
     local data = {
         angle = STATE.mode.orbit.angle,
-        speed = CONFIG.CAMERA_MODES.ORBIT.SPEED,
-        distance = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
-        height = CONFIG.CAMERA_MODES.ORBIT.HEIGHT,
+        speed = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED,
+        distance = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.DISTANCE,
+        height = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT,
         targetType = STATE.mode.targetType,
         targetID = nil,
         targetPoint = nil,
@@ -59,7 +59,7 @@ function OrbitPersistence.saveToFile(orbitSetId, dataToSave)
     end
 
     local mapName = Util.getCleanMapName()
-    local mapOrbitPresets = SettingsManager.loadUserSetting("orbit_presets", mapName) or {}
+    local mapOrbitPresets = SettingsManager.loadUserSetting("orbit_presets", mapName, {})
     mapOrbitPresets[orbitSetId] = dataToSave
 
     local success = SettingsManager.saveUserSetting("orbit_presets", mapName, mapOrbitPresets)
@@ -96,28 +96,15 @@ function OrbitPersistence.loadFromFile(orbitSetId)
 end
 
 function OrbitPersistence.saveSettings(_, _)
-    SettingsManager.saveUserSetting("orbit_offsets", "orbit", {
-        SPEED = CONFIG.CAMERA_MODES.ORBIT.SPEED,
-        DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DISTANCE,
-        HEIGHT = CONFIG.CAMERA_MODES.ORBIT.HEIGHT
-    })
+    SettingsManager.saveUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.OFFSETS)
 end
 
 function OrbitPersistence.loadSettings(_, _)
-    local settings = SettingsManager.loadUserSetting("orbit_offsets", "orbit")
-    if settings then
-        CONFIG.CAMERA_MODES.ORBIT.SPEED = settings.SPEED
-        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = settings.DISTANCE
-        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = settings.HEIGHT
-    else
-        CONFIG.CAMERA_MODES.ORBIT.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-        CONFIG.CAMERA_MODES.ORBIT.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
-        CONFIG.CAMERA_MODES.ORBIT.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-    end
+    Util.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS,SettingsManager.loadUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS))
     OrbitCameraUtils.ensureHeightIsSet()
 end
 
-STATE.settings.loadModeSettingsFn.orbit = OrbitPersistence.saveSettings
-STATE.settings.saveModeSettingsFn.orbit = OrbitPersistence.loadSettings
+STATE.settings.loadModeSettingsFn.orbit = OrbitPersistence.loadSettings
+STATE.settings.saveModeSettingsFn.orbit = OrbitPersistence.saveSettings
 
 return OrbitPersistence

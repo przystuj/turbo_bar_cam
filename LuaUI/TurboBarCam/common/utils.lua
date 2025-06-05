@@ -582,4 +582,51 @@ function Util.splitPath(path, delimiter)
     return segments
 end
 
+--- Recursively applies parameters from a source table to a target table.
+--- Modifies the targetTable in place.
+--- If a key from sourceTable exists in targetTable:
+---   - If both values are tables, the function recursively calls itself to merge them.
+---   - If the sourceValue is a table and targetValue is not (or nil),
+---     the targetTable key is set to a deep copy of sourceValue.
+---   - Otherwise (sourceValue is not a table, or targetValue is not a table to recurse into),
+---     the value from sourceTable overwrites the value in targetTable.
+--- If a key from sourceTable does not exist in targetTable, it is added.
+---   (If the sourceValue is a table, it's deep copied to the targetTable).
+--- Keys in targetTable not present in sourceTable are unaffected.
+---
+---@param target table The table to apply parameters to.
+---@param source table The table to get parameters from.
+---@return table targetTable The modified targetTable.
+function Util.patchTable(target, source)
+    if type(target) ~= "table" then
+        Log:warn("Util.deepApplyTableParams: targetTable is not a table. Got: " .. type(target))
+        return target -- Or return nil/error based on desired strictness
+    end
+    if type(source) ~= "table" then
+        Log:warn("Util.deepApplyTableParams: sourceTable is not a table. Got: " .. type(source))
+        -- No changes to targetTable if source is invalid
+        return target
+    end
+
+    for key, sourceValue in pairs(source) do
+        local targetValue = target[key]
+
+        if type(sourceValue) == "table" then
+            if type(targetValue) == "table" then
+                -- Both are tables, recurse to merge
+                Util.patchTable(targetValue, sourceValue)
+            else
+                -- Source is a table, target is not (or nil).
+                -- Assign a deep copy of the source table to the target.
+                target[key] = Util.deepCopy(sourceValue)
+            end
+        else
+            -- Source is not a table, so directly assign its value.
+            target[key] = sourceValue
+        end
+    end
+
+    return target
+end
+
 return Util

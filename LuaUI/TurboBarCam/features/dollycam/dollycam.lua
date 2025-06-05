@@ -116,7 +116,7 @@ function DollyCam.saveRoute(name)
     local mapName = Util.getCleanMapName()
 
     -- Load existing camera presets for all maps
-    local mapPresets = SettingsManager.loadUserSetting("dollycam", mapName) or {}
+    local mapPresets = SettingsManager.loadUserSetting("dollycam", mapName, {})
 
     -- Save preset for current map
     mapPresets[name] = routeData

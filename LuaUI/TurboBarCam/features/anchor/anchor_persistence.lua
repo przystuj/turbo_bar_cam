@@ -32,7 +32,7 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
 
     -- Save preset for current map
-    mapPresets[anchorSetId] = Util.deepCopy(STATE.anchor)
+    mapPresets[anchorSetId] = STATE.anchor
 
     -- Save the entire structure back to storage
     local success = SettingsManager.saveUserSetting("anchors", mapName, mapPresets)
@@ -66,7 +66,7 @@ function CameraAnchorPersistence.loadFromFile(id)
         Log:warn("No saved configuration found with ID: " .. id .. " for map: " .. mapName)
         return false
     end
-    STATE.anchor = Util.deepCopy(mapPresets[id])
+    STATE.anchor = mapPresets[id]
 
     Log:info("Loaded ID: " .. id .. " for map: " .. mapName .. ". Easing: " .. STATE.anchor.easing)
     return true

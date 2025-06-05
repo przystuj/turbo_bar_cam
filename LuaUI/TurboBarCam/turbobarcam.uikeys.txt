@@ -44,6 +44,7 @@ bind		numpad5			turbobarcam_tracking_camera_adjust_params add;HEIGHT,-20
 
 // Orbit
 bind		numpad2  		turbobarcam_orbit_toggle
+bind		Ctrl+numpad2  	turbobarcam_orbit_adjust_params reset
 bind		numpad5			turbobarcam_orbit_adjust_params add;DISTANCE,20
 bind		numpad8			turbobarcam_orbit_adjust_params add;DISTANCE,-20
 bind		numpad9			turbobarcam_orbit_adjust_params add;HEIGHT,20
