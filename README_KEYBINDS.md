@@ -4,7 +4,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## General Controls
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Set FOV**<br>`turbobarcam_set_fov` | Sets the camera's Field of View (FOV) to a specific value. | N/A | N/A |
 | **Stop Camera Tracking**<br>`turbobarcam_stop_tracking` | Disables any active TurboBarCam mode and returns to default camera control. | `Esc` | N/A |
@@ -15,7 +15,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Anchor Point Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Anchor Params**<br>`turbobarcam_anchor_adjust_params` | Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'. | `Ctrl+Shift+numpad-`<br>`Ctrl+Shift+numpad+` | `add;DURATION,-1`<br>`add;DURATION,1` |
 | **Focus Anchor**<br>`turbobarcam_anchor_focus` | Smoothly transitions the camera to a previously saved anchor point. | `Shift+F1`<br>`Shift+F2`<br>`Shift+F3`<br>`Shift+F4` | `1`<br>`2`<br>`3`<br>`4` |
@@ -27,7 +27,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## DollyCam Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Add Waypoint**<br>`turbobarcam_dollycam_add` | Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode. | N/A | N/A |
 | **Adjust Speed**<br>`turbobarcam_dollycam_adjust_speed` | Adjusts the navigation speed of the DollyCam when a route is active. Accepts values from -1.0 (full reverse) to 1.0 (full forward). | `numpad6`<br>`numpad4` | `0.1`<br>`-0.1` |
@@ -43,7 +43,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Unit Follow Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Params**<br>`turbobarcam_unit_follow_adjust_params` | Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'. | `Ctrl+numpad1`<br>`numpad8`<br>`numpad5`<br>`numpad9`<br>`numpad7`<br>`numpad6`<br>`numpad4`<br>`Ctrl+numpad7`<br>`Ctrl+numpad9`<br>`numpad8`<br>`numpad5`<br>`numpad9`<br>`numpad7`<br>`numpad6`<br>`numpad4`<br>`Ctrl+numpad7`<br>`Ctrl+numpad9`<br>`numpad8`<br>`numpad5`<br>`numpad9`<br>`numpad7`<br>`numpad6`<br>`numpad4`<br>`Ctrl+numpad7`<br>`Ctrl+numpad9` | `reset`<br>`add;DEFAULT.FORWARD,5`<br>`add;DEFAULT.FORWARD,-5`<br>`add;DEFAULT.HEIGHT,5`<br>`add;DEFAULT.HEIGHT,-5`<br>`add;DEFAULT.SIDE,5`<br>`add;DEFAULT.SIDE,-5`<br>`add;DEFAULT.ROTATION,0.1`<br>`add;DEFAULT.ROTATION,-0.1`<br>`add;COMBAT.FORWARD,5`<br>`add;COMBAT.FORWARD,-5`<br>`add;COMBAT.HEIGHT,5`<br>`add;COMBAT.HEIGHT,-5`<br>`add;COMBAT.SIDE,5`<br>`add;COMBAT.SIDE,-5`<br>`add;COMBAT.ROTATION,0.1`<br>`add;COMBAT.ROTATION,-0.1`<br>`add;WEAPON.FORWARD,5`<br>`add;WEAPON.FORWARD,-5`<br>`add;WEAPON.HEIGHT,5`<br>`add;WEAPON.HEIGHT,-5`<br>`add;WEAPON.SIDE,5`<br>`add;WEAPON.SIDE,-5`<br>`add;WEAPON.ROTATION,0.1`<br>`add;WEAPON.ROTATION,-0.1` |
 | **Clear Look Point**<br>`turbobarcam_unit_follow_clear_fixed_look_point` | Clears any fixed look point or unit target that the camera is currently focused on, returning to default forward view. | `numpad*` | N/A |
@@ -56,14 +56,14 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Group Tracking Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Group Track Params**<br>`turbobarcam_group_tracking_adjust_params` | Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'. | `numpad5`<br>`numpad8`<br>`Ctrl+numpad8`<br>`Ctrl+numpad5`<br>`numpad4`<br>`numpad6`<br>`numpad7`<br>`numpad9`<br>`Ctrl+numpad0`<br>`Ctrl+numpad9`<br>`Ctrl+numpad7` | `add;EXTRA_DISTANCE,15`<br>`add;EXTRA_DISTANCE,-15`<br>`add;EXTRA_HEIGHT,5`<br>`add;EXTRA_HEIGHT,-5`<br>`add;ORBIT_OFFSET,0.01`<br>`add;ORBIT_OFFSET,-0.01`<br>`add;SMOOTHING.POSITION,-0.002;SMOOTHING.STABLE_POSITION,-0.002`<br>`add;SMOOTHING.POSITION,0.002;SMOOTHING.STABLE_POSITION,0.002`<br>`reset`<br>`set;SMOOTHING.POSITION,0.2;SMOOTHING.STABLE_POSITION,0.2;SMOOTHING.ROTATION,0.2;SMOOTHING.STABLE_ROTATION,0.2`<br>`set;SMOOTHING.POSITION,0.03;SMOOTHING.STABLE_POSITION,0.03;SMOOTHING.ROTATION,0.03;SMOOTHING.STABLE_ROTATION,0.03` |
 | **Toggle Group Tracking**<br>`turbobarcam_toggle_group_tracking_camera` | Toggles the Group Tracking Camera mode. Tracks the center of mass of the currently selected units. If already tracking, it disables the mode. | `numpad0` | N/A |
 
 ## Orbit Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Orbit Params**<br>`turbobarcam_orbit_adjust_params` | Adjusts parameters for the Orbit Camera mode, such as orbit height, distance, and rotation speed. Actions can be 'add', 'set', or 'reset'. | `Ctrl+numpad2`<br>`numpad5`<br>`numpad8`<br>`numpad9`<br>`numpad7`<br>`numpad6`<br>`numpad4` | `reset`<br>`add;DISTANCE,20`<br>`add;DISTANCE,-20`<br>`add;HEIGHT,20`<br>`add;HEIGHT,-20`<br>`add;SPEED,0.01`<br>`add;SPEED,-0.01` |
 | **Load Orbit Config**<br>`turbobarcam_orbit_load` | Loads a saved orbit camera configuration (including target type, ID/position, speed, distance, height, angle, and paused state) for a specific ID, map-dependent. | N/A | N/A |
@@ -74,7 +74,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Overview Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Overview: Change Height**<br>`turbobarcam_overview_change_height` | Changes the height level of the Overview Camera by a given amount (positive to zoom out, negative to zoom in) and moves the camera to maintain focus. | `numpad8`<br>`numpad5` | `1`<br>`-1` |
 | **Overview: Move to Cursor**<br>`turbobarcam_overview_move_camera` | Moves the Overview Camera to focus on the current cursor position on the map. Typically used with mouse bindings. | N/A | N/A |
@@ -82,7 +82,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Projectile Camera Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Projectile Cam Params**<br>`turbobarcam_projectile_adjust_params` | Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', or 'reset'. | `Ctrl+Delete`<br>`Ctrl+Insert`<br>`numpad8`<br>`numpad5`<br>`numpad9`<br>`numpad7`<br>`numpad6`<br>`numpad4`<br>`Ctrl+numpad4`<br>`Ctrl+numpad7`<br>`Ctrl+numpad5`<br>`Ctrl+numpad8`<br>`Ctrl+numpad6`<br>`Ctrl+numpad9` | `reset`<br>`reset`<br>`add;STATIC.OFFSET_HEIGHT,20;FOLLOW.DISTANCE,-20`<br>`add;STATIC.OFFSET_HEIGHT,-20;FOLLOW.DISTANCE,20`<br>`add;STATIC.LOOK_AHEAD,20;FOLLOW.LOOK_AHEAD,20`<br>`add;STATIC.LOOK_AHEAD,-20;FOLLOW.LOOK_AHEAD,-20`<br>`add;STATIC.OFFSET_SIDE,5;FOLLOW.HEIGHT,5`<br>`add;STATIC.OFFSET_SIDE,-5;FOLLOW.HEIGHT,-5`<br>`add;DECELERATION_PROFILE.DURATION,-0.1`<br>`add;DECELERATION_PROFILE.DURATION,0.1`<br>`add;DECELERATION_PROFILE.INITIAL_BRAKING,-100`<br>`add;DECELERATION_PROFILE.INITIAL_BRAKING,100`<br>`add;DECELERATION_PROFILE.PATH_ADHERENCE,-0.1`<br>`add;DECELERATION_PROFILE.PATH_ADHERENCE,0.1` |
 | **Follow Projectile (Moving Cam)**<br>`turbobarcam_projectile_camera_follow` | Activates Projectile Camera in 'follow' sub-mode. The camera moves with the projectile, attempting to keep it in frame. | `Delete` | N/A |
@@ -90,21 +90,21 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 ## Unit Tracking Mode
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Unit Track Params**<br>`turbobarcam_tracking_camera_adjust_params` | Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', or 'reset'. | `Ctrl+numpad3`<br>`numpad8`<br>`numpad5` | `reset`<br>`add;HEIGHT,20`<br>`add;HEIGHT,-20` |
 | **Toggle Unit Tracking**<br>`turbobarcam_toggle_tracking_camera` | Toggles the Unit Tracking Camera mode. Follows the selected unit while attempting to maintain the current camera angle and distance, smoothly adjusting to unit movements. | `numpad3` | N/A |
 
 ## Spectator Actions
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Spectator Unit Group**<br>`turbobarcam_spec_unit_group` | Manages spectator unit groups. Allows setting a group with selected units, selecting units from a group, or clearing a group. Requires spectator mode. | N/A | N/A |
 | **Toggle PlayerCam Selection Lock**<br>`turbobarcam_toggle_playercam_selection` | Toggles whether unit selection is locked or follows the spectated player's selection when the game's Player Camera view is active. | `Ctrl+numpad.` | N/A |
 
 ## Development Actions
 
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters (from Keybind)</div> |
+| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Dev: Change Config**<br>`turbobarcam_dev_config` | Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors. | N/A | N/A |
 | **Dev: Reload Widget**<br>`turbobarcam_dev_reload` | Hot reloads widget files without losing the current state, useful for development to apply code changes instantly. | N/A | N/A |
