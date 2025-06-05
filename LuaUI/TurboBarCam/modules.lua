@@ -55,6 +55,8 @@
 
 ---@class Modules
 local Modules = {
+    Actions = "actions.lua",
+
     CameraCommons = "common/camera_commons.lua",
     CONFIG = "context/config.lua",
     Log = "common/log.lua",
@@ -66,8 +68,8 @@ local Modules = {
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",
     TransitionManager = "core/transition_manager.lua",
-    UpdateManager  = "core/update_manager.lua",
-    WidgetManager  = "core/widget_manager.lua",
+    UpdateManager = "core/update_manager.lua",
+    WidgetManager = "core/widget_manager.lua",
 
     CameraAnchor = "features/anchor/anchor.lua",
     CameraAnchorPersistence = "features/anchor/anchor_persistence.lua",
@@ -104,7 +106,6 @@ local Modules = {
 
     PersistentStorage = "settings/persistent_storage.lua",
 
-    Actions = "standalone/actions.lua",
     CameraQuickControls = "standalone/camera_quick_controls.lua",
     CameraTracker = "standalone/camera_tracker.lua",
     MouseManager = "standalone/mouse_manager.lua",

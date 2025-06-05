@@ -1,0 +1,262 @@
+{
+  "turbobarcam_anchor_adjust_params": {
+    "description": "Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Anchor Params",
+    "parameters": "`action;param,value;...` (e.g., `add;DURATION,0.5` or `set;DURATION,3` or `reset`). Available param: `DURATION`."
+  },
+  "turbobarcam_anchor_easing": {
+    "description": "Sets the easing function for camera anchor transitions, affecting the acceleration and deceleration of the movement.",
+    "label": "Set Anchor Easing",
+    "parameters": "`none|in|out|inout` (e.g., `inout` for smooth start and end)"
+  },
+  "turbobarcam_anchor_focus": {
+    "description": "Smoothly transitions the camera to a previously saved anchor point.",
+    "label": "Focus Anchor",
+    "parameters": "`index` (numeric, e.g., 1)"
+  },
+  "turbobarcam_anchor_focus_while_tracking": {
+    "description": "Transitions to a camera anchor while attempting to keep the currently tracked unit (if any from a compatible mode) in view. If no unit is tracked or mode is incompatible, behaves like 'Focus Anchor'.",
+    "label": "Focus Anchor & Track",
+    "parameters": "`index` (numeric, e.g., 1)"
+  },
+  "turbobarcam_anchor_load": {
+    "description": "Loads a set of camera anchor points from the storage, specific to the current map.",
+    "label": "Load Anchors",
+    "parameters": "`id` (string, identifier for the saved anchor set, e.g., `my_favorite_spots`)"
+  },
+  "turbobarcam_anchor_save": {
+    "description": "Saves the current set of camera anchor points to the storage, specific to the current map.",
+    "label": "Save Anchors",
+    "parameters": "`id` (string, identifier for saving the anchor set, e.g., `my_battle_views`)"
+  },
+  "turbobarcam_anchor_set": {
+    "description": "Saves the current camera position and state as a numbered anchor point.",
+    "label": "Set Anchor",
+    "parameters": "`index` (numeric, e.g., 1)"
+  },
+  "turbobarcam_debug": {
+    "description": "Toggles the debug logging level for the widget, cycling through INFO, DEBUG, and TRACE levels.",
+    "label": "Toggle Debug Log Level",
+    "parameters": "None"
+  },
+  "turbobarcam_dev_config": {
+    "description": "Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.",
+    "label": "Dev: Change Config",
+    "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.FPS.OFFSETS.UP 25`)"
+  },
+  "turbobarcam_dev_reload": {
+    "description": "Hot reloads widget files without losing the current state, useful for development to apply code changes instantly.",
+    "label": "Dev: Reload Widget",
+    "parameters": "None"
+  },
+  "turbobarcam_dollycam_add": {
+    "description": "Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode.",
+    "label": "DollyCam: Add Waypoint",
+    "parameters": "None"
+  },
+  "turbobarcam_dollycam_adjust_speed": {
+    "description": "Adjusts the navigation speed of the DollyCam when a route is active. Accepts values from -1.0 (full reverse) to 1.0 (full forward).",
+    "label": "DollyCam: Adjust Speed",
+    "parameters": "`speed` (numeric, -1.0 to 1.0)"
+  },
+  "turbobarcam_dollycam_edit_lookat": {
+    "description": "Sets the selected DollyCam waypoint to look at the currently selected unit. If no unit is selected, it might clear the look-at target.",
+    "label": "DollyCam: Set Waypoint LookAt",
+    "parameters": "None (uses selected unit)"
+  },
+  "turbobarcam_dollycam_edit_speed": {
+    "description": "Sets the target speed for the selected waypoint in the DollyCam editor. Use '1' to reset to default speed.",
+    "label": "DollyCam: Set Waypoint Speed",
+    "parameters": "`speed_multiplier` (numeric, e.g., `0.5` for half speed, `2` for double speed, `1` to reset)"
+  },
+  "turbobarcam_dollycam_load": {
+    "description": "Loads a DollyCam route from the storage, specific to the current map.",
+    "label": "DollyCam: Load Route",
+    "parameters": "`name` (string, identifier of the route to load)"
+  },
+  "turbobarcam_dollycam_move_waypoint": {
+    "description": "Moves the currently selected DollyCam waypoint along a specified axis (X, Y, or Z) by a given amount when in editor mode.",
+    "label": "DollyCam: Move Waypoint",
+    "parameters": "`axis` (`x`|`y`|`z`), `value` (numeric amount, e.g., `x,100` or `z,-50`)"
+  },
+  "turbobarcam_dollycam_save": {
+    "description": "Saves the current DollyCam route to the storage, specific to the current map.",
+    "label": "DollyCam: Save Route",
+    "parameters": "`name` (string, identifier for saving the route)"
+  },
+  "turbobarcam_dollycam_test": {
+    "description": "Loads a predefined DollyCam route named 'test' for development or demonstration purposes.",
+    "label": "DollyCam: Test Route",
+    "parameters": "None"
+  },
+  "turbobarcam_dollycam_toggle_direction": {
+    "description": "Toggles the playback direction (forward/reverse) of the currently active DollyCam navigation.",
+    "label": "DollyCam: Toggle Direction",
+    "parameters": "None"
+  },
+  "turbobarcam_dollycam_toggle_editor": {
+    "description": "Toggles the DollyCam waypoint editor mode on or off. Allows for creation and modification of camera paths.",
+    "label": "DollyCam: Toggle Editor",
+    "parameters": "None"
+  },
+  "turbobarcam_dollycam_toggle_navigation": {
+    "description": "Starts or stops the DollyCam navigation along the currently defined route. Optionally can start without immediate camera control.",
+    "label": "DollyCam: Toggle Navigation",
+    "parameters": "`noCam` (optional boolean string: `true` to start without taking camera control, `false` or absent for normal start)"
+  },
+  "turbobarcam_fps_adjust_params": {
+    "description": "Adjusts parameters for the FPS Camera mode, such as camera offsets in peace/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust FPS Params",
+    "parameters": "`action;param,value;...` (e.g., `add;PEACE.HEIGHT,10` or `set;MOUSE_SENSITIVITY,0.5` or `reset`). Params: `PEACE.HEIGHT/FORWARD/SIDE/ROTATION`, `COMBAT.HEIGHT/FORWARD/SIDE/ROTATION`, `WEAPON.HEIGHT/FORWARD/SIDE/ROTATION`, `MOUSE_SENSITIVITY`."
+  },
+  "turbobarcam_fps_clear_fixed_look_point": {
+    "description": "Clears any fixed look point or unit target that the FPS camera is currently focused on, returning to default forward view.",
+    "label": "FPS: Clear Look Point",
+    "parameters": "None"
+  },
+  "turbobarcam_fps_clear_weapon_selection": {
+    "description": "Clears the currently selected weapon in FPS combat mode, stopping any specific weapon aiming.",
+    "label": "FPS: Clear Weapon",
+    "parameters": "None"
+  },
+  "turbobarcam_fps_next_weapon": {
+    "description": "Cycles to the next available weapon of the unit in FPS combat mode for aiming.",
+    "label": "FPS: Next Weapon",
+    "parameters": "None"
+  },
+  "turbobarcam_fps_set_fixed_look_point": {
+    "description": "Activates target selection mode. Click on a point on the map or a unit to make the FPS camera continuously look at that target while following the primary unit.",
+    "label": "FPS: Set Look Point",
+    "parameters": "None (activates UI command for map/unit click)"
+  },
+  "turbobarcam_fps_toggle_combat_mode": {
+    "description": "Toggles FPS combat mode, which may change camera offsets and enable weapon-specific aiming.",
+    "label": "FPS: Toggle Combat Mode",
+    "parameters": "None"
+  },
+  "turbobarcam_fps_toggle_free_cam": {
+    "description": "Toggles free camera mouse look in FPS mode, allowing manual control of the camera direction independent of unit heading.",
+    "label": "FPS: Toggle Free Cam",
+    "parameters": "None"
+  },
+  "turbobarcam_group_tracking_adjust_params": {
+    "description": "Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Group Track Params",
+    "parameters": "`action;param,value;...` (e.g., `add;EXTRA_DISTANCE,100` or `reset`). Params: `EXTRA_DISTANCE`, `EXTRA_HEIGHT`, `ORBIT_OFFSET`, `SMOOTHING.POSITION/ROTATION`, `SMOOTHING.STABLE_POSITION/ROTATION`."
+  },
+  "turbobarcam_orbit_adjust_params": {
+    "description": "Adjusts parameters for the Orbit Camera mode, such as orbit height, distance, and rotation speed. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Orbit Params",
+    "parameters": "`action;param,value;...` (e.g., `add;SPEED,0.0002` or `reset`). Params: `HEIGHT`, `DISTANCE`, `SPEED`."
+  },
+  "turbobarcam_orbit_load": {
+    "description": "Loads a saved orbit camera configuration (including target type, ID/position, speed, distance, height, angle, and paused state) for a specific ID, map-dependent.",
+    "label": "Load Orbit Config",
+    "parameters": "`orbitId` (string, identifier of the saved orbit configuration)"
+  },
+  "turbobarcam_orbit_save": {
+    "description": "Saves the current orbit camera configuration (target, parameters, and state) to a specified ID, map-dependent.",
+    "label": "Save Orbit Config",
+    "parameters": "`orbitId` (string, identifier to save the orbit configuration)"
+  },
+  "turbobarcam_orbit_toggle": {
+    "description": "Toggles the Orbit Camera mode for the selected unit. If already orbiting the unit, it disables the mode.",
+    "label": "Toggle Orbit Camera (Unit)",
+    "parameters": "None (uses selected unit)"
+  },
+  "turbobarcam_orbit_toggle_pause": {
+    "description": "Toggles pausing and resuming the camera's movement in Orbit Camera mode.",
+    "label": "Toggle Orbit Pause",
+    "parameters": "None"
+  },
+  "turbobarcam_orbit_toggle_point": {
+    "description": "Toggles the Orbit Camera mode around a point on the map (cursor position).",
+    "label": "Toggle Orbit Camera (Point)",
+    "parameters": "None (uses cursor position)"
+  },
+  "turbobarcam_overview_change_height": {
+    "description": "Changes the height level of the Overview Camera by a given amount (positive to zoom out, negative to zoom in) and moves the camera to maintain focus.",
+    "label": "Overview: Change Height",
+    "parameters": "`amount` (numeric, e.g., `1` to increase height level, `-1` to decrease)"
+  },
+  "turbobarcam_overview_move_camera": {
+    "description": "Moves the Overview Camera to focus on the current cursor position on the map. Typically used with mouse bindings.",
+    "label": "Overview: Move to Cursor",
+    "parameters": "None (uses cursor position)"
+  },
+  "turbobarcam_overview_toggle": {
+    "description": "Toggles the Overview Camera mode, providing a top-down strategic view. Focuses on selected unit or cursor position.",
+    "label": "Toggle Overview Camera",
+    "parameters": "None"
+  },
+  "turbobarcam_projectile_adjust_params": {
+    "description": "Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Projectile Cam Params",
+    "parameters": "`action;param,value;...` (e.g., `add;DISTANCE,50` or `reset`). Params: `DISTANCE`, `HEIGHT`, `LOOK_AHEAD`."
+  },
+  "turbobarcam_projectile_camera_follow": {
+    "description": "Activates Projectile Camera in 'follow' sub-mode. The camera moves with the projectile, attempting to keep it in frame.",
+    "label": "Follow Projectile (Moving Cam)",
+    "parameters": "None (tracks projectile from currently watched/selected unit)"
+  },
+  "turbobarcam_projectile_camera_track": {
+    "description": "Activates Projectile Camera in 'static' sub-mode. The camera stays at its initial position and rotates to track the projectile.",
+    "label": "Track Projectile (Static Cam)",
+    "parameters": "None (tracks projectile from currently watched/selected unit)"
+  },
+  "turbobarcam_set_fov": {
+    "description": "Sets the camera's Field of View (FOV) to a specific value.",
+    "label": "Set FOV",
+    "parameters": "`fov_value` (numeric, e.g., `45`)"
+  },
+  "turbobarcam_spec_unit_group": {
+    "description": "Manages spectator unit groups. Allows setting a group with selected units, selecting units from a group, or clearing a group. Requires spectator mode.",
+    "label": "Spectator Unit Group",
+    "parameters": "`set|select|clear` `groupNum` (1-9) (e.g., `set 1` or `select 1`)"
+  },
+  "turbobarcam_stop_tracking": {
+    "description": "Disables any active TurboBarCam tracking mode (FPS, Orbit, Unit Track, Group Track, etc.) and returns to default camera control.",
+    "label": "Stop Camera Tracking",
+    "parameters": "None"
+  },
+  "turbobarcam_toggle": {
+    "description": "Toggles the entire TurboBarCam widget on or off.",
+    "label": "Toggle TurboBarCam",
+    "parameters": "None"
+  },
+  "turbobarcam_toggle_fps_camera": {
+    "description": "Toggles FPS camera mode. Attaches the camera to the currently selected unit. If already in FPS mode for that unit, it disables it.",
+    "label": "Toggle FPS Camera",
+    "parameters": "None (uses selected unit)"
+  },
+  "turbobarcam_toggle_group_tracking_camera": {
+    "description": "Toggles the Group Tracking Camera mode. Tracks the center of mass of the currently selected units. If already tracking, it disables the mode.",
+    "label": "Toggle Group Tracking",
+    "parameters": "None (uses selected units)"
+  },
+  "turbobarcam_toggle_playercam_selection": {
+    "description": "Toggles whether unit selection is locked or follows the spectated player's selection when the game's Player Camera view is active.",
+    "label": "Toggle PlayerCam Selection Lock",
+    "parameters": "None"
+  },
+  "turbobarcam_toggle_require_unit_selection": {
+    "description": "Toggles whether unit tracking modes (like FPS, Orbit) can remain active even if no unit is currently selected. If this is disabled (default), tracking usually stops shortly after deselecting the unit.",
+    "label": "Toggle Require Unit Selection for Tracking",
+    "parameters": "None"
+  },
+  "turbobarcam_toggle_tracking_camera": {
+    "description": "Toggles the Unit Tracking Camera mode. Follows the selected unit while attempting to maintain the current camera angle and distance, smoothly adjusting to unit movements.",
+    "label": "Toggle Unit Tracking",
+    "parameters": "None (uses selected unit)"
+  },
+  "turbobarcam_toggle_zoom": {
+    "description": "Cycles through predefined Field of View (FOV) values, effectively zooming the camera in or out.",
+    "label": "Toggle Zoom (FOV)",
+    "parameters": "None"
+  },
+  "turbobarcam_tracking_camera_adjust_params": {
+    "description": "Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', or 'reset'.",
+    "label": "Adjust Unit Track Params",
+    "parameters": "`action;param,value;...` (e.g., `add;HEIGHT,50` or `reset`). Available param: `HEIGHT`."
+  }
+}

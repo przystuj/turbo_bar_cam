@@ -43,7 +43,7 @@ function Actions.registerAllActions()
 end
 
 function Actions.coreActions()
-    Actions.registerAction("turbobarcam_reload_module", 'tp',
+    Actions.registerAction("turbobarcam_dev_reload", 'tp',
             function()
                 ModuleManager.reloadChanged()
                 return true
@@ -373,7 +373,7 @@ function Actions.I18N()
     Spring.I18N.load({
         en = {
             ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point"]         = "Look point",
-            ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point_tooltip"] = "Click on a location to focus camera on while following unit.",
+            ["ui.orderMenu.turbobarcam_fps_set_fixed_look_point_tooltip"] = "Click on a point/unit to focus camera on",
         }
     })
 end

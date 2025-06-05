@@ -13,7 +13,7 @@ local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraAnchor = {}
 
 --- Sets a camera anchor
----@param index number Anchor index (0-9)
+---@param index number Anchor index
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.set(index)
     if Util.isTurboBarCamDisabled() then
@@ -21,7 +21,7 @@ function CameraAnchor.set(index)
     end
 
     index = tonumber(index)
-    if index and index >= 0 and index <= 9 then
+    if index and index >= 0 then
         STATE.anchor.points[index] = Spring.GetCameraState()
         Log:info("Saved camera anchor: " .. index)
     end
@@ -48,7 +48,7 @@ function CameraAnchor.getEasingFunction(easingType)
 end
 
 --- Focuses on a camera anchor with smooth transition
----@param index number Anchor index (0-9)
+---@param index number Anchor index
 ---@param easingType string|nil Optional easing type
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focus(index, easingType)
@@ -57,7 +57,7 @@ function CameraAnchor.focus(index, easingType)
     end
 
     index = tonumber(index)
-    if not (index and index >= 0 and index <= 9 and STATE.anchor.points[index]) then
+    if not (index and index >= 0 and STATE.anchor.points[index]) then
         return true
     end
 
@@ -108,7 +108,7 @@ function CameraAnchor.focus(index, easingType)
 end
 
 --- Focuses on an anchor while tracking a unit
----@param index number Anchor index (0-9)
+---@param index number Anchor index
 ---@param easingType string|nil Optional easing type
 ---@return boolean success Always returns true for widget handler
 function CameraAnchor.focusAndTrack(index, easingType)
@@ -117,7 +117,7 @@ function CameraAnchor.focusAndTrack(index, easingType)
     end
 
     index = tonumber(index)
-    if not (index and index >= 0 and index <= 9 and STATE.anchor.points[index]) then
+    if not (index and index >= 0 and STATE.anchor.points[index]) then
         Log:debug("Invalid or unset camera anchor: " .. (index or "nil"))
         return true
     end
