@@ -164,7 +164,7 @@ def extract_keybinds(uikeys_content):
 
 def generate_markdown(lua_actions, i18n_data, keybinds_map):
     """Generates the Markdown content."""
-    processed_actions = {}  # {action_name: {label, desc, params_info, keybind_str, mode}}
+    processed_actions = {}  # {action_name: {label, desc, keybind_str, uikeys_params_str, mode}}
 
     # Populate processed_actions with i18n data and connect to lua_actions
     all_action_names = set(lua_actions) | set(i18n_data.keys())
@@ -178,28 +178,38 @@ def generate_markdown(lua_actions, i18n_data, keybinds_map):
         i18n_entry = i18n_data.get(action_name, {})
         label = i18n_entry.get("label", action_name)  # Fallback label
         description = i18n_entry.get("description", "No description available.")
-        params_info = i18n_entry.get("parameters", "N/A")
-        if params_info is None or str(params_info).strip().lower() == "none":
-            params_info = "N/A"
+        # The i18n parameters are no longer used for the "Parameters" column directly.
+        # Parameters will now come from the actual keybinds.
 
-        # Format keybinds for this action
+        # Format keybinds and their associated parameters for this action
         binds_for_action = keybinds_map.get(action_name, [])
         keybind_cell_parts = []
+        uikeys_params_cell_parts = []
+
         if binds_for_action:
             for bind_info in binds_for_action:
+                # Keybind part: only the key combination
                 key_str = f"`{bind_info['key']}`"
-                if bind_info['params']:
-                    key_str = f" `{bind_info['key']} {bind_info['params']}`"
                 keybind_cell_parts.append(key_str)
-            keybind_str = "<br>".join(keybind_cell_parts)
+
+                # Parameters part: parameters from the uikeys.txt binding
+                param_str = bind_info['params']
+                if param_str:
+                    uikeys_params_cell_parts.append(f"`{param_str}`")
+                else:
+                    uikeys_params_cell_parts.append("N/A") # Default if no params for this specific bind
+
+            keybind_display_str = "<br>".join(keybind_cell_parts)
+            uikeys_params_display_str = "<br>".join(uikeys_params_cell_parts)
         else:
-            keybind_str = "N/A"
+            keybind_display_str = "N/A"
+            uikeys_params_display_str = "N/A" # If no binds, then no parameters from binds
 
         processed_actions[action_name] = {
             "label": label,
             "description": description.replace("\n", "<br>"),  # Ensure multiline descriptions work
-            "params_info": params_info.replace("\n", "<br>"),
-            "keybind_str": keybind_str,
+            "keybind_str": keybind_display_str,
+            "uikeys_params_str": uikeys_params_display_str, # Store the params derived from uikeys
             "mode": get_mode_for_action(action_name)
         }
 
@@ -214,7 +224,7 @@ def generate_markdown(lua_actions, i18n_data, keybinds_map):
     # Build Markdown string
     md_lines = ["# TurboBarCam Keybinds", ""]
     md_lines.append(
-        "This document outlines the available actions for TurboBarCam, their descriptions, parameters, and configured keybinds.")
+        "This document outlines the available actions for TurboBarCam, their descriptions, configured keybinds, and parameters used in those keybinds.")
     md_lines.append("")
 
     for mode_name in MODE_ORDER:
@@ -223,7 +233,7 @@ def generate_markdown(lua_actions, i18n_data, keybinds_map):
 
         md_lines.append(f"## {mode_name}")
         md_lines.append("")
-        md_lines.append("| Action | <div style=\"width:400px\">Description</div> | <div style=\"width:400px\">Keybind</div> | Parameters |")
+        md_lines.append("| Action | <div style=\"width:400px\">Description</div> | <div style=\"width:200px\">Keybind</div> | <div style=\"width:200px\">Parameters</div> |")
         md_lines.append("|---|---|---|---|")
 
         # Sort actions within a mode by label for consistent ordering
@@ -234,7 +244,8 @@ def generate_markdown(lua_actions, i18n_data, keybinds_map):
             action_cell = f"**{action_data['label']}**<br>`{action_data['name']}`"
             description_cell = action_data['description']
             keybind_cell = action_data['keybind_str']
-            params_cell = action_data['params_info']
+            # Parameters cell: now uses parameters extracted from uikeys.txt
+            params_cell = action_data['uikeys_params_str']
             md_lines.append(f"| {action_cell} | {description_cell} | {keybind_cell} | {params_cell} |")
         md_lines.append("")
 
