@@ -466,54 +466,46 @@ function Util.hermiteInterpolate(p0, p1, v0, v1, t)
     return result
 end
 
---- Performs Hermite interpolation of camera rotations, handling the special case of angles
----@param rx0 number Start pitch angle
----@param ry0 number Start yaw angle
----@param rx1 number End pitch angle
----@param ry1 number End yaw angle
----@param v0 table Start tangent angles {rx, ry}
----@param v1 table End tangent angles {rx, ry}
+--- Performs Hermite interpolation of camera rotations using tables for inputs.
+--- This version correctly applies the Hermite formula to all 3 axes (rx, ry, rz)
+--- while accounting for angle wrapping to find the shortest path.
+---@param r0 table Start rotation {rx, ry, rz}
+---@param r1 table End rotation {rx, ry, rz}
+---@param v0 table Start tangent angular velocities {rx, ry, rz}
+---@param v1 table End tangent angular velocities {rx, ry, rz}
 ---@param t number Interpolation factor (0-1)
 ---@return number rx Interpolated pitch angle
 ---@return number ry Interpolated yaw angle
-function Util.hermiteInterpolateRotation(rx0, ry0, rx1, ry1, v0, v1, t)
-    -- Special handling for segment boundaries
-    if t <= 0 then return rx0, ry0 end
-    if t >= 1 then return rx1, ry1 end
+---@return number rz Interpolated roll angle
+function Util.hermiteInterpolateRotation(r0, r1, v0, v1, t)
+    -- Handle segment boundaries
+    if t <= 0 then return r0.rx, r0.ry, r0.rz end
+    if t >= 1 then return r1.rx, r1.ry, r1.rz end
 
-    -- Handle pitch (rx) with standard Hermite interpolation
-    -- Pitch is constrained and doesn't wrap, so standard interpolation works
+    -- Hermite basis functions
     local t2 = t * t
     local t3 = t2 * t
-
     local h00 = 2*t3 - 3*t2 + 1
     local h10 = t3 - 2*t2 + t
     local h01 = -2*t3 + 3*t2
     local h11 = t3 - t2
 
-    local rx = h00 * rx0 + h10 * (v0.rx or 0) + h01 * rx1 + h11 * (v1.rx or 0)
+    -- Pitch (rx) is clamped and does not wrap, so standard Hermite interpolation is fine.
+    local rx = h00 * r0.rx + h10 * v0.rx + h01 * r1.rx + h11 * v1.rx
 
-    -- Handle yaw (ry) carefully because it wraps around
-    -- Normalize angles to handle wrap-around correctly
-    ry0 = CameraCommons.normalizeAngle(ry0)
-    ry1 = CameraCommons.normalizeAngle(ry1)
+    -- For Yaw (ry) and Roll (rz), we find the shortest path to handle wrapping.
+    -- Then, we apply the standard Hermite formula to the "effective" start/end points on that path.
+    local diff_ry = CameraCommons.getAngleDiff(r0.ry, r1.ry)
+    local r1_eff_ry = r0.ry + diff_ry
+    local ry = h00 * r0.ry + h10 * v0.ry + h01 * r1_eff_ry + h11 * v1.ry
 
-    -- Find the shortest path for yaw
-    local diff = ry1 - ry0
-    if diff > math.pi then
-        diff = diff - 2 * math.pi
-    elseif diff < -math.pi then
-        diff = diff + 2 * math.pi
-    end
+    local diff_rz = CameraCommons.getAngleDiff(r0.rz, r1.rz)
+    local r1_eff_rz = r0.rz + diff_rz
+    local rz = h00 * r0.rz + h10 * v0.rz + h01 * r1_eff_rz + h11 * v1.rz
 
-    -- Apply Hermite with the adjusted difference
-    local ry = ry0 + h00 * 0 + h10 * (v0.ry or 0) + h01 * diff + h11 * (v1.ry or 0)
-
-    -- Normalize the final angle
-    ry = CameraCommons.normalizeAngle(ry)
-
-    return rx, ry
+    return rx, CameraCommons.normalizeAngle(ry), CameraCommons.normalizeAngle(rz)
 end
+
 
 function Util.getCleanMapName()
     local mapName = Game.mapName

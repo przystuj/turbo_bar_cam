@@ -14,7 +14,7 @@ function EasingFunctions.easeOut(t)
     return t2 * t2 * t2 + 1
 end
 
-function EasingFunctions.easerInOut(t)
+function EasingFunctions.easeInOut(t)
     if t < 0.5 then
         return 4 * t * t * t
     else
@@ -27,6 +27,6 @@ end
 EasingFunctions["none"] = EasingFunctions.linear
 EasingFunctions["in"] = EasingFunctions.easeIn
 EasingFunctions["out"] = EasingFunctions.easeOut
-EasingFunctions["inout"] = EasingFunctions.easerInOut
+EasingFunctions["inout"] = EasingFunctions.easeInOut
 
 return EasingFunctions

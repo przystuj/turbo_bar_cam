@@ -56,15 +56,6 @@ if not WG.TurboBarCam.STATE then
         -- Transitions (Managed by TransitionManager)
         transitions = {},
 
-        -- Camera transitions (Old anchor transition state)
-        transition = {
-            active = false,
-            startTime = nil,
-            steps = {},
-            currentStepIndex = 1,
-            currentAnchorIndex = nil
-        },
-
         -- Camera tracking
         mode = {
             name = nil,

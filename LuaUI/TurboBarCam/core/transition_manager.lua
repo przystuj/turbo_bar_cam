@@ -103,7 +103,7 @@ function TransitionManager.stopAll()
         count = count + 1
     end
     if count > 0 then
-        Log:debug("TransitionManager: Stopped all " .. count .. " transitions.")
+        Log:trace("TransitionManager: Stopped all " .. count .. " transitions.")
     end
 end
 

@@ -45,7 +45,6 @@ if not WG.TurboBarCam.CONFIG then
                 COMPATIBLE_MODES = { "unit_follow", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
                 DURATION = 2.0, -- Default transition duration (seconds)
-                ANCHOR_TRANSITION_BLENDING_DURATION = 1.0, -- Default transition duration (seconds)
             },
 
             UNIT_FOLLOW = {

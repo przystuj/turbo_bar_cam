@@ -58,11 +58,6 @@ function WidgetManager.disable()
         return
     end
     ModeManager.disableMode()
-
-    if STATE.transition.active then
-        STATE.transition.active = false
-    end
-
     restoreOriginalCameraState()
 
     -- Reset configuration

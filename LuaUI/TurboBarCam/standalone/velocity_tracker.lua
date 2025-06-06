@@ -20,16 +20,6 @@ function VelocityTracker.update()
     end
 end
 
---- Calculates the shortest difference between two angles (handles wrapping).
---- Assumes CameraCommons exists and we can add this helper or it has one.
---- If not, we define it here or in camera_commons.lua.
-local function getAngleDiff(a1, a2)
-    local diff = a2 - a1
-    while diff > math.pi do diff = diff - 2 * math.pi end
-    while diff < -math.pi do diff = diff + 2 * math.pi end
-    return diff
-end
-
 function VelocityTracker.updateVelocityTracking()
     local currentState = Spring.GetCameraState()
     local velocityState = STATE.cameraVelocity
@@ -55,7 +45,7 @@ function VelocityTracker.updateVelocityTracking()
             -- Calculate average velocity (using oldest and newest for simplicity, can be improved)
             if #velocityState.positionHistory > 1 then
                 local oldestPos = velocityState.positionHistory[#velocityState.positionHistory]
-                local oldestRot = velocityState.rotationHistory[#velocityState.rotationHistory] -- ADDED
+                local oldestRot = velocityState.rotationHistory[#velocityState.rotationHistory]
                 local totalDt = Spring.DiffTimers(currentTime, oldestPos.time)
 
                 if totalDt > 0.01 then -- Ensure enough time passed
@@ -64,11 +54,10 @@ function VelocityTracker.updateVelocityTracking()
                         y = (pos.y - oldestPos.pos.y) / totalDt,
                         z = (pos.z - oldestPos.pos.z) / totalDt,
                     }
-                    -- ADDED: Calculate rotational velocity
                     velocityState.currentRotationalVelocity = {
-                        x = getAngleDiff(oldestRot.rot.x, rot.x) / totalDt,
-                        y = getAngleDiff(oldestRot.rot.y, rot.y) / totalDt,
-                        z = getAngleDiff(oldestRot.rot.z, rot.z) / totalDt,
+                        x = CameraCommons.getAngleDiff(oldestRot.rot.x, rot.x) / totalDt,
+                        y = CameraCommons.getAngleDiff(oldestRot.rot.y, rot.y) / totalDt,
+                        z = CameraCommons.getAngleDiff(oldestRot.rot.z, rot.z) / totalDt,
                     }
                 end
             end
@@ -76,12 +65,12 @@ function VelocityTracker.updateVelocityTracking()
     else
         -- Initialize history on first run
         table.insert(velocityState.positionHistory, 1, { pos = pos, time = currentTime })
-        table.insert(velocityState.rotationHistory, 1, { rot = rot, time = currentTime }) -- ADDED
+        table.insert(velocityState.rotationHistory, 1, { rot = rot, time = currentTime })
     end
 
     velocityState.lastUpdateTime = currentTime
     STATE.cameraVelocity.lastPosition = pos
-    STATE.cameraVelocity.lastRotation = rot -- ADDED
+    STATE.cameraVelocity.lastRotation = rot
 end
 
 function VelocityTracker.calculateVelocity()
@@ -166,9 +155,8 @@ end
 ---@param decayRate number Decay rate
 ---@return table predictedState Predicted camera state {px, py, pz, rx, ry, rz}
 function VelocityTracker.predictState(currentState, vel, rotVel, deltaTime, decayRate)
-    -- If no decay or dt is zero, return current state
     if decayRate <= 0 or deltaTime <= 0 then
-        return Util.deepCopy(currentState) -- Return a copy
+        return Util.deepCopy(currentState)
     end
 
     local decayFactorIntegral = (1 - math.exp(-decayRate * deltaTime)) / decayRate

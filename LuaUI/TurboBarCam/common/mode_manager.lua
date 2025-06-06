@@ -137,9 +137,6 @@ function ModeManager.disableMode()
     if STATE.anchorQueue then
         STATE.anchorQueue.active = false
     end
-    if STATE.transition then
-        STATE.transition.active = false
-    end -- Old anchor system
 
     -- DollyCam (assuming top-level in STATE)
     STATE.dollyCam = { route = { points = {} }, isNavigating = false }

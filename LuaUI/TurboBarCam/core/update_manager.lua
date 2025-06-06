@@ -10,7 +10,6 @@ local TransitionManager = ModuleManager.TransitionManager(function(m) Transition
 local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
-local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
@@ -28,29 +27,20 @@ function UpdateManager.processCycle(dt)
         return
     end
 
-    -- Handle camera velocity tracking
-    VelocityTracker.update()
-
+    -- First, run all updates that might change the camera's state.
     SettingsManager.update()
-
-    -- Handle scheduled tasks
     Scheduler.handleSchedules()
-
-    -- Handle transitions
     TransitionManager.update(dt)
-
     MouseManager.update()
-
-    -- Handle tracking grace period
     UpdateManager.handleTrackingGracePeriod()
-
-    -- Handle fixed point command activation
     UnitFollowCamera.checkFixedPointCommandActivation()
-
     ProjectileCamera.checkAndActivate()
-
-    -- Handle camera updates based on current mode
     UpdateManager.updateCameraMode(dt)
+
+    -- Now that all camera movements for this frame have been set,
+    -- update the velocity tracker. This ensures it calculates velocity
+    -- based on the most recent state change.
+    VelocityTracker.update()
 end
 
 --- Handles tracking grace period
@@ -92,9 +82,7 @@ end
 function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
 
-    if STATE.transition.active then
-        CameraAnchor.update(dt)
-    elseif STATE.dollyCam.isNavigating then
+    if STATE.dollyCam.isNavigating then
         DollyCam.update(dt)
     elseif STATE.mode.name == 'unit_follow' then
         UnitFollowCamera.update(dt)

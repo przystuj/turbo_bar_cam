@@ -528,4 +528,11 @@ function CameraCommons.getDirectionFromRotation(rx, ry, rz)
     return CameraCommons.normalizeVector({ x = dx, y = dy, z = dz })
 end
 
+function CameraCommons.getAngleDiff(a1, a2)
+    local diff = a2 - a1
+    while diff > math.pi do diff = diff - 2 * math.pi end
+    while diff < -math.pi do diff = diff + 2 * math.pi end
+    return diff
+end
+
 return CameraCommons

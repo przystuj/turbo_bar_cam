@@ -73,7 +73,6 @@ local Modules = {
 
     CameraAnchor = "features/anchor/anchor.lua",
     CameraAnchorPersistence = "features/anchor/anchor_persistence.lua",
-    CameraAnchorUtils = "features/anchor/anchor_utils.lua",
     DBSCAN = "features/group_tracking/dbscan.lua",
     DollyCam = "features/dollycam/dollycam.lua",
     DollyCamDataStructures = "features/dollycam/dollycam_data_structures.lua",
