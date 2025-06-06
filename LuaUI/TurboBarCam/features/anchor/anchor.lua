@@ -69,12 +69,12 @@ function CameraAnchor.focus(index, easingType)
     end
 
     -- Cancel transition if we click the same anchor we're currently moving to
-    if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
-        STATE.transition.active = false
-        STATE.transition.currentAnchorIndex = nil
-        Log:trace("Transition canceled")
-        return true
-    end
+    --if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
+    --    STATE.transition.active = false
+    --    STATE.transition.currentAnchorIndex = nil
+    --    Log:trace("Transition canceled")
+    --    return true
+    --end
 
     -- Cancel any in-progress transition when starting a new one
     if STATE.transition.active then
@@ -83,7 +83,7 @@ function CameraAnchor.focus(index, easingType)
     end
 
     -- Check if we should do an instant transition (duration = 0)
-    if CONFIG.CAMERA_MODES.ANCHOR.DURATION <= 0 then
+    if CONFIG.CAMERA_MODES.ANCHOR.DURATION <= 0 or STATE.transition.currentAnchorIndex == index then
         -- Instant camera jump
         local targetState = Util.deepCopy(STATE.anchor.points[index])
         -- Ensure the target state is in FPS mode
