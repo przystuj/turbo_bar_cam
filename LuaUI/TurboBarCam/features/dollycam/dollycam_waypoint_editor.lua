@@ -7,15 +7,6 @@ local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyC
 local DollyCamEditor = ModuleManager.DollyCamEditor(function(m) DollyCamEditor = m end)
 local DollyCamDataStructures = ModuleManager.DollyCamDataStructures(function(m) DollyCamDataStructures = m end)
 
--- Initialize required STATE properties
-STATE.dollyCam = STATE.dollyCam or {}
-STATE.dollyCam.hoveredWaypointIndex = nil
-STATE.dollyCam.selectedWaypoints = STATE.dollyCam.selectedWaypoints or {}
-STATE.dollyCam.hoveredPathPointIndex = nil
-STATE.dollyCam.lastMouseScreenPos = { x = 0, y = 0 }
-STATE.dollyCam.lastMouseWorldPos = { x = 0, y = 0, z = 0 }
-STATE.dollyCam.movementSpeed = 1.0
-
 ---@class DollyCamWaypointEditor
 local DollyCamWaypointEditor = {}
 

@@ -3,6 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local EasingFunctions = ModuleManager.EasingFunctions(function(m) EasingFunctions = m end)
 
 ---@class CameraCommons
 local CameraCommons = {}
@@ -11,19 +12,24 @@ local CameraCommons = {}
 function CameraCommons.vectorAdd(v1, v2)
     return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
 end
+
 function CameraCommons.vectorSubtract(v1, v2)
     return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) }
 end
+
 function CameraCommons.vectorMultiply(v, scalar)
     return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar }
 end
+
 function CameraCommons.vectorMagnitudeSq(v)
     local x, y, z = v.x or 0, v.y or 0, v.z or 0
     return x * x + y * y + z * z
 end
+
 function CameraCommons.vectorMagnitude(v)
     return math.sqrt(CameraCommons.vectorMagnitudeSq(v))
 end
+
 function CameraCommons.normalizeVector(v)
     local mag = CameraCommons.vectorMagnitude(v)
     if mag > 0.0001 then
@@ -31,9 +37,11 @@ function CameraCommons.normalizeVector(v)
     end
     return { x = 0, y = 0, z = 0 }
 end
+
 function CameraCommons.dotProduct(v1, v2)
     return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
 end
+
 --- Calculates the cross product of two vectors
 ---@param v1 table Vector {x, y, z}
 ---@param v2 table Vector {x, y, z}
@@ -166,26 +174,21 @@ function CameraCommons.isTransitionComplete()
     return CameraCommons.getTransitionProgress() == 1
 end
 
+-- todo: remove these on some point
 function CameraCommons.linear(t)
-    return t
+    return EasingFunctions.linear(t)
 end
 
 function CameraCommons.easeIn(t)
-    return t * t * t
+    return EasingFunctions.easeIn(t)
 end
 
 function CameraCommons.easeOut(t)
-    local t2 = t - 1
-    return t2 * t2 * t2 + 1
+    return EasingFunctions.easeOut(t)
 end
 
 function CameraCommons.easeInOut(t)
-    if t < 0.5 then
-        return 4 * t * t * t
-    else
-        local p = -2 * t + 2
-        return 1 - (p * p * p) / 2
-    end
+    return EasingFunctions.easeInOut(t)
 end
 
 function CameraCommons.dipAndReturn(t, dipTarget)

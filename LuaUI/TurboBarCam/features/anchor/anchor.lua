@@ -8,9 +8,13 @@ local EasingFunctions = ModuleManager.EasingFunctions(function(m) EasingFunction
 local Util = ModuleManager.Util(function(m) Util = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
+local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class CameraAnchor
 local CameraAnchor = {}
+
+local ANCHOR_TRANSITION_BLENDING_ID = "CameraAnchor.ANCHOR_TRANSITION_BLENDING_ID"
 
 --- Sets a camera anchor
 ---@param index number Anchor index
@@ -68,21 +72,22 @@ function CameraAnchor.focus(index, easingType)
         ModeManager.disableMode()
     end
 
-    -- Cancel transition if we click the same anchor we're currently moving to
-    --if STATE.transition.active and STATE.transition.currentAnchorIndex == index then
-    --    STATE.transition.active = false
-    --    STATE.transition.currentAnchorIndex = nil
-    --    Log:trace("Transition canceled")
-    --    return true
-    --end
-
-    -- Cancel any in-progress transition when starting a new one
-    if STATE.transition.active then
+    -- Blend into new transition
+    if STATE.transition.active and STATE.transition.currentAnchorIndex ~= index then
         STATE.transition.active = false
-        Log:trace("Canceled previous transition")
+        TransitionManager.force({
+            id = ANCHOR_TRANSITION_BLENDING_ID,
+            duration = CONFIG.CAMERA_MODES.ANCHOR.ANCHOR_TRANSITION_BLENDING_DURATION,
+            easingFn = CameraCommons.easeInOut,
+            onUpdate = function(raw_progress, eased_progress, dt)
+
+            end,
+            onComplete = function()
+            end
+        })
     end
 
-    -- Check if we should do an instant transition (duration = 0)
+    -- Check if we should do an instant transition (duration = 0 or used the same index)
     if CONFIG.CAMERA_MODES.ANCHOR.DURATION <= 0 or STATE.transition.currentAnchorIndex == index then
         -- Instant camera jump
         local targetState = Util.deepCopy(STATE.anchor.points[index])
@@ -104,91 +109,6 @@ function CameraAnchor.focus(index, easingType)
 
     STATE.transition.currentAnchorIndex = index
     Log:trace("Loading camera anchor: " .. index .. " with easing: " .. (easingType or STATE.anchor.easing))
-    return true
-end
-
---- Focuses on an anchor while tracking a unit
----@param index number Anchor index
----@param easingType string|nil Optional easing type
----@return boolean success Always returns true for widget handler
-function CameraAnchor.focusAndTrack(index, easingType)
-    if Util.isTurboBarCamDisabled() then
-        return true
-    end
-
-    index = tonumber(index)
-    if not (index and index >= 0 and STATE.anchor.points[index]) then
-        Log:debug("Invalid or unset camera anchor: " .. (index or "nil"))
-        return true
-    end
-
-    -- Store the anchor we're moving to
-    STATE.lastUsedAnchor = index
-
-    -- Check if current mode is compatible with tracking during anchor focus
-    local isCompatibleMode = false
-    for _, mode in ipairs(CONFIG.CAMERA_MODES.ANCHOR.COMPATIBLE_MODES) do
-        if STATE.mode.name == mode then
-            isCompatibleMode = true
-            break
-        end
-    end
-
-    -- If not in a compatible tracking mode or no unit is being tracked, do normal focus
-    if not isCompatibleMode or not STATE.mode.unitID then
-        Log:trace("No unit was tracked during focused anchor transition")
-        -- Just do a normal anchor transition
-        return CameraAnchor.focus(index, easingType)
-    end
-
-    local unitID = STATE.mode.unitID
-    if not Spring.ValidUnitID(unitID) then
-        Log:trace("Invalid unit for tracking during anchor transition")
-        -- Just do a normal anchor transition
-        return CameraAnchor.focus(index, easingType)
-    end
-
-    -- Cancel any in-progress transitions
-    if STATE.transition.active then
-        STATE.transition.active = false
-        Log:trace("Canceled previous transition")
-    end
-
-    -- Disable any existing tracking modes to avoid conflicts
-    if STATE.mode.name then
-        ModeManager.disableMode()
-    end
-
-    -- Get appropriate easing function
-    local easingFunc = CameraAnchor.getEasingFunction(easingType)
-
-    -- Create a specialized transition that maintains focus on the unit
-    local startState = Spring.GetCameraState()
-
-    -- Enable tracking camera on the unit
-    STATE.mode.name = 'unit_tracking'
-    STATE.mode.unitID = unitID
-    STATE.mode.lastCamDir = { x = 0, y = 0, z = 0 }
-    STATE.mode.lastRotation = { rx = 0, ry = 0, rz = 0 }
-
-    local unitX, unitY, unitZ = Spring.GetUnitPosition(unitID)
-    local targetPos = { x = unitX, y = unitY, z = unitZ }
-
-    -- Set up the transition
-    STATE.transition.steps = CameraAnchorUtils.createPositionTransition(
-            startState,
-            STATE.anchor.points[index],
-            CONFIG.CAMERA_MODES.ANCHOR.DURATION,
-            targetPos,
-            easingFunc
-    )
-
-    STATE.transition.currentStepIndex = 1
-    STATE.transition.startTime = Spring.GetTimer()
-    STATE.transition.active = true
-    STATE.transition.currentAnchorIndex = index
-
-    Log:trace("Moving to anchor " .. index .. " while tracking unit " .. unitID)
     return true
 end
 

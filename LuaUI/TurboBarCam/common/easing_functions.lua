@@ -1,16 +1,20 @@
 ---@class EasingFunctions
 local EasingFunctions = {}
 
-EasingFunctions["none"] = function(t) return t end
+function EasingFunctions.linear(t)
+    return t
+end
 
-EasingFunctions["in"] = function(t) return t * t * t end
+function EasingFunctions.easeIn(t)
+    return t * t * t
+end
 
-EasingFunctions["out"] = function(t)
+function EasingFunctions.easeOut(t)
     local t2 = t - 1
     return t2 * t2 * t2 + 1
 end
 
-EasingFunctions["inout"] = function(t)
+function EasingFunctions.easerInOut(t)
     if t < 0.5 then
         return 4 * t * t * t
     else
@@ -18,5 +22,11 @@ EasingFunctions["inout"] = function(t)
         return 1 + 4 * t2 * t2 * t2
     end
 end
+
+-- Aliases
+EasingFunctions["none"] = EasingFunctions.linear
+EasingFunctions["in"] = EasingFunctions.easeIn
+EasingFunctions["out"] = EasingFunctions.easeOut
+EasingFunctions["inout"] = EasingFunctions.easerInOut
 
 return EasingFunctions

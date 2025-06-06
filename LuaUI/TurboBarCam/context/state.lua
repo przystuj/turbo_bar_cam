@@ -309,7 +309,12 @@ if not WG.TurboBarCam.STATE then
             acceleration = 50,
             alpha = 0.5,
             visualizationEnabled = true,
-            noCamera = false
+            noCamera = false,
+            selectedWaypoints = {},
+            hoveredWaypointIndex = nil,
+            hoveredPathPointIndex = nil,
+            lastMouseScreenPos = { x = 0, y = 0 },
+            lastMouseWorldPos = { x = 0, y = 0, z = 0 },
         }
     }
 end

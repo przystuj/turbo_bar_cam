@@ -13,8 +13,6 @@ local DollyCamNavigator = {}
 -- Start navigation on a route
 ---@return boolean success Whether navigation was started
 function DollyCamNavigator.startNavigation(noCamera)
-    STATE.dollyCam.route = STATE.dollyCam.route or { points = {} }
-
     if #STATE.dollyCam.route.points < 2 then
         Log:warn("Cannot start navigation: Route needs at least 2 waypoints")
         return false

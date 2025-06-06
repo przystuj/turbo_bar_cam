@@ -131,7 +131,7 @@ function ModeManager.disableMode()
     STATE.mode.transitionProgress = nil
 
     -- Reset modes to default state
-    STATE.mode = Util.deepCopy(STATE.DEFAULT.mode)
+    Util.patchTable(STATE.mode, STATE.DEFAULT.mode)
 
     -- Old anchor queue and transition state (assuming these are top-level in STATE)
     if STATE.anchorQueue then
