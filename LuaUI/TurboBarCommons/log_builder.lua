@@ -111,7 +111,7 @@ end
 ---@param self LoggerInstance
 function LoggerPrototype:info(...)
     selfCheck(self)
-    local message = "[INFO ] " .. formatMessage(self, ...)
+    local message = "[INFO] " .. formatMessage(self, ...)
     Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
 
@@ -161,7 +161,7 @@ end
 ---@param self LoggerInstance
 function LoggerPrototype:warn(...)
     selfCheck(self)
-    local message = "[WARN ] " .. formatMessage(self, ...)
+    local message = "[WARN] " .. formatMessage(self, ...)
     Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
 

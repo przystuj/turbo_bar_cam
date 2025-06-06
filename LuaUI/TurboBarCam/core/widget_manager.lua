@@ -30,7 +30,26 @@ function WidgetManager.enable()
     STATE.enabled = true
     WidgetManager.switchToFpsCamera()
     CameraQuickControls.initialize()
-    Log:debug("Enabled")
+    Log:info("Enabled")
+end
+
+local function restoreOriginalCameraState()
+    if STATE.originalCameraState then
+        local camMode = STATE.originalCameraState.mode
+        if camMode == 1 then
+            Spring.SendCommands('viewfps')
+        elseif camMode == 2 then
+            Spring.SendCommands('viewta')
+        elseif camMode == 3 then
+            Spring.SendCommands('viewspring')
+        elseif camMode == 4 then
+            Spring.SendCommands('viewrot')
+        elseif camMode == 5 then
+            Spring.SendCommands('viewfree')
+        end
+        Spring.SetCameraState(STATE.originalCameraState, 0)
+        STATE.originalCameraState = nil
+    end
 end
 
 --- Disables the widget
@@ -44,18 +63,15 @@ function WidgetManager.disable()
         STATE.transition.active = false
     end
 
+    restoreOriginalCameraState()
+
     -- Reset configuration
     Spring.SetConfigInt("CamSpringLockCardinalDirections", 1)
     Spring.SetConfigInt("FPSClampPos", 1)
     Spring.SetConfigInt("FPSFOV", STATE.originalFpsCameraFov or 45)
 
-    -- Restore original camera state
-    if STATE.originalCameraState then
-        Spring.SetCameraState(STATE.originalCameraState, 1)
-        STATE.originalCameraState = nil
-    end
-
     STATE.enabled = false
+    Log:info("Disabled")
 end
 
 --- Toggles the widget state
@@ -86,9 +102,9 @@ function WidgetManager.switchToFpsCamera()
     if #selectedUnits > 0 then
         local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
         local fpsState = CameraCommons.getDefaultUnitView(x, z)
-        Spring.SetCameraState(fpsState, 1)
+        Spring.SetCameraState(fpsState, 0)
     end
-    Spring.SetCameraState({ fov = 45 }, 1)
+    Spring.SetCameraState({ fov = 45 }, 0)
     Spring.SendCommands("viewfps")
 end
 

@@ -31,14 +31,11 @@ local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionMan
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 
-local cameraStateOnInit = Spring.GetCameraState()
-
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
 
 function widget:Initialize()
-    cameraStateOnInit = Spring.GetCameraState()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
 
@@ -58,7 +55,7 @@ function widget:Initialize()
         Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
     end
 
-    Log:info("Loaded - use /turbobarcam_toggle to enable. Log level: " .. CONFIG.DEBUG.LOG_LEVEL)
+    Log:info("Loaded - Enable with /turbobarcam_toggle")
 end
 
 ---@param selectedUnits number[] Array of selected unit IDs
@@ -81,8 +78,6 @@ function widget:DrawWorld()
 end
 
 function widget:Shutdown()
-    --make sure that camera mode is restored
-    Spring.SetCameraState({ mode = cameraStateOnInit.mode, name = cameraStateOnInit.name })
     -- refresh units command bar to remove custom command
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits > 0 then

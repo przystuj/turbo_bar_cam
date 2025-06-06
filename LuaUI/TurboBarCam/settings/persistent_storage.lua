@@ -39,12 +39,6 @@ function PersistentStorage:initialize()
 
     self.isInitialized = true
     self.isDirty = false
-
-    if self.isPersistent then
-        Log:debug("Initialized persistent storage: " .. self.filepath)
-    else
-        Log:debug("Initialized non-persistent storage: " .. self.name)
-    end
 end
 
 --- Load data from file
@@ -61,10 +55,8 @@ function PersistentStorage:load()
 
     if success and type(result) == "table" then
         self.data = result
-        Log:debug("Loaded persistent storage from " .. self.filepath)
     else
         self.data = {}
-        Log:debug("Created new persistent storage file: " .. self.filepath)
     end
 
     self.isDirty = false

@@ -28,7 +28,6 @@ function SettingsManager.initializePersistentStorage()
     initStorage("projectile_camera_settings", true)
 
     STATE.settings.initialized = true
-    Log:info("SettingsManager initialized")
 end
 
 --- Update function to be called in widget:Update
