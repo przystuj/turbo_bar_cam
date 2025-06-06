@@ -46,8 +46,12 @@ if not WG.TurboBarCam.STATE then
 
         -- Camera anchors
         anchor = {
+            -- points table stores anchor data.
+            -- New structure: { position = {px, py, pz}, target = { type = "point"|"unit", data = table|number }, fov = number }
             points = {},
             easing = "none",
+            visualizationEnabled = false, -- Toggles visibility of anchor look-at markers
+            activeAnchorIndex = nil, -- The index of the anchor currently being transitioned to
         },
         lastUsedAnchor = nil,
 

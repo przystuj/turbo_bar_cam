@@ -2,7 +2,7 @@
 ---@field Actions fun(hook: fun(module: Actions)):Actions
 ---@field CameraAnchor fun(hook: fun(module: CameraAnchor)):CameraAnchor
 ---@field CameraAnchorPersistence fun(hook: fun(module: CameraAnchorPersistence)):CameraAnchorPersistence
----@field CameraAnchorUtils fun(hook: fun(module: CameraAnchorUtils)):CameraAnchorUtils
+---@field CameraAnchorVisualization fun(hook: fun(module: CameraAnchorVisualization)):CameraAnchorVisualization
 ---@field CameraCommons fun(hook: fun(module: CameraCommons)):CameraCommons
 ---@field CameraQuickControls fun(hook: fun(module: CameraQuickControls)):CameraQuickControls
 ---@field CameraTracker fun(hook: fun(module: CameraTracker)):CameraTracker
@@ -73,6 +73,7 @@ local Modules = {
 
     CameraAnchor = "features/anchor/anchor.lua",
     CameraAnchorPersistence = "features/anchor/anchor_persistence.lua",
+    CameraAnchorVisualization = "features/anchor/anchor_visualization.lua",
     DBSCAN = "features/group_tracking/dbscan.lua",
     DollyCam = "features/dollycam/dollycam.lua",
     DollyCamDataStructures = "features/dollycam/dollycam_data_structures.lua",

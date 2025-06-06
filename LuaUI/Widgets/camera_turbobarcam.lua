@@ -30,6 +30,7 @@ local UpdateManager = ModuleManager.UpdateManager(function(m) UpdateManager = m 
 local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionManager = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
+local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -74,6 +75,7 @@ end
 function widget:DrawWorld()
     if Spring.IsGUIHidden() == false then
         DollyCam.draw()
+        CameraAnchor.draw()
     end
 end
 

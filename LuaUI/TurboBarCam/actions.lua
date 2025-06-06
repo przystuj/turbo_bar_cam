@@ -271,6 +271,11 @@ function Actions.anchorActions()
             function(_, params)
                 return CameraAnchor.load(params)
             end)
+
+    Actions.registerAction("turbobarcam_anchor_toggle_visualization", 'tp',
+            function()
+                return CameraAnchor.toggleVisualization()
+            end)
 end
 
 function Actions.trackingCameraActions()
