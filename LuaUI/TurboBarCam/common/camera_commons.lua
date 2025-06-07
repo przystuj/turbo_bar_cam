@@ -535,4 +535,11 @@ function CameraCommons.getAngleDiff(a1, a2)
     return diff
 end
 
+function CameraCommons.distanceSquared(p1, p2)
+    local dx = p1.x - p2.x
+    local dy = p1.y - p2.y
+    local dz = p1.z - p2.z
+    return dx * dx + dy * dy + dz * dz
+end
+
 return CameraCommons

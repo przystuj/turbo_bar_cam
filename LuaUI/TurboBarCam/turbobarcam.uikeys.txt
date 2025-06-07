@@ -21,10 +21,10 @@ unbindkeyset 	Ctrl+F3
 unbindkeyset 	Ctrl+F4
 
 // todo, set_camera_anchor not working
-bind			Ctrl+F1				chain force set_camera_anchor 1 | turbobarcam_anchor_set 1
-bind			Ctrl+F2				chain force turbobarcam_anchor_set 2 | set_camera_anchor 2
-bind			Ctrl+F3				chain force set_camera_anchor 3 | turbobarcam_anchor_set 3
-bind			Ctrl+F4				chain force turbobarcam_anchor_set 4 | set_camera_anchor 4
+bind			Ctrl+F1				turbobarcam_anchor_set 1
+bind			Ctrl+F2				turbobarcam_anchor_set 2
+bind			Ctrl+F3				turbobarcam_anchor_set 3
+bind			Ctrl+F4				turbobarcam_anchor_set 4
 bind			Shift+F1			turbobarcam_anchor_focus 1
 bind			Shift+F2			turbobarcam_anchor_focus 2
 bind			Shift+F3			turbobarcam_anchor_focus 3

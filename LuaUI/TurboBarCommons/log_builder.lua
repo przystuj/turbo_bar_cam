@@ -11,82 +11,110 @@ local function selfCheck(self)
     end
 end
 
---- Converts a value to a string representation for debugging
---- This function is part of the LoggerPrototype and can be accessed via logger instances.
----@param o any Value to dump
----@return string representation
-function LoggerPrototype:dump(o)
-    selfCheck(self)
-    if type(o) == 'table' then
-        -- Call serializeTable using self to allow for potential future overrides if necessary,
-        -- though currently serializeTable itself doesn't use self.
-        return self:serializeTable(o)
-    else
-        return tostring(o)
-    end
-end
-
---- Serializes a table to a string.
---- This function is part of the LoggerPrototype.
+--- Serializes a table to a string with smart formatting.
+--- It orders fields, sorts them, and switches between single-line and multi-line
+--- representation based on the resulting string length.
 ---@param t table Table to serialize
 ---@param indent number? Current indentation level
 ---@return string representation
 function LoggerPrototype:serializeTable(t, indent)
     selfCheck(self)
-    if not t then
-        return "nil"
+    -- Handle non-table or nil inputs
+    if type(t) ~= "table" then
+        return tostring(t)
     end
-    indent = indent or 0
-    local result = ""
-    local indentStr = string.rep(" ", indent)
+    -- Handle empty tables
+    if next(t) == nil then
+        return "{}"
+    end
 
-    for k, v in pairs(t) do
-        if type(v) == "table" then
-            result = result .. indentStr .. tostring(k) .. " = {\n"
-            -- Recursive call to serializeTable on the same instance context
-            result = result .. self:serializeTable(v, indent + 2)
-            result = result .. indentStr .. "}\n"
-        elseif type(v) == "number" then
-            -- Format numbers with higher precision for debugging
-            result = result .. indentStr .. tostring(k) .. " = " .. string.format("%.9f", v) .. "\n"
+    indent = indent or 0
+
+    -- Step 1: Categorize and sort keys based on their value type
+    local numKeys, strKeys, funcKeys, tblKeys, otherKeys = {}, {}, {}, {}, {}
+    for k in pairs(t) do
+        local v = t[k]
+        local vType = type(v)
+        if vType == "number" then
+            table.insert(numKeys, k)
+        elseif vType == "string" then
+            table.insert(strKeys, k)
+        elseif vType == "function" then
+            table.insert(funcKeys, k)
+        elseif vType == "table" then
+            table.insert(tblKeys, k)
         else
-            result = result .. indentStr .. tostring(k) .. " = " .. tostring(v) .. "\n"
+            -- Catch-all for booleans, etc.
+            table.insert(otherKeys, k)
         end
     end
-    return result
-end
 
---- Formats a vector-like table.
---- This function is part of the LoggerPrototype.
----@param vector table|nil The vector table with x, y, z fields
----@return string|nil String representation or nil
-function LoggerPrototype:formatVec(vector)
-    if not vector then
-        return "nil"
-    end
-    if vector.x or vector.y or vector.z then
-        return string.format("{x=%.6f, y=%.6f, z=%.6f}", vector.x or 0, vector.y or 0, vector.z or 0)
-    end
-    return nil
-end
+    table.sort(numKeys)
+    -- Sort strings by value length
+    table.sort(strKeys, function(a, b) return string.len(t[a]) < string.len(t[b]) end)
+    table.sort(funcKeys)
+    table.sort(tblKeys)
+    table.sort(otherKeys)
 
---- Formats a camera state-like table.
---- This function is part of the LoggerPrototype.
----@param camState table|nil The camera state table
----@return string|nil String representation or nil
-function LoggerPrototype:formatCamState(camState)
-    if not camState then
-        return "nil"
+    -- Step 2: Generate serialized "key=value" parts for each category
+    local numParts, strParts, funcParts, otherParts = {}, {}, {}, {}
+
+    for _, k in ipairs(numKeys) do table.insert(numParts, tostring(k) .. "=" .. string.format("%.6f", t[k])) end
+    -- Use %q to safely quote strings with special characters
+    for _, k in ipairs(strKeys) do table.insert(strParts, tostring(k) .. "=" .. string.format("%q", t[k])) end
+    for _, k in ipairs(funcKeys) do table.insert(funcParts, tostring(k) .. "=function") end
+    for _, k in ipairs(otherKeys) do table.insert(otherParts, tostring(k) .. "=" .. tostring(t[k])) end
+
+    -- Step 3: Recursively serialize sub-tables
+    local tblParts = {}
+    local containsMultilineSubTable = false
+    for _, k in ipairs(tblKeys) do
+        -- The indentation for the content inside the sub-table is handled by the recursive call
+        local serializedSubTable = self:serializeTable(t[k], indent + 2)
+        if string.find(serializedSubTable, "\n") then
+            containsMultilineSubTable = true
+        end
+        tblParts[k] = serializedSubTable
     end
-    if camState.px or camState.py or camState.pz or camState.dx or camState.dy or camState.dz or camState.rx or camState.ry or camState.rz then
-        return string.format("{px=%.6f, py=%.6f, pz=%.6f, dx=%.6f, dy=%.6f, dz=%.6f, rx=%.6f, ry=%.6f, rz=%.6f}",
-                camState.px or 0, camState.py or 0, camState.pz or 0, camState.dx or 0, camState.dy or 0, camState.dz or 0, camState.rx or 0, camState.ry or 0, camState.rz or 0)
+
+    -- Step 4: Attempt to build a single-line representation
+    local allPartsForSingleLine = {}
+    local categoriesInOrder = {numParts, strParts, funcParts, otherParts}
+    for _, category in ipairs(categoriesInOrder) do
+        for _, part in ipairs(category) do
+            table.insert(allPartsForSingleLine, part)
+        end
     end
-    return nil
+    for _, k in ipairs(tblKeys) do
+        table.insert(allPartsForSingleLine, tostring(k) .. "=" .. tblParts[k])
+    end
+    local singleLineResult = "{" .. table.concat(allPartsForSingleLine, ", ") .. "}"
+
+    -- Step 5: Decide whether to use single-line or multi-line format
+    if containsMultilineSubTable or #singleLineResult >= 300 then
+        local indentStr = string.rep(" ", indent)
+        local nextIndentStr = string.rep(" ", indent + 2)
+        local finalLines = {}
+
+        -- Add lines for each category if they contain items
+        if #numParts > 0 then table.insert(finalLines, nextIndentStr .. table.concat(numParts, ", ")) end
+        if #strParts > 0 then table.insert(finalLines, nextIndentStr .. table.concat(strParts, ", ")) end
+        if #funcParts > 0 then table.insert(finalLines, nextIndentStr .. table.concat(funcParts, ", ")) end
+        if #otherParts > 0 then table.insert(finalLines, nextIndentStr .. table.concat(otherParts, ", ")) end
+
+        for _, k in ipairs(tblKeys) do
+            table.insert(finalLines, nextIndentStr .. tostring(k) .. " = " .. tblParts[k])
+        end
+
+        return "{\n" .. table.concat(finalLines, "\n") .. "\n" .. indentStr .. "}"
+    else
+        return singleLineResult
+    end
 end
 
 -- Helper function to concatenate multiple arguments into a single string
 -- with proper type conversion. It uses the instance's formatting methods.
+---@param instance LoggerInstance
 local function formatMessage(instance, ...)
     local args = { ... }
     local parts = {}
@@ -94,11 +122,11 @@ local function formatMessage(instance, ...)
         local arg = args[i]
         if type(arg) ~= "string" then
             if type(arg) == "table" then
-                parts[i] = instance:formatCamState(arg) or instance:formatVec(arg) or instance:dump(arg)
+                parts[i] = instance:serializeTable(arg)
             elseif type(arg) == "number" then
                 parts[i] = string.format("%.6f", arg)
             else
-                parts[i] = instance:dump(arg) -- Use instance's dump method
+                parts[i] = tostring(arg)
             end
         else
             parts[i] = arg

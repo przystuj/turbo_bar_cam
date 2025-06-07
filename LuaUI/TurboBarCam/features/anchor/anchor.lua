@@ -3,224 +3,228 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local CameraAnchorPersistence = ModuleManager.CameraAnchorPersistence(function(m) CameraAnchorPersistence = m end)
-local EasingFunctions = ModuleManager.EasingFunctions(function(m) EasingFunctions = m end)
 local Util = ModuleManager.Util(function(m) Util = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 local CameraAnchorVisualization = ModuleManager.CameraAnchorVisualization(function(m) CameraAnchorVisualization = m end)
 
 ---@class CameraAnchor
 local CameraAnchor = {}
 
 local ANCHOR_TRANSITION_ID = "CameraAnchor.universalTransition"
-local PI2 = math.pi * 2
+local SET_POSITION_THRESHOLD_SQ = 100 -- Squared distance to consider an anchor "in the same spot" for toggling
+local MIN_LOOKAT_DISTANCE_SQ = 4.0 -- Squared safety threshold to prevent camera instability
 
---- A custom lerp function for angles that takes the shortest path.
----@param a number Start angle in radians
----@param b number End angle in radians
----@param t number Interpolation factor (0-1)
----@return number The interpolated angle
-local function angleLerp(a, b, t)
-    local diff = b - a
-    if diff > math.pi then
-        b = b - PI2
-    elseif diff < -math.pi then
-        b = b + PI2
+--- Traces a ray from the center of the screen to find a point on the ground or in the distance.
+---@param startState table The camera state to trace from.
+---@return table lookAtPoint A table with {x, y, z} coordinates.
+local function getLookAtTargetFromRaycast(startState)
+    local vsx, vsy = Spring.GetViewGeometry()
+    local _, groundPos = Spring.TraceScreenRay(vsx / 2, vsy / 2, true)
+    if groundPos then
+        return { x = groundPos[1], y = groundPos[2], z = groundPos[3] }
+    else
+        local camDir = Spring.GetCameraDirection()
+        local DISTANCE = 10000
+        return {
+            x = startState.px + camDir[1] * DISTANCE,
+            y = startState.py + camDir[2] * DISTANCE,
+            z = startState.pz + camDir[3] * DISTANCE
+        }
     end
-    return a + (b - a) * t
 end
 
---- Sets a camera anchor
+--- Sets a camera anchor, with toggle functionality for look-at points.
 ---@param index number Anchor index
----@return boolean success Always returns true for widget handler
 function CameraAnchor.set(index)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
+    if Util.isTurboBarCamDisabled() then return end
 
     index = tonumber(index)
-    if not (index and index >= 0) then
-        return
-    end
+    if not (index and index >= 0) then return end
 
     local camState = Spring.GetCameraState()
-    local selectedUnits = Spring.GetSelectedUnits()
+    local camPos = { x = camState.px, y = camState.py, z = camState.pz }
+    local existingAnchor = STATE.anchor.points[index]
 
-    if #selectedUnits > 0 then
-        -- A unit is selected, so the anchor will track this unit.
-        local unitID = selectedUnits[1]
-        STATE.anchor.points[index] = {
-            position = { px = camState.px, py = camState.py, pz = camState.pz },
-            target = { type = "unit", data = unitID },
-            fov = camState.fov
-        }
-        Log:info("Saved camera anchor: " .. index .. " to track unit " .. unitID)
-    else
-        -- No unit selected, so find a static point to look at.
-        local vsx, vsy = Spring.GetViewGeometry()
-        local _, groundPos = Spring.TraceScreenRay(vsx / 2, vsy / 2, true)
-        local lookAtPoint
+    if existingAnchor then
+        local distSq = CameraCommons.distanceSquared(camPos, {x=existingAnchor.position.px, y=existingAnchor.position.py, z=existingAnchor.position.pz})
+        if distSq < SET_POSITION_THRESHOLD_SQ then
+            if existingAnchor.target then
+                existingAnchor.target = nil
+                existingAnchor.rotation = { rx = camState.rx, ry = camState.ry }
+                Log:info("Anchor " .. index .. ": Look-at point removed. Converted to simple anchor.")
+            else
+                existingAnchor.rotation = nil
+                local selectedUnits = Spring.GetSelectedUnits()
+                if #selectedUnits > 0 then
+                    existingAnchor.target = { type = "unit", data = selectedUnits[1] }
+                    Log:info("Anchor " .. index .. ": Look-at point added (tracking unit " .. selectedUnits[1] .. ").")
+                else
+                    existingAnchor.target = { type = "point", data = getLookAtTargetFromRaycast(camState) }
+                    Log:info("Anchor " .. index .. ": Look-at point added.")
+                end
+            end
+            return
+        end
+    end
 
-        if groundPos then
-            lookAtPoint = { x = groundPos[1], y = groundPos[2], z = groundPos[3] }
+    STATE.anchor.points[index] = {
+        position = { px = camState.px, py = camState.py, pz = camState.pz },
+        rotation = { rx = camState.rx, ry = camState.ry },
+    }
+    Log:info("Anchor " .. index .. ": Simple anchor created/updated.")
+end
+
+--- Creates the onUpdate function for a "simple" anchor transition.
+local function createSimpleTransitionUpdater(startState, endState, posStartTangent, posEndTangent)
+    local startRot = { rx = startState.rx, ry = startState.ry, rz = startState.rz }
+    local endRot = { rx = endState.rotation.rx, ry = endState.rotation.ry, rz = startState.rz }
+    local PI2 = math.pi * 2
+    local diff_ry = endRot.ry - startRot.ry
+    if diff_ry > math.pi then endRot.ry = endRot.ry - PI2
+    elseif diff_ry < -math.pi then endRot.ry = endRot.ry + PI2 end
+
+    local _, _, startRotVel, _ = VelocityTracker.getCurrentVelocity()
+    local rotStartTangent = {
+        rx = (startRotVel.x or 0) * endState.duration,
+        ry = (startRotVel.y or 0) * endState.duration,
+        rz = (startRotVel.z or 0) * endState.duration,
+    }
+    local rotEndTangent = { rx = 0, ry = 0, rz = 0 }
+
+    return function(raw_progress, eased_progress, dt)
+        local currentPos = Util.hermiteInterpolate(startState, endState.position, posStartTangent, posEndTangent, raw_progress)
+        local finalRx, finalRy = Util.hermiteInterpolateRotation(startRot, endRot, rotStartTangent, rotEndTangent, raw_progress)
+
+        local dir = CameraCommons.getDirectionFromRotation(finalRx, finalRy)
+
+        -- Use the correct engine API call to find the ground intersection point for a smooth handover.
+        local rayLength, hitX, hitY, hitZ = Spring.TraceRayGroundInDirection(currentPos.x, currentPos.y, currentPos.z, dir.x, dir.y, dir.z)
+        if rayLength then
+            STATE.anchor.lastKnownLookAtPoint = { x = hitX, y = hitY, z = hitZ }
         else
-            -- Fallback: If no ground is hit, use a point far in the camera's direction.
-            local camDir = {Spring.GetCameraDirection()}
-            local DISTANCE = 10000
-            lookAtPoint = {
-                x = camState.px + camDir[1] * DISTANCE,
-                y = camState.py + camDir[2] * DISTANCE,
-                z = camState.pz + camDir[3] * DISTANCE
-            }
+            -- Fallback if looking at the sky
+            STATE.anchor.lastKnownLookAtPoint = { x = currentPos.x + dir.x * 10000, y = currentPos.y + dir.y * 10000, z = currentPos.z + dir.z * 10000 }
+        end
+        STATE.anchor.lastKnownRotation = { rx = finalRx, ry = finalRy }
+
+        local camState = { px = currentPos.x, py = currentPos.y, pz = currentPos.z, rx = finalRx, ry = finalRy, dx = dir.x, dy = dir.y, dz = dir.z }
+        CameraTracker.updateLastKnownCameraState(camState)
+        Spring.SetCameraState(camState, 0)
+    end
+end
+
+--- Creates the onUpdate function for a "look-at" anchor transition.
+local function createLookAtTransitionUpdater(startState, endState, posStartTangent, posEndTangent)
+    local startLookAtPoint
+    if TransitionManager.isTransitioning(ANCHOR_TRANSITION_ID) and STATE.anchor.lastKnownLookAtPoint then
+        startLookAtPoint = STATE.anchor.lastKnownLookAtPoint
+    else
+        startLookAtPoint = getLookAtTargetFromRaycast(startState)
+    end
+    STATE.anchor.lastKnownRotation = { rx = startState.rx, ry = startState.ry }
+
+    local _, _, startRotVel, _ = VelocityTracker.getCurrentVelocity()
+    local lookAtStartTangent
+    do
+        local dt_pred = 1/60
+        local next_rx = startState.rx + (startRotVel.x or 0) * dt_pred
+        local next_ry = startState.ry + (startRotVel.y or 0) * dt_pred
+
+        local dir_next = CameraCommons.getDirectionFromRotation(next_rx, next_ry)
+
+        local startPosVec = Util.camStateToVector(startState, "p")
+        local dist_to_target = math.sqrt(CameraCommons.distanceSquared(startPosVec, startLookAtPoint))
+
+        local point_next = {
+            x = startState.px + dir_next.x * dist_to_target,
+            y = startState.py + dir_next.y * dist_to_target,
+            z = startState.pz + dir_next.z * dist_to_target,
+        }
+
+        local vel_vec = CameraCommons.vectorSubtract(point_next, startLookAtPoint)
+        lookAtStartTangent = CameraCommons.vectorMultiply(vel_vec, endState.duration / dt_pred)
+    end
+
+    local lookAtEndTangent = { x = 0, y = 0, z = 0 }
+
+    return function(raw_progress, eased_progress, dt)
+        local currentPos = Util.hermiteInterpolate(startState, endState.position, posStartTangent, posEndTangent, raw_progress)
+
+        local finalLookAtTarget
+        if endState.target.type == "unit" and Spring.ValidUnitID(endState.target.data) then
+            local uX, uY, uZ = Spring.GetUnitPosition(endState.target.data)
+            if uX then finalLookAtTarget = { x = uX, y = uY, z = uZ } end
+        else
+            finalLookAtTarget = endState.target.data
+        end
+        finalLookAtTarget = finalLookAtTarget or startLookAtPoint
+
+        local currentLookAtPoint = Util.hermiteInterpolate(startLookAtPoint, finalLookAtTarget, lookAtStartTangent, lookAtEndTangent, raw_progress)
+        STATE.anchor.lastKnownLookAtPoint = currentLookAtPoint
+
+        local distSq = CameraCommons.distanceSquared(currentPos, currentLookAtPoint)
+        if distSq > MIN_LOOKAT_DISTANCE_SQ then
+            local directionState = CameraCommons.calculateCameraDirectionToThePoint(currentPos, currentLookAtPoint)
+            if directionState then
+                STATE.anchor.lastKnownRotation.rx = directionState.rx
+                STATE.anchor.lastKnownRotation.ry = directionState.ry
+            end
         end
 
-        STATE.anchor.points[index] = {
-            position = { px = camState.px, py = camState.py, pz = camState.pz },
-            target = { type = "point", data = lookAtPoint },
-            fov = camState.fov
-        }
-        Log:info("Saved camera anchor: " .. index .. " looking at point (" .. string.format("%.1f, %.1f, %.1f", lookAtPoint.x, lookAtPoint.y, lookAtPoint.z) .. ")")
+        local dir = CameraCommons.getDirectionFromRotation(STATE.anchor.lastKnownRotation.rx, STATE.anchor.lastKnownRotation.ry)
+        local camState = { px = currentPos.x, py = currentPos.y, pz = currentPos.z, rx = STATE.anchor.lastKnownRotation.rx, ry = STATE.anchor.lastKnownRotation.ry, dx = dir.x, dy = dir.y, dz = dir.z }
+        CameraTracker.updateLastKnownCameraState(camState)
+        Spring.SetCameraState(camState, 0)
     end
-
-    return
 end
 
---- Get the easing function based on type string
----@param easingType string|nil Easing type
----@return function easingFunc The easing function to use
-function CameraAnchor.getEasingFunction(easingType)
-    -- Use specified easing, or fall back to state easing, or default easing
-    easingType = easingType or STATE.anchor.easing
-    easingType = string.lower(easingType)
-
-    local easingFunc = EasingFunctions[easingType]
-
-    -- Fallback to default if not found
-    if not easingFunc then
-        Log:warn("Unknown easing type: " .. easingType .. ", falling back to none")
-        easingFunc = EasingFunctions.none
-    end
-
-    return easingFunc
-end
-
---- Focuses on a camera anchor with smooth transition
----@param index number Anchor index
----@param easingType string|nil Optional easing type
----@return boolean success Always returns true for widget handler
-function CameraAnchor.focus(index, easingType)
-    if Util.isTurboBarCamDisabled() then
-        return true
-    end
+--- Main function to focus on an anchor, dispatching to the correct transition type.
+function CameraAnchor.focus(index)
+    if Util.isTurboBarCamDisabled() then return true end
 
     index = tonumber(index)
     local newTargetState = STATE.anchor.points[index]
-    if not (index and index >= 0 and newTargetState and newTargetState.position and newTargetState.target) then
-        Log:warn("Invalid or incompatible anchor data for index: " .. tostring(index))
+    if not (index and index >= 0 and newTargetState and newTargetState.position) then
+        Log:warn("Invalid anchor data for index: " .. tostring(index))
         return true
     end
-
-    STATE.anchor.activeAnchorIndex = index
 
     local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
     if STATE.lastUsedAnchor == index and TransitionManager.isTransitioning(ANCHOR_TRANSITION_ID) then
         duration = 0.2
     end
+    newTargetState.duration = duration
 
-    if STATE.mode.name then
-        ModeManager.disableMode()
-    end
+    STATE.anchor.activeAnchorId = index
+    if STATE.mode.name then ModeManager.disableMode() end
 
     local startState = Spring.GetCameraState()
-    local easingFunc = CameraAnchor.getEasingFunction(easingType)
-    local startVel, _, startRotVel, _ = VelocityTracker.getCurrentVelocity()
-
-    -- Setup for positional interpolation
+    local startVel, _, _, _ = VelocityTracker.getCurrentVelocity()
     local posStartTangent = CameraCommons.vectorMultiply(startVel, duration)
     local posEndTangent = { x = 0, y = 0, z = 0 }
 
-    -- Setup for the Hermite rotation path (the "feel good" path)
-    local endPos = {x = newTargetState.position.px, y = newTargetState.position.py, z = newTargetState.position.pz}
-    local initialEndLookAtTarget
-    if newTargetState.target.type == "unit" and Spring.ValidUnitID(newTargetState.target.data) then
-        local uX, uY, uZ = Spring.GetUnitPosition(newTargetState.target.data)
-        if uX then initialEndLookAtTarget = { x = uX, y = uY, z = uZ } end
+    local onUpdate
+    if newTargetState.target then
+        onUpdate = createLookAtTransitionUpdater(startState, newTargetState, posStartTangent, posEndTangent)
     else
-        initialEndLookAtTarget = newTargetState.target.data
+        onUpdate = createSimpleTransitionUpdater(startState, newTargetState, posStartTangent, posEndTangent)
     end
-
-    if not initialEndLookAtTarget then
-        Log:warn("Anchor target for index " .. index .. " is invalid. Aborting transition.")
-        STATE.anchor.activeAnchorIndex = nil
-        return true
-    end
-
-    local finalDirState = CameraCommons.focusOnPoint(endPos, initialEndLookAtTarget, 1.0, 1.0)
-    local startRot = { rx = startState.rx, ry = startState.ry, rz = startState.rz }
-    local endRot = { rx = finalDirState.rx, ry = finalDirState.ry, rz = startState.rz }
-
-    -- Normalize yaw for shortest path
-    local diff_ry = endRot.ry - startRot.ry
-    if diff_ry > math.pi then
-        endRot.ry = endRot.ry - PI2
-    elseif diff_ry < -math.pi then
-        endRot.ry = endRot.ry + PI2
-    end
-
-    local rotStartTangent = {
-        rx = (startRotVel.x or 0) * duration,
-        ry = (startRotVel.y or 0) * duration,
-        rz = (startRotVel.z or 0) * duration,
-    }
-    local rotEndTangent = { rx = 0, ry = 0, rz = 0 }
 
     TransitionManager.force({
         id = ANCHOR_TRANSITION_ID,
         duration = duration,
         respectGameSpeed = false,
-        easingFn = easingFunc,
-        onUpdate = function(raw_progress, eased_progress)
-            -- 1. Interpolate position
-            local currentPos = Util.hermiteInterpolate(startState, newTargetState.position, posStartTangent, posEndTangent, raw_progress)
-
-            -- 2. Calculate the "feel good" rotation using the Hermite curve
-            local hermiteRx, hermiteRy, hermiteRz = Util.hermiteInterpolateRotation(startRot, endRot, rotStartTangent, rotEndTangent, raw_progress)
-
-            -- 3. Calculate the "accurate" rotation by looking at the live target
-            local liveLookAtTarget
-            if newTargetState.target.type == "unit" and Spring.ValidUnitID(newTargetState.target.data) then
-                local uX, uY, uZ = Spring.GetUnitPosition(newTargetState.target.data)
-                if uX then liveLookAtTarget = { x = uX, y = uY, z = uZ } end
-            else
-                liveLookAtTarget = newTargetState.target.data
-            end
-
-            local finalRx, finalRy, finalRz = hermiteRx, hermiteRy, hermiteRz
-
-            if liveLookAtTarget then
-                local focusDirState = CameraCommons.focusOnPoint(currentPos, liveLookAtTarget, 1.0, 1.0)
-                if focusDirState then
-                    -- 4. Blend from the "feel good" rotation to the "accurate" rotation
-                    finalRx = CameraCommons.lerp(hermiteRx, focusDirState.rx, eased_progress)
-                    finalRy = angleLerp(hermiteRy, focusDirState.ry, eased_progress)
-                    finalRz = hermiteRz -- Keep the roll from the Hermite path
-                end
-            end
-
-            -- 5. Assemble and set the camera state
-            local camState = {
-                px = currentPos.x, py = currentPos.y, pz = currentPos.z,
-                rx = finalRx, ry = finalRy, rz = finalRz,
-                fov = CameraCommons.lerp(startState.fov, newTargetState.fov, eased_progress)
-            }
-            Spring.SetCameraState(camState, 0)
-        end,
+        onUpdate = onUpdate,
         onComplete = function()
             Log:debug("Anchor: Transition complete.")
-            STATE.anchor.activeAnchorIndex = nil
+            STATE.anchor.activeAnchorId = nil
+            STATE.anchor.lastKnownLookAtPoint = nil
+            STATE.anchor.lastKnownRotation = nil
         end
     })
 
@@ -228,61 +232,28 @@ function CameraAnchor.focus(index, easingType)
     return true
 end
 
---- Action handler for setting anchor easing type
----@param easing string Parameters from the action command
----@return boolean success Always returns true
-function CameraAnchor.setEasing(easing)
-    if Util.isTurboBarCamDisabled() then
-        return true
-    end
-
-    if easing and EasingFunctions[easing] then
-        STATE.anchor.easing = easing
-        Log:info("Set anchor easing type to: " .. tostring(easing))
-    else
-        STATE.anchor.easing = "none"
-        Log:info("Invalid easing: " .. tostring(easing) .. ". Valid values: none, in, out, inout")
-    end
-
-    return true
-end
-
 function CameraAnchor.save(id)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
+    if Util.isTurboBarCamDisabled() then return false end
     return CameraAnchorPersistence.saveToFile(id, false)
 end
 
 function CameraAnchor.load(id)
-    if Util.isTurboBarCamDisabled() then
-        return false
-    end
+    if Util.isTurboBarCamDisabled() then return false end
     return CameraAnchorPersistence.loadFromFile(id)
 end
 
---- Toggles the visualization of anchor look-at points.
 function CameraAnchor.toggleVisualization()
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
+    if Util.isTurboBarCamDisabled() then return end
     STATE.anchor.visualizationEnabled = not STATE.anchor.visualizationEnabled
     Log:info("Camera anchor visualization " .. (STATE.anchor.visualizationEnabled and "enabled" or "disabled"))
 end
 
---- Draws the anchor visualizations. This should be called from DrawWorld.
 function CameraAnchor.draw()
     CameraAnchorVisualization.draw()
 end
 
----@see ModifiableParams
----@see Util#adjustParams
 function CameraAnchor.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
-        return
-    end
-
+    if Util.isTurboBarCamDisabled() then return end
     Util.adjustParams(params, 'ANCHOR', function()
         CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2
     end)

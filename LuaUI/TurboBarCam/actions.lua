@@ -1,27 +1,17 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
----@type ModeManager
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
----@type CameraAnchor
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
----@type DollyCam
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
----@type UnitFollowCamera
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
----@type UnitTrackingCamera
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
----@type OrbitingCamera
 local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
----@type OverviewCamera
 local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
----@type GroupTrackingCamera
 local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
----@type ProjectileCamera
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
----@type SpecGroups
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
----@type WidgetManager
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
+local Util = ModuleManager.Util(function(m) Util = m end)
 
 ---@class Actions
 local Actions = {}
@@ -232,21 +222,15 @@ function Actions.projectileActions()
 end
 
 function Actions.anchorActions()
-    Actions.registerAction("turbobarcam_anchor_set", 'tp',
+    Actions.registerAction("turbobarcam_anchor_set", 'p',
             function(_, index)
                 CameraAnchor.set(index)
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_anchor_focus", 'tp',
+    Actions.registerAction("turbobarcam_anchor_focus", 'p',
             function(_, index)
                 CameraAnchor.focus(index)
-                return true
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_focus_while_tracking", 'tp',
-            function(_, index)
-                CameraAnchor.focusAndTrack(index)
                 return true
             end)
 
@@ -256,18 +240,12 @@ function Actions.anchorActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_anchor_easing", 'tp',
-            function(_, params)
-                CameraAnchor.setEasing(params)
-                return false
-            end)
-
-    Actions.registerAction("turbobarcam_anchor_save", 'tp',
+    Actions.registerAction("turbobarcam_anchor_save", 't',
             function(_, params)
                 return CameraAnchor.save(params, true)
             end)
 
-    Actions.registerAction("turbobarcam_anchor_load", 'tp',
+    Actions.registerAction("turbobarcam_anchor_load", 't',
             function(_, params)
                 return CameraAnchor.load(params)
             end)
@@ -387,7 +365,7 @@ end
 ---@param flags string Action flags
 ---@param handler function Action handler function
 function Actions.registerAction(actionName, flags, handler)
-    w.widgetHandler.actionHandler:AddAction(w, actionName, handler, nil, flags)
+    w.widgetHandler.actionHandler:AddAction(w, actionName, Util.wrapInTrace(handler, actionName), nil, flags)
 end
 
 return Actions

@@ -258,10 +258,7 @@ function UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType
         end
     elseif newTargetPos and oldTargetPos then
         -- Compare position for non-unit or changed targets
-        local dx = newTargetPos.x - oldTargetPos.x
-        local dy = newTargetPos.y - oldTargetPos.y
-        local dz = newTargetPos.z - oldTargetPos.z
-        local distanceSquared = dx * dx + dy * dy + dz * dz
+        local distanceSquared = CameraCommons.distanceSquared(newTargetPos, oldTargetPos)
 
         -- Use a higher threshold to reduce sensitivity
         -- Now we use 200*200=40000 (significantly higher)

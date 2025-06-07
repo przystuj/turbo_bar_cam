@@ -46,12 +46,15 @@ if not WG.TurboBarCam.STATE then
 
         -- Camera anchors
         anchor = {
-            -- points table stores anchor data.
-            -- New structure: { position = {px, py, pz}, target = { type = "point"|"unit", data = table|number }, fov = number }
+            -- points table stores anchor data. Can be one of two types:
+            -- 1. Simple: { position, rotation }
+            -- 2. LookAt: { position, target }
             points = {},
-            easing = "none",
-            visualizationEnabled = false, -- Toggles visibility of anchor look-at markers
-            activeAnchorIndex = nil, -- The index of the anchor currently being transitioned to
+            visualizationEnabled = false,
+            activeAnchorId = nil,
+            -- Temporary state for smoothing transitions, managed by the anchor feature itself.
+            lastKnownLookAtPoint = nil,
+            lastKnownRotation = nil,
         },
         lastUsedAnchor = nil,
 
@@ -77,23 +80,14 @@ if not WG.TurboBarCam.STATE then
             lastRotation = { rx = 0, ry = 0, rz = 0 },
 
             -- Legacy generic mode transition states (being phased out as features manage their own transitions)
-            -- ModeManager no longer sets these directly for generic transitions.
-            -- Kept for compatibility with unrefactored modules that might read them.
             isModeTransitionInProgress = false,
             transitionProgress = nil,
-            -- transitionStartTime = nil, -- This was used with getTransitionProgress, which is removed/changed
 
             -- New states set by ModeManager for feature-led transitions
             initialCameraStateForModeEntry = nil,
             optionalTargetCameraStateForModeEntry = nil,
-            -- transitionStartState = nil, -- Replaced by initialCameraStateForModeEntry for clarity
 
             unit_tracking = {
-                -- Purpose: This flag indicates if the UnitTrackingCamera feature has performed
-                -- its specific initialization logic (like starting its entry camera transition)
-                -- for the current activation of the 'unit_tracking' mode. It's reset by
-                -- ModeManager when the mode is disabled or changed, allowing the feature
-                -- to re-initialize its entry behavior next time it's activated.
                 isModeInitialized = false,
             },
 
@@ -170,8 +164,8 @@ if not WG.TurboBarCam.STATE then
                 },
             },
 
-            projectile_camera = { -- State for the projectile_camera feature when active
-                isModeInitialized = false, -- For feature-led entry transition
+            projectile_camera = {
+                isModeInitialized = false,
                 armed = false,
                 watchedUnitID = nil,
                 continuouslyArmedUnitID = nil,
@@ -180,7 +174,7 @@ if not WG.TurboBarCam.STATE then
                 previousMode = nil,
                 previousCameraState = nil,
                 impactPosition = nil,
-                cameraMode = nil, -- 'follow' or 'static' submodes
+                cameraMode = nil,
                 initialCamPos = nil,
                 initialImpactVelocity = nil,
                 initialImpactRotVelocity = nil,
@@ -188,9 +182,9 @@ if not WG.TurboBarCam.STATE then
                 highArcGoingUpward = false,
                 highArcDirectionChangeCompleted = false,
                 transitionFactor = nil,
-                rampUpFactor = 1, -- for gradual approaching set camera distance
+                rampUpFactor = 1,
 
-                projectile = { -- Data about the projectile itself
+                projectile = {
                     selectedProjectileID = nil,
                     currentProjectileID = nil,
                     lastSwitchTime = nil,
@@ -203,7 +197,7 @@ if not WG.TurboBarCam.STATE then
             },
 
             group_tracking = {
-                isModeInitialized = false, -- Placeholder for consistency if group_tracking is refactored
+                isModeInitialized = false,
                 unitIDs = {},
                 centerOfMass = { x = 0, y = 0, z = 0 },
                 targetDistance = nil,
@@ -213,7 +207,7 @@ if not WG.TurboBarCam.STATE then
             },
 
             orbit = {
-                isModeInitialized = false, -- For feature-led entry transition
+                isModeInitialized = false,
                 angle = nil,
                 lastPosition = nil,
                 lastCamPos = nil,
@@ -223,7 +217,7 @@ if not WG.TurboBarCam.STATE then
             },
 
             overview = {
-                isModeInitialized = false, -- For feature-led entry transition (ModeManager will need to handle this path)
+                isModeInitialized = false,
                 height = nil,
                 heightLevel = nil,
                 fixedCamPos = nil,

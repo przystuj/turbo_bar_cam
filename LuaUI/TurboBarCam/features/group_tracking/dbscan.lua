@@ -1,6 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local Util = ModuleManager.Util(function(m) Util = m end)
+local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class DBSCAN
 local DBSCAN = {}
@@ -37,7 +38,7 @@ function DBSCAN.performClustering(units, epsilon, minPoints)
         end
 
         for otherUnitID, pos2 in pairs(unitPositions) do
-            local distSquared = DBSCAN.distanceSquared(pos1, pos2)
+            local distSquared = CameraCommons.distanceSquared(pos1, pos2)
 
             if distSquared <= epsilon * epsilon then
                 table.insert(neighbors, otherUnitID)
@@ -230,17 +231,6 @@ function DBSCAN.calculateAdaptiveParameters(units, config)
     )
 
     return adaptiveEpsilon, minPoints
-end
-
---- Calculates squared distance between two points
----@param p1 table First position with x, y, z fields
----@param p2 table Second position with x, y, z fields
----@return number distanceSquared The squared distance between points
-function DBSCAN.distanceSquared(p1, p2)
-    local dx = p1.x - p2.x
-    local dy = p1.y - p2.y
-    local dz = p1.z - p2.z
-    return dx * dx + dy * dy + dz * dz
 end
 
 --- Calculates the weighted center of mass for a group of units

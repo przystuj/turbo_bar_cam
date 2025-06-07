@@ -18,8 +18,6 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     end
 
     -- Check if we have any anchors to save
-    Util.tableCount(STATE.anchor.points)
-
     if Util.tableCount(STATE.anchor.points) == 0 then
         Log:warn("No anchors to save")
         return false
@@ -32,7 +30,7 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
 
     -- Save preset for current map
-    mapPresets[anchorSetId] = STATE.anchor
+    mapPresets[anchorSetId] = STATE.anchor.points
 
     -- Save the entire structure back to storage
     local success = SettingsManager.saveUserSetting("anchors", mapName, mapPresets)
@@ -67,47 +65,9 @@ function CameraAnchorPersistence.loadFromFile(id)
         return false
     end
 
-    local anchorSet = mapPresets[id]
+    STATE.anchor.points = mapPresets[id]
 
-    -- Check for and migrate old anchor format
-    if anchorSet.points and #anchorSet.points > 0 then
-        local firstPoint = anchorSet.points[1]
-        if firstPoint and firstPoint.px and firstPoint.rx and not firstPoint.target then
-            Log:info("Old anchor format detected. Migrating anchors for set '" .. id .. "'...")
-            local newPoints = {}
-            for i, oldAnchor in ipairs(anchorSet.points) do
-                -- Calculate direction from old rotation (Euler ZYX: ry, rx, rz)
-                local ry, rx = oldAnchor.ry or 0, oldAnchor.rx or 0
-                local cos_rx = math.cos(rx)
-                local dir_x = -math.sin(ry) * cos_rx
-                local dir_y = math.sin(rx)
-                local dir_z = math.cos(ry) * cos_rx
-
-                -- Create a look-at point far away in the direction of the old camera view
-                local DISTANCE = 10000
-                local lookAt = {
-                    x = oldAnchor.px + dir_x * DISTANCE,
-                    y = oldAnchor.py + dir_y * DISTANCE,
-                    z = oldAnchor.pz + dir_z * DISTANCE
-                }
-
-                newPoints[i] = {
-                    position = { px = oldAnchor.px, py = oldAnchor.py, pz = oldAnchor.pz },
-                    target = {
-                        type = "point",
-                        data = lookAt
-                    },
-                    fov = oldAnchor.fov,
-                }
-            end
-            anchorSet.points = newPoints
-            Log:info("Anchor migration complete. Please review and re-save your anchors if needed.")
-        end
-    end
-
-    STATE.anchor = anchorSet
-
-    Log:info("Loaded ID: " .. id .. " for map: " .. mapName .. ". Easing: " .. STATE.anchor.easing)
+    Log:info("Loaded ID: " .. id .. " for map: " .. mapName)
     return true
 end
 

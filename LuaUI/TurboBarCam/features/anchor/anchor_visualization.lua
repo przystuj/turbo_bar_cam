@@ -90,7 +90,7 @@ function CameraAnchorVisualization.draw()
 
     for i, anchor in ipairs(STATE.anchor.points) do
         if anchor and anchor.position and anchor.target then
-            local isHighlighted = (i == STATE.anchor.activeAnchorIndex)
+            local isHighlighted = (i == STATE.anchor.activeAnchorId)
             local sizeMultiplier = isHighlighted and CameraAnchorVisualization.settings.highlightMultiplier or 1.0
 
             -- 1. Draw the saved camera position point and its label

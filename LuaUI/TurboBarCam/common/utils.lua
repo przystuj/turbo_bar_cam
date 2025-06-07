@@ -19,7 +19,7 @@ function Util.getCursorWorldPosition()
     local mx, my = Spring.GetMouseState()
     local _, pos = Spring.TraceScreenRay(mx, my, true)
     if pos then
-        return {x = pos[1], y = pos[2], z = pos[3]}
+        return { x = pos[1], y = pos[2], z = pos[3] }
     end
     return nil
 end
@@ -307,7 +307,8 @@ function Util.adjustParams(params, module, resetFunction, currentSubmode, getSub
     Log:trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
     local adjustments = parseParams(params, module)
 
-    if not adjustments then -- parseParams returned an error
+    if not adjustments then
+        -- parseParams returned an error
         return
     end
 
@@ -363,7 +364,6 @@ function Util.adjustParams(params, module, resetFunction, currentSubmode, getSub
         end
     end
 end
-
 
 --- Creates a deep copy of a table
 ---@param orig table Table to copy
@@ -423,8 +423,8 @@ end
 function Util.hermiteInterpolate(p0, p1, v0, v1, t)
     -- Special handling for segment boundaries to preserve velocity
     -- At t=0 and t=1, we want to ensure the derivative matches the tangent exactly
-    if t <= 0 then return {x = p0.px or p0.x, y = p0.py or p0.y, z = p0.pz or p0.z} end
-    if t >= 1 then return {x = p1.px or p1.x, y = p1.py or p1.y, z = p1.pz or p1.z} end
+    if t <= 0 then return { x = p0.px or p0.x, y = p0.py or p0.y, z = p0.pz or p0.z } end
+    if t >= 1 then return { x = p1.px or p1.x, y = p1.py or p1.y, z = p1.pz or p1.z } end
 
     -- Hermite basis functions
     -- h00: position influence from p0
@@ -433,9 +433,9 @@ function Util.hermiteInterpolate(p0, p1, v0, v1, t)
     -- h11: tangent influence from v1
     local t2 = t * t
     local t3 = t2 * t
-    local h00 = 2*t3 - 3*t2 + 1
-    local h10 = t3 - 2*t2 + t
-    local h01 = -2*t3 + 3*t2
+    local h00 = 2 * t3 - 3 * t2 + 1
+    local h10 = t3 - 2 * t2 + t
+    local h01 = -2 * t3 + 3 * t2
     local h11 = t3 - t2
 
     -- Use px, py, pz if available, otherwise fall back to x, y, z
@@ -458,9 +458,9 @@ function Util.hermiteInterpolate(p0, p1, v0, v1, t)
     if result.x ~= result.x or result.y ~= result.y or result.z ~= result.z then
         Log:warn("NaN detected in Hermite interpolation")
         -- Fall back to linear interpolation if Hermite produces NaN
-        result.x = (1-t) * p0x + t * p1x
-        result.y = (1-t) * p0y + t * p1y
-        result.z = (1-t) * p0z + t * p1z
+        result.x = (1 - t) * p0x + t * p1x
+        result.y = (1 - t) * p0y + t * p1y
+        result.z = (1 - t) * p0z + t * p1z
     end
 
     return result
@@ -485,9 +485,9 @@ function Util.hermiteInterpolateRotation(r0, r1, v0, v1, t)
     -- Hermite basis functions
     local t2 = t * t
     local t3 = t2 * t
-    local h00 = 2*t3 - 3*t2 + 1
-    local h10 = t3 - 2*t2 + t
-    local h01 = -2*t3 + 3*t2
+    local h00 = 2 * t3 - 3 * t2 + 1
+    local h10 = t3 - 2 * t2 + t
+    local h01 = -2 * t3 + 3 * t2
     local h11 = t3 - t2
 
     -- Pitch (rx) is clamped and does not wrap, so standard Hermite interpolation is fine.
@@ -505,7 +505,6 @@ function Util.hermiteInterpolateRotation(r0, r1, v0, v1, t)
 
     return rx, CameraCommons.normalizeAngle(ry), CameraCommons.normalizeAngle(rz)
 end
-
 
 function Util.getCleanMapName()
     local mapName = Game.mapName
@@ -619,6 +618,40 @@ function Util.patchTable(target, source)
     end
 
     return target
+end
+
+function Util.wrapInTrace(func, name)
+    return function(...)
+        local args = { ... }
+        local success, result = xpcall(
+                function()
+                    return func(unpack(args))
+                end,
+                function(err)
+                    Log:warn("Error in " .. name .. ": " .. tostring(err))
+                    Log:warn(debug.traceback("", 2))
+                    return nil
+                end
+        )
+        if not success then
+            if name == "LayoutButtons" then
+                return {}
+            end
+            return nil
+        end
+        return result
+    end
+end
+
+function Util.camStateToVector(camState, prefix)
+    local x = camState[prefix .. "x"]
+    local y = camState[prefix .. "y"]
+    local z = camState[prefix .. "z"]
+
+    if x and y and z then
+        return { x = x, y = y, z = z }
+    end
+    Log:error(string.format("Unable to create vector [%s] from camera state", prefix), camState)
 end
 
 return Util
