@@ -25,12 +25,6 @@ function SpecGroups.set(groupId)
         return false
     end
 
-    -- Check if we're in spectator mode
-    if not SpecGroups.checkSpectatorStatus() then
-        Log:debug("Spectator unit groups only available when spectating")
-        return false
-    end
-
     -- Get currently selected units
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
@@ -53,12 +47,6 @@ function SpecGroups.select(groupId)
     -- Validate input
     if not groupId then
         Log:debug("Invalid group id.")
-        return false
-    end
-
-    -- Check if we're in spectator mode
-    if not SpecGroups.checkSpectatorStatus() then
-        Log:debug("Spectator unit groups only available when spectating")
         return false
     end
 
