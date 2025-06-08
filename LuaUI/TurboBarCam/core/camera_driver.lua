@@ -1,5 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
+local Log = ModuleManager.Log(function(m) Log = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
@@ -20,10 +21,17 @@ function CameraDriver.setTarget(targetConfig)
         euler = targetConfig.euler,
         smoothTime = targetConfig.duration or DEFAULT_SMOOTH_TIME,
     }
+
+    -- Seed the driver's private simulation state. This happens only ONCE at the start of a transition.
+    -- We copy the current "real" velocity from the tracker to ensure a smooth takeover from manual control.
+    STATE.cameraDriverState = {
+        simVelocity = CameraStateTracker.getVelocity() or {x=0, y=0, z=0},
+        simAngularVelocity = CameraStateTracker.getAngularVelocity() or {x=0, y=0, z=0},
+    }
 end
 
 --- Helper function to resolve the lookAt target to a concrete point
-local function getLookAtPoint(target, fallbackPos)
+local function getLookAtPoint(target)
     if not target then return nil end
     if target.type == "point" then
         return target.data
@@ -31,22 +39,27 @@ local function getLookAtPoint(target, fallbackPos)
         local x, y, z = Spring.GetUnitPosition(target.data)
         if x then return {x=x, y=y, z=z} end
     end
-    return fallbackPos
+    return nil
 end
 
 --- The main update function, called every frame.
 function CameraDriver.update(dt)
-    if not STATE.camera or not STATE.cameraTarget or dt <= 0 then return end
+    -- If there's no target, the driver is idle.
+    if not STATE.cameraTarget or dt <= 0 then
+        -- Ensure private state is cleared when inactive.
+        if STATE.cameraDriverState then
+            STATE.cameraDriverState = nil
+        end
+        return
+    end
 
-    -- Get the current, real-world camera state from the tracker at the beginning of the frame.
     local currentPos = CameraStateTracker.getPosition()
     local currentOrient = CameraStateTracker.getOrientation()
 
-    -- The velocity states are used as both input and output for the smoothing function,
-    -- so we get a reference to them from the main state table.
-    -- The tracker seeds these values, and the driver updates them for the next frame's simulation.
-    local simVelocity = STATE.camera.velocity
-    local simAngularVelocity = STATE.camera.angularVelocity
+    -- The driver must use its own private, persistent simulation state for the damper.
+    -- It should NOT use the velocity from the tracker during the transition.
+    local simVelocity = STATE.cameraDriverState.simVelocity
+    local simAngularVelocity = STATE.cameraDriverState.simAngularVelocity
 
     if not currentPos or not currentOrient or not simVelocity or not simAngularVelocity then return end
 
@@ -55,16 +68,15 @@ function CameraDriver.update(dt)
 
     -- === Position Smoothing ===
     if target.position then
-        local newPos = MathUtils.vectorSmoothDamp(currentPos, target.position, simVelocity, target.smoothTime, 100000, dt)
-        STATE.camera.position = newPos -- Update the simulation state for the next frame
+        local newPos = MathUtils.vectorSmoothDamp(currentPos, target.position, simVelocity, target.smoothTime, dt)
+        STATE.camera.position = newPos -- The temporary position for this frame is stored in the main state
         shouldUpdate = true
     end
 
     -- === Orientation Smoothing ===
     local targetOrientation
     if target.lookAt then
-        -- Note: We use the *newly calculated* position to determine the look-at direction. This prevents lag.
-        local lookAtPoint = getLookAtPoint(target.lookAt, STATE.camera.position)
+        local lookAtPoint = getLookAtPoint(target.lookAt)
         if lookAtPoint then
             local dirState = CameraCommons.calculateCameraDirectionToThePoint(STATE.camera.position, lookAtPoint)
             targetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
@@ -74,11 +86,31 @@ function CameraDriver.update(dt)
     end
 
     if targetOrientation then
-        -- For orientation, we use a slightly faster smooth time to feel responsive
         local rotSmoothTime = target.smoothTime * 0.8
-        local newOrient = QuaternionUtils.quaternionSmoothDamp(currentOrient, targetOrientation, simAngularVelocity, rotSmoothTime, 100, dt)
-        STATE.camera.orientation = newOrient -- Update the simulation state
+        local newOrient = QuaternionUtils.quaternionSmoothDamp(currentOrient, targetOrientation, simAngularVelocity, rotSmoothTime, dt)
+        STATE.camera.orientation = newOrient -- The temporary orientation is stored in the main state
         shouldUpdate = true
+    end
+
+    -- === Check for Completion ===
+    if target.position then
+        local posOffset = CameraCommons.vectorSubtract(target.position, STATE.camera.position)
+        local distSq = posOffset.x^2 + posOffset.y^2 + posOffset.z^2
+        local velSq = simVelocity.x^2 + simVelocity.y^2 + simVelocity.z^2
+        local angVelSq = simAngularVelocity.x^2 + simAngularVelocity.y^2 + simAngularVelocity.z^2
+
+        local POS_EPSILON_SQ = 1000
+        local VEL_EPSILON_SQ = 100
+
+        Log:debug(distSq, POS_EPSILON_SQ , velSq , VEL_EPSILON_SQ , angVelSq , VEL_EPSILON_SQ)
+        if distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ and angVelSq < VEL_EPSILON_SQ then
+            STATE.camera.position = target.position
+            if targetOrientation then
+                STATE.camera.orientation = targetOrientation
+            end
+            STATE.cameraTarget = nil -- Clear the target to signal completion.
+            Log:debug("Target reached")
+        end
     end
 
     -- === Apply final state to the engine ===

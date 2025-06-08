@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
@@ -19,7 +19,7 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     end
 
     -- Check if we have any anchors to save
-    if Utils.tableCount(STATE.anchor.points) == 0 then
+    if TableUtils.tableCount(STATE.anchor.points) == 0 then
         Log:warn("No anchors to save")
         return false
     end

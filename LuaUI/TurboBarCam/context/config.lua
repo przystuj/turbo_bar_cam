@@ -44,7 +44,7 @@ if not WG.TurboBarCam.CONFIG then
                 -- modes which will trigger focus_while_tracking effect
                 COMPATIBLE_MODES = { "unit_follow", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
-                DURATION = 2.0, -- Default transition duration (seconds)
+                DURATION = 8.0, -- Default transition duration (seconds)
             },
 
             UNIT_FOLLOW = {

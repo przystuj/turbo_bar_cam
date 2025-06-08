@@ -122,8 +122,6 @@ function ModeManager.disableMode()
     Utils.syncTable(STATE.cameraTarget, STATE.DEFAULT.cameraTarget)
     STATE.lastUsedAnchor = nil
 
-    STATE.orientationController.trackingTarget = nil
-
     STATE.mode.name = nil
     STATE.mode.targetType = STATE.TARGET_TYPES.NONE
     STATE.mode.unitID = nil

@@ -36,18 +36,11 @@ if not WG.TurboBarCam.STATE then
             angularVelocityEuler = {x = 0, y = 0, z = 0},
         },
 
-        --- State for the OrientationController
-        orientationController = {
-            lastKnownLookAtPoint = nil,
-            lastKnownRotation = nil,
-        },
+        cameraTarget = nil,
 
-        cameraTarget = {
-            position = nil,
-            lookAt = nil,
-            euler = nil,
-            positionSpring = { tightness = nil, damping = nil },
-            orientationSpring = { tightness = nil, damping = nil }
+        cameraDriverState = {
+            simVelocity = nil,
+            simAngularVelocity = nil,
         },
 
         ---@deprecated Will be replaced by STATE.camera

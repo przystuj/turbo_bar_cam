@@ -137,7 +137,7 @@ end
 
 --- Smoothly dampens a quaternion towards a target orientation.
 --- Modifies the angular_velocity_ref table in place.
-function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRef, smoothTime, maxSpeed, dt)
+function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRef, smoothTime, dt)
     local errorQ = QuaternionUtils.multiply(target, QuaternionUtils.inverse(current))
     local errorVec = QuaternionUtils.log(errorQ)
 
@@ -145,7 +145,7 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
 
     -- We want to smoothly dampen the error vector to zero.
     -- The velocity we are damping is the angular velocity.
-    local dampedErrorVec = MathUtils.vectorSmoothDamp(errorVec, targetVec, angularVelocityRef, smoothTime, maxSpeed, dt)
+    local dampedErrorVec = MathUtils.vectorSmoothDamp(errorVec, targetVec, angularVelocityRef, smoothTime,dt)
 
     -- The result of the damping is a new, smaller error vector for this frame.
     -- We convert this back into a quaternion representing the rotation to apply for this frame.

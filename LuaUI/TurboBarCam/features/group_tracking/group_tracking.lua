@@ -346,7 +346,7 @@ function GroupTrackingCamera.detectClusters()
     local previousOutliers = STATE.mode.group_tracking.outliers
 
     -- Compare previous and new outliers
-    if Utils.tableCount(previousOutliers) ~= Utils.tableCount(newOutliers) then
+    if TableUtils.tableCount(previousOutliers) ~= TableUtils.tableCount(newOutliers) then
         outliersChanged = true
     else
         -- Check if any new outliers weren't in the previous set
