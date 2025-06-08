@@ -117,6 +117,8 @@ function ModeManager.disableMode()
         end
     end
 
+    STATE.orientationController.trackingTarget = nil
+
     STATE.mode.name = nil
     STATE.mode.targetType = STATE.TARGET_TYPES.NONE
     STATE.mode.unitID = nil
@@ -129,6 +131,9 @@ function ModeManager.disableMode()
     -- Legacy transition flags (being phased out)
     STATE.mode.isModeTransitionInProgress = false
     STATE.mode.transitionProgress = nil
+
+    STATE.anchor.activeAnchorId = nil
+    STATE.anchor.visualizationEnabled = false
 
     -- Reset modes to default state
     Util.patchTable(STATE.mode, STATE.DEFAULT.mode)

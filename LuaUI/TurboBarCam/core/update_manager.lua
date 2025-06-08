@@ -17,6 +17,8 @@ local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera =
 local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
 local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
+local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
+
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -37,10 +39,9 @@ function UpdateManager.processCycle(dt)
     ProjectileCamera.checkAndActivate()
     UpdateManager.updateCameraMode(dt)
 
-    -- Now that all camera movements for this frame have been set,
-    -- update the velocity tracker. This ensures it calculates velocity
-    -- based on the most recent state change.
-    VelocityTracker.update()
+    -- Now that all camera movements for this frame have been set, update the camera state.
+    VelocityTracker.update() --- @deprecated will be replaced by CameraStateTracker
+    CameraStateTracker.update(dt)
 end
 
 --- Handles tracking grace period

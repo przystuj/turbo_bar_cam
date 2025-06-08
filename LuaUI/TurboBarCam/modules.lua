@@ -52,6 +52,10 @@
 ---@field Util fun(hook: fun(module: Util)):Util
 ---@field VelocityTracker fun(hook: fun(module: VelocityTracker)):VelocityTracker
 ---@field WidgetManager fun(hook: fun(module: WidgetManager)):WidgetManager
+---@field QuaternionUtils fun(hook: fun(module: QuaternionUtils)):QuaternionUtils
+---@field CameraStateTracker fun(hook: fun(module: CameraStateTracker )):CameraStateTracker
+---@field OrientationController fun(hook: fun(module: OrientationController  )):OrientationController
+---@field PositionController fun(hook: fun(module: PositionController  )):PositionController
 
 ---@class Modules
 local Modules = {
@@ -64,6 +68,10 @@ local Modules = {
     STATE = "context/state.lua",
     Util = "common/utils.lua",
     EasingFunctions = "common/easing_functions.lua",
+    QuaternionUtils = "common/quaternion_utils.lua",
+
+    OrientationController = "controller/orientation_controller.lua",
+    PositionController = "controller/position_controller.lua",
 
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",
@@ -113,5 +121,7 @@ local Modules = {
     Scheduler = "standalone/scheduler.lua",
     TransitionUtil = "standalone/transition_util.lua",
     VelocityTracker = "standalone/velocity_tracker.lua",
+
+    CameraStateTracker = "tracker/camera_state_tracker.lua",
 }
 return Modules

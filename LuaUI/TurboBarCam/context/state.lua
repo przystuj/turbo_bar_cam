@@ -24,6 +24,25 @@ if not WG.TurboBarCam.STATE then
             },
         },
 
+        --- The new unified tracker for camera state.
+        camera = {
+            position = nil, -- {x, y, z}
+            orientation = nil, -- quaternion {x, y, z, w}
+            euler = nil, -- {rx, ry, rz}
+            velocity = nil, -- {x, y, z}
+            angularVelocityEuler = nil, -- {x, y, z} in rad/s
+            history = {}, -- buffer of recent states
+            maxHistorySize = 10,
+            lastUpdateTime = nil,
+        },
+
+        --- State for the OrientationController
+        orientationController = {
+            lastKnownLookAtPoint = nil,
+            lastKnownRotation = nil,
+        },
+
+        ---@deprecated Will be replaced by STATE.camera
         cameraVelocity = {
             positionHistory = {},
             rotationHistory = {},
@@ -46,15 +65,9 @@ if not WG.TurboBarCam.STATE then
 
         -- Camera anchors
         anchor = {
-            -- points table stores anchor data. Can be one of two types:
-            -- 1. Simple: { position, rotation }
-            -- 2. LookAt: { position, target }
             points = {},
             visualizationEnabled = false,
             activeAnchorId = nil,
-            -- Temporary state for smoothing transitions, managed by the anchor feature itself.
-            lastKnownLookAtPoint = nil,
-            lastKnownRotation = nil,
         },
         lastUsedAnchor = nil,
 
@@ -70,20 +83,21 @@ if not WG.TurboBarCam.STATE then
             unitID = nil,
             targetPoint = nil,
             lastTargetPoint = nil,
-            transitionTarget = nil, -- Used for specific LERP transitions by features
+            transitionTarget = nil,
 
             graceTimer = nil,
             lastUnitID = nil,
 
+            ---@deprecated Will be replaced by STATE.cameraState
             lastCamPos = { x = 0, y = 0, z = 0 },
+            ---@deprecated Will be replaced by STATE.cameraState
             lastCamDir = { x = 0, y = 0, z = 0 },
+            ---@deprecated Will be replaced by STATE.cameraState
             lastRotation = { rx = 0, ry = 0, rz = 0 },
 
-            -- Legacy generic mode transition states (being phased out as features manage their own transitions)
             isModeTransitionInProgress = false,
             transitionProgress = nil,
 
-            -- New states set by ModeManager for feature-led transitions
             initialCameraStateForModeEntry = nil,
             optionalTargetCameraStateForModeEntry = nil,
 
