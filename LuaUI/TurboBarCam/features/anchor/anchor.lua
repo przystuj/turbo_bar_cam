@@ -8,8 +8,7 @@ local Log = ModuleManager.Log(function(m) Log = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraAnchorVisualization = ModuleManager.CameraAnchorVisualization(function(m) CameraAnchorVisualization = m end)
-local PositionController = ModuleManager.PositionController(function(m) PositionController = m end)
-local OrientationController = ModuleManager.OrientationController(function(m) OrientationController = m end)
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
 ---@class CameraAnchor
 local CameraAnchor = {}
@@ -30,6 +29,23 @@ local function getLookAtTargetFromRaycast(startState)
             z = startState.pz + camDir[3] * DISTANCE
         }
     end
+end
+
+--- Calculates the required spring tightness to complete a transition in a given duration.
+---@param duration number The desired duration in seconds.
+---@return number tightness The calculated spring tightness (k).
+---@return number damping The calculated critical damping value (d).
+local function getSpringParamsFromDuration(duration)
+    if duration <= 0.01 then
+        return 500, 45 -- Return high values for a near-instant snap
+    end
+    local SETTLING_CONSTANT = 6.6
+
+    local omega = SETTLING_CONSTANT / duration
+    local tightness = omega * omega
+    local damping = 2 * omega -- for critical damping (d = 2 * sqrt(k))
+
+    return tightness, damping
 end
 
 function CameraAnchor.set(id)
@@ -71,7 +87,7 @@ end
 
 function CameraAnchor.focus(id)
     if Util.isTurboBarCamDisabled() then return true end
-    if not id or id == "" then Log:warn("CameraAnchor.focus: Invalid anchor ID."); return true end
+    if not id or id == "" then return true end
 
     local anchorData = STATE.anchor.points[id]
     if not (anchorData and anchorData.position) then
@@ -80,22 +96,20 @@ function CameraAnchor.focus(id)
     end
 
     local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
-    if STATE.lastUsedAnchor == id and (PositionController.isTransitioning() or OrientationController.isTransitioning()) then
+    if STATE.lastUsedAnchor == id then
         duration = 0.2
     end
 
-    STATE.anchor.activeAnchorId = id
+    STATE.lastUsedAnchor = id
     if STATE.mode.name then ModeManager.disableMode() end
 
-    PositionController.transitionTo({x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz}, duration)
+    CameraDriver.setTarget({
+        position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
+        lookAt = anchorData.target,
+        euler = anchorData.rotation,
+        duration = duration,
+    })
 
-    if anchorData.target then
-        OrientationController.trackFor(anchorData.target, duration)
-    else
-        OrientationController.transitionTo(anchorData.rotation, duration)
-    end
-
-    STATE.lastUsedAnchor = id
     return true
 end
 

@@ -620,6 +620,61 @@ function Util.patchTable(target, source)
     return target
 end
 
+--- Synchronizes a target table with a source table.
+--- Modifies the targetTable in place to match the structure of the sourceTable.
+---
+---@param target table The table to synchronize.
+---@param source table The table to use as the blueprint.
+---@return table targetTable The modified targetTable.
+function Util.syncTable(target, source)
+    if type(target) ~= "table" then
+        Log:warn("Util.syncTable: target is not a table. Got: " .. type(target))
+        return target
+    end
+    if type(source) ~= "table" then
+        Log:warn("Util.syncTable: source is not a table. Got: " .. type(source))
+        -- If source is not a table, it has no keys.
+        -- Therefore, all keys must be removed from target.
+        for k in pairs(target) do
+            target[k] = nil
+        end
+        return target
+    end
+
+    -- Step 1: Update and add keys from source to target.
+    -- This step ensures that target has all the keys from source,
+    -- with values updated or recursively synchronized.
+    for key, sourceValue in pairs(source) do
+        local targetValue = target[key]
+
+        if type(sourceValue) == "table" then
+            if type(targetValue) == "table" then
+                -- If both the source and target values for a key are tables,
+                -- recurse into them to synchronize their contents.
+                Util.syncTable(targetValue, sourceValue)
+            else
+                -- If the source value is a table but the target's is not (or nil),
+                -- replace the target value with a deep copy of the source table
+                -- to ensure the structure matches and prevent reference sharing.
+                target[key] = Util.deepCopy(sourceValue)
+            end
+        else
+            -- If the source value is not a table, simply assign it to the target.
+            target[key] = sourceValue
+        end
+    end
+
+    -- Step 2: Remove keys from target that are not present in source.
+    -- This ensures that target does not contain any extra keys.
+    for key, _ in pairs(target) do
+        if source[key] == nil then
+            target[key] = nil
+        end
+    end
+
+    return target
+end
+
 function Util.wrapInTrace(func, name)
     return function(...)
         local args = { ... }
@@ -652,6 +707,64 @@ function Util.camStateToVector(camState, prefix)
         return { x = x, y = y, z = z }
     end
     Log:error(string.format("Unable to create vector [%s] from camera state", prefix), camState)
+end
+
+--- Core single-value smooth damp function.
+--- This is a stable, framerate-independent implementation.
+---@param current number The current value.
+---@param target number The target value.
+---@param velocity_ref table A table holding the current velocity {val = number}, passed by reference.
+---@param smoothTime number The approximate time to reach the target.
+---@param maxSpeed number The maximum speed.
+---@param dt number The delta time for this frame.
+---@return number The new smoothed value for this frame.
+local function smoothDamp(current, target, velocity_ref, smoothTime, maxSpeed, dt)
+    smoothTime = math.max(0.0001, smoothTime)
+    local omega = 2 / smoothTime
+    local x = omega * dt
+    -- This is a Taylor series approximation for exp(-x) that is stable
+    local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
+
+    local change = current - target
+
+    local maxChange = maxSpeed * smoothTime
+    change = math.max(-maxChange, math.min(maxChange, change))
+
+    local new_target = current - change
+    local temp = (velocity_ref.val + omega * change) * dt
+
+    velocity_ref.val = (velocity_ref.val - omega * temp) * exp
+
+    local output = new_target + (change + temp) * exp
+
+    -- Prevent overshooting
+    if (target - current > 0.0) == (output > target) then
+        output = target
+        velocity_ref.val = (output - target) / dt
+    end
+
+    return output
+end
+
+--- Smoothly dampens a 3D vector towards a target value.
+--- Modifies the velocity_ref table in place.
+function Util.vectorSmoothDamp(current, target, velocity_ref, smoothTime, maxSpeed, dt)
+    maxSpeed = maxSpeed or 100000
+
+    -- We need to pass velocity by reference since the function modifies it.
+    local vx_ref = { val = velocity_ref.x }
+    local vy_ref = { val = velocity_ref.y }
+    local vz_ref = { val = velocity_ref.z }
+
+    local out_x = smoothDamp(current.x, target.x, vx_ref, smoothTime, maxSpeed, dt)
+    local out_y = smoothDamp(current.y, target.y, vy_ref, smoothTime, maxSpeed, dt)
+    local out_z = smoothDamp(current.z, target.z, vz_ref, smoothTime, maxSpeed, dt)
+
+    velocity_ref.x = vx_ref.val
+    velocity_ref.y = vy_ref.val
+    velocity_ref.z = vz_ref.val
+
+    return { x = out_x, y = out_y, z = out_z }
 end
 
 return Util

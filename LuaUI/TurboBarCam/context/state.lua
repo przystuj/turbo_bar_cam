@@ -26,20 +26,28 @@ if not WG.TurboBarCam.STATE then
 
         --- The new unified tracker for camera state.
         camera = {
-            position = nil, -- {x, y, z}
-            orientation = nil, -- quaternion {x, y, z, w}
-            euler = nil, -- {rx, ry, rz}
-            velocity = nil, -- {x, y, z}
-            angularVelocityEuler = nil, -- {x, y, z} in rad/s
-            history = {}, -- buffer of recent states
+            position = {x = 0, y = 0, z = 0},
+            velocity = {x = 0, y = 0, z = 0},
+            orientation = {w = 1, x = 0, y = 0, z = 0},
+            angularVelocity = {x = 0, y = 0, z = 0}, -- as a vector
+            euler = {rx = 0, ry = 0, rz = 0},
+            history = {},
             maxHistorySize = 10,
-            lastUpdateTime = nil,
+            angularVelocityEuler = {x = 0, y = 0, z = 0},
         },
 
         --- State for the OrientationController
         orientationController = {
             lastKnownLookAtPoint = nil,
             lastKnownRotation = nil,
+        },
+
+        cameraTarget = {
+            position = nil,
+            lookAt = nil,
+            euler = nil,
+            positionSpring = { tightness = nil, damping = nil },
+            orientationSpring = { tightness = nil, damping = nil }
         },
 
         ---@deprecated Will be replaced by STATE.camera

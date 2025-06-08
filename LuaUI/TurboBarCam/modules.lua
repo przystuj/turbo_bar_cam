@@ -54,8 +54,7 @@
 ---@field WidgetManager fun(hook: fun(module: WidgetManager)):WidgetManager
 ---@field QuaternionUtils fun(hook: fun(module: QuaternionUtils)):QuaternionUtils
 ---@field CameraStateTracker fun(hook: fun(module: CameraStateTracker )):CameraStateTracker
----@field OrientationController fun(hook: fun(module: OrientationController  )):OrientationController
----@field PositionController fun(hook: fun(module: PositionController  )):PositionController
+---@field CameraDriver fun(hook: fun(module: CameraDriver  )):CameraDriver
 
 ---@class Modules
 local Modules = {
@@ -70,9 +69,7 @@ local Modules = {
     EasingFunctions = "common/easing_functions.lua",
     QuaternionUtils = "common/quaternion_utils.lua",
 
-    OrientationController = "controller/orientation_controller.lua",
-    PositionController = "controller/position_controller.lua",
-
+    CameraDriver = "core/camera_driver.lua",
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",
     TransitionManager = "core/transition_manager.lua",

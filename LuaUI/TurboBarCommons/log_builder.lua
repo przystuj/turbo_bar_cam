@@ -168,7 +168,7 @@ end
 ---@param self LoggerInstance
 function LoggerPrototype:staggeredLog(...)
     selfCheck(self)
-    if math.random() < 0.05 then
+    if math.random() >= 0.1 then
         return
     end
     local logLevel = self:getLogLevel()

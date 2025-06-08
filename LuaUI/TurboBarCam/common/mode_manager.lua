@@ -117,6 +117,9 @@ function ModeManager.disableMode()
         end
     end
 
+    Util.syncTable(STATE.cameraTarget, STATE.DEFAULT.cameraTarget)
+    STATE.lastUsedAnchor = nil
+
     STATE.orientationController.trackingTarget = nil
 
     STATE.mode.name = nil
@@ -136,7 +139,7 @@ function ModeManager.disableMode()
     STATE.anchor.visualizationEnabled = false
 
     -- Reset modes to default state
-    Util.patchTable(STATE.mode, STATE.DEFAULT.mode)
+    Util.syncTable(STATE.mode, STATE.DEFAULT.mode)
 
     -- Old anchor queue and transition state (assuming these are top-level in STATE)
     if STATE.anchorQueue then

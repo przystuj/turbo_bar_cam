@@ -18,7 +18,7 @@ local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera =
 local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
-
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -28,6 +28,9 @@ function UpdateManager.processCycle(dt)
     if Util.isTurboBarCamDisabled() then
         return
     end
+
+    CameraStateTracker.update(dt)
+    CameraDriver.update(dt)
 
     -- First, run all updates that might change the camera's state.
     SettingsManager.update()
@@ -41,7 +44,6 @@ function UpdateManager.processCycle(dt)
 
     -- Now that all camera movements for this frame have been set, update the camera state.
     VelocityTracker.update() --- @deprecated will be replaced by CameraStateTracker
-    CameraStateTracker.update(dt)
 end
 
 --- Handles tracking grace period
