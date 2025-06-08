@@ -2,7 +2,8 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
 local DollyCamNavigator = ModuleManager.DollyCamNavigator(function(m) DollyCamNavigator = m end)
@@ -31,7 +32,7 @@ DollyCam.KEYS = {
 
 ---@return boolean success Whether the waypoint was added
 function DollyCam.addCurrentPositionToRoute()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -49,7 +50,7 @@ function DollyCam.addCurrentPositionToRoute()
 end
 
 function DollyCam.setWaypointLookAtUnit()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -57,7 +58,7 @@ function DollyCam.setWaypointLookAtUnit()
 end
 
 function DollyCam.setWaypointTargetSpeed(speed)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -72,7 +73,7 @@ end
 ---@param waypointIndex number Index of the waypoint to delete
 ---@return boolean success Whether the waypoint was deleted
 function DollyCam.deleteWaypoint(waypointIndex)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -83,7 +84,7 @@ end
 ---@param deltaTime number Time since last update in seconds
 ---@return boolean active Whether the DollyCam system is active
 function DollyCam.update(deltaTime)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
@@ -105,7 +106,7 @@ end
 ---@param name string ID of the route to save
 ---@return boolean success Whether the route was saved
 function DollyCam.saveRoute(name)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -113,7 +114,7 @@ function DollyCam.saveRoute(name)
     local routeData = DollyCamDataStructures.serializeRoute()
 
     -- Get clean map name
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
 
     -- Load existing camera presets for all maps
     local mapPresets = SettingsManager.loadUserSetting("dollycam", mapName, {})
@@ -136,12 +137,12 @@ end
 ---@param name string Filename to load from
 ---@return string|nil routeId ID of the loaded route, or nil if loading failed
 function DollyCam.loadRoute(name)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return nil
     end
 
     -- Get clean map name
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
 
     local mapPresets = SettingsManager.loadUserSetting("dollycam", mapName)
 
@@ -170,7 +171,7 @@ end
 -- Toggle navigation on a route
 ---@return boolean success Whether navigation was started
 function DollyCam.toggleNavigation(noCam)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -197,7 +198,7 @@ end
 ---@param speed number Speed from -1.0 (full reverse) to 1.0 (full forward)
 ---@return boolean success Whether speed was set
 function DollyCam.adjustSpeed(speed)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -213,7 +214,7 @@ end
 ---@param direction number Reverse: -1.0, Forward: 1.0
 ---@return boolean success Whether speed was set
 function DollyCam.setDirection(direction)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -234,7 +235,7 @@ end
 -- Set navigation speed
 ---@return boolean success Whether speed was set
 function DollyCam.toggleDirection()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -250,7 +251,7 @@ end
 -- Toggle waypoint editor mode
 ---@return boolean enabled Whether the editor was enabled
 function DollyCam.toggleWaypointEditor()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -268,7 +269,7 @@ end
 ---@param value number Amount to move (positive or negative)
 ---@return boolean success Whether the waypoint was moved
 function DollyCam.moveSelectedWaypoint(axis, value)
-    if Util.isTurboBarCamDisabled() or not STATE.dollyCam.isEditing then
+    if Utils.isTurboBarCamDisabled() or not STATE.dollyCam.isEditing then
         return false
     end
 
@@ -276,7 +277,7 @@ function DollyCam.moveSelectedWaypoint(axis, value)
 end
 
 function DollyCam.resetWaypointSpeed()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -284,7 +285,7 @@ function DollyCam.resetWaypointSpeed()
 end
 
 function DollyCam.clearWaypointLookAt()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -293,7 +294,7 @@ end
 
 -- todo remove at some point
 function DollyCam.test()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 

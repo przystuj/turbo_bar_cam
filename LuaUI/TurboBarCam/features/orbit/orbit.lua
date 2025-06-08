@@ -3,7 +3,9 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local OrbitCameraUtils = ModuleManager.OrbitCameraUtils(function(m) OrbitCameraUtils = m end)
@@ -46,7 +48,7 @@ local function startOrbitEntryTransition()
 end
 
 function OrbitingCamera.toggle(unitID)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
@@ -88,12 +90,12 @@ function OrbitingCamera.toggle(unitID)
 end
 
 function OrbitingCamera.togglePointOrbit(point)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
     if not point then
-        point = Util.getCursorWorldPosition()
+        point = WorldUtils.getCursorWorldPosition()
         if not point then
             Log:debug("[ORBIT] Couldn't get cursor position.");
             return
@@ -108,7 +110,7 @@ function OrbitingCamera.togglePointOrbit(point)
 end
 
 function OrbitingCamera.update(dt)
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
 
@@ -149,7 +151,7 @@ function OrbitingCamera.getNewCameraState(dt, transitionFactor)
 end
 
 function OrbitingCamera.pauseOrbit()
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
     if STATE.mode.orbit.isPaused then
@@ -161,7 +163,7 @@ function OrbitingCamera.pauseOrbit()
 end
 
 function OrbitingCamera.resumeOrbit()
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
     if not STATE.mode.orbit.isPaused then
@@ -173,7 +175,7 @@ function OrbitingCamera.resumeOrbit()
 end
 
 function OrbitingCamera.togglePauseOrbit()
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
     if STATE.mode.orbit.isPaused then
@@ -184,7 +186,7 @@ function OrbitingCamera.togglePauseOrbit()
 end
 
 function OrbitingCamera.saveOrbit(orbitId)
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
         return
     end
     if not orbitId or orbitId == "" then
@@ -198,7 +200,7 @@ function OrbitingCamera.saveOrbit(orbitId)
 end
 
 function OrbitingCamera.loadOrbit(orbitId)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     if not orbitId or orbitId == "" then
@@ -234,7 +236,7 @@ function OrbitingCamera.loadOrbit(orbitId)
         end
     elseif targetTypeToUse == STATE.TARGET_TYPES.POINT then
         if loadedData.targetPoint then
-            targetToUse = Util.deepCopy(loadedData.targetPoint)
+            targetToUse = TableUtils.deepCopy(loadedData.targetPoint)
         else
             Log:warn("[ORBIT] No targetPoint data for load.");
             ModeManager.disableMode();

@@ -3,7 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
@@ -17,10 +17,10 @@ local UnitFollowCombatMode = {}
 
 --- Cycles through unit's weapons
 function UnitFollowCombatMode.nextWeapon()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
     if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
@@ -91,10 +91,10 @@ end
 
 --- Clear forced weapon
 function UnitFollowCombatMode.clearWeaponSelection()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
 
@@ -407,10 +407,10 @@ end
 --- Toggles combat mode on/off
 --- @return boolean success Whether the toggle was successful
 function UnitFollowCombatMode.toggleCombatMode()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return false
     end
 

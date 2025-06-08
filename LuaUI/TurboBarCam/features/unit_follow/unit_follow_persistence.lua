@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 
@@ -43,7 +43,7 @@ function UnitFollowPersistence.loadUnitSettings(_, unitId)
     local function loadOffsets(mode, unitName)
         local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
         local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
-        Util.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
+        Utils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
     end
 
     local unitName = getUnitName(unitId)

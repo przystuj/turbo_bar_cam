@@ -3,7 +3,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local GroupTrackingUtils = ModuleManager.GroupTrackingUtils(function(m) GroupTrackingUtils = m end)
@@ -16,7 +17,7 @@ local GroupTrackingCamera = {}
 --- Toggles group tracking camera mode
 ---@return boolean success Always returns true for widget handler
 function GroupTrackingCamera.toggle()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return true
     end
 
@@ -311,7 +312,7 @@ function GroupTrackingCamera.detectClusters()
             for _, unitID in ipairs(units) do
                 if Spring.ValidUnitID(unitID) and
                         GroupTrackingUtils.isAircraftUnit(unitID) and
-                        not Util.tableContains(significantCluster, unitID) then
+                        not TableUtils.tableContains(significantCluster, unitID) then
                     table.insert(significantCluster, unitID)
                 end
             end
@@ -319,7 +320,7 @@ function GroupTrackingCamera.detectClusters()
 
         -- Mark units not in significant cluster as outliers
         for _, unitID in ipairs(units) do
-            if Spring.ValidUnitID(unitID) and not Util.tableContains(significantCluster, unitID) then
+            if Spring.ValidUnitID(unitID) and not TableUtils.tableContains(significantCluster, unitID) then
                 -- Don't mark aircraft as outliers if we want to include them
                 if not (hasAircraft and GroupTrackingUtils.isAircraftUnit(unitID)) then
                     newOutliers[unitID] = true
@@ -345,7 +346,7 @@ function GroupTrackingCamera.detectClusters()
     local previousOutliers = STATE.mode.group_tracking.outliers
 
     -- Compare previous and new outliers
-    if Util.tableCount(previousOutliers) ~= Util.tableCount(newOutliers) then
+    if Utils.tableCount(previousOutliers) ~= Utils.tableCount(newOutliers) then
         outliersChanged = true
     else
         -- Check if any new outliers weren't in the previous set
@@ -705,7 +706,7 @@ function GroupTrackingCamera.update()
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see Utils#adjustParams
 function GroupTrackingCamera.adjustParams(params)
     GroupTrackingUtils.adjustGroupTrackingParams(params)
 end

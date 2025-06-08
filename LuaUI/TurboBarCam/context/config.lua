@@ -325,7 +325,7 @@ local CONFIG = WG.TurboBarCam.CONFIG
 
 --- Parameters which can be modified by actions. paramName = {minValue, maxValue, [rad if value is in radians]}
 ---@class ModifiableParams
----@see Util#adjustParams
+---@see Utils#adjustParams
 CONFIG.MODIFIABLE_PARAMS = {
     UNIT_FOLLOW = {
         PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS,

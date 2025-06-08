@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
@@ -12,7 +12,7 @@ local SelectionManager = {}
 --- Handles selection changes
 ---@param selectedUnits number[] Array of selected unit IDs
 function SelectionManager.handleSelectionChanged(selectedUnits)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 

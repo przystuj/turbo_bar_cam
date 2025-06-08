@@ -2,7 +2,8 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 
 ---@class GroupTrackingUtils
 local GroupTrackingUtils = {}
@@ -38,16 +39,16 @@ function GroupTrackingUtils.applyCameraAdjustments(center, baseDirection, distan
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see Utils#adjustParams
 function GroupTrackingUtils.adjustGroupTrackingParams(params)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("group_tracking") then
+    if Utils.isModeDisabled("group_tracking") then
         return
     end
 
-    Util.adjustParams(params, "GROUP_TRACKING", function()
+    ParamUtils.adjustParams(params, "GROUP_TRACKING", function()
         GroupTrackingUtils.resetGroupTrackingSettings()
     end)
 end
@@ -55,10 +56,10 @@ end
 --- Resets group tracking settings to defaults
 ---@return boolean success Whether settings were reset successfully
 function GroupTrackingUtils.resetGroupTrackingSettings()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
-    if Util.isModeDisabled("group_tracking") then
+    if Utils.isModeDisabled("group_tracking") then
         return false
     end
 

@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Util = ModuleManager.Util(function(m) Util = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class DBSCAN
@@ -63,7 +63,7 @@ function DBSCAN.performClustering(units, epsilon, minPoints)
                 if #currentNeighbors >= minPoints then
                     -- Merge neighbors
                     for _, neighborID in ipairs(currentNeighbors) do
-                        if not Util.tableContains(neighbors, neighborID) then
+                        if not TableUtils.tableContains(neighbors, neighborID) then
                             table.insert(neighbors, neighborID)
                         end
                     end

@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 
 ---@class DollyCamPathPlanner
 local DollyCamPathPlanner = {}
@@ -546,7 +546,7 @@ function DollyCamPathPlanner.createDenseRoute(route, pointDensity)
     }
 
     -- Add the first point
-    table.insert(denseRoute.points, Util.deepCopy(route.points[1]))
+    table.insert(denseRoute.points, TableUtils.deepCopy(route.points[1]))
 
     -- For each segment, add intermediate points
     for i = 1, #route.segments do

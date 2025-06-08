@@ -4,7 +4,7 @@ local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local QuaternionUtils = ModuleManager.QuaternionUtils(function(m) QuaternionUtils = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class CameraDriver
 local CameraDriver = {}
@@ -55,7 +55,7 @@ function CameraDriver.update(dt)
 
     -- === Position Smoothing ===
     if target.position then
-        local newPos = Util.vectorSmoothDamp(currentPos, target.position, simVelocity, target.smoothTime, 100000, dt)
+        local newPos = MathUtils.vectorSmoothDamp(currentPos, target.position, simVelocity, target.smoothTime, 100000, dt)
         STATE.camera.position = newPos -- Update the simulation state for the next frame
         shouldUpdate = true
     end

@@ -3,7 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraQuickControls = ModuleManager.CameraQuickControls(function(m) CameraQuickControls = m end)
@@ -54,7 +54,7 @@ end
 
 --- Disables the widget
 function WidgetManager.disable()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     ModeManager.disableMode()
@@ -137,7 +137,7 @@ end
 -- @param path The string path (e.g., "CAMERA_MODES.UNIT_FOLLOW.OFFSETS.UP").
 -- @param value The value to set at the specified path.
 function WidgetManager.changeConfig(path, value)
-    local segments = Util.splitPath(path)
+    local segments = Utils.splitPath(path)
     local currentTable = CONFIG
     local segmentCount = #segments
 
@@ -167,7 +167,7 @@ function WidgetManager.changeConfig(path, value)
 end
 
 function WidgetManager.toggleZoom()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     local cycle = { [45] = 24, [24] = 12, [12] = 45 }
@@ -177,7 +177,7 @@ function WidgetManager.toggleZoom()
 end
 
 function WidgetManager.setFov(fov)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     local camState = Spring.GetCameraState()

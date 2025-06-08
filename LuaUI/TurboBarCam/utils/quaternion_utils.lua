@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Util = ModuleManager.Util(function(m) Util = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 --- A library of utility functions for working with quaternions.
 ---@class QuaternionUtils
@@ -112,47 +112,47 @@ function QuaternionUtils.log(q)
         return { w = 0, x = 0, y = 0, z = 0 }
     end
 
-    local v_mag_sq = q.x*q.x + q.y*q.y + q.z*q.z
-    local v_mag = math.sqrt(v_mag_sq)
+    local vMagSq = q.x*q.x + q.y*q.y + q.z*q.z
+    local vMag = math.sqrt(vMagSq)
 
-    if v_mag < 0.00001 then
+    if vMag < 0.00001 then
         return { w = 0, x = 0, y = 0, z = 0 }
     end
 
-    local half_angle = math.atan2(v_mag, w)
+    local halfAngle = math.atan2(vMag, w)
 
-    return scalePureQuaternion({w=0, x=q.x, y=q.y, z=q.z}, half_angle / v_mag)
+    return scalePureQuaternion({w=0, x=q.x, y=q.y, z=q.z}, halfAngle / vMag)
 end
 
 function QuaternionUtils.exp(q)
-    local half_angle = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z)
+    local halfAngle = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z)
 
-    if half_angle < 0.00001 then return QuaternionUtils.identity() end
+    if halfAngle < 0.00001 then return QuaternionUtils.identity() end
 
-    local w = math.cos(half_angle)
-    local s = math.sin(half_angle) / half_angle
+    local w = math.cos(halfAngle)
+    local s = math.sin(halfAngle) / halfAngle
 
     return { w = w, x = q.x * s, y = q.y * s, z = q.z * s }
 end
 
 --- Smoothly dampens a quaternion towards a target orientation.
 --- Modifies the angular_velocity_ref table in place.
-function QuaternionUtils.quaternionSmoothDamp(current, target, angular_velocity_ref, smoothTime, maxSpeed, dt)
-    local error_q = QuaternionUtils.multiply(target, QuaternionUtils.inverse(current))
-    local error_vec = QuaternionUtils.log(error_q)
+function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRef, smoothTime, maxSpeed, dt)
+    local errorQ = QuaternionUtils.multiply(target, QuaternionUtils.inverse(current))
+    local errorVec = QuaternionUtils.log(errorQ)
 
-    local target_vec = {x = 0, y = 0, z = 0}
+    local targetVec = { x = 0, y = 0, z = 0}
 
     -- We want to smoothly dampen the error vector to zero.
     -- The velocity we are damping is the angular velocity.
-    local damped_error_vec = Util.vectorSmoothDamp(error_vec, target_vec, angular_velocity_ref, smoothTime, maxSpeed, dt)
+    local dampedErrorVec = MathUtils.vectorSmoothDamp(errorVec, targetVec, angularVelocityRef, smoothTime, maxSpeed, dt)
 
     -- The result of the damping is a new, smaller error vector for this frame.
     -- We convert this back into a quaternion representing the rotation to apply for this frame.
-    local delta_rot_q = QuaternionUtils.exp(damped_error_vec)
+    local deltaRotQ = QuaternionUtils.exp(dampedErrorVec)
 
     -- To get the new camera orientation, we apply this frame's rotation to the current orientation.
-    return QuaternionUtils.multiply(delta_rot_q, current)
+    return QuaternionUtils.multiply(deltaRotQ, current)
 end
 
 return QuaternionUtils

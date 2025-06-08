@@ -3,12 +3,13 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local CameraAnchorPersistence = ModuleManager.CameraAnchorPersistence(function(m) CameraAnchorPersistence = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraAnchorVisualization = ModuleManager.CameraAnchorVisualization(function(m) CameraAnchorVisualization = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 
 ---@class CameraAnchor
 local CameraAnchor = {}
@@ -49,7 +50,7 @@ local function getSpringParamsFromDuration(duration)
 end
 
 function CameraAnchor.set(id)
-    if Util.isTurboBarCamDisabled() then return end
+    if Utils.isTurboBarCamDisabled() then return end
     if not id or id == "" then Log:warn("CameraAnchor.set: Invalid anchor ID."); return end
 
     local camState = Spring.GetCameraState()
@@ -86,7 +87,7 @@ function CameraAnchor.set(id)
 end
 
 function CameraAnchor.focus(id)
-    if Util.isTurboBarCamDisabled() then return true end
+    if Utils.isTurboBarCamDisabled() then return true end
     if not id or id == "" then return true end
 
     local anchorData = STATE.anchor.points[id]
@@ -114,17 +115,17 @@ function CameraAnchor.focus(id)
 end
 
 function CameraAnchor.save(id)
-    if Util.isTurboBarCamDisabled() then return false end
+    if Utils.isTurboBarCamDisabled() then return false end
     return CameraAnchorPersistence.saveToFile(id)
 end
 
 function CameraAnchor.load(id)
-    if Util.isTurboBarCamDisabled() then return false end
+    if Utils.isTurboBarCamDisabled() then return false end
     return CameraAnchorPersistence.loadFromFile(id)
 end
 
 function CameraAnchor.toggleVisualization()
-    if Util.isTurboBarCamDisabled() then return end
+    if Utils.isTurboBarCamDisabled() then return end
     STATE.anchor.visualizationEnabled = not STATE.anchor.visualizationEnabled
     Log:info("Camera anchor visualization " .. (STATE.anchor.visualizationEnabled and "enabled" or "disabled"))
 end
@@ -134,8 +135,8 @@ function CameraAnchor.draw()
 end
 
 function CameraAnchor.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then return end
-    Util.adjustParams(params, 'ANCHOR', function()
+    if Utils.isTurboBarCamDisabled() then return end
+    ParamUtils.adjustParams(params, 'ANCHOR', function()
         CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2
     end)
 end

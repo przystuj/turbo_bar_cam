@@ -3,9 +3,11 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
@@ -36,7 +38,7 @@ function OrbitCameraUtils.ensureHeightIsSet()
     end
 
     if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
-        local unitHeight = math.max(Util.getUnitHeight(STATE.mode.unitID), 100)
+        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.mode.unitID), 100)
         CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
     else
         CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = 1000
@@ -44,16 +46,16 @@ function OrbitCameraUtils.ensureHeightIsSet()
 end
 
 ---@see ModifiableParams
----@see Util#adjustParams
+---@see Utils#adjustParams
 function OrbitCameraUtils.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("orbit") then
+    if Utils.isModeDisabled("orbit") then
         return
     end
 
-    Util.adjustParams(params, "ORBIT", function()
+    ParamUtils.adjustParams(params, "ORBIT", function()
         OrbitCameraUtils.resetSettings()
     end)
     SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
@@ -62,7 +64,7 @@ end
 --- Resets orbit settings to defaults
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.resetSettings()
-    Util.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS, CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS)
+    Utils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS, CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS)
     Log:trace("Restored orbit camera settings to defaults")
 end
 

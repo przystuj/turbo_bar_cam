@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 
 ---@class VelocityTracker
@@ -156,7 +156,7 @@ end
 ---@return table predictedState Predicted camera state {px, py, pz, rx, ry, rz}
 function VelocityTracker.predictState(currentState, vel, rotVel, deltaTime, decayRate)
     if decayRate <= 0 or deltaTime <= 0 then
-        return Util.deepCopy(currentState)
+        return TableUtils.deepCopy(currentState)
     end
 
     local decayFactorIntegral = (1 - math.exp(-decayRate * deltaTime)) / decayRate

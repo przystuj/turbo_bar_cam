@@ -5,11 +5,12 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
 local TransitionUtil = ModuleManager.TransitionUtil(function(m) TransitionUtil = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 
 ---@class UnitTrackingCamera
 local UnitTrackingCamera = {}
@@ -136,7 +137,7 @@ local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, t
 end
 
 function UnitTrackingCamera.toggle()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     local selectedUnits = Spring.GetSelectedUnits()
@@ -224,7 +225,7 @@ function UnitTrackingCamera.update(dt)
 end
 
 function UnitTrackingCamera.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     if STATE.mode.name ~= 'unit_tracking' then
@@ -234,7 +235,7 @@ function UnitTrackingCamera.adjustParams(params)
         Log:trace("UnitTrackingCamera: No unit is tracked for adjustParams.")
         return
     end
-    Util.adjustParams(params, "UNIT_TRACKING", function()
+    ParamUtils.adjustParams(params, "UNIT_TRACKING", function()
         CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT = 0
     end)
 end

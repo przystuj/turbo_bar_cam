@@ -2,7 +2,9 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
@@ -32,7 +34,7 @@ end
 ---@param optionalTargetCameraState table|nil Optional camera state for the feature to transition towards.
 ---@return boolean success Whether the mode was set up successfully.
 function ModeManager.initializeMode(newModeName, target, targetTypeString, automaticMode, optionalTargetCameraState)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
 
@@ -41,7 +43,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
         validTarget = target
         finalValidType = targetTypeString -- Assuming targetTypeString is one of STATE.TARGET_TYPES
     else
-        validTarget, finalValidType = Util.validateTarget(target) -- validateTarget returns type from STATE.TARGET_TYPES
+        validTarget, finalValidType = WorldUtils.validateTarget(target) -- validateTarget returns type from STATE.TARGET_TYPES
     end
 
     if finalValidType == STATE.TARGET_TYPES.NONE then
@@ -90,7 +92,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
     else
         -- STATE.TARGET_TYPES.POINT
         STATE.mode.targetPoint = validTarget
-        STATE.mode.lastTargetPoint = Util.deepCopy(validTarget)
+        STATE.mode.lastTargetPoint = TableUtils.deepCopy(validTarget)
         STATE.mode.unitID = nil
         SettingsManager.loadModeSettings(newModeName, validTarget)
     end
@@ -117,7 +119,7 @@ function ModeManager.disableMode()
         end
     end
 
-    Util.syncTable(STATE.cameraTarget, STATE.DEFAULT.cameraTarget)
+    Utils.syncTable(STATE.cameraTarget, STATE.DEFAULT.cameraTarget)
     STATE.lastUsedAnchor = nil
 
     STATE.orientationController.trackingTarget = nil
@@ -139,7 +141,7 @@ function ModeManager.disableMode()
     STATE.anchor.visualizationEnabled = false
 
     -- Reset modes to default state
-    Util.syncTable(STATE.mode, STATE.DEFAULT.mode)
+    Utils.syncTable(STATE.mode, STATE.DEFAULT.mode)
 
     -- Old anchor queue and transition state (assuming these are top-level in STATE)
     if STATE.anchorQueue then

@@ -3,9 +3,11 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local ProjectileCameraPersistence = ModuleManager.ProjectileCameraPersistence(function(m) ProjectileCameraPersistence = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
@@ -154,7 +156,7 @@ function ProjectileCameraUtils.resetToDefaults()
     cfg.STATIC.LOOK_AHEAD = cfg.DEFAULT_STATIC.LOOK_AHEAD
     cfg.STATIC.OFFSET_HEIGHT = cfg.DEFAULT_STATIC.OFFSET_HEIGHT
     cfg.STATIC.OFFSET_SIDE = cfg.DEFAULT_STATIC.OFFSET_SIDE
-    cfg.DECELERATION_PROFILE = Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
+    cfg.DECELERATION_PROFILE = TableUtils.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
     Log:trace("ProjectileCamera: Restored settings to defaults.")
 end
 
@@ -173,7 +175,7 @@ function ProjectileCameraUtils.saveSettings(unitID)
     local settingsToSave = {
         FOLLOW = { DISTANCE = cfg.FOLLOW.DISTANCE, HEIGHT = cfg.FOLLOW.HEIGHT, LOOK_AHEAD = cfg.FOLLOW.LOOK_AHEAD, },
         STATIC = { LOOK_AHEAD = cfg.STATIC.LOOK_AHEAD, OFFSET_HEIGHT = cfg.STATIC.OFFSET_HEIGHT, OFFSET_SIDE = cfg.STATIC.OFFSET_SIDE, },
-        DECELERATION_PROFILE = Util.deepCopy(cfg.DECELERATION_PROFILE),
+        DECELERATION_PROFILE = TableUtils.deepCopy(cfg.DECELERATION_PROFILE),
     }
     ProjectileCameraPersistence.saveSettings(unitName, settingsToSave)
 end
@@ -201,7 +203,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
         cfg.STATIC.LOOK_AHEAD = loadedSettings.STATIC and loadedSettings.STATIC.LOOK_AHEAD or cfg.DEFAULT_STATIC.LOOK_AHEAD
         cfg.STATIC.OFFSET_HEIGHT = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_HEIGHT or cfg.DEFAULT_STATIC.OFFSET_HEIGHT
         cfg.STATIC.OFFSET_SIDE = loadedSettings.STATIC and loadedSettings.STATIC.OFFSET_SIDE or cfg.DEFAULT_STATIC.OFFSET_SIDE
-        cfg.DECELERATION_PROFILE = loadedSettings.DECELERATION_PROFILE and Util.deepCopy(loadedSettings.DECELERATION_PROFILE) or Util.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
+        cfg.DECELERATION_PROFILE = loadedSettings.DECELERATION_PROFILE and TableUtils.deepCopy(loadedSettings.DECELERATION_PROFILE) or TableUtils.deepCopy(cfg.DEFAULT_DECELERATION_PROFILE)
     else
         Log:trace("ProjectileCamera: No saved settings found for " .. unitName .. ". Using defaults.")
         ProjectileCameraUtils.resetToDefaults()
@@ -209,7 +211,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
 end
 
 function ProjectileCameraUtils.adjustParams(params)
-    if Util.isTurboBarCamDisabled() or STATE.mode.name ~= 'projectile_camera' then
+    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'projectile_camera' then
         return
     end
     local function getProjectileParamPrefixes()
@@ -225,7 +227,7 @@ function ProjectileCameraUtils.adjustParams(params)
     local currentSubmode = STATE.mode.projectile_camera.cameraMode
     local currentSubmodeUpper = string.upper(currentSubmode)
     Log:trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
-    Util.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
+    ParamUtils.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
     if STATE.mode.unitID then
         ProjectileCameraUtils.saveSettings(STATE.mode.unitID)
     end

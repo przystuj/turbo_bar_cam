@@ -3,7 +3,9 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 local OrbitCameraUtils = ModuleManager.OrbitCameraUtils(function(m) OrbitCameraUtils = m end)
 
@@ -33,7 +35,7 @@ function OrbitPersistence.serializeCurrentOrbitState()
         data.targetID = STATE.mode.unitID
     elseif STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
         if STATE.mode.targetPoint then
-            data.targetPoint = Util.deepCopy(STATE.mode.targetPoint)
+            data.targetPoint = TableUtils.deepCopy(STATE.mode.targetPoint)
         else
             Log:warn("[OrbitPersistence] Target type is POINT but targetPoint is nil. Saving without point.")
         end
@@ -58,7 +60,7 @@ function OrbitPersistence.saveToFile(orbitSetId, dataToSave)
         return false
     end
 
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
     local mapOrbitPresets = SettingsManager.loadUserSetting("orbit_presets", mapName, {})
     mapOrbitPresets[orbitSetId] = dataToSave
 
@@ -82,7 +84,7 @@ function OrbitPersistence.loadFromFile(orbitSetId)
         return nil
     end
 
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
     local mapOrbitPresets = SettingsManager.loadUserSetting("orbit_presets", mapName)
 
     if not mapOrbitPresets or not mapOrbitPresets[orbitSetId] then
@@ -100,7 +102,7 @@ function OrbitPersistence.saveSettings(_, _)
 end
 
 function OrbitPersistence.loadSettings(_, _)
-    Util.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS,SettingsManager.loadUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS))
+    Utils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS,SettingsManager.loadUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS))
     OrbitCameraUtils.ensureHeightIsSet()
 end
 

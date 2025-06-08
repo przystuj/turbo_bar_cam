@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 
 ---@class Scheduler
 local Scheduler = {}
@@ -98,7 +98,7 @@ end
 
 --- Handles and executes all due schedules
 function Scheduler.handleSchedules()
-    if not STATE.scheduler.schedules or Util.tableCount(STATE.scheduler.schedules) == 0 then
+    if not STATE.scheduler.schedules or TableUtils.tableCount(STATE.scheduler.schedules) == 0 then
         return
     end
 

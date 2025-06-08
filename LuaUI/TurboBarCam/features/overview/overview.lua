@@ -3,7 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
@@ -500,7 +500,7 @@ end
 
 -- Add the toggle function here for completeness if it wasn't included before
 function OverviewCamera.toggle()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     -- disable previous mode
@@ -725,7 +725,7 @@ end
 
 -- Simple height change function that updates height and triggers move to target
 function OverviewCamera.changeHeightAndMove(amount)
-    if Util.isModeDisabled("overview") then
+    if Utils.isModeDisabled("overview") then
         return
     end
 

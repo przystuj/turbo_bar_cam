@@ -3,7 +3,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
@@ -38,7 +39,7 @@ end
 -- Core Toggling and State Management
 --------------------------------------------------------------------------------
 function ProjectileCamera.toggle(requestedSubMode)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     local unitToWatchForToggle = STATE.mode.unitID
@@ -82,10 +83,10 @@ function ProjectileCamera.toggle(requestedSubMode)
             return ProjectileCamera.armProjectileTracking(requestedSubMode, unitToWatchForToggle)
         end
     else
-        if Util.isTurboBarCamDisabled() then
+        if Utils.isTurboBarCamDisabled() then
             return false
         end
-        if not currentActualMode or not Util.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then
+        if not currentActualMode or not TableUtils.tableContains(CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.COMPATIBLE_MODES_FROM, currentActualMode) then
             return false
         end
 
@@ -173,7 +174,7 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
     local previouslyWatchedUnitID = STATE.mode.projectile_camera.watchedUnitID
     local unitToReArmWith = STATE.mode.projectile_camera.continuouslyArmedUnitID
 
-    local prevCamStateCopy = Util.deepCopy(prevCamState)
+    local prevCamStateCopy = TableUtils.deepCopy(prevCamState)
     ProjectileCamera.disableProjectileArming()
 
     local canReArm = shouldReArm and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith)
@@ -295,8 +296,8 @@ function ProjectileCamera.handleProjectileTracking(unitID, dt)
     local currentProjectile = ProjectileCamera.getCurrentProjectile(unitID)
     if currentProjectile and currentProjectile.position then
         STATE.mode.projectile_camera.impactPosition = {
-            pos = Util.deepCopy(currentProjectile.position),
-            vel = Util.deepCopy(currentProjectile.velocity)
+            pos = TableUtils.deepCopy(currentProjectile.position),
+            vel = TableUtils.deepCopy(currentProjectile.velocity)
         }
         ProjectileCamera.trackActiveProjectile(currentProjectile)
     else
@@ -434,8 +435,8 @@ end
 
 function ProjectileCamera.decelerateToImpactPosition()
     local vel, _, rotVel, _ = VelocityTracker.getCurrentVelocity()
-    STATE.mode.projectile_camera.initialImpactVelocity = Util.deepCopy(vel)
-    STATE.mode.projectile_camera.initialImpactRotVelocity = Util.deepCopy(rotVel)
+    STATE.mode.projectile_camera.initialImpactVelocity = TableUtils.deepCopy(vel)
+    STATE.mode.projectile_camera.initialImpactRotVelocity = TableUtils.deepCopy(rotVel)
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
     TransitionManager.force({
         id = IMPACT_DECELERATION_TRANSITION_ID,
@@ -454,7 +455,7 @@ function ProjectileCamera.decelerateToImpactPosition()
             if smoothedState then
                 finalCamState = smoothedState
             else
-                finalCamState = Util.deepCopy(currentCamState)
+                finalCamState = TableUtils.deepCopy(currentCamState)
                 TransitionManager.finish(IMPACT_DECELERATION_TRANSITION_ID)
                 CameraTracker.updateLastKnownCameraState(finalCamState)
                 Spring.SetCameraState(finalCamState, 0)
@@ -493,7 +494,7 @@ function ProjectileCamera.shouldUpdate()
     if STATE.mode.name ~= 'projectile_camera' then
         return false
     end
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
     return true

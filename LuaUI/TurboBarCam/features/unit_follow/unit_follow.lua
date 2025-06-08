@@ -3,7 +3,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
@@ -73,7 +74,7 @@ end
 --- Toggles Unit Follow camera attached to a unit
 ---@param unitID number|nil The unit to track. If nil, uses the first selected unit.
 function UnitFollowCamera.toggle(unitID)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
@@ -140,7 +141,7 @@ end
 
 function UnitFollowCamera.getCameraPosition(additionalFactor)
     additionalFactor = additionalFactor or 1
-    local unitPos, front, up, right = Util.getUnitVectors(STATE.mode.unitID)
+    local unitPos, front, up, right = WorldUtils.getUnitVectors(STATE.mode.unitID)
     local camPos = UnitFollowUtils.applyOffsets(unitPos, front, up, right)
 
     local posFactor = UnitFollowUtils.getSmoothingFactor('position', additionalFactor)
@@ -190,7 +191,7 @@ function UnitFollowCamera.getCameraDirection(cameraPosition, additionalFactor)
 end
 
 function UnitFollowCamera.checkFixedPointCommandActivation()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
@@ -238,10 +239,10 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
 end
 
 function UnitFollowCamera.setFixedLookPoint(cmdParams)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("unit_follow") then
+    if Utils.isModeDisabled("unit_follow") then
         return
     end
     if not STATE.mode.unitID then
@@ -284,7 +285,7 @@ function UnitFollowCamera.clearFixedLookPoint()
 end
 
 function UnitFollowCamera.toggleFreeCam()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
     if STATE.mode.name ~= 'unit_follow' or not STATE.mode.unitID then
@@ -298,10 +299,10 @@ function UnitFollowCamera.toggleFreeCam()
 end
 
 function UnitFollowCamera.nextWeapon()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
     if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
@@ -312,10 +313,10 @@ function UnitFollowCamera.nextWeapon()
 end
 
 function UnitFollowCamera.clearWeaponSelection()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
     UnitFollowCombatMode.clearWeaponSelection()
@@ -326,10 +327,10 @@ function UnitFollowCamera.adjustParams(params)
 end
 
 function UnitFollowCamera.toggleCombatMode()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled('unit_follow') then
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
     UnitFollowCombatMode.toggleCombatMode()

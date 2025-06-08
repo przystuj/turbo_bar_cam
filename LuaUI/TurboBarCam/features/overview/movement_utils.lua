@@ -3,7 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 local RotationUtils = ModuleManager.RotationUtils(function(m) RotationUtils = m end)
@@ -227,7 +227,7 @@ function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userC
 end
 
 function MovementUtils.moveToTarget()
-    if Util.isModeDisabled("overview") then
+    if Utils.isModeDisabled("overview") then
         return false
     end
 

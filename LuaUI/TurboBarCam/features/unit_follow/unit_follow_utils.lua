@@ -3,13 +3,15 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
 local UnitFollowTargetingUtils = ModuleManager.UnitFollowTargetingUtils(function(m) UnitFollowTargetingUtils = m end)
 local UnitFollowTargetingSmoothing = ModuleManager.UnitFollowTargetingSmoothing(function(m) UnitFollowTargetingSmoothing = m end)
 local UnitFollowPersistence = ModuleManager.UnitFollowPersistence(function(m) UnitFollowPersistence = m end)
+local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 
 ---@class UnitFollowUtils
 local UnitFollowUtils = {}
@@ -35,7 +37,7 @@ end
 function UnitFollowUtils.ensureHeightIsSet()
     -- Set DEFAULT mode height if not set
     if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT then
-        local unitHeight = math.max(Util.getUnitHeight(STATE.mode.unitID), 100) + 30
+        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.mode.unitID), 100) + 30
         CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT = unitHeight
     end
 
@@ -342,10 +344,10 @@ end
 ---@param targetUnitID number|nil Optional unit ID to track
 ---@return boolean success Whether fixed point was set successfully
 function UnitFollowUtils.setFixedLookPoint(fixedPoint, targetUnitID)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return false
     end
-    if Util.isModeDisabled("unit_follow") then
+    if Utils.isModeDisabled("unit_follow") then
         return false
     end
     if not STATE.mode.unitID then
@@ -386,7 +388,7 @@ end
 
 --- Clears fixed point tracking
 function UnitFollowUtils.clearFixedLookPoint()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
 
@@ -466,10 +468,10 @@ end
 
 --- Update adjustParams to handle the new offset structure
 function UnitFollowUtils.adjustParams(params)
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("unit_follow") then
+    if Utils.isModeDisabled("unit_follow") then
         return
     end
 
@@ -500,8 +502,7 @@ function UnitFollowUtils.adjustParams(params)
 
     Log:trace("Adjusting unit_follow parameters for submode: " .. currentSubMode)
 
-    -- Call the generic adjustParams function
-    Util.adjustParams(params, "UNIT_FOLLOW", function()
+    ParamUtils.adjustParams(params, "UNIT_FOLLOW", function()
         UnitFollowUtils.resetOffsets()
     end, currentSubMode, getParamPrefixes)
 
@@ -511,7 +512,7 @@ end
 --- Resets camera offsets to default values
 function UnitFollowUtils.resetOffsets()
     local function reset(mode)
-        Util.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
+        Utils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
     end
 
     reset("DEFAULT")

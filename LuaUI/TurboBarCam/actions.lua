@@ -11,7 +11,7 @@ local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupT
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 
 ---@class Actions
 local Actions = {}
@@ -365,7 +365,7 @@ end
 ---@param flags string Action flags
 ---@param handler function Action handler function
 function Actions.registerAction(actionName, flags, handler)
-    w.widgetHandler.actionHandler:AddAction(w, actionName, Util.wrapInTrace(handler, actionName), nil, flags)
+    w.widgetHandler.actionHandler:AddAction(w, actionName, DebugUtils.wrapInTrace(handler, actionName), nil, flags)
 end
 
 return Actions

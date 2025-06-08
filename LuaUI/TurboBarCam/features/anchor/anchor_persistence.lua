@@ -2,7 +2,8 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class CameraAnchorPersistence
@@ -18,13 +19,13 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     end
 
     -- Check if we have any anchors to save
-    if Util.tableCount(STATE.anchor.points) == 0 then
+    if Utils.tableCount(STATE.anchor.points) == 0 then
         Log:warn("No anchors to save")
         return false
     end
 
     -- Get clean map name
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
 
     -- Load existing camera presets for all maps
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
@@ -54,7 +55,7 @@ function CameraAnchorPersistence.loadFromFile(id)
     end
 
     -- Get clean map name
-    local mapName = Util.getCleanMapName()
+    local mapName = WorldUtils.getCleanMapName()
 
     -- Load all map presets
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName)

@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 
 ---@class MouseManager
 local MouseManager = {}
@@ -16,7 +16,7 @@ end
 
 local function shouldProcessInput()
     for modeName, _ in pairs(STATE.mouse.registeredModes) do
-        if not Util.isModeDisabled(modeName) then
+        if not Utils.isModeDisabled(modeName) then
             return true
         end
     end
@@ -26,7 +26,7 @@ end
 local function fireCallbacks(eventType, ...)
     if STATE.mouse.callbacks[eventType] then
         for modeName, callback in pairs(STATE.mouse.callbacks[eventType]) do
-            if STATE.mouse.registeredModes[modeName] and not Util.isModeDisabled(modeName) then
+            if STATE.mouse.registeredModes[modeName] and not Utils.isModeDisabled(modeName) then
                 callback(...)
             end
         end

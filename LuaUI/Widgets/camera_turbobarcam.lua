@@ -21,7 +21,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end)
-local Util = ModuleManager.Util(function(m) Util = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Actions = ModuleManager.Actions(function(m) Actions = m end)
 local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
@@ -73,7 +74,7 @@ function widget:GameFrame(frame)
 end
 
 function widget:DrawWorld()
-    if Spring.IsGUIHidden() == false and not Util.isTurboBarCamDisabled() then
+    if Spring.IsGUIHidden() == false and not Utils.isTurboBarCamDisabled() then
         DollyCam.draw()
         CameraAnchor.draw()
     end
@@ -106,10 +107,10 @@ function widget:CommandNotify(cmdID, cmdParams, _)
 end
 
 function widget:CommandsChanged()
-    if Util.isTurboBarCamDisabled() then
+    if Utils.isTurboBarCamDisabled() then
         return
     end
-    if Util.isModeDisabled("unit_follow") then
+    if Utils.isModeDisabled("unit_follow") then
         return
     end
 
@@ -123,7 +124,7 @@ end
 if CONFIG and CONFIG.DEBUG and CONFIG.DEBUG.TRACE_BACK then
     for name, func in pairs(widget) do
         if type(func) == "function" and name ~= "GetInfo" then
-            widget[name] = Util.wrapInTrace(func, name)
+            widget[name] = DebugUtils.wrapInTrace(func, name)
         end
     end
 end

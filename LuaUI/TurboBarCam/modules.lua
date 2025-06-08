@@ -49,12 +49,17 @@
 ---@field TransitionUtil fun(hook: fun(module: TransitionUtil)):TransitionUtil
 ---@field UnitTrackingCamera fun(hook: fun(module: UnitTrackingCamera)):UnitTrackingCamera
 ---@field UpdateManager fun(hook: fun(module: UpdateManager)):UpdateManager
----@field Util fun(hook: fun(module: Util)):Util
 ---@field VelocityTracker fun(hook: fun(module: VelocityTracker)):VelocityTracker
 ---@field WidgetManager fun(hook: fun(module: WidgetManager)):WidgetManager
 ---@field QuaternionUtils fun(hook: fun(module: QuaternionUtils)):QuaternionUtils
 ---@field CameraStateTracker fun(hook: fun(module: CameraStateTracker )):CameraStateTracker
----@field CameraDriver fun(hook: fun(module: CameraDriver  )):CameraDriver
+---@field CameraDriver fun(hook: fun(module: CameraDriver)):CameraDriver
+---@field DebugUtils fun(hook: fun(module: DebugUtils)):DebugUtils
+---@field MathUtils fun(hook: fun(module: MathUtils)):MathUtils
+---@field ParamUtils fun(hook: fun(module: ParamUtils)):ParamUtils
+---@field TableUtils fun(hook: fun(module: TableUtils)):TableUtils
+---@field Utils fun(hook: fun(module: Utils)):Utils
+---@field WorldUtils fun(hook: fun(module: WorldUtils)):WorldUtils
 
 ---@class Modules
 local Modules = {
@@ -65,9 +70,7 @@ local Modules = {
     Log = "common/log.lua",
     ModeManager = "common/mode_manager.lua",
     STATE = "context/state.lua",
-    Util = "common/utils.lua",
     EasingFunctions = "common/easing_functions.lua",
-    QuaternionUtils = "common/quaternion_utils.lua",
 
     CameraDriver = "core/camera_driver.lua",
     SelectionManager = "core/selection_manager.lua",
@@ -120,5 +123,13 @@ local Modules = {
     VelocityTracker = "standalone/velocity_tracker.lua",
 
     CameraStateTracker = "tracker/camera_state_tracker.lua",
+
+    DebugUtils = "utils/debug_utils.lua",
+    MathUtils = "utils/math_utils.lua",
+    ParamUtils = "utils/param_utils.lua",
+    TableUtils = "utils/table_utils.lua",
+    Utils = "utils/utils.lua",
+    WorldUtils = "utils/world_utils.lua",
+    QuaternionUtils = "utils/quaternion_utils.lua",
 }
 return Modules
