@@ -16,11 +16,8 @@ local DEFAULT_SMOOTH_TIME = 0.3
 --- Sets the camera's declarative target state and seeds the simulation.
 ---@param targetConfig table Configuration for the target state.
 function CameraDriver.setTarget(targetConfig)
-    -- Check if the driver was already active before this call.
-    -- The presence of a target.position indicates an active move.
     local wasAlreadyActive = (STATE.active.driver.target and STATE.active.driver.target.position ~= nil)
 
-    -- Set the new target for the movement in the designated state table.
     STATE.active.driver.target = {
         position = targetConfig.position,
         lookAt = targetConfig.lookAt,
@@ -31,20 +28,19 @@ function CameraDriver.setTarget(targetConfig)
 
     local sim = STATE.active.driver.simulation
 
-    -- CRITICAL: Only seed the simulation state from the tracker if the driver was
-    -- previously idle. If it was already moving, we preserve its internal
-    -- velocities to ensure a perfectly smooth, continuous transition.
     if not wasAlreadyActive then
         sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or {x=0, y=0, z=0})
         sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or {x=0, y=0, z=0})
     end
-    -- If the driver was already active, its existing sim.velocity and
-    -- sim.angularVelocity are carried over into the new movement calculation.
 
-    -- Always update the start time and transforms for the new curve.
     sim.startTime = Spring.GetTimer()
-    sim.startPos = TableUtils.deepCopy(CameraStateTracker.getPosition())
+    local currentPos = CameraStateTracker.getPosition()
+    sim.startPos = TableUtils.deepCopy(currentPos)
     sim.startOrient = TableUtils.deepCopy(CameraStateTracker.getOrientation())
+
+    local ROTATION_ONLY_THRESHOLD_SQ = 1.0
+    local distSq = CameraCommons.distanceSquared(currentPos, targetConfig.position)
+    sim.isRotationOnly = (distSq < ROTATION_ONLY_THRESHOLD_SQ)
 end
 
 --- Helper function to resolve the lookAt target to a concrete point
@@ -62,105 +58,78 @@ end
 --- The main update function, called every frame.
 function CameraDriver.update(dt)
     local driverState = STATE.active.driver
-    -- Exit if the driver is idle (no target position) or dt is invalid.
     if not driverState or not driverState.target.position or dt <= 0 then
         return
     end
 
-    -- Get the camera's current state from the tracker (The Sensor).
     local currentPos = CameraStateTracker.getPosition()
     local currentOrient = CameraStateTracker.getOrientation()
-
-    -- CRITICAL: Use the driver's own private simulation state for the damper.
-    -- This state persists across frames and is only modified by the damper functions,
-    -- preventing the "fight" with the tracker's real-time state.
     local simState = driverState.simulation
-    if not currentPos or not currentOrient or not simState then return end
+    if not currentPos or not currentOrient or not simState or not simState.startOrient then return end
 
     local target = driverState.target
-    local shouldUpdate = false
+    local newPos = currentPos
 
-    -- Resolve the target orientation for this frame.
-    local targetOrientation
-    if target.lookAt then
-        local lookAtPoint = getLookAtPoint(target.lookAt)
-        if lookAtPoint then
-            local lookFromPos = currentPos
-            local dirState = CameraCommons.calculateCameraDirectionToThePoint(lookFromPos, lookAtPoint)
-            targetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
-        end
-    elseif target.euler then
-        targetOrientation = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+    if not simState.isRotationOnly then
+        newPos = MathUtils.vectorSmoothDamp(currentPos, target.position, simState.velocity, target.smoothTime, dt)
+        STATE.active.camera.position = newPos
     end
 
-    -- === Movement Calculation ===
     if target.transitionType == "smooth" then
-        if target.position then
-            -- Pass the private simulation velocity to be used and updated.
-            STATE.active.camera.position = MathUtils.vectorSmoothDamp(currentPos, target.position, simState.velocity, target.smoothTime, dt)
-            shouldUpdate = true
-        end
-        if targetOrientation then
-            -- Log state before the damper runs
-            local preDampAngularVel = TableUtils.deepCopy(simState.angularVelocity)
-
-            -- Pass the private simulation angular velocity to be used and updated.
-            local newOrient = QuaternionUtils.quaternionSmoothDamp(currentOrient, targetOrientation, simState.angularVelocity, target.smoothTime, dt)
-            STATE.active.camera.orientation = newOrient
-            shouldUpdate = true
-
-            -- Log inputs and outputs of the rotation damper
-            Log:staggeredLog("ROTATION DAMPING |", {
-                inputOrient = currentOrient,
-                targetOrient = targetOrientation,
-                outputOrient = newOrient,
-                inputAngVel = preDampAngularVel,
-                outputAngVel = simState.angularVelocity,
-            })
-        end
-    end
-
-    -- === Check for Completion ===
-    if target.position then
-        local posOffset = CameraCommons.vectorSubtract(target.position, STATE.active.camera.position)
-        local distSq = CameraCommons.vectorMagnitudeSq(posOffset)
-        -- Check the private simulation velocity, not the tracker's velocity.
-        local velSq = CameraCommons.vectorMagnitudeSq(simState.velocity)
-        local angVelSq = CameraCommons.vectorMagnitudeSq(simState.angularVelocity)
-
-        local rotOffsetSq = 0
-        if targetOrientation then
-            local errorQ = QuaternionUtils.multiply(targetOrientation, QuaternionUtils.inverse(STATE.active.camera.orientation))
-            local errorVec = QuaternionUtils.log(errorQ)
-            rotOffsetSq = CameraCommons.vectorMagnitudeSq(errorVec)
-        end
-
-        local POS_EPSILON_SQ = 0.01
-        local ROT_EPSILON_SQ = 0.0001
-        local VEL_EPSILON_SQ = 0.01
-
-        local isComplete = distSq < POS_EPSILON_SQ and rotOffsetSq < ROT_EPSILON_SQ and velSq < VEL_EPSILON_SQ and angVelSq < VEL_EPSILON_SQ
-
-        if isComplete then
-            STATE.active.camera.position = target.position
-            if targetOrientation then
-                STATE.active.camera.orientation = targetOrientation
+        local finalTargetOrientation
+        if target.lookAt then
+            local lookAtPoint = getLookAtPoint(target.lookAt)
+            if lookAtPoint then
+                local dirState = CameraCommons.calculateCameraDirectionToThePoint(newPos, lookAtPoint)
+                finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
             end
-            -- Clear the target using the default state to signal completion.
-            driverState.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
+        elseif target.euler then
+            finalTargetOrientation = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+        end
+
+        if finalTargetOrientation then
+            local rotationDuration = target.smoothTime
+            local elapsedTime = Spring.DiffTimers(Spring.GetTimer(), simState.startTime)
+            local rawAlpha = math.min(1.0, elapsedTime / rotationDuration)
+            local easedAlpha = CameraCommons.easeInOut(rawAlpha)
+            local proxyTargetOrient = QuaternionUtils.slerp(simState.startOrient, finalTargetOrientation, easedAlpha)
+            local PROXY_CHASE_SMOOTH_TIME = 0.15
+            local newOrient = QuaternionUtils.quaternionSmoothDamp(currentOrient, proxyTargetOrient, simState.angularVelocity, PROXY_CHASE_SMOOTH_TIME, dt)
+            STATE.active.camera.orientation = newOrient
         end
     end
 
-    -- === Apply final state to the engine ===
-    if shouldUpdate then
-        local finalEuler = { QuaternionUtils.toEuler(STATE.active.camera.orientation) }
-        local camState = {
-            px = STATE.active.camera.position.x, py = STATE.active.camera.position.y, pz = STATE.active.camera.position.z,
-            rx = finalEuler[1], ry = finalEuler[2],
-        }
-        -- Log:debug("Driver: final CamState", camState)
-        Spring.SetCameraState(camState)
+    local isComplete = false
+    if simState.isRotationOnly then
+        local rotationDuration = target.smoothTime
+        if Spring.DiffTimers(Spring.GetTimer(), simState.startTime) >= rotationDuration then
+            isComplete = true
+        end
+    else
+        local distSq = CameraCommons.distanceSquared(STATE.active.camera.position, target.position)
+        local velSq = CameraCommons.vectorMagnitudeSq(simState.velocity)
+        local POS_EPSILON_SQ = 0.01
+        local VEL_EPSILON_SQ = 0.01
+        if distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ then
+            isComplete = true
+        end
     end
+
+    if isComplete then
+        STATE.active.camera.position = target.position
+        if target.euler then
+            STATE.active.camera.orientation = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+        end
+        driverState.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
+        simState.isRotationOnly = false
+    end
+
+    local finalEuler = { QuaternionUtils.toEuler(STATE.active.camera.orientation) }
+    local camState = {
+        px = STATE.active.camera.position.x, py = STATE.active.camera.position.y, pz = STATE.active.camera.position.z,
+        rx = finalEuler[1], ry = finalEuler[2],
+    }
+    Spring.SetCameraState(camState)
 end
 
 return CameraDriver
