@@ -1,15 +1,12 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 --- A library of utility functions for working with quaternions.
 ---@class QuaternionUtils
 local QuaternionUtils = {}
 
--- Helper to scale the vector part of a pure quaternion by a scalar.
-local function scalePureQuaternion(q, s)
-    return { w = 0, x = q.x * s, y = q.y * s, z = q.z * s }
-end
-
+-- ... (All other functions like identity, multiply, slerp, etc., remain exactly the same) ...
 function QuaternionUtils.identity()
     return { x = 0, y = 0, z = 0, w = 1 }
 end
@@ -105,6 +102,11 @@ function QuaternionUtils.slerp(q1, q2, t)
     })
 end
 
+---@diagnostic disable-next-line: unused-local
+local function scalePureQuaternion(q, s)
+    return { w = 0, x = q.x * s, y = q.y * s, z = q.z * s }
+end
+
 function QuaternionUtils.log(q)
     local w = q.w
     if w > 0.99999 then
@@ -134,55 +136,76 @@ function QuaternionUtils.exp(q)
     return { w = w, x = q.x * s, y = q.y * s, z = q.z * s }
 end
 
---- Smoothly dampens a quaternion towards a target orientation using a stable, framerate-independent
---- spring-damper model.
---- Modifies the angular_velocity_ref table in place.
----@param current table The current quaternion {x, y, z, w}.
----@param target table The target quaternion {x, y, z, w}.
+--- Smoothly dampens a quaternion towards a target value using a stable, framerate-independent
+--- spring-damper model analogous to vectorSmoothDamp.
+--- Modifies the angularVelocityRef table in place.
+---@param current table The current quaternion orientation.
+---@param target table The target quaternion orientation.
 ---@param angularVelocityRef table A table holding the current angular velocity {x, y, z}, passed by reference.
----@param smoothTime number The approximate time to reach the target. A smaller value will reach the target faster.
+---@param smoothTime number The approximate time to reach the target.
 ---@param dt number The delta time for this frame.
 ---@return table The new smoothed quaternion for this frame.
 function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRef, smoothTime, dt)
-    -- 1. Ensure we are rotating along the shortest path.
-    -- Quaternions q and -q represent the same rotation, but the interpolation path will differ.
-    local target_aligned = target
+    dt = math.min(dt, 0.05)
+    smoothTime = math.max(0.0001, smoothTime)
+
+    -- Local vector helpers to avoid external dependencies
+    local function vec_add(v1, v2) return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) } end
+    local function vec_sub(v1, v2) return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) } end
+    local function vec_mul_scalar(v, s) return { x = (v.x or 0) * s, y = (v.y or 0) * s, z = (v.z or 0) * s } end
+    local function vec_dot(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0) end
+    local function vec_mag_sq(v) return (v.x or 0)^2 + (v.y or 0)^2 + (v.z or 0)^2 end
+
+    -- Ensure we take the shortest path by avoiding the long way around the sphere
+    local target_q = target
     if QuaternionUtils.dot(current, target) < 0.0 then
-        target_aligned = { w = -target.w, x = -target.x, y = -target.y, z = -target.z }
+        target_q = { w = -target.w, x = -target.x, y = -target.y, z = -target.z }
     end
 
-    -- 2. Convert the rotation difference to a rotation vector (in axis-angle format).
-    -- This vector represents the "change" we need to make.
-    local error_q = QuaternionUtils.multiply(target_aligned, QuaternionUtils.inverse(current))
-    local change_vec = QuaternionUtils.log(error_q)
-
-    -- 3. Use the same stable, critically damped spring math from MathUtils.vectorSmoothDamp.
-    -- We are damping the angular velocity towards zero to correct for the `change_vec` error.
-    local omega = 2.0 / smoothTime
+    -- Same spring physics constants as vectorSmoothDamp for synchronization
+    local omega = 2 / smoothTime
     local x = omega * dt
-    local exp = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+    local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
 
-    -- 4. Calculate the damped velocity and the new offset for this frame.
-    local temp_x = (angularVelocityRef.x + omega * change_vec.x) * dt
-    local temp_y = (angularVelocityRef.y + omega * change_vec.y) * dt
-    local temp_z = (angularVelocityRef.z + omega * change_vec.z) * dt
+    -- Calculate change vector from current to target, analogous to `current - target`
+    local delta_to_target = QuaternionUtils.multiply(current, QuaternionUtils.inverse(target_q))
+    local log_delta = QuaternionUtils.log(delta_to_target)
+    local change_v = { x = log_delta.x, y = log_delta.y, z = log_delta.z }
 
-    -- Update angular velocity for next frame (the "in place" modification)
-    angularVelocityRef.x = (angularVelocityRef.x - omega * temp_x) * exp
-    angularVelocityRef.y = (angularVelocityRef.y - omega * temp_y) * exp
-    angularVelocityRef.z = (angularVelocityRef.z - omega * temp_z) * exp
+    -- Add stability clamp, mirroring vectorSmoothDamp's maxSpeed
+    local maxAngularSpeed = 100 -- Radians per second, a very high but safe limit
+    local maxAngleChange = maxAngularSpeed * smoothTime
+    if vec_mag_sq(change_v) > maxAngleChange * maxAngleChange then
+        local change_mag = math.sqrt(vec_mag_sq(change_v))
+        change_v = vec_mul_scalar(change_v, maxAngleChange / change_mag)
+    end
 
-    -- Calculate the rotation to apply this frame to move towards the target
-    local offset_vec = {
-        x = (change_vec.x + temp_x) * exp,
-        y = (change_vec.y + temp_y) * exp,
-        z = (change_vec.z + temp_z) * exp,
-    }
+    -- The rest of the logic mirrors vectorSmoothDamp
+    local temp_v = vec_mul_scalar(vec_add(angularVelocityRef, vec_mul_scalar(change_v, omega)), dt)
 
-    -- 5. Convert the resulting rotation vector back to a quaternion and apply it to the current orientation.
-    local delta_rot = QuaternionUtils.exp(offset_vec)
-    return QuaternionUtils.multiply(delta_rot, current)
+    local new_vel = vec_mul_scalar(vec_sub(angularVelocityRef, vec_mul_scalar(temp_v, omega)), exp)
+    angularVelocityRef.x = new_vel.x
+    angularVelocityRef.y = new_vel.y
+    angularVelocityRef.z = new_vel.z
+
+    -- This vector represents the remaining rotation offset from the target
+    local output_disp_v = vec_mul_scalar(vec_add(change_v, temp_v), exp)
+
+    -- Convert displacement vector to a quaternion and apply it to the target
+    local output_disp_q = QuaternionUtils.exp({ w = 0, x = output_disp_v.x, y = output_disp_v.y, z = output_disp_v.z })
+    local output_q = QuaternionUtils.multiply(output_disp_q, target_q)
+
+    -- Prevent overshooting
+    local orig_to_target_q = QuaternionUtils.multiply(target_q, QuaternionUtils.inverse(current))
+    local new_to_target_q = QuaternionUtils.multiply(target_q, QuaternionUtils.inverse(output_q))
+    local v_orig = QuaternionUtils.log(orig_to_target_q)
+    local v_new = QuaternionUtils.log(new_to_target_q)
+    if vec_dot(v_orig, v_new) < 0.0 then
+        output_q = target_q
+        angularVelocityRef.x, angularVelocityRef.y, angularVelocityRef.z = 0, 0, 0
+    end
+
+    return QuaternionUtils.normalize(output_q)
 end
-
 
 return QuaternionUtils

@@ -1,6 +1,3 @@
----@type ModuleManager
-local ModuleManager = WG.TurboBarCam.ModuleManager
-
 ---@class MathUtils
 local MathUtils = {}
 
@@ -14,12 +11,13 @@ local MathUtils = {}
 ---@param dt number The delta time for this frame.
 ---@return table The new smoothed vector for this frame.
 function MathUtils.vectorSmoothDamp(current, target, velocity_ref, smoothTime, dt)
+    dt = math.min(dt, 0.05) -- Prevent large steps during frame rate drops
     local maxSpeed = 10000
     smoothTime = math.max(0.0001, smoothTime)
 
     -- This calculation is based on a critical-damped spring model.
     -- The omega value influences how stiff the spring is.
-    local omega = 10 / smoothTime
+    local omega = 2 / smoothTime
     local x = omega * dt
     -- A Taylor series approximation for exp(-x) that is stable.
     local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)

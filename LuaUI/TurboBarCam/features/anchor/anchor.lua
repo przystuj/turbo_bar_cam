@@ -104,13 +104,17 @@ function CameraAnchor.focus(id)
     STATE.lastUsedAnchor = id
     if STATE.active.mode.name then ModeManager.disableMode() end
 
-    CameraDriver.setTarget({
+    local camTarget = {
         position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
         lookAt = anchorData.target,
         euler = anchorData.rotation,
         duration = duration,
-    })
+    }
 
+    Log:debug("Current camState", Spring.GetCameraState())
+    Log:debug("Cam tracker pos|rot|vel|avel", STATE.active.camera.position, STATE.active.camera.orientation, STATE.active.camera.velocity, STATE.active.camera.angularVelocity)
+    Log:debug("Set target to", camTarget)
+    CameraDriver.setTarget(camTarget)
     return true
 end
 
