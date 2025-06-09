@@ -13,9 +13,9 @@ local DollyCamVisualization = ModuleManager.DollyCamVisualization(function(m) Do
 local DollyCamWaypointEditor = ModuleManager.DollyCamWaypointEditor(function(m) DollyCamWaypointEditor = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
--- Initialize STATE.dollyCam if not already done
-STATE.dollyCam = STATE.dollyCam or {}
-STATE.dollyCam.isEditing = STATE.dollyCam.isEditing or false
+-- Initialize STATE.active.dollyCam if not already done
+STATE.active.dollyCam = STATE.active.dollyCam or {}
+STATE.active.dollyCam.isEditing = STATE.active.dollyCam.isEditing or false
 
 ---@class DollyCam
 local DollyCam = {}
@@ -42,7 +42,7 @@ function DollyCam.addCurrentPositionToRoute()
         if STATE.dollyCam.route and #STATE.dollyCam.route.points >= 2 then
             DollyCamPathPlanner.generateSmoothPath()
             Log:debug("Regenerated path for active route after waypoint " .. action)
-            STATE.dollyCam.visualizationEnabled = true
+            STATE.active.dollyCam.visualizationEnabled = true
         end
     end
 
@@ -89,14 +89,14 @@ function DollyCam.update(deltaTime)
     end
 
     -- Only update navigation if it's active
-    if STATE.dollyCam.isNavigating then
+    if STATE.active.dollyCam.isNavigating then
         return DollyCamNavigator.update(deltaTime)
     end
 end
 
 -- Draw function called in DrawWorld
 function DollyCam.draw()
-    if not STATE.dollyCam.visualizationEnabled then
+    if not STATE.active.dollyCam.visualizationEnabled then
         return
     end
     DollyCamVisualization.draw()
@@ -176,18 +176,18 @@ function DollyCam.toggleNavigation(noCam)
     end
 
     -- If in editing mode, disable it before navigating
-    if STATE.dollyCam.isEditing then
+    if STATE.active.dollyCam.isEditing then
         DollyCamWaypointEditor.disable()
     end
 
     -- Stop navigating if active
-    if STATE.dollyCam.isNavigating then
+    if STATE.active.dollyCam.isNavigating then
         DollyCamNavigator.stopNavigation()
         return
     end
 
     -- Stop tracking if active
-    if STATE.mode.name then
+    if STATE.active.mode.name then
         ModeManager.disableMode()
     end
 
@@ -202,7 +202,7 @@ function DollyCam.adjustSpeed(speed)
         return false
     end
 
-    if not STATE.dollyCam.isNavigating then
+    if not STATE.active.dollyCam.isNavigating then
         Log:trace("Cannot set speed: Not currently navigating")
         return false
     end
@@ -218,7 +218,7 @@ function DollyCam.setDirection(direction)
         return false
     end
 
-    if not STATE.dollyCam.isNavigating then
+    if not STATE.active.dollyCam.isNavigating then
         Log:trace("Cannot set direction: Not currently navigating")
         return false
     end
@@ -228,8 +228,8 @@ function DollyCam.setDirection(direction)
         return false
     end
 
-    STATE.dollyCam.direction = tonumber(direction)
-    Log:debug("Direction set to " .. STATE.dollyCam.direction)
+    STATE.active.dollyCam.direction = tonumber(direction)
+    Log:debug("Direction set to " .. STATE.active.dollyCam.direction)
 end
 
 -- Set navigation speed
@@ -239,13 +239,13 @@ function DollyCam.toggleDirection()
         return false
     end
 
-    if not STATE.dollyCam.isNavigating then
+    if not STATE.active.dollyCam.isNavigating then
         Log:trace("Cannot set direction: Not currently navigating")
         return false
     end
 
-    STATE.dollyCam.direction = STATE.dollyCam.direction * -1
-    Log:debug("Direction set to " .. STATE.dollyCam.direction)
+    STATE.active.dollyCam.direction = STATE.active.dollyCam.direction * -1
+    Log:debug("Direction set to " .. STATE.active.dollyCam.direction)
 end
 
 -- Toggle waypoint editor mode
@@ -256,7 +256,7 @@ function DollyCam.toggleWaypointEditor()
     end
 
     -- If navigating, stop first
-    if STATE.dollyCam.isNavigating then
+    if STATE.active.dollyCam.isNavigating then
         DollyCamNavigator.stopNavigation()
     end
 
@@ -269,7 +269,7 @@ end
 ---@param value number Amount to move (positive or negative)
 ---@return boolean success Whether the waypoint was moved
 function DollyCam.moveSelectedWaypoint(axis, value)
-    if Utils.isTurboBarCamDisabled() or not STATE.dollyCam.isEditing then
+    if Utils.isTurboBarCamDisabled() or not STATE.active.dollyCam.isEditing then
         return false
     end
 

@@ -34,7 +34,7 @@ local UNIT_FOLLOW_ENTRY_TRANSITION_ID = "UnitFollowCamera.EntryTransition"
 ---@param unitID number The ID of the unit to focus on.
 local function startEntryTransition(unitID)
     -- init camera state when starting transition
-    STATE.mode.unit_follow.isModeInitialized = true
+    STATE.active.mode.unit_follow.isModeInitialized = true
     if not Spring.ValidUnitID(unitID) then
         Log:warn("[UnitFollowCamera] Invalid unitID for startEntryTransition: " .. unitID)
         return
@@ -93,7 +93,7 @@ function UnitFollowCamera.toggle(unitID)
         return
     end
 
-    if STATE.mode.name == 'unit_follow' and STATE.mode.unitID == unitID and not STATE.mode.optionalTargetCameraStateForModeEntry then
+    if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID == unitID and not STATE.active.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableMode()
         local selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
@@ -121,8 +121,8 @@ function UnitFollowCamera.update()
         return
     end
 
-    if STATE.mode.unit_follow and not STATE.mode.unit_follow.isModeInitialized then
-        startEntryTransition(STATE.mode.unitID)
+    if STATE.active.mode.unit_follow and not STATE.active.mode.unit_follow.isModeInitialized then
+        startEntryTransition(STATE.active.mode.unitID)
     end
 
     if TransitionManager.isTransitioning(UNIT_FOLLOW_ENTRY_TRANSITION_ID) then
@@ -141,7 +141,7 @@ end
 
 function UnitFollowCamera.getCameraPosition(additionalFactor)
     additionalFactor = additionalFactor or 1
-    local unitPos, front, up, right = WorldUtils.getUnitVectors(STATE.mode.unitID)
+    local unitPos, front, up, right = WorldUtils.getUnitVectors(STATE.active.mode.unitID)
     local camPos = UnitFollowUtils.applyOffsets(unitPos, front, up, right)
 
     local posFactor = UnitFollowUtils.getSmoothingFactor('position', additionalFactor)
@@ -149,13 +149,13 @@ function UnitFollowCamera.getCameraPosition(additionalFactor)
     local center = { x = unitPos.x, y = unitPos.y, z = unitPos.z }
     local smoothedPos
 
-    if CameraCommons.shouldUseSphericalInterpolation(STATE.mode.lastCamPos, camPos, center) then
-        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.mode.lastCamPos, camPos, posFactor, true)
+    if CameraCommons.shouldUseSphericalInterpolation(STATE.active.mode.lastCamPos, camPos, center) then
+        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.active.mode.lastCamPos, camPos, posFactor, true)
     else
         smoothedPos = {
-            x = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x, posFactor),
-            y = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y, posFactor),
-            z = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z, posFactor)
+            x = CameraCommons.lerp(STATE.active.mode.lastCamPos.x, camPos.x, posFactor),
+            y = CameraCommons.lerp(STATE.active.mode.lastCamPos.y, camPos.y, posFactor),
+            z = CameraCommons.lerp(STATE.active.mode.lastCamPos.z, camPos.z, posFactor)
         }
     end
     return smoothedPos
@@ -165,26 +165,26 @@ function UnitFollowCamera.getCameraDirection(cameraPosition, additionalFactor)
     local rotFactor = UnitFollowUtils.getSmoothingFactor('rotation', additionalFactor)
 
     local directionState
-    if STATE.mode.unit_follow.isFixedPointActive then
+    if STATE.active.mode.unit_follow.isFixedPointActive then
         UnitFollowUtils.updateFixedPointTarget()
         directionState = CameraCommons.focusOnPoint(
                 cameraPosition,
-                STATE.mode.unit_follow.fixedPoint,
+                STATE.active.mode.unit_follow.fixedPoint,
                 rotFactor,
                 rotFactor
         )
-    elseif STATE.mode.unit_follow.isFreeCameraActive then
+    elseif STATE.active.mode.unit_follow.isFreeCameraActive then
         local rotation = UnitFollowFreeCam.updateMouseRotation(rotFactor)
-        UnitFollowFreeCam.updateUnitHeadingTracking(STATE.mode.unitID)
+        UnitFollowFreeCam.updateUnitHeadingTracking(STATE.active.mode.unitID)
         directionState = UnitFollowFreeCam.createCameraState(
                 cameraPosition,
                 rotation,
-                STATE.mode.lastCamDir,
-                STATE.mode.lastRotation,
+                STATE.active.mode.lastCamDir,
+                STATE.active.mode.lastRotation,
                 rotFactor
         )
     else
-        directionState = UnitFollowUtils.handleNormalFollowMode(STATE.mode.unitID, rotFactor)
+        directionState = UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID, rotFactor)
     end
 
     return directionState
@@ -199,38 +199,38 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
 
     if activeCmd ~= prevActiveCmd then
         if activeCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
-            if STATE.mode.name == 'unit_follow' and STATE.mode.unitID then
-                STATE.mode.unit_follow.inTargetSelectionMode = true
-                STATE.mode.unit_follow.prevFreeCamState = STATE.mode.unit_follow.isFreeCameraActive
-                STATE.mode.unit_follow.prevMode = STATE.mode.name
-                STATE.mode.unit_follow.prevFixedPoint = STATE.mode.unit_follow.fixedPoint
-                STATE.mode.unit_follow.prevFixedPointActive = STATE.mode.unit_follow.isFixedPointActive
+            if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID then
+                STATE.active.mode.unit_follow.inTargetSelectionMode = true
+                STATE.active.mode.unit_follow.prevFreeCamState = STATE.active.mode.unit_follow.isFreeCameraActive
+                STATE.active.mode.unit_follow.prevMode = STATE.active.mode.name
+                STATE.active.mode.unit_follow.prevFixedPoint = STATE.active.mode.unit_follow.fixedPoint
+                STATE.active.mode.unit_follow.prevFixedPointActive = STATE.active.mode.unit_follow.isFixedPointActive
 
-                if STATE.mode.unit_follow.isFixedPointActive then
-                    STATE.mode.unit_follow.isFixedPointActive = false
-                    STATE.mode.unit_follow.fixedPoint = nil
+                if STATE.active.mode.unit_follow.isFixedPointActive then
+                    STATE.active.mode.unit_follow.isFixedPointActive = false
+                    STATE.active.mode.unit_follow.fixedPoint = nil
                 end
 
                 local camState = Spring.GetCameraState()
-                STATE.mode.unit_follow.freeCam.targetRx = camState.rx
-                STATE.mode.unit_follow.freeCam.targetRy = camState.ry
-                STATE.mode.unit_follow.freeCam.lastMouseX, STATE.mode.unit_follow.freeCam.lastMouseY = Spring.GetMouseState()
+                STATE.active.mode.unit_follow.freeCam.targetRx = camState.rx
+                STATE.active.mode.unit_follow.freeCam.targetRy = camState.ry
+                STATE.active.mode.unit_follow.freeCam.lastMouseX, STATE.active.mode.unit_follow.freeCam.lastMouseY = Spring.GetMouseState()
 
-                if Spring.ValidUnitID(STATE.mode.unitID) then
-                    STATE.mode.unit_follow.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.mode.unitID, true)
+                if Spring.ValidUnitID(STATE.active.mode.unitID) then
+                    STATE.active.mode.unit_follow.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.active.mode.unitID, true)
                 end
-                STATE.mode.unit_follow.isFreeCameraActive = true
+                STATE.active.mode.unit_follow.isFreeCameraActive = true
                 Log:trace("Target selection mode activated - select a target to look at")
             end
-        elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.mode.unit_follow.inTargetSelectionMode then
-            STATE.mode.unit_follow.inTargetSelectionMode = false
-            if STATE.mode.unit_follow.prevFixedPointActive and STATE.mode.unit_follow.prevFixedPoint then
-                STATE.mode.unit_follow.isFixedPointActive = true
-                STATE.mode.unit_follow.fixedPoint = STATE.mode.unit_follow.prevFixedPoint
+        elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.active.mode.unit_follow.inTargetSelectionMode then
+            STATE.active.mode.unit_follow.inTargetSelectionMode = false
+            if STATE.active.mode.unit_follow.prevFixedPointActive and STATE.active.mode.unit_follow.prevFixedPoint then
+                STATE.active.mode.unit_follow.isFixedPointActive = true
+                STATE.active.mode.unit_follow.fixedPoint = STATE.active.mode.unit_follow.prevFixedPoint
                 Log:trace("Target selection canceled, returning to fixed point view")
             end
-            STATE.mode.unit_follow.isFreeCameraActive = STATE.mode.unit_follow.prevFreeCamState
-            if not STATE.mode.unit_follow.prevFixedPointActive then
+            STATE.active.mode.unit_follow.isFreeCameraActive = STATE.active.mode.unit_follow.prevFreeCamState
+            if not STATE.active.mode.unit_follow.prevFixedPointActive then
                 Log:trace("Target selection canceled, returning to unit view")
             end
         end
@@ -245,19 +245,19 @@ function UnitFollowCamera.setFixedLookPoint(cmdParams)
     if Utils.isModeDisabled("unit_follow") then
         return
     end
-    if not STATE.mode.unitID then
+    if not STATE.active.mode.unitID then
         Log:debug("No unit being tracked for fixed point camera")
         return false
     end
 
     local x, y, z
-    STATE.mode.unit_follow.targetUnitID = nil
+    STATE.active.mode.unit_follow.targetUnitID = nil
 
     if cmdParams then
         if #cmdParams == 1 then
             local unitID = cmdParams[1]
             if Spring.ValidUnitID(unitID) then
-                STATE.mode.unit_follow.targetUnitID = unitID
+                STATE.active.mode.unit_follow.targetUnitID = unitID
                 x, y, z = Spring.GetUnitPosition(unitID)
                 Log:trace("Camera will follow current unit but look at unit " .. unitID)
             end
@@ -277,7 +277,7 @@ function UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
 
     local fixedPoint = { x = x, y = y, z = z }
-    return UnitFollowUtils.setFixedLookPoint(fixedPoint, STATE.mode.unit_follow.targetUnitID)
+    return UnitFollowUtils.setFixedLookPoint(fixedPoint, STATE.active.mode.unit_follow.targetUnitID)
 end
 
 function UnitFollowCamera.clearFixedLookPoint()
@@ -288,12 +288,12 @@ function UnitFollowCamera.toggleFreeCam()
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    if STATE.mode.name ~= 'unit_follow' or not STATE.mode.unitID then
+    if STATE.active.mode.name ~= 'unit_follow' or not STATE.active.mode.unitID then
         Log:debug("Free camera only works when tracking a unit in unit_follow mode")
         return
     end
     UnitFollowFreeCam.toggle()
-    if not STATE.mode.unit_follow.isFreeCameraActive and STATE.mode.unit_follow.isFixedPointActive then
+    if not STATE.active.mode.unit_follow.isFreeCameraActive and STATE.active.mode.unit_follow.isFixedPointActive then
         UnitFollowUtils.clearFixedLookPoint()
     end
 end
@@ -305,7 +305,7 @@ function UnitFollowCamera.nextWeapon()
     if Utils.isModeDisabled('unit_follow') then
         return
     end
-    if not STATE.mode.unitID or not Spring.ValidUnitID(STATE.mode.unitID) then
+    if not STATE.active.mode.unitID or not Spring.ValidUnitID(STATE.active.mode.unitID) then
         Log:debug("No unit selected.")
         return
     end

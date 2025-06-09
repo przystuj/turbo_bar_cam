@@ -9,9 +9,9 @@ local CameraStateTracker = {}
 
 --- The main update function, called every frame.
 function CameraStateTracker.update(dt)
-    if not STATE.camera then return end
+    if not STATE.active or not STATE.active.camera then return end
 
-    local cs = STATE.camera
+    local cs = STATE.active.camera
     local raw = Spring.GetCameraState()
     local now = Spring.GetTimer()
 
@@ -32,15 +32,12 @@ function CameraStateTracker.update(dt)
         local totalDt = Spring.DiffTimers(now, oldest.time)
 
         if totalDt > 0.01 then
-            -- Positional Velocity
             cs.velocity = CameraCommons.vectorMultiply(CameraCommons.vectorSubtract(currentRecord.pos, oldest.pos), 1 / totalDt)
 
-            -- Angular Velocity (as a rotation vector)
             local deltaOrient = QuaternionUtils.multiply(currentRecord.orient, QuaternionUtils.inverse(oldest.orient))
             local rotVector = QuaternionUtils.log(deltaOrient)
             cs.angularVelocity = CameraCommons.vectorMultiply({x=rotVector.x, y=rotVector.y, z=rotVector.z}, 1 / totalDt)
 
-            -- Angular Velocity (Euler angles)
             cs.angularVelocityEuler = {
                 x = CameraCommons.getAngleDiff(oldest.euler.rx, currentRecord.euler.rx) / totalDt,
                 y = CameraCommons.getAngleDiff(oldest.euler.ry, currentRecord.euler.ry) / totalDt,
@@ -57,27 +54,19 @@ end
 --- Getters for safe access to camera state ---
 
 function CameraStateTracker.getPosition()
-    return STATE.camera and STATE.camera.position
+    return STATE.active and STATE.active.camera and STATE.active.camera.position
 end
 
 function CameraStateTracker.getOrientation()
-    return STATE.camera and STATE.camera.orientation
-end
-
-function CameraStateTracker.getEuler()
-    return STATE.camera and STATE.camera.euler
+    return STATE.active and STATE.active.camera and STATE.active.camera.orientation
 end
 
 function CameraStateTracker.getVelocity()
-    return STATE.camera and STATE.camera.velocity
+    return STATE.active and STATE.active.camera and STATE.active.camera.velocity
 end
 
 function CameraStateTracker.getAngularVelocity()
-    return STATE.camera and STATE.camera.angularVelocity
-end
-
-function CameraStateTracker.getAngularVelocityEuler()
-    return STATE.camera and STATE.camera.angularVelocityEuler
+    return STATE.active and STATE.active.camera and STATE.active.camera.angularVelocity
 end
 
 return CameraStateTracker

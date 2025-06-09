@@ -102,7 +102,7 @@ function CameraAnchor.focus(id)
     end
 
     STATE.lastUsedAnchor = id
-    if STATE.mode.name then ModeManager.disableMode() end
+    if STATE.active.mode.name then ModeManager.disableMode() end
 
     CameraDriver.setTarget({
         position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
@@ -126,8 +126,8 @@ end
 
 function CameraAnchor.toggleVisualization()
     if Utils.isTurboBarCamDisabled() then return end
-    STATE.anchor.visualizationEnabled = not STATE.anchor.visualizationEnabled
-    Log:info("Camera anchor visualization " .. (STATE.anchor.visualizationEnabled and "enabled" or "disabled"))
+    STATE.active.anchor.visualizationEnabled = not STATE.active.anchor.visualizationEnabled
+    Log:info("Camera anchor visualization " .. (STATE.active.anchor.visualizationEnabled and "enabled" or "disabled"))
 end
 
 function CameraAnchor.draw()

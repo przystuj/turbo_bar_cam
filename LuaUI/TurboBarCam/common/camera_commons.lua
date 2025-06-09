@@ -209,13 +209,13 @@ end
 
 --- @deprecated
 --- Adjusts smoothing factors based on the current mode transition progress.
---- Reads progress from STATE.mode.transitionProgress.
+--- Reads progress from STATE.active.mode.transitionProgress.
 ---@param targetPosSmoothingFactor number The target position smoothing factor.
 ---@param targetRotSmoothingFactor number The target rotation smoothing factor.
 ---@return number posSmoothFactor Adjusted position smoothing factor.
 ---@return number rotSmoothFactor Adjusted rotation smoothing factor.
 function CameraCommons.handleModeTransition(targetPosSmoothingFactor, targetRotSmoothingFactor)
-    local progress = STATE.mode.transitionProgress
+    local progress = STATE.active.mode.transitionProgress
 
     if not progress then
         -- No transition in progress, or it's finished, return full factors.
@@ -235,9 +235,9 @@ end
 ---@return table The new camera state {x,y,z}.
 function CameraCommons.interpolateToPoint(camPos, smoothingFactor)
     -- Calculate the camera's actual position for this frame by interpolating from the last known position.
-    local currentFrameActualPx = CameraCommons.lerp(STATE.mode.lastCamPos.x, camPos.x or camPos.px, smoothingFactor)
-    local currentFrameActualPy = CameraCommons.lerp(STATE.mode.lastCamPos.y, camPos.y or camPos.py, smoothingFactor)
-    local currentFrameActualPz = CameraCommons.lerp(STATE.mode.lastCamPos.z, camPos.z or camPos.pz, smoothingFactor)
+    local currentFrameActualPx = CameraCommons.lerp(STATE.active.mode.lastCamPos.x, camPos.x or camPos.px, smoothingFactor)
+    local currentFrameActualPy = CameraCommons.lerp(STATE.active.mode.lastCamPos.y, camPos.y or camPos.py, smoothingFactor)
+    local currentFrameActualPz = CameraCommons.lerp(STATE.active.mode.lastCamPos.z, camPos.z or camPos.pz, smoothingFactor)
     return { x = currentFrameActualPx, y = currentFrameActualPy, z = currentFrameActualPz }
 end
 
@@ -265,13 +265,13 @@ function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
         pz = currentFrameActualPosition.z,
 
         -- Smooth the direction vector towards the look direction calculated from the actual current position.
-        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, lookDirFromActualPos.dx, rotFactor),
-        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, lookDirFromActualPos.dy, rotFactor),
-        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, lookDirFromActualPos.dz, rotFactor),
+        dx = CameraCommons.lerp(STATE.active.mode.lastCamDir.x, lookDirFromActualPos.dx, rotFactor),
+        dy = CameraCommons.lerp(STATE.active.mode.lastCamDir.y, lookDirFromActualPos.dy, rotFactor),
+        dz = CameraCommons.lerp(STATE.active.mode.lastCamDir.z, lookDirFromActualPos.dz, rotFactor),
 
         -- Smooth the rotation angles towards those derived from the look direction calculated from the actual current position.
-        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, lookDirFromActualPos.rx, rotFactor),
-        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, lookDirFromActualPos.ry, rotFactor),
+        rx = CameraCommons.lerp(STATE.active.mode.lastRotation.rx, lookDirFromActualPos.rx, rotFactor),
+        ry = CameraCommons.lerpAngle(STATE.active.mode.lastRotation.ry, lookDirFromActualPos.ry, rotFactor),
         rz = 0 -- Assuming roll is always 0 for this camera mode.
     }
 

@@ -21,14 +21,14 @@ local ORBIT_ENTRY_TRANSITION_ID = "OrbitingCamera.EntryTransition"
 local function setupAngleForUnit(unitID)
     local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
     local camState = Spring.GetCameraState()
-    STATE.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
+    STATE.active.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 end
 
 local function startOrbitEntryTransition()
-    STATE.mode.orbit.isModeInitialized = true
+    STATE.active.mode.orbit.isModeInitialized = true
     -- angle will be null when transitioning back from projectile camera
-    if not STATE.mode.orbit.angle then
-        setupAngleForUnit(STATE.mode.unitID)
+    if not STATE.active.mode.orbit.angle then
+        setupAngleForUnit(STATE.active.mode.unitID)
     end
 
     TransitionManager.force({
@@ -52,7 +52,7 @@ function OrbitingCamera.toggle(unitID)
         return
     end
 
-    local currentTargetIsPoint = STATE.mode.name == 'orbit' and STATE.mode.targetType == STATE.TARGET_TYPES.POINT
+    local currentTargetIsPoint = STATE.active.mode.name == 'orbit' and STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT
 
     if not unitID then
         local selectedUnits = Spring.GetSelectedUnits()
@@ -75,15 +75,15 @@ function OrbitingCamera.toggle(unitID)
         return
     end
 
-    if STATE.mode.name == 'orbit' and STATE.mode.unitID == unitID and STATE.mode.targetType == STATE.TARGET_TYPES.UNIT and
-            not STATE.mode.optionalTargetCameraStateForModeEntry then
+    if STATE.active.mode.name == 'orbit' and STATE.active.mode.unitID == unitID and STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT and
+            not STATE.active.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableMode()
         Log:trace("[ORBIT] Orbiting camera detached from unit " .. unitID)
         return
     end
 
     if ModeManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT, false, nil) then
-        STATE.mode.orbit.isPaused = false
+        STATE.active.mode.orbit.isPaused = false
         setupAngleForUnit(unitID)
         Log:debug("[ORBIT] Orbiting camera enabled for unit " .. unitID)
     end
@@ -103,18 +103,18 @@ function OrbitingCamera.togglePointOrbit(point)
     end
 
     if ModeManager.initializeMode('orbit', point, STATE.TARGET_TYPES.POINT, false, nil) then
-        STATE.mode.orbit.isPaused = false
+        STATE.active.mode.orbit.isPaused = false
         local camState = Spring.GetCameraState()
-        STATE.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
+        STATE.active.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
     end
 end
 
 function OrbitingCamera.update(dt)
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
         return
     end
 
-    if STATE.mode.orbit and not STATE.mode.orbit.isModeInitialized then
+    if STATE.active.mode.orbit and not STATE.active.mode.orbit.isModeInitialized then
         startOrbitEntryTransition()
     end
 
@@ -122,7 +122,7 @@ function OrbitingCamera.update(dt)
         return
     end
 
-    if STATE.mode.targetType == STATE.TARGET_TYPES.POINT and STATE.mode.orbit.isPaused then
+    if STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT and STATE.active.mode.orbit.isPaused then
         return
     end
 
@@ -141,8 +141,8 @@ function OrbitingCamera.getNewCameraState(dt, transitionFactor)
         return
     end
 
-    if not STATE.mode.orbit.isPaused then
-        STATE.mode.orbit.angle = STATE.mode.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED * dt
+    if not STATE.active.mode.orbit.isPaused then
+        STATE.active.mode.orbit.angle = STATE.active.mode.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED * dt
     end
     local smoothing = transitionFactor or CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR
 
@@ -151,34 +151,34 @@ function OrbitingCamera.getNewCameraState(dt, transitionFactor)
 end
 
 function OrbitingCamera.pauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
         return
     end
-    if STATE.mode.orbit.isPaused then
+    if STATE.active.mode.orbit.isPaused then
         Log:trace("[ORBIT] Orbit is already paused.");
         return
     end
-    STATE.mode.orbit.isPaused = true
+    STATE.active.mode.orbit.isPaused = true
     Log:info("[ORBIT] Orbit paused.")
 end
 
 function OrbitingCamera.resumeOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
         return
     end
-    if not STATE.mode.orbit.isPaused then
+    if not STATE.active.mode.orbit.isPaused then
         Log:trace("[ORBIT] Orbit is not paused.");
         return
     end
-    STATE.mode.orbit.isPaused = false
+    STATE.active.mode.orbit.isPaused = false
     Log:info("[ORBIT] Orbit resumed.")
 end
 
 function OrbitingCamera.togglePauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
         return
     end
-    if STATE.mode.orbit.isPaused then
+    if STATE.active.mode.orbit.isPaused then
         OrbitingCamera.resumeOrbit()
     else
         OrbitingCamera.pauseOrbit()
@@ -186,7 +186,7 @@ function OrbitingCamera.togglePauseOrbit()
 end
 
 function OrbitingCamera.saveOrbit(orbitId)
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
         return
     end
     if not orbitId or orbitId == "" then
@@ -248,14 +248,14 @@ function OrbitingCamera.loadOrbit(orbitId)
         return
     end
 
-    if STATE.mode.name then
+    if STATE.active.mode.name then
         ModeManager.disableMode()
     end
 
     if ModeManager.initializeMode('orbit', targetToUse, targetTypeToUse, false, nil) then
-        STATE.mode.orbit.loadedAngleForEntry = loadedData.angle
-        STATE.mode.orbit.isPaused = loadedData.isPaused or false
-        Log:info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.mode.orbit.isPaused and " (PAUSED)" or ""))
+        STATE.active.mode.orbit.loadedAngleForEntry = loadedData.angle
+        STATE.active.mode.orbit.isPaused = loadedData.isPaused or false
+        Log:info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.active.mode.orbit.isPaused and " (PAUSED)" or ""))
     else
         Log:error("[ORBIT] Failed to initialize orbit for loaded data: " .. orbitId)
     end

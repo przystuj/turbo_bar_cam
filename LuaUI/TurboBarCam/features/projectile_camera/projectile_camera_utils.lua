@@ -24,7 +24,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
-    local rampUpFactor = STATE.mode.projectile_camera.rampUpFactor
+    local rampUpFactor = STATE.active.mode.projectile_camera.rampUpFactor
     local modeCfg = cfg.FOLLOW
     local distance = modeCfg.DISTANCE * rampUpFactor
     local height = modeCfg.HEIGHT * rampUpFactor
@@ -37,11 +37,11 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
 
     local camX, camY, camZ
 
-    if STATE.mode.projectile_camera.isHighArc then
+    if STATE.active.mode.projectile_camera.isHighArc then
         local awayDirXZ
-        if STATE.mode.lastCamDir and (STATE.mode.lastCamDir.x ~= 0 or STATE.mode.lastCamDir.z ~= 0) then
+        if STATE.active.mode.lastCamDir and (STATE.active.mode.lastCamDir.x ~= 0 or STATE.active.mode.lastCamDir.z ~= 0) then
             -- Use inverted XZ component of camera's forward vector.
-            awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.mode.lastCamDir.x, y = 0, z = -STATE.mode.lastCamDir.z })
+            awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.active.mode.lastCamDir.x, y = 0, z = -STATE.active.mode.lastCamDir.z })
         else
             awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
         end
@@ -92,7 +92,7 @@ end
 
 function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local subMode = STATE.mode.projectile_camera.cameraMode
+    local subMode = STATE.active.mode.projectile_camera.cameraMode
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
     local fwd = CameraCommons.normalizeVector(projectileVel)
@@ -142,9 +142,9 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
 end
 
 function ProjectileCameraUtils.resetSmoothedPositions()
-    if STATE.mode.projectile_camera.projectile and STATE.mode.projectile_camera.projectile.smoothedPositions then
-        STATE.mode.projectile_camera.projectile.smoothedPositions.camPos = nil
-        STATE.mode.projectile_camera.projectile.smoothedPositions.targetPos = nil
+    if STATE.active.mode.projectile_camera.projectile and STATE.active.mode.projectile_camera.projectile.smoothedPositions then
+        STATE.active.mode.projectile_camera.projectile.smoothedPositions.camPos = nil
+        STATE.active.mode.projectile_camera.projectile.smoothedPositions.targetPos = nil
     end
 end
 
@@ -211,7 +211,7 @@ function ProjectileCameraUtils.loadSettings(unitID)
 end
 
 function ProjectileCameraUtils.adjustParams(params)
-    if Utils.isTurboBarCamDisabled() or STATE.mode.name ~= 'projectile_camera' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'projectile_camera' then
         return
     end
     local function getProjectileParamPrefixes()
@@ -219,17 +219,17 @@ function ProjectileCameraUtils.adjustParams(params)
     end
     local function resetAndSave()
         ProjectileCameraUtils.resetToDefaults()
-        if STATE.mode.unitID then
-            ProjectileCameraUtils.saveSettings(STATE.mode.unitID)
+        if STATE.active.mode.unitID then
+            ProjectileCameraUtils.saveSettings(STATE.active.mode.unitID)
         end
-        Log:info("Projectile Camera settings reset to defaults" .. (STATE.mode.unitID and " and saved for current unit type." or "."))
+        Log:info("Projectile Camera settings reset to defaults" .. (STATE.active.mode.unitID and " and saved for current unit type." or "."))
     end
-    local currentSubmode = STATE.mode.projectile_camera.cameraMode
+    local currentSubmode = STATE.active.mode.projectile_camera.cameraMode
     local currentSubmodeUpper = string.upper(currentSubmode)
     Log:trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
     ParamUtils.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
-    if STATE.mode.unitID then
-        ProjectileCameraUtils.saveSettings(STATE.mode.unitID)
+    if STATE.active.mode.unitID then
+        ProjectileCameraUtils.saveSettings(STATE.active.mode.unitID)
     end
 end
 

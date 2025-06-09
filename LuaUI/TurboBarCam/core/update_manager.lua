@@ -41,25 +41,22 @@ function UpdateManager.processCycle(dt)
     UnitFollowCamera.checkFixedPointCommandActivation()
     ProjectileCamera.checkAndActivate()
     UpdateManager.updateCameraMode(dt)
-
-    -- Now that all camera movements for this frame have been set, update the camera state.
-    VelocityTracker.update() --- @deprecated will be replaced by CameraStateTracker
 end
 
 --- Handles tracking grace period
 ---@return boolean stateChanged Whether tracking state changed
 function UpdateManager.handleTrackingGracePeriod()
     if CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION then
-        STATE.mode.graceTimer = Spring.GetTimer()
+        STATE.active.mode.graceTimer = Spring.GetTimer()
         return
     end
-    if STATE.mode.graceTimer and STATE.mode.name and STATE.mode.name ~= "overview" and STATE.mode.name ~= "waypointEditor" then
+    if STATE.active.mode.graceTimer and STATE.active.mode.name and STATE.active.mode.name ~= "overview" and STATE.active.mode.name ~= "waypointEditor" then
         local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.mode.graceTimer)
+        local elapsed = Spring.DiffTimers(now, STATE.active.mode.graceTimer)
 
         -- Skip grace period for point tracking
-        if STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
-            STATE.mode.graceTimer = Spring.GetTimer()
+        if STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT then
+            STATE.active.mode.graceTimer = Spring.GetTimer()
             return
         end
 
@@ -85,19 +82,19 @@ end
 function UpdateManager.updateCameraMode(dt)
     Spring.SendCommands("viewfps")
 
-    if STATE.dollyCam.isNavigating then
+    if STATE.active.dollyCam.isNavigating then
         DollyCam.update(dt)
-    elseif STATE.mode.name == 'unit_follow' then
+    elseif STATE.active.mode.name == 'unit_follow' then
         UnitFollowCamera.update(dt)
-    elseif STATE.mode.name == 'unit_tracking' then
+    elseif STATE.active.mode.name == 'unit_tracking' then
         UnitTrackingCamera.update(dt)
-    elseif STATE.mode.name == 'orbit' then
+    elseif STATE.active.mode.name == 'orbit' then
         OrbitingCamera.update(dt)
-    elseif STATE.mode.name == 'overview' then
+    elseif STATE.active.mode.name == 'overview' then
         OverviewCamera.update(dt)
-    elseif STATE.mode.name == 'group_tracking' then
+    elseif STATE.active.mode.name == 'group_tracking' then
         GroupTrackingCamera.update(dt)
-    elseif STATE.mode.name == 'projectile_camera' then
+    elseif STATE.active.mode.name == 'projectile_camera' then
         ProjectileCamera.update(dt)
     end
 end

@@ -51,9 +51,9 @@ DollyCamVisualization.DEFAULT_SPEED = 1.0
 -- Toggle visualization
 ---@return boolean enabled New state of visualization
 function DollyCamVisualization.toggle()
-    STATE.dollyCam.visualizationEnabled = not STATE.dollyCam.visualizationEnabled
-    Log:info("DollyCam visualization: " .. (STATE.dollyCam.visualizationEnabled and "Enabled" or "Disabled"))
-    return STATE.dollyCam.visualizationEnabled
+    STATE.active.dollyCam.visualizationEnabled = not STATE.active.dollyCam.visualizationEnabled
+    Log:info("DollyCam visualization: " .. (STATE.active.dollyCam.visualizationEnabled and "Enabled" or "Disabled"))
+    return STATE.active.dollyCam.visualizationEnabled
 end
 
 -- Helper function to draw a single point
@@ -176,8 +176,8 @@ local function drawWaypoints(hoveredWaypointIndex)
         local isSelected = false
 
         -- Check if this waypoint is selected (in multi-selection mode)
-        if STATE.dollyCam.isEditing then
-            for _, selectedIndex in ipairs(STATE.dollyCam.selectedWaypoints) do
+        if STATE.active.dollyCam.isEditing then
+            for _, selectedIndex in ipairs(STATE.active.dollyCam.selectedWaypoints) do
                 if selectedIndex == i then
                     isSelected = true
                     break
@@ -185,11 +185,11 @@ local function drawWaypoints(hoveredWaypointIndex)
             end
         end
 
-        if STATE.dollyCam.isEditing and isSelected then
+        if STATE.active.dollyCam.isEditing and isSelected then
             -- Selected waypoint gets priority
             color = DollyCamVisualization.colors.selectedWaypoint
             size = size * 1.5
-        elseif STATE.dollyCam.isEditing and STATE.dollyCam.hoveredWaypointIndex == i then
+        elseif STATE.active.dollyCam.isEditing and STATE.active.dollyCam.hoveredWaypointIndex == i then
             -- Hovered waypoint
             color = DollyCamVisualization.colors.hoveredWaypoint
             size = size * 1.2
@@ -217,7 +217,7 @@ local function drawWaypoints(hoveredWaypointIndex)
         local effectiveSpeed, isExplicitSpeed = getEffectiveWaypointSpeed(i)
 
         -- Only in edit mode, show special properties
-        if STATE.dollyCam.isEditing then
+        if STATE.active.dollyCam.isEditing then
             -- Show speed only if it's non-default or inherited
             if isExplicitSpeed and effectiveSpeed ~= DollyCamVisualization.DEFAULT_SPEED then
                 -- Explicitly set non-default speed
@@ -318,7 +318,7 @@ local function drawPathPoints()
     gl.BeginEnd(GL.POINTS, function()
         for i = 1, #STATE.dollyCam.route.path, step do
             -- Skip the hovered path point, we'll draw it later
-            if not (STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex == i) then
+            if not (STATE.active.dollyCam.isEditing and STATE.active.dollyCam.hoveredPathPointIndex == i) then
                 local point = STATE.dollyCam.route.path[i]
                 gl.Vertex(point.x, point.y, point.z)
             end
@@ -326,8 +326,8 @@ local function drawPathPoints()
     end)
 
     -- Second pass: draw hovered path point if any
-    if STATE.dollyCam.isEditing and STATE.dollyCam.hoveredPathPointIndex then
-        local hoveredPoint = STATE.dollyCam.route.path[STATE.dollyCam.hoveredPathPointIndex]
+    if STATE.active.dollyCam.isEditing and STATE.active.dollyCam.hoveredPathPointIndex then
+        local hoveredPoint = STATE.dollyCam.route.path[STATE.active.dollyCam.hoveredPathPointIndex]
         drawPoint(
                 hoveredPoint.x, hoveredPoint.y, hoveredPoint.z,
                 DollyCamVisualization.settings.hoveredPathPointSize,
@@ -393,11 +393,11 @@ end
 
 -- Draw current position during navigation
 local function drawCurrentPosition()
-    if not STATE.dollyCam.isNavigating then
+    if not STATE.active.dollyCam.isNavigating then
         return
     end
 
-    local currentPos = DollyCamPathPlanner.getPositionAtDistance(STATE.dollyCam.currentDistance)
+    local currentPos = DollyCamPathPlanner.getPositionAtDistance(STATE.active.dollyCam.currentDistance)
     if not currentPos then
         return
     end
@@ -411,14 +411,14 @@ local function drawCurrentPosition()
 
     -- Draw text with current distance and speed information
     local infoText = string.format("%.1f / %.1f (%.1f%%)",
-            STATE.dollyCam.currentDistance,
+            STATE.active.dollyCam.currentDistance,
             STATE.dollyCam.route.totalDistance,
-            (STATE.dollyCam.currentDistance / STATE.dollyCam.route.totalDistance) * 100)
+            (STATE.active.dollyCam.currentDistance / STATE.dollyCam.route.totalDistance) * 100)
 
     -- Add direction info
     infoText = infoText .. string.format("\n%s %.2f",
-            STATE.dollyCam.direction > 0 and "→" or "←",
-            STATE.dollyCam.currentSpeed)
+            STATE.active.dollyCam.direction > 0 and "→" or "←",
+            STATE.active.dollyCam.currentSpeed)
 
     drawTextLabel(
             currentPos.x, currentPos.y, currentPos.z,
@@ -428,7 +428,7 @@ local function drawCurrentPosition()
 
     -- Draw tangent if enabled
     if DollyCamVisualization.settings.drawPathTangents then
-        local tangent = DollyCamPathPlanner.getPathTangentAtDistance(STATE.dollyCam.currentDistance)
+        local tangent = DollyCamPathPlanner.getPathTangentAtDistance(STATE.active.dollyCam.currentDistance)
 
         if tangent then
             -- Draw tangent vector
@@ -444,18 +444,18 @@ local function drawCurrentPosition()
     end
 
     -- Draw active lookAt visualization if present
-    if STATE.dollyCam.activeLookAt then
+    if STATE.active.dollyCam.activeLookAt then
         local lookAtPos = nil
 
-        if STATE.dollyCam.activeLookAt.unitID and Spring.ValidUnitID(STATE.dollyCam.activeLookAt.unitID) then
+        if STATE.active.dollyCam.activeLookAt.unitID and Spring.ValidUnitID(STATE.active.dollyCam.activeLookAt.unitID) then
             -- Get unit position
-            local x, y, z = Spring.GetUnitPosition(STATE.dollyCam.activeLookAt.unitID)
+            local x, y, z = Spring.GetUnitPosition(STATE.active.dollyCam.activeLookAt.unitID)
             if x and y and z then
                 lookAtPos = { x = x, y = y, z = z }
             end
-        elseif STATE.dollyCam.activeLookAt.point then
+        elseif STATE.active.dollyCam.activeLookAt.point then
             -- Use fixed point
-            lookAtPos = STATE.dollyCam.activeLookAt.point
+            lookAtPos = STATE.active.dollyCam.activeLookAt.point
         end
 
         if lookAtPos then
@@ -472,12 +472,12 @@ end
 -- Draw editor-specific visualizations
 local function drawEditorVisualizations()
     -- If we have selected waypoints, draw movement handles
-    if STATE.dollyCam.isEditing and STATE.dollyCam.selectedWaypoints and #STATE.dollyCam.selectedWaypoints > 0 then
+    if STATE.active.dollyCam.isEditing and STATE.active.dollyCam.selectedWaypoints and #STATE.active.dollyCam.selectedWaypoints > 0 then
         -- Calculate center point of all selected waypoints
         local centerX, centerY, centerZ = 0, 0, 0
         local count = 0
 
-        for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+        for _, index in ipairs(STATE.active.dollyCam.selectedWaypoints) do
             if index >= 1 and index <= #STATE.dollyCam.route.points then
                 local pos = STATE.dollyCam.route.points[index].position
                 centerX = centerX + pos.x
@@ -529,20 +529,20 @@ local function drawEditorVisualizations()
             -- Draw connections between selected waypoints if more than one is selected
             if count > 1 then
                 local selectedWaypoints = {}
-                for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+                for _, index in ipairs(STATE.active.dollyCam.selectedWaypoints) do
                     if index >= 1 and index <= #STATE.dollyCam.route.points then
                         table.insert(selectedWaypoints, STATE.dollyCam.route.points[index])
                     end
                 end
 
                 -- Sort waypoints by their index
-                table.sort(STATE.dollyCam.selectedWaypoints)
+                table.sort(STATE.active.dollyCam.selectedWaypoints)
 
                 -- Draw selection group boundary lines
                 gl.LineWidth(1.5)
                 gl.Color(0.9, 0.9, 0.2, 0.5)  -- Yellow, semi-transparent
                 gl.BeginEnd(GL.LINE_LOOP, function()
-                    for _, index in ipairs(STATE.dollyCam.selectedWaypoints) do
+                    for _, index in ipairs(STATE.active.dollyCam.selectedWaypoints) do
                         if index >= 1 and index <= #STATE.dollyCam.route.points then
                             local pos = STATE.dollyCam.route.points[index].position
                             gl.Vertex(pos.x, pos.y, pos.z)
@@ -557,11 +557,11 @@ end
 
 -- Main draw function for visualization
 function DollyCamVisualization.draw()
-    if not STATE.dollyCam.visualizationEnabled or not STATE.dollyCam.route then
+    if not STATE.active.dollyCam.visualizationEnabled or not STATE.dollyCam.route then
         return
     end
 
-    local closestWaypointIndex = STATE.dollyCam.hoveredWaypointIndex
+    local closestWaypointIndex = STATE.active.dollyCam.hoveredWaypointIndex
 
     -- Draw all visualization elements
     drawWaypoints(closestWaypointIndex)

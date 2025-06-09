@@ -15,27 +15,27 @@ local OrbitPersistence = {}
 --- Serializes the current orbit state for storage
 ---@return table|nil serializedData Serialized orbit data, or nil if not in orbit mode
 function OrbitPersistence.serializeCurrentOrbitState()
-    if STATE.mode.name ~= 'orbit' then
+    if STATE.active.mode.name ~= 'orbit' then
         Log:warn("[OrbitPersistence] Not in orbit mode, cannot serialize state.")
         return nil
     end
 
     local data = {
-        angle = STATE.mode.orbit.angle,
+        angle = STATE.active.mode.orbit.angle,
         speed = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED,
         distance = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.DISTANCE,
         height = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT,
-        targetType = STATE.mode.targetType,
+        targetType = STATE.active.mode.targetType,
         targetID = nil,
         targetPoint = nil,
-        isPaused = STATE.mode.orbit.isPaused or false -- Save paused state
+        isPaused = STATE.active.mode.orbit.isPaused or false -- Save paused state
     }
 
-    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
-        data.targetID = STATE.mode.unitID
-    elseif STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
-        if STATE.mode.targetPoint then
-            data.targetPoint = TableUtils.deepCopy(STATE.mode.targetPoint)
+    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+        data.targetID = STATE.active.mode.unitID
+    elseif STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT then
+        if STATE.active.mode.targetPoint then
+            data.targetPoint = TableUtils.deepCopy(STATE.active.mode.targetPoint)
         else
             Log:warn("[OrbitPersistence] Target type is POINT but targetPoint is nil. Saving without point.")
         end

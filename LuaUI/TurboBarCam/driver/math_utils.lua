@@ -1,3 +1,6 @@
+---@type ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager
+
 ---@class MathUtils
 local MathUtils = {}
 

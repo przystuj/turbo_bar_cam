@@ -210,7 +210,7 @@ function DollyCamPathPlanner.generateSmoothPath()
     local pointDensity = 30
 
     -- Create knot vector with centripetal parameterization
-    local knotVector, success = DollyCamPathPlanner.createKnotVector(STATE.dollyCam.route.points, STATE.dollyCam.alpha)
+    local knotVector, success = DollyCamPathPlanner.createKnotVector(STATE.dollyCam.route.points, STATE.active.dollyCam.alpha)
     if not success then
         Log:warn("Failed to create knot vector")
         return false

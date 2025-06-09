@@ -13,11 +13,11 @@ local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m 
 local ModeManager = {}
 
 --- Resets the isModeInitialized flag for a given feature's state.
---- Assumes feature state is under STATE.mode.<modeNameKey>
+--- Assumes feature state is under STATE.active.mode.<modeNameKey>
 ---@param modeNameKey string The key for the mode (e.g., "unit_follow", "unit_tracking", "overview")
 local function resetFeatureInitializationFlag(modeNameKey)
-    if modeNameKey and STATE.mode[modeNameKey] then
-        local featureState = STATE.mode[modeNameKey]
+    if modeNameKey and STATE.active.mode[modeNameKey] then
+        local featureState = STATE.active.mode[modeNameKey]
         if featureState.isModeInitialized ~= nil then
             -- Check if the flag exists
             featureState.isModeInitialized = false
@@ -59,41 +59,41 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
 
     local allowReinit = optionalTargetCameraState ~= nil
 
-    if STATE.mode.name == newModeName and finalValidType == STATE.TARGET_TYPES.UNIT and
-            finalValidType == STATE.mode.targetType and validTarget == STATE.mode.unitID and
+    if STATE.active.mode.name == newModeName and finalValidType == STATE.TARGET_TYPES.UNIT and
+            finalValidType == STATE.active.mode.targetType and validTarget == STATE.active.mode.unitID and
             not allowReinit and not TransitionManager.isTransitioning() then
-        SettingsManager.saveModeSettings(newModeName, STATE.mode.unitID)
+        SettingsManager.saveModeSettings(newModeName, STATE.active.mode.unitID)
         ModeManager.disableMode()
         Log:trace("ModeManager: Toggled off mode " .. newModeName .. " for unit " .. validTarget)
         return false
     end
 
-    if STATE.mode.name ~= newModeName and not automaticMode then
+    if STATE.active.mode.name ~= newModeName and not automaticMode then
         ModeManager.disableMode()
     else
-        if STATE.mode.name then
-            resetFeatureInitializationFlag(STATE.mode.name)
+        if STATE.active.mode.name then
+            resetFeatureInitializationFlag(STATE.active.mode.name)
         end
     end
 
     Log:debug("ModeManager: Initializing mode: " .. newModeName)
-    STATE.mode.name = newModeName
-    STATE.mode.targetType = finalValidType
+    STATE.active.mode.name = newModeName
+    STATE.active.mode.targetType = finalValidType
 
-    STATE.mode.initialCameraStateForModeEntry = Spring.GetCameraState()
-    STATE.mode.optionalTargetCameraStateForModeEntry = optionalTargetCameraState
+    STATE.active.mode.initialCameraStateForModeEntry = Spring.GetCameraState()
+    STATE.active.mode.optionalTargetCameraStateForModeEntry = optionalTargetCameraState
 
     if finalValidType == STATE.TARGET_TYPES.UNIT then
-        STATE.mode.unitID = validTarget
+        STATE.active.mode.unitID = validTarget
         local x, y, z = Spring.GetUnitPosition(validTarget)
-        STATE.mode.targetPoint = { x = x, y = y, z = z }
-        STATE.mode.lastTargetPoint = { x = x, y = y, z = z }
+        STATE.active.mode.targetPoint = { x = x, y = y, z = z }
+        STATE.active.mode.lastTargetPoint = { x = x, y = y, z = z }
         SettingsManager.loadModeSettings(newModeName, validTarget)
     else
         -- STATE.TARGET_TYPES.POINT
-        STATE.mode.targetPoint = validTarget
-        STATE.mode.lastTargetPoint = TableUtils.deepCopy(validTarget)
-        STATE.mode.unitID = nil
+        STATE.active.mode.targetPoint = validTarget
+        STATE.active.mode.lastTargetPoint = TableUtils.deepCopy(validTarget)
+        STATE.active.mode.unitID = nil
         SettingsManager.loadModeSettings(newModeName, validTarget)
     end
 
@@ -106,48 +106,21 @@ end
 
 --- Disables active camera mode and resets relevant state.
 function ModeManager.disableMode()
-    if STATE.mode.name then
-        Log:debug("ModeManager: Disabling mode: " .. (STATE.mode.name or "None"))
+    if STATE.active.mode.name then
+        Log:debug("ModeManager: Disabling mode: " .. (STATE.active.mode.name or "None"))
     end
     TransitionManager.stopAll()
 
-    if STATE.mode.name then
-        if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
-            SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
-        elseif STATE.mode.targetType == STATE.TARGET_TYPES.POINT then
-            SettingsManager.saveModeSettings(STATE.mode.name, "point")
+    if STATE.active.mode.name then
+        if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+            SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
+        elseif STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT then
+            SettingsManager.saveModeSettings(STATE.active.mode.name, "point")
         end
     end
 
-    Utils.syncTable(STATE.cameraTarget, STATE.DEFAULT.cameraTarget)
-    STATE.lastUsedAnchor = nil
-
-    STATE.mode.name = nil
-    STATE.mode.targetType = STATE.TARGET_TYPES.NONE
-    STATE.mode.unitID = nil
-    STATE.mode.targetPoint = nil
-    STATE.mode.lastTargetPoint = nil
-
-    STATE.mode.initialCameraStateForModeEntry = nil
-    STATE.mode.optionalTargetCameraStateForModeEntry = nil
-
-    -- Legacy transition flags (being phased out)
-    STATE.mode.isModeTransitionInProgress = false
-    STATE.mode.transitionProgress = nil
-
-    STATE.anchor.activeAnchorId = nil
-    STATE.anchor.visualizationEnabled = false
-
     -- Reset modes to default state
-    Utils.syncTable(STATE.mode, STATE.DEFAULT.mode)
-
-    -- Old anchor queue and transition state (assuming these are top-level in STATE)
-    if STATE.anchorQueue then
-        STATE.anchorQueue.active = false
-    end
-
-    -- DollyCam (assuming top-level in STATE)
-    STATE.dollyCam = { route = { points = {} }, isNavigating = false }
+    Utils.syncTable(STATE.active, STATE.DEFAULT.active)
 end
 
 return ModeManager

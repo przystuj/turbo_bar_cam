@@ -33,7 +33,7 @@ function UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
         return
     end
 
-    local state = STATE.mode.unit_follow.targetSmoothing
+    local state = STATE.active.mode.unit_follow.targetSmoothing
     local currentTime = Spring.GetTimer()
 
     -- Ensure all timer values are initialized
@@ -156,12 +156,12 @@ function UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         return nil
     end
 
-    local state = STATE.mode.unit_follow.targetSmoothing
+    local state = STATE.active.mode.unit_follow.targetSmoothing
 
     -- Get unit position
     local unitPos = nil
-    if STATE.mode.unitID and Spring.ValidUnitID(STATE.mode.unitID) then
-        local x, y, z = Spring.GetUnitPosition(STATE.mode.unitID)
+    if STATE.active.mode.unitID and Spring.ValidUnitID(STATE.active.mode.unitID) then
+        local x, y, z = Spring.GetUnitPosition(STATE.active.mode.unitID)
         unitPos = { x = x, y = y, z = z }
     end
 
@@ -174,8 +174,8 @@ function UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
         local targetKey = string.format("%.0f_%.0f_%.0f",
                 math.floor(targetPos.x), math.floor(targetPos.y), math.floor(targetPos.z))
 
-        if STATE.mode.unit_follow.targetTracking and STATE.mode.unit_follow.targetTracking[targetKey] then
-            targetData = STATE.mode.unit_follow.targetTracking[targetKey]
+        if STATE.active.mode.unit_follow.targetTracking and STATE.active.mode.unit_follow.targetTracking[targetKey] then
+            targetData = STATE.active.mode.unit_follow.targetTracking[targetKey]
 
             -- Process aerial target using your velocity data
             local smoothedAerialPos = UnitFollowTargetingSmoothing.processAerialTarget(
@@ -242,7 +242,7 @@ function UnitFollowTargetingSmoothing.predictTargetPosition(targetPos, targetUni
         return nil
     end
 
-    local state = STATE.mode.unit_follow.targetSmoothing
+    local state = STATE.active.mode.unit_follow.targetSmoothing
 
     -- Skip prediction if not enabled
     if not state.targetPrediction.enabled then
@@ -284,7 +284,7 @@ end
 --- @return number constrainedYaw Constrained yaw angle
 --- @return number constrainedPitch Constrained pitch angle
 function UnitFollowTargetingSmoothing.constrainRotationRate(desiredYaw, desiredPitch)
-    local state = STATE.mode.unit_follow.targetSmoothing
+    local state = STATE.active.mode.unit_follow.targetSmoothing
 
     -- *** Reset constraints state on target switch signal ***
     if state.rotationConstraint.resetForSwitch then
@@ -411,19 +411,19 @@ function UnitFollowTargetingSmoothing.configure(settings)
     end
 
     if settings.targetPrediction ~= nil then
-        STATE.mode.unit_follow.targetSmoothing.targetPrediction.enabled = settings.targetPrediction
+        STATE.active.mode.unit_follow.targetSmoothing.targetPrediction.enabled = settings.targetPrediction
     end
 
     if settings.rotationConstraint ~= nil then
-        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.enabled = settings.rotationConstraint
+        STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.enabled = settings.rotationConstraint
     end
 
     if settings.maxRotationRate then
-        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.maxRotationRate = settings.maxRotationRate
+        STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.maxRotationRate = settings.maxRotationRate
     end
 
     if settings.rotationDamping then
-        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
+        STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
     end
 
     Log:info("Target smoothing settings updated")
@@ -437,8 +437,8 @@ function UnitFollowTargetingSmoothing.processAerialTarget(targetPos, unitPos, ta
     local speed = targetData.speed or 0
 
     -- Initialize aerial tracking data in targetSmoothing if not already present
-    if not STATE.mode.unit_follow.targetSmoothing.aerialTracking then
-        STATE.mode.unit_follow.targetSmoothing.aerialTracking = {
+    if not STATE.active.mode.unit_follow.targetSmoothing.aerialTracking then
+        STATE.active.mode.unit_follow.targetSmoothing.aerialTracking = {
             smoothedPosition = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
             lastUpdateTime = Spring.GetTimer(),
             trajectoryPredictionEnabled = true,
@@ -446,7 +446,7 @@ function UnitFollowTargetingSmoothing.processAerialTarget(targetPos, unitPos, ta
         }
     end
 
-    local aerial = STATE.mode.unit_follow.targetSmoothing.aerialTracking
+    local aerial = STATE.active.mode.unit_follow.targetSmoothing.aerialTracking
 
     -- Add to position history
     table.insert(aerial.positionHistory, {

@@ -15,7 +15,7 @@ function OverviewCameraUtils.calculateCurrentHeight()
     local granularity = CONFIG.CAMERA_MODES.OVERVIEW.HEIGHT_CONTROL_GRANULARITY or 4
 
     -- Current height level (1 is highest, granularity is lowest)
-    local heightLevel = STATE.mode.overview.heightLevel or 1
+    local heightLevel = STATE.active.mode.overview.heightLevel or 1
 
     -- Ensure level is valid
     heightLevel = math.max(1, math.min(granularity, heightLevel))
@@ -24,7 +24,7 @@ function OverviewCameraUtils.calculateCurrentHeight()
     local factor = 1.0 - ((heightLevel - 1) / granularity) * 0.95
 
     -- Enforce minimum height to prevent getting too close to ground
-    return math.max(STATE.mode.overview.height * factor, 500)
+    return math.max(STATE.active.mode.overview.height * factor, 500)
 end
 
 --- Converts screen cursor position to 3D world coordinates

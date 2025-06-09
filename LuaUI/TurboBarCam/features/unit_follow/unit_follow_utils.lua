@@ -19,12 +19,12 @@ local UnitFollowUtils = {}
 --- Checks if unit_follow camera should be updated
 ---@return boolean shouldUpdate Whether unit_follow camera should be updated
 function UnitFollowUtils.shouldUpdateCamera()
-    if STATE.mode.name ~= 'unit_follow' or not STATE.mode.unitID then
+    if STATE.active.mode.name ~= 'unit_follow' or not STATE.active.mode.unitID then
         return false
     end
 
     -- Check if unit still exists
-    if not Spring.ValidUnitID(STATE.mode.unitID) then
+    if not Spring.ValidUnitID(STATE.active.mode.unitID) then
         Log:trace("Unit no longer exists")
         ModeManager.disableMode()
         return false
@@ -37,7 +37,7 @@ end
 function UnitFollowUtils.ensureHeightIsSet()
     -- Set DEFAULT mode height if not set
     if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT then
-        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.mode.unitID), 100) + 30
+        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.active.mode.unitID), 100) + 30
         CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT = unitHeight
     end
 
@@ -56,8 +56,8 @@ end
 ---@return table offsets The offsets to apply
 function UnitFollowUtils.getAppropriateOffsets()
     -- In combat mode - check if actively attacking
-    if STATE.mode.unit_follow.combatModeEnabled then
-        if STATE.mode.unit_follow.isAttacking then
+    if STATE.active.mode.unit_follow.combatModeEnabled then
+        if STATE.active.mode.unit_follow.isAttacking then
             -- Weapon offsets - when actively targeting something
             return CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.WEAPON
         else
@@ -108,12 +108,12 @@ function UnitFollowUtils.createHullDirectionState(unitID, offsets, rotFactor)
 
     -- Create camera direction state with smoothed values
     return {
-        dx = CameraCommons.lerp(STATE.mode.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.lerp(STATE.mode.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.lerp(STATE.mode.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.lerp(STATE.mode.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.lerpAngle(STATE.mode.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.lerp(STATE.mode.lastRotation.rz, targetRz, rotFactor),
+        dx = CameraCommons.lerp(STATE.active.mode.lastCamDir.x, frontX, rotFactor),
+        dy = CameraCommons.lerp(STATE.active.mode.lastCamDir.y, frontY, rotFactor),
+        dz = CameraCommons.lerp(STATE.active.mode.lastCamDir.z, frontZ, rotFactor),
+        rx = CameraCommons.lerp(STATE.active.mode.lastRotation.rx, targetRx, rotFactor),
+        ry = CameraCommons.lerpAngle(STATE.active.mode.lastRotation.ry, targetRy, rotFactor),
+        rz = CameraCommons.lerp(STATE.active.mode.lastRotation.rz, targetRz, rotFactor),
     }
 end
 
@@ -139,7 +139,7 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
 
     -- Apply target smoothing here - this is the key addition!
     -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
-    local processedTarget = UnitFollowTargetingSmoothing.processTarget(targetPos, STATE.mode.unit_follow.lastTargetUnitID)
+    local processedTarget = UnitFollowTargetingSmoothing.processTarget(targetPos, STATE.active.mode.unit_follow.lastTargetUnitID)
 
     if processedTarget then
         targetPos = processedTarget
@@ -159,9 +159,9 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
     dx, dy, dz = dx / magnitude, dy / magnitude, dz / magnitude
 
     -- Store position and direction for other functions
-    STATE.mode.unit_follow.weaponPos = weaponPos
-    STATE.mode.unit_follow.weaponDir = { dx, dy, dz }
-    STATE.mode.unit_follow.activeWeaponNum = weaponNum
+    STATE.active.mode.unit_follow.weaponPos = weaponPos
+    STATE.active.mode.unit_follow.weaponDir = { dx, dy, dz }
+    STATE.active.mode.unit_follow.activeWeaponNum = weaponNum
 
     -- Get camera position with weapon offsets
     local camPos = UnitFollowCombatMode.getCameraPositionForActiveWeapon(unitID, UnitFollowUtils.applyOffsets)
@@ -170,7 +170,7 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
     local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
 
     -- Apply rotation constraints to prevent too rapid rotation
-    if directionState and STATE.mode.unit_follow.isAttacking then
+    if directionState and STATE.active.mode.unit_follow.isAttacking then
         -- Get the constrained rotation values
         local constrainedYaw, constrainedPitch = UnitFollowTargetingSmoothing.constrainRotationRate(
                 directionState.ry, directionState.rx)
@@ -189,17 +189,17 @@ end
 --- @return table directionState Camera direction and rotation state
 function UnitFollowUtils.handleNormalFollowMode(unitID, rotFactor)
     -- Check if combat mode is enabled
-    if STATE.mode.unit_follow.combatModeEnabled then
+    if STATE.active.mode.unit_follow.combatModeEnabled then
         -- Check if the unit is actively targeting something
         local targetPos, firingWeaponNum, isNewTarget = UnitFollowCombatMode.getCurrentAttackTarget(unitID)
-        if isNewTarget and not STATE.mode.unit_follow.isTargetSwitchTransition then
+        if isNewTarget and not STATE.active.mode.unit_follow.isTargetSwitchTransition then
             UnitFollowUtils.handleNewTarget()
         end
 
-        if STATE.mode.unit_follow.isAttacking then
+        if STATE.active.mode.unit_follow.isAttacking then
             -- Try to create direction state based on targeting data
             local targetingState = UnitFollowUtils.createTargetingDirectionState(
-                    unitID, targetPos, firingWeaponNum or STATE.mode.unit_follow.activeWeaponNum, rotFactor)
+                    unitID, targetPos, firingWeaponNum or STATE.active.mode.unit_follow.activeWeaponNum, rotFactor)
 
             if targetingState then
                 -- Successfully created targeting state
@@ -212,35 +212,35 @@ function UnitFollowUtils.handleNormalFollowMode(unitID, rotFactor)
         return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT, rotFactor)
     else
         -- Normal mode - always ensure isAttacking is false
-        STATE.mode.unit_follow.isAttacking = false
+        STATE.active.mode.unit_follow.isAttacking = false
         return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT, rotFactor)
     end
 end
 
 function UnitFollowUtils.handleNewTarget()
-    local trackedUnitID = STATE.mode.unitID
+    local trackedUnitID = STATE.active.mode.unitID
     if not trackedUnitID or not Spring.ValidUnitID(trackedUnitID) then
         return
     end
 
     -- Initialize state fields if needed
-    if not STATE.mode.unit_follow.previousTargetPos then
-        if STATE.mode.unit_follow.lastTargetPos then
-            STATE.mode.unit_follow.previousTargetPos = {
-                x = STATE.mode.unit_follow.lastTargetPos.x,
-                y = STATE.mode.unit_follow.lastTargetPos.y,
-                z = STATE.mode.unit_follow.lastTargetPos.z
+    if not STATE.active.mode.unit_follow.previousTargetPos then
+        if STATE.active.mode.unit_follow.lastTargetPos then
+            STATE.active.mode.unit_follow.previousTargetPos = {
+                x = STATE.active.mode.unit_follow.lastTargetPos.x,
+                y = STATE.active.mode.unit_follow.lastTargetPos.y,
+                z = STATE.active.mode.unit_follow.lastTargetPos.z
             }
         end
     end
 
-    if not STATE.mode.unit_follow.lastTargetSwitchTime then
-        STATE.mode.unit_follow.lastTargetSwitchTime = Spring.GetTimer()
+    if not STATE.active.mode.unit_follow.lastTargetSwitchTime then
+        STATE.active.mode.unit_follow.lastTargetSwitchTime = Spring.GetTimer()
     end
 
     -- Check for target suitability
-    local newTargetPos = STATE.mode.unit_follow.lastTargetPos
-    local previousTargetPos = STATE.mode.unit_follow.previousTargetPos
+    local newTargetPos = STATE.active.mode.unit_follow.lastTargetPos
+    local previousTargetPos = STATE.active.mode.unit_follow.previousTargetPos
 
     -- Skip if we don't have proper target data
     if not newTargetPos then
@@ -249,7 +249,7 @@ function UnitFollowUtils.handleNewTarget()
 
     -- First acquisition just store it
     if not previousTargetPos then
-        STATE.mode.unit_follow.previousTargetPos = {
+        STATE.active.mode.unit_follow.previousTargetPos = {
             x = newTargetPos.x,
             y = newTargetPos.y,
             z = newTargetPos.z
@@ -261,11 +261,11 @@ function UnitFollowUtils.handleNewTarget()
     local currentTime = Spring.GetTimer()
 
     -- Rate limiting criteria
-    local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.mode.unit_follow.lastTargetSwitchTime)
-    local minTimeBetweenTransitions = STATE.mode.unit_follow.isTargetSwitchTransition and 0.5 or 1.0  -- Shorter if already in transition
+    local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.active.mode.unit_follow.lastTargetSwitchTime)
+    local minTimeBetweenTransitions = STATE.active.mode.unit_follow.isTargetSwitchTransition and 0.5 or 1.0  -- Shorter if already in transition
 
     -- Enhanced decision criteria:
-    local isInTransition = STATE.mode.unit_follow.isTargetSwitchTransition
+    local isInTransition = STATE.active.mode.unit_follow.isTargetSwitchTransition
     local isTimeSufficientForNewTransition = timeSinceLastTransition > minTimeBetweenTransitions
 
     -- Skip transition if:
@@ -274,7 +274,7 @@ function UnitFollowUtils.handleNewTarget()
     -- 3. Last transition was too recent
     if isInTransition or (not isTimeSufficientForNewTransition) then
         -- Just update the previous target position without starting a new transition
-        STATE.mode.unit_follow.previousTargetPos = {
+        STATE.active.mode.unit_follow.previousTargetPos = {
             x = newTargetPos.x,
             y = newTargetPos.y,
             z = newTargetPos.z
@@ -297,42 +297,42 @@ function UnitFollowUtils.handleNewTarget()
     -- CRITICAL FIX: Capture the CURRENT camera state for transition origin point
     -- This ensures we start from where the camera actually is
     local currentCameraState = Spring.GetCameraState()
-    STATE.mode.unit_follow.previousCamPosWorld = {
+    STATE.active.mode.unit_follow.previousCamPosWorld = {
         x = currentCameraState.px,
         y = currentCameraState.py,
         z = currentCameraState.pz
     }
 
     -- Store previous direction vector (used for calculating target camera position)
-    if STATE.mode.unit_follow.weaponDir then
-        STATE.mode.unit_follow.previousWeaponDir = {
-            STATE.mode.unit_follow.weaponDir[1],
-            STATE.mode.unit_follow.weaponDir[2],
-            STATE.mode.unit_follow.weaponDir[3]
+    if STATE.active.mode.unit_follow.weaponDir then
+        STATE.active.mode.unit_follow.previousWeaponDir = {
+            STATE.active.mode.unit_follow.weaponDir[1],
+            STATE.active.mode.unit_follow.weaponDir[2],
+            STATE.active.mode.unit_follow.weaponDir[3]
         }
     else
         local _, frontVec, _, _ = Spring.GetUnitVectors(trackedUnitID)
         if frontVec then
-            STATE.mode.unit_follow.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
+            STATE.active.mode.unit_follow.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
         else
-            STATE.mode.unit_follow.previousWeaponDir = { 0, 0, 1 }  -- Fallback
+            STATE.active.mode.unit_follow.previousWeaponDir = { 0, 0, 1 }  -- Fallback
         end
     end
 
     -- Start transition
-    STATE.mode.unit_follow.isTargetSwitchTransition = true
-    STATE.mode.unit_follow.targetSwitchStartTime = currentTime
-    STATE.mode.unit_follow.lastTargetSwitchTime = currentTime
-    STATE.mode.unit_follow.transitionCounter = (STATE.mode.unit_follow.transitionCounter or 0) + 1
+    STATE.active.mode.unit_follow.isTargetSwitchTransition = true
+    STATE.active.mode.unit_follow.targetSwitchStartTime = currentTime
+    STATE.active.mode.unit_follow.lastTargetSwitchTime = currentTime
+    STATE.active.mode.unit_follow.transitionCounter = (STATE.active.mode.unit_follow.transitionCounter or 0) + 1
 
     -- Signal rotation constraints to reset
-    if STATE.mode.unit_follow.targetSmoothing and STATE.mode.unit_follow.targetSmoothing.rotationConstraint then
-        STATE.mode.unit_follow.targetSmoothing.rotationConstraint.resetForSwitch = true
+    if STATE.active.mode.unit_follow.targetSmoothing and STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint then
+        STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.resetForSwitch = true
         Log:debug("Signaling rotation constraint reset.")
     end
 
     -- Store this target position for future comparisons
-    STATE.mode.unit_follow.previousTargetPos = {
+    STATE.active.mode.unit_follow.previousTargetPos = {
         x = newTargetPos.x,
         y = newTargetPos.y,
         z = newTargetPos.z
@@ -350,36 +350,36 @@ function UnitFollowUtils.setFixedLookPoint(fixedPoint, targetUnitID)
     if Utils.isModeDisabled("unit_follow") then
         return false
     end
-    if not STATE.mode.unitID then
+    if not STATE.active.mode.unitID then
         Log:trace("No unit being tracked for fixed point camera")
         return false
     end
 
     -- Set the fixed point
-    STATE.mode.unit_follow.fixedPoint = fixedPoint
-    STATE.mode.unit_follow.targetUnitID = targetUnitID
-    STATE.mode.unit_follow.isFixedPointActive = true
+    STATE.active.mode.unit_follow.fixedPoint = fixedPoint
+    STATE.active.mode.unit_follow.targetUnitID = targetUnitID
+    STATE.active.mode.unit_follow.isFixedPointActive = true
 
     -- We're no longer in target selection mode
-    STATE.mode.unit_follow.inTargetSelectionMode = false
-    STATE.mode.unit_follow.prevFixedPoint = nil -- Clear saved previous fixed point
+    STATE.active.mode.unit_follow.inTargetSelectionMode = false
+    STATE.active.mode.unit_follow.prevFixedPoint = nil -- Clear saved previous fixed point
 
     -- Use the previous free camera state for normal operation
-    STATE.mode.unit_follow.isFreeCameraActive = STATE.mode.unit_follow.prevFreeCamState or false
+    STATE.active.mode.unit_follow.isFreeCameraActive = STATE.active.mode.unit_follow.prevFreeCamState or false
 
     -- If not in free camera mode, enable a transition to the fixed point
-    if not STATE.mode.unit_follow.isFreeCameraActive then
+    if not STATE.active.mode.unit_follow.isFreeCameraActive then
         -- Trigger a transition to smoothly move to the new view
-        STATE.mode.isModeTransitionInProgress = true
-        STATE.mode.transitionStartTime = Spring.GetTimer()
+        STATE.active.mode.isModeTransitionInProgress = true
+        STATE.active.mode.transitionStartTime = Spring.GetTimer()
     end
 
-    if not STATE.mode.unit_follow.targetUnitID then
+    if not STATE.active.mode.unit_follow.targetUnitID then
         Log:trace("Camera will follow unit but look at fixed point")
     else
-        local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.mode.unit_follow.targetUnitID)]
+        local unitDef = UnitDefs[Spring.GetUnitDefID(STATE.active.mode.unit_follow.targetUnitID)]
         local targetName = unitDef and unitDef.name or "Unnamed unit"
-        Log:trace("Camera will follow unit but look at unit " .. STATE.mode.unit_follow.targetUnitID ..
+        Log:trace("Camera will follow unit but look at unit " .. STATE.active.mode.unit_follow.targetUnitID ..
                 " (" .. targetName .. ")")
     end
 
@@ -392,19 +392,19 @@ function UnitFollowUtils.clearFixedLookPoint()
         return
     end
 
-    if STATE.mode.unit_follow.isFixedPointActive and STATE.mode.unitID then
+    if STATE.active.mode.unit_follow.isFixedPointActive and STATE.active.mode.unitID then
         -- Disable fixed point tracking
-        STATE.mode.unit_follow.isFixedPointActive = false
-        STATE.mode.unit_follow.fixedPoint = nil
-        STATE.mode.unit_follow.targetUnitID = nil  -- Clear the target unit ID
-        STATE.mode.unit_follow.inTargetSelectionMode = false
-        STATE.mode.unit_follow.prevFixedPoint = nil -- Clear saved previous fixed point
+        STATE.active.mode.unit_follow.isFixedPointActive = false
+        STATE.active.mode.unit_follow.fixedPoint = nil
+        STATE.active.mode.unit_follow.targetUnitID = nil  -- Clear the target unit ID
+        STATE.active.mode.unit_follow.inTargetSelectionMode = false
+        STATE.active.mode.unit_follow.prevFixedPoint = nil -- Clear saved previous fixed point
 
         -- Start a transition when changing modes
-        STATE.mode.isModeTransitionInProgress = true
-        STATE.mode.transitionStartTime = Spring.GetTimer()
+        STATE.active.mode.isModeTransitionInProgress = true
+        STATE.active.mode.transitionStartTime = Spring.GetTimer()
 
-        if STATE.mode.unit_follow.isFreeCameraActive then
+        if STATE.active.mode.unit_follow.isFreeCameraActive then
             Log:trace("Fixed point tracking disabled, maintaining free camera mode")
         else
             Log:trace("Fixed point tracking disabled, returning to unit_follow mode")
@@ -415,18 +415,18 @@ end
 --- Updates the fixed point if tracking a unit
 ---@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
 function UnitFollowUtils.updateFixedPointTarget()
-    if not STATE.mode.unit_follow.targetUnitID or not Spring.ValidUnitID(STATE.mode.unit_follow.targetUnitID) then
-        return STATE.mode.unit_follow.fixedPoint
+    if not STATE.active.mode.unit_follow.targetUnitID or not Spring.ValidUnitID(STATE.active.mode.unit_follow.targetUnitID) then
+        return STATE.active.mode.unit_follow.fixedPoint
     end
 
     -- Get the current position of the target unit
-    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.mode.unit_follow.targetUnitID)
-    STATE.mode.unit_follow.fixedPoint = {
+    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.active.mode.unit_follow.targetUnitID)
+    STATE.active.mode.unit_follow.fixedPoint = {
         x = targetX,
         y = targetY,
         z = targetZ
     }
-    return STATE.mode.unit_follow.fixedPoint
+    return STATE.active.mode.unit_follow.fixedPoint
 end
 
 --- Determines appropriate smoothing factors based on current state
@@ -435,8 +435,8 @@ end
 function UnitFollowUtils.getSmoothingFactor(smoothType, additionalFactor)
     -- Determine which mode we're in
     local smoothingMode
-    if STATE.mode.unit_follow.combatModeEnabled then
-        if STATE.mode.unit_follow.isAttacking then
+    if STATE.active.mode.unit_follow.combatModeEnabled then
+        if STATE.active.mode.unit_follow.isAttacking then
             smoothingMode = "WEAPON"
         else
             smoothingMode = "COMBAT"
@@ -455,7 +455,7 @@ function UnitFollowUtils.getSmoothingFactor(smoothType, additionalFactor)
         result = CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].ROTATION_FACTOR
     end
 
-    return STATE.mode.unit_follow.transitionFactor or (result * additionalFactor)
+    return STATE.active.mode.unit_follow.transitionFactor or (result * additionalFactor)
 end
 
 local function getParamPrefixes()
@@ -476,7 +476,7 @@ function UnitFollowUtils.adjustParams(params)
     end
 
     -- Make sure we have a unit to track
-    if not STATE.mode.unitID then
+    if not STATE.active.mode.unitID then
         Log:trace("No unit being tracked")
         return
     end
@@ -484,14 +484,14 @@ function UnitFollowUtils.adjustParams(params)
     -- Handle reset directly
     if params == "reset" then
         UnitFollowUtils.resetOffsets()
-        UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.mode.unitID)
+        UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.active.mode.unitID)
         return
     end
 
     -- Determine current submode
     local currentSubMode
-    if STATE.mode.unit_follow.combatModeEnabled then
-        if STATE.mode.unit_follow.isAttacking then
+    if STATE.active.mode.unit_follow.combatModeEnabled then
+        if STATE.active.mode.unit_follow.isAttacking then
             currentSubMode = "WEAPON"
         else
             currentSubMode = "COMBAT"
@@ -506,7 +506,7 @@ function UnitFollowUtils.adjustParams(params)
         UnitFollowUtils.resetOffsets()
     end, currentSubMode, getParamPrefixes)
 
-    UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.mode.unitID)
+    UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.active.mode.unitID)
 end
 
 --- Resets camera offsets to default values
@@ -539,14 +539,14 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     local frontVec, upVec, rightVec
     local weaponBasePos = unitPos
 
-    if STATE.mode.unit_follow.isAttacking and STATE.mode.unit_follow.weaponDir then
+    if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.weaponDir then
         -- Use weapon position when attacking if available
-        if STATE.mode.unit_follow.weaponPos then
-            weaponBasePos = STATE.mode.unit_follow.weaponPos
-            position = STATE.mode.unit_follow.weaponPos
+        if STATE.active.mode.unit_follow.weaponPos then
+            weaponBasePos = STATE.active.mode.unit_follow.weaponPos
+            position = STATE.active.mode.unit_follow.weaponPos
         end
         -- Use weapon direction when attacking
-        frontVec = STATE.mode.unit_follow.weaponDir
+        frontVec = STATE.active.mode.unit_follow.weaponDir
         upVec = up
         -- Calculate right vector from front and up vectors
         rightVec = {
@@ -606,13 +606,13 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     local targetCamPosWorld = { x = x, y = y, z = z }
 
     -- Apply minimum height constraint to target position
-    targetCamPosWorld = UnitFollowUtils.enforceMinimumHeight(targetCamPosWorld, STATE.mode.unitID)
+    targetCamPosWorld = UnitFollowUtils.enforceMinimumHeight(targetCamPosWorld, STATE.active.mode.unitID)
 
     -- IMPORTANT: First apply the stabilization for jittery camera
     local finalCamPosWorld = targetCamPosWorld
 
     -- Handle transition if active
-    if STATE.mode.unit_follow.isTargetSwitchTransition then
+    if STATE.active.mode.unit_follow.isTargetSwitchTransition then
         local transitionPos = UnitFollowUtils.handleTransition(targetCamPosWorld)
         if transitionPos then
             finalCamPosWorld = transitionPos
@@ -627,10 +627,10 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
 
     -- IMPORTANT: Apply air target repositioning AFTER stabilization
     -- This ensures the air adjustment respects the stabilized camera state
-    if STATE.mode.unit_follow.isAttacking and STATE.mode.unit_follow.lastTargetPos then
+    if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
         finalCamPosWorld = UnitFollowTargetingUtils.handleAirTargetRepositioning(
                 finalCamPosWorld,
-                STATE.mode.unit_follow.lastTargetPos,
+                STATE.active.mode.unit_follow.lastTargetPos,
                 unitPos  -- Pass original unit position for reference
         )
     end
@@ -642,7 +642,7 @@ end
 -- This follows the guideline to avoid large conditional blocks
 function UnitFollowUtils.applyStabilizationOrTransition(targetCamPosWorld)
     -- Check if we are in a target switch transition
-    if STATE.mode.unit_follow.isTargetSwitchTransition then
+    if STATE.active.mode.unit_follow.isTargetSwitchTransition then
         return UnitFollowUtils.handleTransition(targetCamPosWorld)
     end
 
@@ -654,8 +654,8 @@ end
 -- This follows the guideline to split large conditionals into functions
 function UnitFollowUtils.handleTransition(targetCamPosWorld)
     local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.mode.unit_follow.targetSwitchStartTime or now)
-    local transitionDuration = STATE.mode.unit_follow.targetSwitchDuration or 0.4
+    local elapsed = Spring.DiffTimers(now, STATE.active.mode.unit_follow.targetSwitchStartTime or now)
+    local transitionDuration = STATE.active.mode.unit_follow.targetSwitchDuration or 0.4
 
     -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
     local rawProgress = math.min(1.0, elapsed / transitionDuration)
@@ -664,8 +664,8 @@ function UnitFollowUtils.handleTransition(targetCamPosWorld)
 
     if progress < 1.0 then
         -- Use current actual camera position for transition
-        if STATE.mode.unit_follow.previousCamPosWorld then
-            local startPos = STATE.mode.unit_follow.previousCamPosWorld
+        if STATE.active.mode.unit_follow.previousCamPosWorld then
+            local startPos = STATE.active.mode.unit_follow.previousCamPosWorld
             local endPos = targetCamPosWorld
 
             -- Simple direct linear interpolation between current and target position
@@ -680,8 +680,8 @@ function UnitFollowUtils.handleTransition(targetCamPosWorld)
         end
     else
         -- Transition finished this frame
-        STATE.mode.unit_follow.isTargetSwitchTransition = false
-        STATE.mode.unit_follow.previousCamPosWorld = nil
+        STATE.active.mode.unit_follow.isTargetSwitchTransition = false
+        STATE.active.mode.unit_follow.previousCamPosWorld = nil
         Log:info("Target switch transition finished.")
     end
 
@@ -692,27 +692,27 @@ end
 -- This follows the guideline to split large conditionals into functions
 function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     -- Get targeting information from smoothing system
-    local targetSmoothing = STATE.mode.unit_follow.targetSmoothing
+    local targetSmoothing = STATE.active.mode.unit_follow.targetSmoothing
 
     -- Only apply stabilization during active targeting with high target switching activity
-    if not STATE.mode.unit_follow.isAttacking or not targetSmoothing or
+    if not STATE.active.mode.unit_follow.isAttacking or not targetSmoothing or
             not targetSmoothing.activityLevel or targetSmoothing.activityLevel <= 0.5 then
         -- Reset stabilization when not in a high-activity targeting situation
-        STATE.mode.unit_follow.stableCamPos = nil
+        STATE.active.mode.unit_follow.stableCamPos = nil
         return nil
     end
 
     -- Initialize stable camera position history if needed
-    if not STATE.mode.unit_follow.stableCamPos then
-        STATE.mode.unit_follow.stableCamPos = targetCamPosWorld
-        STATE.mode.unit_follow.cameraStabilityFactor = 0.05 -- Default slow response
+    if not STATE.active.mode.unit_follow.stableCamPos then
+        STATE.active.mode.unit_follow.stableCamPos = targetCamPosWorld
+        STATE.active.mode.unit_follow.cameraStabilityFactor = 0.05 -- Default slow response
     end
 
     -- Calculate stabilization factors
     local factor = UnitFollowUtils.calculateStabilityFactor(targetSmoothing)
 
     -- Apply very gradual interpolation towards the target position
-    local stableCamPos = STATE.mode.unit_follow.stableCamPos
+    local stableCamPos = STATE.active.mode.unit_follow.stableCamPos
 
     local smoothedCamPos = {
         x = stableCamPos.x + (targetCamPosWorld.x - stableCamPos.x) * factor,
@@ -721,7 +721,7 @@ function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     }
 
     -- Update stable camera position for next frame
-    STATE.mode.unit_follow.stableCamPos = smoothedCamPos
+    STATE.active.mode.unit_follow.stableCamPos = smoothedCamPos
 
     -- Log stabilization info periodically
     UnitFollowUtils.logStabilizationInfo(factor, targetSmoothing)
@@ -746,7 +746,7 @@ function UnitFollowUtils.calculateStabilityFactor(targetSmoothing)
     end
 
     -- Store the factor for reference
-    STATE.mode.unit_follow.cameraStabilityFactor = factor
+    STATE.active.mode.unit_follow.cameraStabilityFactor = factor
 
     return factor
 end
@@ -754,11 +754,11 @@ end
 -- Log stabilization info periodically to avoid spam
 function UnitFollowUtils.logStabilizationInfo(factor, targetSmoothing)
     local currentTime = Spring.GetTimer()
-    if not STATE.mode.unit_follow.lastStabilizationLog or
-            Spring.DiffTimers(currentTime, STATE.mode.unit_follow.lastStabilizationLog) > 1.0 then
+    if not STATE.active.mode.unit_follow.lastStabilizationLog or
+            Spring.DiffTimers(currentTime, STATE.active.mode.unit_follow.lastStabilizationLog) > 1.0 then
         Log:debug(string.format("Camera stabilization active: factor=%.3f, activity=%.2f, switches=%d",
                 factor, targetSmoothing.activityLevel, targetSmoothing.targetSwitchCount or 0))
-        STATE.mode.unit_follow.lastStabilizationLog = currentTime
+        STATE.active.mode.unit_follow.lastStabilizationLog = currentTime
     end
 end
 

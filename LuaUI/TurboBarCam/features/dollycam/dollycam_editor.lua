@@ -20,7 +20,7 @@ function DollyCamEditor.addWaypointAtPosition(position)
     -- If we're navigating, find the best insertion point
     local insertIndex = #STATE.dollyCam.route.points + 1
 
-    if STATE.dollyCam.isNavigating then
+    if STATE.active.dollyCam.isNavigating then
         Log:debug("Can't edit route while navigating")
         return
     end

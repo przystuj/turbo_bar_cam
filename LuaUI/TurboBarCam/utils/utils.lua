@@ -18,10 +18,10 @@ end
 
 ---@param mode 'unit_follow'|'unit_tracking'|'orbit'|'overview'
 function Utils.isModeDisabled(mode)
-    if mode == "global" and STATE.mode.name then
+    if mode == "global" and STATE.active.mode.name then
         return true
     end
-    if mode ~= "global" and STATE.mode.name ~= mode then
+    if mode ~= "global" and STATE.active.mode.name ~= mode then
         return true
     end
 end

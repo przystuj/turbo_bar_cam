@@ -50,7 +50,7 @@ end
 ---@param initialCamStateAtModeEntry table? Captured camera state from ModeManager at mode entry. Required if targetCamState is provided. Ignored otherwise.
 ---@param targetCamState table? The target camera state (px,py,pz,fov) for a targeted transition.If nil, a standard deceleration transition is performed.
 local function startUnitTrackingTransition(unitID, initialCamStateAtModeEntry, targetCamState)
-    STATE.mode.unit_tracking.isModeInitialized = true
+    STATE.active.mode.unit_tracking.isModeInitialized = true
 
     -- Initial validation for unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
@@ -143,7 +143,7 @@ function UnitTrackingCamera.toggle()
     local selectedUnits = Spring.GetSelectedUnits()
 
     if #selectedUnits == 0 then
-        if STATE.mode.name == 'unit_tracking' then
+        if STATE.active.mode.name == 'unit_tracking' then
             ModeManager.disableMode()
             Log:trace("UnitTrackingCamera: Disabled (no units selected).")
         else
@@ -153,9 +153,9 @@ function UnitTrackingCamera.toggle()
     end
     local selectedUnitID = selectedUnits[1]
 
-    if STATE.mode.name == 'unit_tracking' and
-            STATE.mode.unitID == selectedUnitID and
-            not STATE.mode.optionalTargetCameraStateForModeEntry then
+    if STATE.active.mode.name == 'unit_tracking' and
+            STATE.active.mode.unitID == selectedUnitID and
+            not STATE.active.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableMode()
         Log:trace("UnitTrackingCamera: Disabled for unit " .. selectedUnitID)
         return
@@ -169,25 +169,25 @@ function UnitTrackingCamera.toggle()
 end
 
 function UnitTrackingCamera.update(dt)
-    if STATE.mode.name ~= 'unit_tracking' then
-        STATE.mode.unit_tracking.isModeInitialized = false
+    if STATE.active.mode.name ~= 'unit_tracking' then
+        STATE.active.mode.unit_tracking.isModeInitialized = false
         return
     end
 
-    local unitID = STATE.mode.unitID
+    local unitID = STATE.active.mode.unitID
     if not unitID or not Spring.ValidUnitID(unitID) then
         Log:trace("UnitTrackingCamera: Tracked unit " .. tostring(unitID) .. " no longer exists, disabling.")
-        if STATE.mode.name == 'unit_tracking' then
+        if STATE.active.mode.name == 'unit_tracking' then
             ModeManager.disableMode()
         end
         return
     end
 
-    if STATE.mode.unit_tracking and not STATE.mode.unit_tracking.isModeInitialized then
-        STATE.mode.unit_tracking.isModeInitialized = true
+    if STATE.active.mode.unit_tracking and not STATE.active.mode.unit_tracking.isModeInitialized then
+        STATE.active.mode.unit_tracking.isModeInitialized = true
 
-        local initialCamState = STATE.mode.initialCameraStateForModeEntry
-        local optionalTargetCamState = STATE.mode.optionalTargetCameraStateForModeEntry
+        local initialCamState = STATE.active.mode.initialCameraStateForModeEntry
+        local optionalTargetCamState = STATE.active.mode.optionalTargetCameraStateForModeEntry
 
         if not initialCamState then
             Log:warn("UnitTrackingCamera: initialCameraStateForModeEntry is nil. Cannot start entry transition properly.")
@@ -228,10 +228,10 @@ function UnitTrackingCamera.adjustParams(params)
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    if STATE.mode.name ~= 'unit_tracking' then
+    if STATE.active.mode.name ~= 'unit_tracking' then
         return
     end
-    if not STATE.mode.unitID then
+    if not STATE.active.mode.unitID then
         Log:trace("UnitTrackingCamera: No unit is tracked for adjustParams.")
         return
     end

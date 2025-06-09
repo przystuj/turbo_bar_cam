@@ -18,7 +18,7 @@ local Scheduler = {}
 --- @return nil
 function Scheduler.schedule(fn, delay, id)
     -- Store the scheduled function with its delay and time to execute
-    STATE.scheduler.schedules[id] = {
+    STATE.active.scheduler.schedules[id] = {
         fn = fn,
         delay = delay,
         startTime = Spring.GetTimer(),  -- Current time using stable timer
@@ -41,12 +41,12 @@ function Scheduler.debounce(fn, delay, id)
     local currentTime = Spring.GetTimer()
 
     -- Check if this task is already scheduled
-    if STATE.scheduler.schedules[id] then
+    if STATE.active.scheduler.schedules[id] then
         -- Update only the execution start time without logging a new schedule
-        STATE.scheduler.schedules[id].startTime = currentTime
+        STATE.active.scheduler.schedules[id].startTime = currentTime
     else
         -- Create a new debounce schedule
-        STATE.scheduler.schedules[id] = {
+        STATE.active.scheduler.schedules[id] = {
             fn = fn,
             delay = delay,
             startTime = currentTime,
@@ -61,8 +61,8 @@ end
 --- @param id string The identifier of the task to cancel
 --- @return boolean success Whether a task was found and canceled
 function Scheduler.cancel(id)
-    if STATE.scheduler.schedules[id] then
-        STATE.scheduler.schedules[id] = nil
+    if STATE.active.scheduler.schedules[id] then
+        STATE.active.scheduler.schedules[id] = nil
         Log:trace(string.format("Canceled scheduled function [%s].", id))
         return true
     end
@@ -74,7 +74,7 @@ end
 --- @param id string The identifier to check
 --- @return boolean isScheduled Whether the task is scheduled
 function Scheduler.isScheduled(id)
-    return STATE.scheduler.schedules[id] ~= nil
+    return STATE.active.scheduler.schedules[id] ~= nil
 end
 
 --- Gets the remaining time before a scheduled task executes
@@ -82,8 +82,8 @@ end
 --- @param id string The identifier of the task
 --- @return number|nil timeRemaining The time remaining in seconds, or nil if not scheduled
 function Scheduler.getTimeRemaining(id)
-    if STATE.scheduler.schedules[id] then
-        local schedule = STATE.scheduler.schedules[id]
+    if STATE.active.scheduler.schedules[id] then
+        local schedule = STATE.active.scheduler.schedules[id]
         local currentTime = Spring.GetTimer()
 
         -- Calculate time that has passed
@@ -98,21 +98,21 @@ end
 
 --- Handles and executes all due schedules
 function Scheduler.handleSchedules()
-    if not STATE.scheduler.schedules or TableUtils.tableCount(STATE.scheduler.schedules) == 0 then
+    if not STATE.active.scheduler.schedules or TableUtils.tableCount(STATE.active.scheduler.schedules) == 0 then
         return
     end
 
     local currentTime = Spring.GetTimer()
 
     -- Iterate over all scheduled tasks and execute the ones that are due
-    for id, schedule in pairs(STATE.scheduler.schedules) do
+    for id, schedule in pairs(STATE.active.scheduler.schedules) do
         -- Check if it's time to execute based on time difference
         local timePassed = Spring.DiffTimers(currentTime, schedule.startTime)
         if timePassed >= schedule.delay then
             local type = schedule.type or "normal"
             Log:trace(string.format("Executing %s function [%s] after [%ss].", type, id, schedule.delay))
             schedule.fn()  -- Execute the scheduled function
-            STATE.scheduler.schedules[id] = nil  -- Remove the schedule after execution
+            STATE.active.scheduler.schedules[id] = nil  -- Remove the schedule after execution
         end
     end
 end

@@ -76,7 +76,7 @@ end
 
 --- Main draw function for anchor visualizations
 function CameraAnchorVisualization.draw()
-    if not STATE.anchor.visualizationEnabled then
+    if not STATE.active.anchor.visualizationEnabled then
         return
     end
 
@@ -90,7 +90,7 @@ function CameraAnchorVisualization.draw()
 
     for i, anchor in ipairs(STATE.anchor.points) do
         if anchor and anchor.position and anchor.target then
-            local isHighlighted = (i == STATE.anchor.activeAnchorId)
+            local isHighlighted = (i == STATE.active.anchor.activeAnchorId)
             local sizeMultiplier = isHighlighted and CameraAnchorVisualization.settings.highlightMultiplier or 1.0
 
             -- 1. Draw the saved camera position point and its label

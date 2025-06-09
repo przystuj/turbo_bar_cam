@@ -18,7 +18,7 @@ local OrbitCameraUtils = {}
 function OrbitCameraUtils.calculateOrbitPosition(targetPos)
     OrbitCameraUtils.ensureHeightIsSet()
     -- Calculate precise sine and cosine for the orbit angle
-    local angle = STATE.mode.orbit.angle
+    local angle = STATE.active.mode.orbit.angle
     local distance = CONFIG.CAMERA_MODES.ORBIT.OFFSETS.DISTANCE
 
     -- Calculate precise orbit offset
@@ -37,8 +37,8 @@ function OrbitCameraUtils.ensureHeightIsSet()
         return
     end
 
-    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
-        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.mode.unitID), 100)
+    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+        local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.active.mode.unitID), 100)
         CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
     else
         CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = 1000
@@ -58,7 +58,7 @@ function OrbitCameraUtils.adjustParams(params)
     ParamUtils.adjustParams(params, "ORBIT", function()
         OrbitCameraUtils.resetSettings()
     end)
-    SettingsManager.saveModeSettings(STATE.mode.name, STATE.mode.unitID)
+    SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
 end
 
 --- Resets orbit settings to defaults
@@ -72,19 +72,19 @@ end
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.getTargetPosition()
     local targetPos
-    if STATE.mode.targetType == STATE.TARGET_TYPES.UNIT then
+    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
         -- Check if unit still exists
-        if not Spring.ValidUnitID(STATE.mode.unitID) then
+        if not Spring.ValidUnitID(STATE.active.mode.unitID) then
             Log:trace("Unit no longer exists, switching to point tracking")
 
             -- Switch to point tracking using last known position
-            if STATE.mode.lastTargetPoint then
-                STATE.mode.targetType = STATE.TARGET_TYPES.POINT
-                STATE.mode.targetPoint = STATE.mode.lastTargetPoint
-                STATE.mode.unitID = nil
+            if STATE.active.mode.lastTargetPoint then
+                STATE.active.mode.targetType = STATE.TARGET_TYPES.POINT
+                STATE.active.mode.targetPoint = STATE.active.mode.lastTargetPoint
+                STATE.active.mode.unitID = nil
 
                 -- Use the last target point for this update
-                targetPos = STATE.mode.targetPoint
+                targetPos = STATE.active.mode.targetPoint
             else
                 -- No position info available, disable tracking
                 ModeManager.disableMode()
@@ -92,15 +92,15 @@ function OrbitCameraUtils.getTargetPosition()
             end
         else
             -- Unit exists, get its position
-            local x, y, z = Spring.GetUnitPosition(STATE.mode.unitID)
+            local x, y, z = Spring.GetUnitPosition(STATE.active.mode.unitID)
             targetPos = { x = x, y = y, z = z }
 
             -- Update last target point for fallback
-            STATE.mode.lastTargetPoint = { x = x, y = y, z = z }
+            STATE.active.mode.lastTargetPoint = { x = x, y = y, z = z }
         end
     else
         -- Point tracking
-        targetPos = STATE.mode.targetPoint
+        targetPos = STATE.active.mode.targetPoint
     end
     return targetPos
 end

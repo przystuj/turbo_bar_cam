@@ -41,10 +41,10 @@ function MovementUtils.startMoveToTarget(targetPoint)
     -- Get current camera state and height
     local currentCamState = Spring.GetCameraState()
 
-    -- Use STATE.mode.overview.targetHeight if it's set, otherwise calculate current height
+    -- Use STATE.active.mode.overview.targetHeight if it's set, otherwise calculate current height
     local currentHeight
-    if STATE.mode.overview.targetHeight then
-        currentHeight = STATE.mode.overview.targetHeight
+    if STATE.active.mode.overview.targetHeight then
+        currentHeight = STATE.active.mode.overview.targetHeight
         Log:trace(string.format("Using target height: %.1f for move operation", currentHeight))
     else
         currentHeight = OverviewCameraUtils.calculateCurrentHeight()
@@ -74,36 +74,36 @@ function MovementUtils.startMoveToTarget(targetPoint)
     )
 
     -- Store current camera position as starting point for transition
-    STATE.mode.overview.fixedCamPos = {
+    STATE.active.mode.overview.fixedCamPos = {
         x = currentCamState.px,
         y = currentCamState.py,
         z = currentCamState.pz
     }
 
     -- Store target position for smooth transition
-    STATE.mode.overview.targetCamPos = targetCamPos
+    STATE.active.mode.overview.targetCamPos = targetCamPos
 
     -- Store the target point
-    STATE.mode.overview.targetPoint = targetPoint
+    STATE.active.mode.overview.targetPoint = targetPoint
 
     -- IMPORTANT: Also store as lastTargetPoint for future rotation reference
-    STATE.mode.overview.lastTargetPoint = targetPoint
+    STATE.active.mode.overview.lastTargetPoint = targetPoint
     Log:trace(string.format("Stored last target point at (%.1f, %.1f)", targetPoint.x, targetPoint.z))
 
     -- Calculate look direction
     local lookDir = CameraCommons.calculateCameraDirectionToThePoint(targetCamPos, targetPoint)
 
     -- Set rotation targets
-    STATE.mode.overview.targetRx = lookDir.rx
-    STATE.mode.overview.targetRy = lookDir.ry
+    STATE.active.mode.overview.targetRx = lookDir.rx
+    STATE.active.mode.overview.targetRy = lookDir.ry
 
     -- Reset user control tracking flags
-    STATE.mode.overview.userLookedAround = false
+    STATE.active.mode.overview.userLookedAround = false
 
     -- Reset transition tracking variables
-    STATE.mode.overview.stuckFrameCount = 0
-    STATE.mode.overview.initialMoveDistance = moveDistance
-    STATE.mode.overview.lastTransitionDistance = moveDistance
+    STATE.active.mode.overview.stuckFrameCount = 0
+    STATE.active.mode.overview.initialMoveDistance = moveDistance
+    STATE.active.mode.overview.lastTransitionDistance = moveDistance
 
     -- Adapt transition factor based on movement distance
     local distanceBasedFactor
@@ -114,11 +114,11 @@ function MovementUtils.startMoveToTarget(targetPoint)
     else
         distanceBasedFactor = CONFIG.CAMERA_MODES.OVERVIEW.TRANSITION_FACTOR * 0.7
     end
-    STATE.mode.overview.currentTransitionFactor = distanceBasedFactor
+    STATE.active.mode.overview.currentTransitionFactor = distanceBasedFactor
 
     -- Begin mode transition for smooth movement
-    STATE.mode.isModeTransitionInProgress = true
-    STATE.mode.transitionStartTime = Spring.GetTimer()
+    STATE.active.mode.isModeTransitionInProgress = true
+    STATE.active.mode.transitionStartTime = Spring.GetTimer()
 
     -- Update tracking state
     CameraTracker.updateLastKnownCameraState(currentCamState)
@@ -135,7 +135,7 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
     if initialDistance and initialDistance < 100 then
         -- Ensure even small movements have a minimum transition duration
         local now = Spring.GetTimer()
-        local elapsed = Spring.DiffTimers(now, STATE.mode.transitionStartTime)
+        local elapsed = Spring.DiffTimers(now, STATE.active.mode.transitionStartTime)
         if elapsed < 0.25 then
             -- Minimum 0.25 seconds for small movements
             return false
@@ -159,27 +159,27 @@ function MovementUtils.checkTransitionProgress(currentDistance, initialDistance)
     -- If we're not making significant progress anymore, consider it complete
     -- This prevents getting stuck if smoothStep approaches target asymptotically
     -- Ensure lastTransitionDistance exists before comparing
-    if STATE.mode.overview.lastTransitionDistance and
-            math.abs(STATE.mode.overview.lastTransitionDistance - currentDistance) < 0.5 then
+    if STATE.active.mode.overview.lastTransitionDistance and
+            math.abs(STATE.active.mode.overview.lastTransitionDistance - currentDistance) < 0.5 then
         -- Threshold for progress stall
-        STATE.mode.overview.stuckFrameCount = (STATE.mode.overview.stuckFrameCount or 0) + 1
-        if STATE.mode.overview.stuckFrameCount > 5 then
+        STATE.active.mode.overview.stuckFrameCount = (STATE.active.mode.overview.stuckFrameCount or 0) + 1
+        if STATE.active.mode.overview.stuckFrameCount > 5 then
             -- Number of frames threshold for being stuck
             Log:trace("Transition complete: Stuck (no progress).")
             return true
         end
     else
         -- Reset stuck count if progress is made
-        STATE.mode.overview.stuckFrameCount = 0
+        STATE.active.mode.overview.stuckFrameCount = 0
     end
 
-    -- Note: STATE.mode.overview.lastTransitionDistance is updated in handleModeTransition *after* this check
+    -- Note: STATE.active.mode.overview.lastTransitionDistance is updated in handleModeTransition *after* this check
 
     return false -- Transition not yet complete
 end
 
 --- Updates the camera's position and target rotation during a movement transition.
---- Modifies STATE.mode.overview.fixedCamPos and STATE.mode.overview.targetRx/Ry.
+--- Modifies STATE.active.mode.overview.fixedCamPos and STATE.active.mode.overview.targetRx/Ry.
 ---@param camState table The current camera state (used for current height).
 ---@param smoothFactor number The smoothing factor for position interpolation.
 ---@param rotFactor number The smoothing factor for rotation interpolation (unused here, handled in handleModeTransition).
@@ -187,40 +187,40 @@ end
 ---@return boolean success Whether updates were made.
 function MovementUtils.updateTransition(camState, smoothFactor, rotFactor, userControllingView)
     -- Ensure we have a target position to move towards
-    if not STATE.mode.overview.targetCamPos then
+    if not STATE.active.mode.overview.targetCamPos then
         Log:trace("UpdateTransition called without targetCamPos")
         return false -- Indicate nothing happened
     end
 
     -- Smoothly interpolate position (X and Z) towards the target
-    -- The source is the current STATE.mode.overview.fixedCamPos from the previous frame
-    STATE.mode.overview.fixedCamPos.x = CameraCommons.lerp(
-            STATE.mode.overview.fixedCamPos.x,
-            STATE.mode.overview.targetCamPos.x,
+    -- The source is the current STATE.active.mode.overview.fixedCamPos from the previous frame
+    STATE.active.mode.overview.fixedCamPos.x = CameraCommons.lerp(
+            STATE.active.mode.overview.fixedCamPos.x,
+            STATE.active.mode.overview.targetCamPos.x,
             smoothFactor
     )
-    STATE.mode.overview.fixedCamPos.z = CameraCommons.lerp(
-            STATE.mode.overview.fixedCamPos.z,
-            STATE.mode.overview.targetCamPos.z,
+    STATE.active.mode.overview.fixedCamPos.z = CameraCommons.lerp(
+            STATE.active.mode.overview.fixedCamPos.z,
+            STATE.active.mode.overview.targetCamPos.z,
             smoothFactor
     )
     -- Note: Y position (height) is handled separately by the zoom logic in TurboOverviewCamera.update
 
     -- Update rotation target ONLY if moving towards a target point and user is not interfering
-    if STATE.mode.overview.targetPoint and not userControllingView and not STATE.mode.overview.isRotationModeActive then
+    if STATE.active.mode.overview.targetPoint and not userControllingView and not STATE.active.mode.overview.isRotationModeActive then
         -- Calculate current look direction from the *newly calculated intermediate* position
         -- to the target point. Use the actual current camera height for the calculation.
         local currentIntermediatePos = {
-            x = STATE.mode.overview.fixedCamPos.x, -- Use the just-calculated X
+            x = STATE.active.mode.overview.fixedCamPos.x, -- Use the just-calculated X
             y = camState.py, -- Use current actual height from camState
-            z = STATE.mode.overview.fixedCamPos.z  -- Use the just-calculated Z
+            z = STATE.active.mode.overview.fixedCamPos.z  -- Use the just-calculated Z
         }
 
-        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(currentIntermediatePos, STATE.mode.overview.targetPoint)
+        local lookDir = CameraCommons.calculateCameraDirectionToThePoint(currentIntermediatePos, STATE.active.mode.overview.targetPoint)
 
         -- Update the target rotation angles. The actual smoothing/application happens in handleModeTransition.
-        STATE.mode.overview.targetRx = lookDir.rx
-        STATE.mode.overview.targetRy = lookDir.ry
+        STATE.active.mode.overview.targetRx = lookDir.rx
+        STATE.active.mode.overview.targetRy = lookDir.ry
     end
 
     return true -- Indicate that updates were made

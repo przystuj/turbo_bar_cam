@@ -10,7 +10,7 @@ local CameraQuickControls = {}
 
 local function togglePointOrbit()
     -- Only handle if no other mode is active or we're toggling an existing mode
-    if not STATE.mode.name or STATE.mode.name == 'orbit' then
+    if not STATE.active.mode.name or STATE.active.mode.name == 'orbit' then
         OrbitingCamera.togglePointOrbit()
     end
 end

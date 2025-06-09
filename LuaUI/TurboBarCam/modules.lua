@@ -72,12 +72,16 @@ local Modules = {
     STATE = "context/state.lua",
     EasingFunctions = "common/easing_functions.lua",
 
-    CameraDriver = "core/camera_driver.lua",
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",
     TransitionManager = "core/transition_manager.lua",
     UpdateManager = "core/update_manager.lua",
     WidgetManager = "core/widget_manager.lua",
+
+    CameraDriver = "driver/camera_driver.lua",
+    MathUtils = "driver/math_utils.lua",
+    CameraStateTracker = "driver/camera_state_tracker.lua",
+    QuaternionUtils = "driver/quaternion_utils.lua",
 
     CameraAnchor = "features/anchor/anchor.lua",
     CameraAnchorPersistence = "features/anchor/anchor_persistence.lua",
@@ -122,14 +126,10 @@ local Modules = {
     TransitionUtil = "standalone/transition_util.lua",
     VelocityTracker = "standalone/velocity_tracker.lua",
 
-    CameraStateTracker = "tracker/camera_state_tracker.lua",
-
     DebugUtils = "utils/debug_utils.lua",
-    MathUtils = "utils/math_utils.lua",
     ParamUtils = "utils/param_utils.lua",
     TableUtils = "utils/table_utils.lua",
     Utils = "utils/utils.lua",
     WorldUtils = "utils/world_utils.lua",
-    QuaternionUtils = "utils/quaternion_utils.lua",
 }
 return Modules

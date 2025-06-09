@@ -7,7 +7,7 @@ local Log = ModuleManager.Log(function(m) Log = m end)
 local TransitionManager = {}
 
 -- Initialize the state for transitions if it doesn't exist
-STATE.transitions = STATE.transitions or {}
+STATE.active.transitions = STATE.active.transitions or {}
 
 --- Default linear easing function (if none provided)
 ---@param t number Progress (0.0-1.0)
@@ -35,7 +35,7 @@ function TransitionManager.start(config)
     config.id = config.id or math.random(1000,9999)
 
     ---@field onUpdate fun(raw_progress: number, eased_progress: number, dt_effective: number)
-    STATE.transitions[config.id] = {
+    STATE.active.transitions[config.id] = {
         id = config.id,
         startTime = Spring.GetTimer(), -- For reference, not directly used for progress if using elapsedEffectiveTime
         duration = config.duration,
@@ -54,8 +54,8 @@ end
 ---@param id string The ID of the transition to cancel.
 ---@return boolean success Whether a transition was found and canceled.
 function TransitionManager.cancel(id)
-    if STATE.transitions[id] then
-        STATE.transitions[id] = nil
+    if STATE.active.transitions[id] then
+        STATE.active.transitions[id] = nil
         Log:trace("TransitionManager: Canceled transition [" .. id .. "].")
         return true
     end
@@ -66,9 +66,9 @@ end
 ---@param id string The ID of the transition to finish.
 ---@return boolean success Whether a transition was found and finished.
 function TransitionManager.finish(id)
-    if STATE.transitions[id] then
-        STATE.transitions[id].onComplete()
-        STATE.transitions[id] = nil
+    if STATE.active.transitions[id] then
+        STATE.active.transitions[id].onComplete()
+        STATE.active.transitions[id] = nil
         Log:trace("TransitionManager: Finished transition [" .. id .. "].")
         return true
     end
@@ -84,9 +84,9 @@ end
 ---@return boolean success Whether a transitions were found and canceled.
 function TransitionManager.cancelPrefix(prefix)
     local canceled = false
-    for id, _ in pairs(STATE.transitions) do
+    for id, _ in pairs(STATE.active.transitions) do
         if stringStartsWith(id, prefix) then
-            STATE.transitions[id] = nil
+            STATE.active.transitions[id] = nil
             Log:trace("TransitionManager: Canceled transition [" .. id .. "].")
             canceled = true
         end
@@ -98,8 +98,8 @@ end
 --- Does not call onComplete callbacks.
 function TransitionManager.stopAll()
     local count = 0
-    for id, _ in pairs(STATE.transitions) do
-        STATE.transitions[id] = nil
+    for id, _ in pairs(STATE.active.transitions) do
+        STATE.active.transitions[id] = nil
         count = count + 1
     end
     if count > 0 then
@@ -121,10 +121,10 @@ end
 ---@return boolean isTransitioning
 function TransitionManager.isTransitioning(id)
     if id then
-        return STATE.transitions[id] ~= nil
+        return STATE.active.transitions[id] ~= nil
     else
         local count = 0
-        for _ in pairs(STATE.transitions) do
+        for _ in pairs(STATE.active.transitions) do
             count = count + 1
         end
         return count > 0
@@ -142,7 +142,7 @@ function TransitionManager.update(dt_real)
     local transitionsToRemove = {}
     local _, actualGameSpeed = Spring.GetGameSpeed() -- This is the game speed multiplier
 
-    for id, t in pairs(STATE.transitions) do
+    for id, t in pairs(STATE.active.transitions) do
         local effectiveDt = dt_real
         if t.respectGameSpeed then
             if actualGameSpeed > 0 then
@@ -180,7 +180,7 @@ function TransitionManager.update(dt_real)
     end
 
     for _, idToRemove in ipairs(transitionsToRemove) do
-        STATE.transitions[idToRemove] = nil
+        STATE.active.transitions[idToRemove] = nil
         Log:trace("TransitionManager: Finished transition [" .. idToRemove .. "].")
     end
 end
