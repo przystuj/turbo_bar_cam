@@ -16,11 +16,13 @@ local function selfCheck(self)
 end
 
 --- Serializes a table to a string with smart formatting and filtering.
+--- The filterConfig is only applied to the top-level table, not recursively.
 ---@param t table Table to serialize
 ---@param indent number? Current indentation level
 ---@param reservedSpace number? Space to reserve on the first line for prefixes.
+---@param filterConfig table? The filter configuration to apply.
 ---@return string representation
-function LoggerPrototype:serializeTable(t, indent, reservedSpace)
+function LoggerPrototype:serializeTable(t, indent, reservedSpace, filterConfig)
     selfCheck(self)
     if type(t) ~= "table" then
         return tostring(t)
@@ -63,8 +65,7 @@ function LoggerPrototype:serializeTable(t, indent, reservedSpace)
     for _, k in ipairs(otherKeys) do table.insert(items, {key=k, type="other"}) end
     for _, k in ipairs(tblKeys)   do table.insert(items, {key=k, type="table"}) end
 
-    -- NEW: Filter items based on `only` list if present
-    local filterConfig = self.filterConfig
+    -- Filter items based on `only` list if present
     if filterConfig and filterConfig.only then
         local keptItems = {}
         for _, item in ipairs(items) do
@@ -89,7 +90,7 @@ function LoggerPrototype:serializeTable(t, indent, reservedSpace)
     local currentLinePrefixLength = reservedSpace
 
     for i, item in ipairs(items) do
-        -- NEW: Check if this item should have its value ignored
+        -- Check if this item should have its value ignored
         local isIgnored = false
         if filterConfig and filterConfig.ignore then
             local k_str = tostring(item.key)
@@ -152,7 +153,8 @@ function LoggerPrototype:serializeTable(t, indent, reservedSpace)
             end
 
             local spaceForRecursiveCall = currentLinePrefixLength + lineContentLength
-            local serializedContent = self:serializeTable(t[item.key], indent + 2, spaceForRecursiveCall)
+            -- Pass `nil` for filterConfig in the recursive call to prevent re-filtering children
+            local serializedContent = self:serializeTable(t[item.key], indent + 2, spaceForRecursiveCall, nil)
 
             result = result .. serializedContent
 
@@ -170,9 +172,6 @@ function LoggerPrototype:serializeTable(t, indent, reservedSpace)
     return result
 end
 
--- Helper function to concatenate multiple arguments into a single string
--- with proper type conversion. It uses the instance's formatting methods.
----@param instance LoggerInstance
 local function formatMessage(instance, ...)
     local args = {...}
     local preComputedParts = {}
@@ -187,30 +186,28 @@ local function formatMessage(instance, ...)
     local runningSingleLineLength = basePrefixLength
     while i <= #args do
         local arg = args[i]
-        local currentPart = { content = "", indices = {}, isTable = false, originalArg = nil, label = nil }
+        local currentPart = { content = "", isTable = false, originalArg = nil, label = nil }
 
         if i + 1 <= #args and type(arg) == "string" and type(args[i + 1]) == "table" then
             currentPart.isTable = true
             currentPart.originalArg = args[i+1]
             currentPart.label = arg
-            currentPart.indices = {i, i + 1}
             local labelPart = string.format("'%s' = ", arg)
             -- For this pre-computation, calculate reserved space assuming a single-line layout.
             local reservedSpace = runningSingleLineLength + #labelPart + (#preComputedParts * 3) -- * 3 for " | " separators
-            currentPart.content = labelPart .. instance:serializeTable(args[i+1], 0, reservedSpace)
+            currentPart.content = labelPart .. instance:serializeTable(args[i+1], 0, reservedSpace, instance.filterConfig)
             i = i + 2
         else
             currentPart.originalArg = arg
             currentPart.isTable = (type(arg) == "table")
             if currentPart.isTable then
                 local reservedSpace = runningSingleLineLength + (#preComputedParts * 3)
-                currentPart.content = instance:serializeTable(arg, 0, reservedSpace)
+                currentPart.content = instance:serializeTable(arg, 0, reservedSpace, instance.filterConfig)
             elseif type(arg) == "number" then
                 currentPart.content = string.format("%.6f", arg)
             else
                 currentPart.content = tostring(arg)
             end
-            currentPart.indices = {i}
             i = i + 1
         end
 
@@ -225,31 +222,46 @@ local function formatMessage(instance, ...)
     end
 
     -- Pass 2: Assemble the final string based on the chosen layout.
-    if isAnyPartLarge and #preComputedParts > 1 then
+    local filterConfig = instance.filterConfig or {}
+    local forceMultiline = (filterConfig.title ~= nil)
+
+    if (isAnyPartLarge and #preComputedParts > 1) or forceMultiline then
         local multiLines = {}
-        for _, part in ipairs(preComputedParts) do
+        for partIndex, part in ipairs(preComputedParts) do
             local content
             -- Re-serialize tables for the itemized view, which has a different (and fixed) prefix.
             if part.isTable then
-                local tablePrefixLength = 12 -- Approx length for "#i,j   -> "
+                local tablePrefixLength = 12 -- Approx length for "#i   -> "
                 if part.label then
                     local labelPart = string.format("'%s' = ", part.label)
-                    content = labelPart .. instance:serializeTable(part.originalArg, 2, tablePrefixLength + #labelPart)
+                    -- Pass the filterConfig to the top-level serialization here as well.
+                    content = labelPart .. instance:serializeTable(part.originalArg, 2, tablePrefixLength + #labelPart, instance.filterConfig)
                 else
-                    content = instance:serializeTable(part.originalArg, 2, tablePrefixLength)
+                    content = instance:serializeTable(part.originalArg, 2, tablePrefixLength, instance.filterConfig)
                 end
             else
                 content = part.content
             end
 
-            local indicesStr = "#" .. table.concat(part.indices, ",")
+            local indicesStr = "#" .. partIndex
             local formattedIndices = string.format("%-7s", indicesStr)
             content = string.gsub(content, "\n", "\n           ")
 
             local line = formattedIndices .. "-> " .. content
             table.insert(multiLines, line)
         end
-        return "\n" .. table.concat(multiLines, "\n")
+
+        local itemizedContent = table.concat(multiLines, "\n")
+
+        local header = ""
+        if filterConfig.stagger then
+            header = string.format(" [%s%%] ", filterConfig.stagger)
+        end
+        if filterConfig.title then
+            header = header .. filterConfig.title
+        end
+
+        return header .. "\n" .. itemizedContent
     else
         local singleLineParts = {}
         for _, p in ipairs(preComputedParts) do
@@ -263,6 +275,9 @@ end
 ---@param self LoggerInstance
 function LoggerPrototype:info(...)
     selfCheck(self)
+    if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
+        return
+    end
     local message = "[INFO] " .. formatMessage(self, ...)
     Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
@@ -272,6 +287,9 @@ end
 function LoggerPrototype:trace(...)
     selfCheck(self)
     if self:getLogLevel() == "TRACE" then
+        if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
+            return
+        end
         local message = "[TRACE] " .. formatMessage(self, ...)
         Spring.Echo("[" .. self.prefix .. "] " .. message)
     end
@@ -283,9 +301,23 @@ function LoggerPrototype:debug(...)
     selfCheck(self)
     local logLevel = self:getLogLevel()
     if logLevel == "TRACE" or logLevel == "DEBUG" then
+        if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
+            return
+        end
         local message = "[DEBUG] " .. formatMessage(self, ...)
         Spring.Echo("[" .. self.prefix .. "] " .. message)
     end
+end
+
+--- Logs a warning message.
+---@param self LoggerInstance
+function LoggerPrototype:warn(...)
+    selfCheck(self)
+    if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
+        return
+    end
+    local message = "[WARN] " .. formatMessage(self, ...)
+    Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
 
 --- Logs a debug message randomly (5% chance) if log level is TRACE or DEBUG.
@@ -309,14 +341,6 @@ function LoggerPrototype:error(...)
     error("[" .. self.prefix .. "] Error: " .. formatMessage(self, ...))
 end
 
---- Logs a warning message.
----@param self LoggerInstance
-function LoggerPrototype:warn(...)
-    selfCheck(self)
-    local message = "[WARN] " .. formatMessage(self, ...)
-    Spring.Echo("[" .. self.prefix .. "] " .. message)
-end
-
 --- Creates a new logger instance with an appended prefix.
 --- The new logger inherits the log level getter from the parent.
 ---@param self LoggerInstance
@@ -337,29 +361,65 @@ function LoggerPrototype:appendPrefix(additionalPrefix)
     return subLogger
 end
 
---- Creates a temporary logger instance that will ignore specified fields when serializing a table.
---- Field names are treated as Lua patterns.
----@param self LoggerInstance
----@vararg string
----@return LoggerInstance A new logger instance with an 'ignore' filter
-function LoggerPrototype:ignore(...)
+-- Helper for builder-style methods to create a temporary, configured logger instance.
+local function createTempLogger(self)
     local tempLogger = {}
     for k, v in pairs(self) do tempLogger[k] = v end
-    tempLogger.filterConfig = { ignore = {...} }
+
+    -- Create a new table for the filter config to allow chaining.
+    local newFilterConfig = {}
+    if self.filterConfig then
+        for k, v in pairs(self.filterConfig) do
+            newFilterConfig[k] = v
+        end
+    end
+    tempLogger.filterConfig = newFilterConfig
+
     setmetatable(tempLogger, getmetatable(self))
     return tempLogger
 end
 
+--- Creates a temporary logger instance that will ignore specified fields when serializing a table.
+--- Field names are treated as Lua patterns. Can be chained with other filters.
+---@param self LoggerInstance
+---@vararg string
+---@return LoggerInstance A new logger instance with an 'ignore' filter
+function LoggerPrototype:ignore(...)
+    local tempLogger = createTempLogger(self)
+    tempLogger.filterConfig.ignore = {...}
+    return tempLogger
+end
+
 --- Creates a temporary logger instance that will only include specified fields when serializing a table.
---- All other fields will be omitted. Field names are treated as Lua patterns.
+--- All other fields will be omitted. Field names are treated as Lua patterns. Can be chained.
 ---@param self LoggerInstance
 ---@vararg string
 ---@return LoggerInstance A new logger instance with an 'only' filter
 function LoggerPrototype:only(...)
-    local tempLogger = {}
-    for k, v in pairs(self) do tempLogger[k] = v end
-    tempLogger.filterConfig = { only = {...} }
-    setmetatable(tempLogger, getmetatable(self))
+    local tempLogger = createTempLogger(self)
+    tempLogger.filterConfig.only = {...}
+    return tempLogger
+end
+
+--- Creates a temporary logger instance that prepends a title and forces multi-line layout.
+--- Can be chained with other filters.
+---@param self LoggerInstance
+---@param titleString string The title for the log entry.
+---@return LoggerInstance A new logger instance with a 'title' filter
+function LoggerPrototype:title(titleString)
+    local tempLogger = createTempLogger(self)
+    tempLogger.filterConfig.title = titleString
+    return tempLogger
+end
+
+--- Creates a temporary logger instance that will only log with a given probability.
+--- Can be chained with other filters.
+---@param self LoggerInstance
+---@param chance number The probability (0.0 to 1.0) that the log will be printed. Defaults to 0.1.
+---@return LoggerInstance A new logger instance with a 'stagger' filter
+function LoggerPrototype:stagger(chance)
+    local tempLogger = createTempLogger(self)
+    tempLogger.filterConfig.stagger = (type(chance) == "number") and chance or 0.1
     return tempLogger
 end
 
