@@ -1,6 +1,8 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "QuaternionUtils")
+local STATE = ModuleManager.STATE(function(m) STATE = m end)
+
 
 --- A library of utility functions for working with quaternions.
 ---@class QuaternionUtils
@@ -35,22 +37,22 @@ function QuaternionUtils.fromEuler(rx, ry)
     return QuaternionUtils.multiply(qy, qx)
 end
 
-function QuaternionUtils.toEuler(q)
-    local standardPitch, yaw
-    local sinP = 2 * (q.w * q.x - q.y * q.z)
+function QuaternionUtils.toEuler(orientation)
+    local standardPitch, ry
+    local sinP = 2 * (orientation.w * orientation.x - orientation.y * orientation.z)
 
     if math.abs(sinP) >= 0.99999 then
         standardPitch = (math.pi / 2) * (sinP > 0 and 1 or -1)
-        yaw = 2 * math.atan2(q.y, q.w)
+        ry = 2 * math.atan2(orientation.y, orientation.w)
     else
         standardPitch = math.asin(sinP)
-        local sinY = 2 * (q.w * q.y + q.x * q.z)
-        local cosY = 1 - 2 * (q.x * q.x + q.y * q.y)
-        yaw = math.atan2(sinY, cosY)
+        local sinY = 2 * (orientation.w * orientation.y + orientation.x * orientation.z)
+        local cosY = 1 - 2 * (orientation.x * orientation.x + orientation.y * orientation.y)
+        ry = math.atan2(sinY, cosY)
     end
 
-    local engineRx = standardPitch + (math.pi / 2)
-    return engineRx, yaw
+    local rx = standardPitch + (math.pi / 2)
+    return rx, ry
 end
 
 function QuaternionUtils.inverse(q)
@@ -139,13 +141,13 @@ end
 --- Smoothly dampens a quaternion towards a target value using a stable, framerate-independent
 --- spring-damper model analogous to vectorSmoothDamp.
 --- Modifies the angularVelocityRef table in place.
----@param current table The current quaternion orientation.
+---@param orientation table The current quaternion orientation.
 ---@param target table The target quaternion orientation.
----@param angularVelocityRef table A table holding the current angular velocity {x, y, z}, passed by reference.
+---@param angularVelocity table A table holding the current angular velocity {x, y, z}, passed by reference.
 ---@param smoothTime number The approximate time to reach the target.
 ---@param dt number The delta time for this frame.
 ---@return table The new smoothed quaternion for this frame.
-function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRef, smoothTime, dt)
+function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVelocity, smoothTime, dt)
     dt = math.min(dt, 0.05)
     smoothTime = math.max(0.0001, smoothTime)
 
@@ -153,12 +155,11 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
     local function vec_add(v1, v2) return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) } end
     local function vec_sub(v1, v2) return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) } end
     local function vec_mul_scalar(v, s) return { x = (v.x or 0) * s, y = (v.y or 0) * s, z = (v.z or 0) * s } end
-    local function vec_dot(v1, v2) return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0) end
     local function vec_mag_sq(v) return (v.x or 0)^2 + (v.y or 0)^2 + (v.z or 0)^2 end
 
     -- Ensure we take the shortest path by avoiding the long way around the sphere
     local target_q = target
-    if QuaternionUtils.dot(current, target) < 0.0 then
+    if QuaternionUtils.dot(orientation, target) < 0.0 then
         target_q = { w = -target.w, x = -target.x, y = -target.y, z = -target.z }
     end
 
@@ -168,7 +169,7 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
     local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
 
     -- Calculate change vector from current to target, analogous to `current - target`
-    local delta_to_target = QuaternionUtils.multiply(current, QuaternionUtils.inverse(target_q))
+    local delta_to_target = QuaternionUtils.multiply(orientation, QuaternionUtils.inverse(target_q))
     local log_delta = QuaternionUtils.log(delta_to_target)
     local change_v = { x = log_delta.x, y = log_delta.y, z = log_delta.z }
 
@@ -181,12 +182,7 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
     end
 
     -- The rest of the logic mirrors vectorSmoothDamp
-    local temp_v = vec_mul_scalar(vec_add(angularVelocityRef, vec_mul_scalar(change_v, omega)), dt)
-
-    local new_vel = vec_mul_scalar(vec_sub(angularVelocityRef, vec_mul_scalar(temp_v, omega)), exp)
-    angularVelocityRef.x = new_vel.x
-    angularVelocityRef.y = new_vel.y
-    angularVelocityRef.z = new_vel.z
+    local temp_v = vec_mul_scalar(vec_add(angularVelocity, vec_mul_scalar(change_v, omega)), dt)
 
     -- This vector represents the remaining rotation offset from the target
     local output_disp_v = vec_mul_scalar(vec_add(change_v, temp_v), exp)
@@ -195,17 +191,32 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
     local output_disp_q = QuaternionUtils.exp({ w = 0, x = output_disp_v.x, y = output_disp_v.y, z = output_disp_v.z })
     local output_q = QuaternionUtils.multiply(output_disp_q, target_q)
 
-    -- Prevent overshooting
-    local orig_to_target_q = QuaternionUtils.multiply(target_q, QuaternionUtils.inverse(current))
-    local new_to_target_q = QuaternionUtils.multiply(target_q, QuaternionUtils.inverse(output_q))
-    local v_orig = QuaternionUtils.log(orig_to_target_q)
-    local v_new = QuaternionUtils.log(new_to_target_q)
-    if vec_dot(v_orig, v_new) < 0.0 then
-        output_q = target_q
-        angularVelocityRef.x, angularVelocityRef.y, angularVelocityRef.z = 0, 0, 0
+    local newAngularVelocity = vec_mul_scalar(vec_sub(angularVelocity, vec_mul_scalar(temp_v, omega)), exp)
+    return QuaternionUtils.normalize(output_q), newAngularVelocity
+end
+
+--- Decomposes a quaternion into an axis and an angle of rotation.
+---@param q table The quaternion {w, x, y, z}.
+---@return table axis {x, y, z}, number angle in radians.
+function QuaternionUtils.toAxisAngle(q)
+    -- Ensure quaternion is normalized to prevent math errors
+    local nq = QuaternionUtils.normalize(q)
+    local angle = 2 * math.acos(nq.w)
+    local s = math.sqrt(1 - nq.w * nq.w)
+    local axis
+
+    if s < 0.0001 then
+        -- If s is close to zero, angle is close to zero, axis is irrelevant
+        axis = { x = 1, y = 0, z = 0 }
+    else
+        axis = { x = nq.x / s, y = nq.y / s, z = nq.z / s }
     end
 
-    return QuaternionUtils.normalize(output_q)
+    -- Normalize angle to be in [-PI, PI] range
+    if angle > math.pi then
+        angle = angle - (2 * math.pi)
+    end
+    return axis, angle
 end
 
 return QuaternionUtils

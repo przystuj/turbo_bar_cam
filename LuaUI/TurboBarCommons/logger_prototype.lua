@@ -267,7 +267,11 @@ local function formatMessage(instance, ...)
         for _, p in ipairs(preComputedParts) do
             table.insert(singleLineParts, p.content)
         end
-        return table.concat(singleLineParts, " | ")
+        local header = ""
+        if filterConfig.stagger then
+            header = string.format("[%s%%] ", filterConfig.stagger * 100)
+        end
+        return header .. table.concat(singleLineParts, " | ")
     end
 end
 

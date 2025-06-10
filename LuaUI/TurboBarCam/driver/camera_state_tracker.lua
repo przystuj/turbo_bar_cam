@@ -51,17 +51,6 @@ function CameraStateTracker.update(dt)
     cs.euler = currentRecord.euler
 end
 
---- Sets the widget's internal camera state. Called by systems that directly manipulate the camera.
----@param pos table The new position {x, y, z}.
----@param orient table The new orientation {w, x, y, z}.
-function CameraStateTracker.setCameraState(pos, orient)
-    local cs = STATE.active.camera
-    cs.position = pos
-    cs.orientation = orient
-    local eulerX, eulerY, eulerZ = QuaternionUtils.toEuler(orient)
-    cs.euler = { rx = eulerX, ry = eulerY, rz = eulerZ }
-end
-
 --- Getters for safe access to camera state ---
 
 function CameraStateTracker.getPosition()

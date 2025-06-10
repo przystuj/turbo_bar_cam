@@ -1,5 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
+local Log = ModuleManager.Log(function(m) Log = m end, "Actions")
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
@@ -12,7 +13,7 @@ local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCa
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
-local Log = ModuleManager.Log(function(m) Log = m end, "Actions")
+local CameraTestRunner = ModuleManager.CameraTestRunner(function(m) CameraTestRunner = m end)
 
 
 ---@class Actions
@@ -35,6 +36,13 @@ function Actions.registerAllActions()
 end
 
 function Actions.coreActions()
+    Actions.registerAction("turbobarcam_dev_test", 'tp',
+            function(_, param)
+                CameraTestRunner.start(param)
+                return true
+            end)
+
+
     Actions.registerAction("turbobarcam_dev_reload", 'tp',
             function()
                 ModuleManager.reloadChanged()

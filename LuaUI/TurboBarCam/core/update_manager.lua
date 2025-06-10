@@ -19,6 +19,7 @@ local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupT
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
+local CameraTestRunner = ModuleManager.CameraTestRunner(function(m) CameraTestRunner = m end)
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -31,8 +32,10 @@ function UpdateManager.processCycle(dt)
 
     Spring.SendCommands("viewfps")
 
+    CameraTestRunner.update(dt)
     CameraStateTracker.update(dt)
     CameraDriver.update(dt)
+
 
     SettingsManager.update()
     Scheduler.handleSchedules()

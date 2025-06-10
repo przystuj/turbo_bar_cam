@@ -59,6 +59,7 @@
 ---@field TableUtils fun(hook: fun(module: TableUtils)):TableUtils
 ---@field Utils fun(hook: fun(module: Utils)):Utils
 ---@field WorldUtils fun(hook: fun(module: WorldUtils)):WorldUtils
+---@field CameraTestRunner fun(hook: fun(module: CameraTestRunner)):CameraTestRunner
 
 ---@class ModuleAliases : SimpleModuleAliases
 ---@field Log fun(hook: fun(module: LoggerInstance), prefix: string|nil):Log
@@ -132,6 +133,8 @@ local SimpleModules = {
     TableUtils = "utils/table_utils.lua",
     Utils = "utils/utils.lua",
     WorldUtils = "utils/world_utils.lua",
+
+    CameraTestRunner = "test/camera_test_runner.lua",
 }
 
 ---@class ParametrisedModuleConfig

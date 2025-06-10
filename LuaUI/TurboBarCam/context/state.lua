@@ -43,7 +43,18 @@ if not WG.TurboBarCam.STATE then
             route = { points = {} },
         },
 
+        testRunner = {
+            isRunning = false,
+            queueIndex = 0,
+            testQueue = {},
+            testPhase = "idle",
+            phaseTimer = 0,
+            results = {},
+            startPosition = nil,
+        },
+
         active = {
+
             -- The ground-truth state of the camera as reported by the tracker.
             -- Managed exclusively by CameraStateTracker.
             camera = {
@@ -55,6 +66,20 @@ if not WG.TurboBarCam.STATE then
                 history = {},
                 maxHistorySize = 10,
                 angularVelocityEuler = {x = 0, y = 0, z = 0},
+                anomalyDetector = {
+                    initialized = false,
+                    -- Store deltas for statistical analysis
+                    posDeltaHistory = {},
+                    rotDeltaHistory = {},
+                    historySize = 30, -- A larger window for stats
+                    -- Running statistics
+                    posDeltaMean = 0,
+                    rotDeltaMean = 0,
+                    posDeltaStdDev = 0,
+                    rotDeltaStdDev = 0,
+                    -- Last log time to prevent spam
+                    lastLogTime = nil
+                },
             },
 
             -- State for the low-level CameraDriver that executes movement.
@@ -80,6 +105,7 @@ if not WG.TurboBarCam.STATE then
                     startTime = nil,
                     startPos = nil,
                     startOrient = nil,
+                    isRotationOnly = nil,
                 }
             },
 
