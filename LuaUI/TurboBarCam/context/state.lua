@@ -30,6 +30,7 @@ if not WG.TurboBarCam.STATE then
         },
 
         anchor = {
+            initialized = false,
             points = {},
         },
 

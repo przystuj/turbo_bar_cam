@@ -32,21 +32,13 @@ local function getLookAtTargetFromRaycast(startState)
     end
 end
 
---- Calculates the required spring tightness to complete a transition in a given duration.
----@param duration number The desired duration in seconds.
----@return number tightness The calculated spring tightness (k).
----@return number damping The calculated critical damping value (d).
-local function getSpringParamsFromDuration(duration)
-    if duration <= 0.01 then
-        return 500, 45 -- Return high values for a near-instant snap
+--- Loads default anchors for current map when first launching widget
+function CameraAnchor.initialize()
+    if STATE.anchor.initialized then
+        return
     end
-    local SETTLING_CONSTANT = 6.6
-
-    local omega = SETTLING_CONSTANT / duration
-    local tightness = omega * omega
-    local damping = 2 * omega -- for critical damping (d = 2 * sqrt(k))
-
-    return tightness, damping
+    CameraAnchor.load("default")
+    STATE.anchor.initialized = true
 end
 
 function CameraAnchor.set(id)

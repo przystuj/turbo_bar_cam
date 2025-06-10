@@ -9,7 +9,7 @@ local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManage
 local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
-local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
@@ -32,7 +32,6 @@ function UpdateManager.processCycle(dt)
     CameraStateTracker.update(dt)
     CameraDriver.update(dt)
 
-    -- First, run all updates that might change the camera's state.
     SettingsManager.update()
     Scheduler.handleSchedules()
     TransitionManager.update(dt)
@@ -41,6 +40,9 @@ function UpdateManager.processCycle(dt)
     UnitFollowCamera.checkFixedPointCommandActivation()
     ProjectileCamera.checkAndActivate()
     UpdateManager.updateCameraMode(dt)
+
+    -- setup default anchors for the map
+    CameraAnchor.initialize()
 end
 
 --- Handles tracking grace period

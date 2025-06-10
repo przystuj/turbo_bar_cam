@@ -7,6 +7,7 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraQuickControls = ModuleManager.CameraQuickControls(function(m) CameraQuickControls = m end)
+local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 
 ---@class WidgetManager
 local WidgetManager = {}
