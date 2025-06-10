@@ -89,11 +89,11 @@ function CameraAnchor.focus(id)
     end
 
     local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
-    if STATE.lastUsedAnchor == id then
+    if STATE.active.anchor.lastUsedAnchor == id then
         duration = 0.2
     end
 
-    STATE.lastUsedAnchor = id
+    STATE.active.anchor.lastUsedAnchor = id
     if STATE.active.mode.name then ModeManager.disableMode() end
 
     local camTarget = {

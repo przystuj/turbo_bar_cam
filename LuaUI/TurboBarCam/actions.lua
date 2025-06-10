@@ -12,6 +12,8 @@ local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCa
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "Actions")
+
 
 ---@class Actions
 local Actions = {}
@@ -75,6 +77,7 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_stop_tracking", 'tp',
             function()
+                Log:debug("Stop")
                 ModeManager.disableMode()
                 return false
             end)

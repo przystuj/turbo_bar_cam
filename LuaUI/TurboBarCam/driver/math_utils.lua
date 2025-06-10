@@ -17,7 +17,7 @@ function MathUtils.vectorSmoothDamp(current, target, velocity_ref, smoothTime, d
 
     -- This calculation is based on a critical-damped spring model.
     -- The omega value influences how stiff the spring is.
-    local omega = 2 / smoothTime
+    local omega = 6 / smoothTime
     local x = omega * dt
     -- A Taylor series approximation for exp(-x) that is stable.
     local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)

@@ -18,6 +18,8 @@ local DEFAULT_SMOOTH_TIME = 0.3
 function CameraDriver.setTarget(targetConfig)
     local wasAlreadyActive = (STATE.active.driver.target and STATE.active.driver.target.position ~= nil)
 
+    Log:debug("setTarget called", { wasAlreadyActive = wasAlreadyActive }, "targetConfig", targetConfig)
+
     STATE.active.driver.target = {
         position = targetConfig.position,
         lookAt = targetConfig.lookAt,
@@ -31,8 +33,10 @@ function CameraDriver.setTarget(targetConfig)
     if not wasAlreadyActive then
         sim.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
         sim.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
-        sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or {x=0, y=0, z=0})
-        sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or {x=0, y=0, z=0})
+        sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
+        sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
+        Log:only("position", "orientation", "velocity", "angularVelocity")
+           :debug("Seeding new simulation", sim)
     end
 
     sim.startTime = Spring.GetTimer()
@@ -50,7 +54,7 @@ local function getLookAtPoint(target)
         return target.data
     elseif target.type == "unit" and Spring.ValidUnitID(target.data) then
         local x, y, z = Spring.GetUnitPosition(target.data)
-        if x then return {x=x, y=y, z=z} end
+        if x then return { x = x, y = y, z = z } end
     end
     return nil
 end
@@ -58,17 +62,24 @@ end
 --- The main update function, called every frame.
 function CameraDriver.update(dt)
     local driverState = STATE.active.driver
-    if not driverState or not driverState.target.position or dt <= 0 then
+    if not driverState or not driverState.target then return end
+
+    if not driverState.target.position and not driverState.target.lookAt and not driverState.target.euler then
         return
     end
 
+    if dt <= 0 then return end
+
     local simState = driverState.simulation
-    if not simState or not simState.orientation or not simState.startOrient then return end
+    if not simState or not simState.position then return end
+
+    local posIn, velIn = simState.position, simState.velocity
+    local orientIn, angVelIn = simState.orientation, simState.angularVelocity
 
     local target = driverState.target
     local newPos = simState.position
 
-    if not simState.isRotationOnly then
+    if target.position and not simState.isRotationOnly then
         newPos = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, target.smoothTime, dt)
         simState.position = newPos
     end
@@ -87,46 +98,65 @@ function CameraDriver.update(dt)
         end
 
         if finalTargetOrientation then
-            local rotationDuration = target.smoothTime
-            local elapsedTime = Spring.DiffTimers(Spring.GetTimer(), simState.startTime)
-            local rawAlpha = math.min(1.0, elapsedTime / rotationDuration)
-            local easedAlpha = CameraCommons.easeInOut(rawAlpha)
-            local proxyTargetOrient = QuaternionUtils.slerp(simState.startOrient, finalTargetOrientation, easedAlpha)
-            local PROXY_CHASE_SMOOTH_TIME = 0.15
-            newOrient = QuaternionUtils.quaternionSmoothDamp(simState.orientation, proxyTargetOrient, simState.angularVelocity, PROXY_CHASE_SMOOTH_TIME, dt)
+            newOrient = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTime, dt)
             simState.orientation = newOrient
         end
     end
 
-    local isComplete = false
-    if simState.isRotationOnly then
-        local rotationDuration = target.smoothTime
-        if Spring.DiffTimers(Spring.GetTimer(), simState.startTime) >= rotationDuration then
-            isComplete = true
-        end
-    else
-        local distSq = CameraCommons.distanceSquared(newPos, target.position)
-        local velSq = CameraCommons.vectorMagnitudeSq(simState.velocity)
-        local POS_EPSILON_SQ = 0.01
-        local VEL_EPSILON_SQ = 0.01
-        if distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ then
-            isComplete = true
-        end
-    end
+    Log:title("Update"):stagger():ignore("startTime", "startOrient"):debug(
+            { dt = dt },
+            "Position", { In = posIn, Out = newPos, Target = target.position },
+            "Velocity", { In = velIn, Out = simState.velocity },
+            "Orientation", { In = orientIn, Out = newOrient },
+            "AngularVel", { In = angVelIn, Out = simState.angularVelocity }
+    )
 
-    if isComplete then
-        newPos = target.position
-        if target.lookAt then
-            local lookAtPoint = getLookAtPoint(target.lookAt)
-            if lookAtPoint then
-                local dirState = CameraCommons.calculateCameraDirectionToThePoint(target.position, lookAtPoint)
-                newOrient = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
+    if target.position then
+        local isComplete = false
+        if simState.isRotationOnly then
+            local rotationDuration = target.smoothTime
+            if Spring.DiffTimers(Spring.GetTimer(), simState.startTime) >= rotationDuration then
+                isComplete = true
+                Log:debug("Driver complete: Rotation time elapsed.")
             end
-        elseif target.euler then
-            newOrient = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+        else
+            local distSq = CameraCommons.distanceSquared(newPos, target.position)
+            local velSq = CameraCommons.vectorMagnitudeSq(simState.velocity)
+            local angularVelSq = CameraCommons.vectorMagnitudeSq(simState.angularVelocity)
+
+            local POS_EPSILON_SQ = 0.01
+            local VEL_EPSILON_SQ = 0.01
+            local ANG_VEL_EPSILON_SQ = 0.0001
+
+            if distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ and angularVelSq < ANG_VEL_EPSILON_SQ then
+                isComplete = true
+                Log:debug("Driver complete: All thresholds met.", { distSq = distSq, velSq = velSq, angularVelSq = angularVelSq })
+            end
         end
-        driverState.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
-        simState.isRotationOnly = false
+
+        if isComplete then
+            newPos = target.position
+            if target.lookAt then
+                local lookAtPoint = getLookAtPoint(target.lookAt)
+                if lookAtPoint then
+                    local dirState = CameraCommons.calculateCameraDirectionToThePoint(target.position, lookAtPoint)
+                    newOrient = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
+                end
+            elseif target.euler then
+                newOrient = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+            end
+
+            simState.velocity = { x = 0, y = 0, z = 0 }
+            simState.angularVelocity = { x = 0, y = 0, z = 0 }
+            simState.isRotationOnly = false
+
+            if target.lookAt then
+                target.position = nil
+                Log:debug("Driver: Positional move complete. Maintaining lookAt.")
+            else
+                driverState.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
+            end
+        end
     end
 
     local finalEuler = { QuaternionUtils.toEuler(newOrient) }

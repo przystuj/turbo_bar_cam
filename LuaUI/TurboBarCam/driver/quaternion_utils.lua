@@ -163,7 +163,7 @@ function QuaternionUtils.quaternionSmoothDamp(current, target, angularVelocityRe
     end
 
     -- Same spring physics constants as vectorSmoothDamp for synchronization
-    local omega = 2 / smoothTime
+    local omega = 6 / smoothTime
     local x = omega * dt
     local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
 
