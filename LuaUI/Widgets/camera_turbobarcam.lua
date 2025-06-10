@@ -14,13 +14,13 @@ function widget:GetInfo()
 end
 
 WG.TurboBarCam = {}
-WG.TurboBarCam.ModuleManager = WG.TurboBarCam.ModuleManager or VFS.Include("LuaUI/TurboBarCam/module_manager.lua")
+WG.TurboBarCam.ModuleManager = VFS.Include("LuaUI/TurboBarCam/module_manager.lua")
 
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "Main")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)

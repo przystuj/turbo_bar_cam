@@ -1,7 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "SelectionManager")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)

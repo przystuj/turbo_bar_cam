@@ -1,5 +1,5 @@
 ---@type LogBuilder
-local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/log_builder.lua")
+local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/logger_prototype.lua")
 
 ---@class Log : LoggerInstance
 local Log = LogBuilder.createInstance("TurboBarCam", function()

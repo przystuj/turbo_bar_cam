@@ -1,7 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "DollyCamPathPlanner")
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 
 ---@class DollyCamPathPlanner

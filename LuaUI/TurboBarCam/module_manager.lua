@@ -1,7 +1,7 @@
 ---@type Modules
 local Modules = VFS.Include("LuaUI/TurboBarCam/modules.lua")
 ---@type LogBuilder
-local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/log_builder.lua")
+local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/logger_prototype.lua")
 
 ---@class ModuleManager : ModuleAliases
 local ModuleManager = WG.TurboBarCam.ModuleManager or {
@@ -20,7 +20,7 @@ local Log = LogBuilder.createInstance("TurboBarCam", function()
     ---@type WidgetConfig
     local CONFIG = WG.TurboBarCam.CONFIG
     return CONFIG and CONFIG.DEBUG.LOG_LEVEL or "INFO"
-end)
+end):appendPrefix("ModuleManager")
 
 -- Helper function to get file content and calculate its hash
 -- Returns fileContent, hash; or nil, nil if errors.
@@ -68,8 +68,8 @@ local function registerModule(modulePath, postLoadOrUpdateHook)
         -- This is NOT a circular dependency being detected at this point; it's a legitimate re-request.
         local moduleInstance = ModuleManager.registry[fullModulePath]
         table.insert(registrationData.hooks, postLoadOrUpdateHook)
-        postLoadOrUpdateHook(moduleInstance)
-        return moduleInstance
+        local configuredModule = postLoadOrUpdateHook(moduleInstance)
+        return configuredModule or moduleInstance
     else
         -- New module registration attempt.
         table.insert(ModuleManager.loadingStack, fullModulePath)
@@ -88,7 +88,6 @@ local function registerModule(modulePath, postLoadOrUpdateHook)
         end
 
         ModuleManager.registry[fullModulePath] = loadedModule
-
         local initialFileContent, initialHash = getFileContentAndHash(fullModulePath)
         if not initialFileContent then
             Log:warn(string.format("registerModule: Failed to get content/hash for '%s' after VFS.Include. Registration hash will be nil.", modulePath))
@@ -105,8 +104,8 @@ local function registerModule(modulePath, postLoadOrUpdateHook)
             Log:warn(string.format("registerModule: Module '%s' VFS.Include returned nil. Registration Hash: %s", modulePath, tostring(initialHash or "N/A")))
         end
 
-        postLoadOrUpdateHook(loadedModule)
-        return loadedModule
+        local configuredModule = postLoadOrUpdateHook(loadedModule)
+        return configuredModule or loadedModule
     end
 end
 
@@ -179,13 +178,17 @@ function ModuleManager.reset()
     ModuleManager.loadingStack = {} -- Ensure loading stack is cleared on reset
 end
 
--- Dynamically create alias functions based on the Modules table
-for aliasName, relativePathInModulesFile in pairs(Modules) do
+-- Dynamically create alias functions for simple modules
+for aliasName, relativePathInModulesFile in pairs(Modules.SimpleModules) do
     if type(aliasName) == "string" and type(relativePathInModulesFile) == "string" then
         if ModuleManager[aliasName] then
             Log:error(string.format("ModuleManager: Alias '%s' already exists on ModuleManager. ", aliasName))
         else
-            ModuleManager[aliasName] = function(postLoadOrUpdateHook)
+            ModuleManager[aliasName] = function(postLoadOrUpdateHook, data)
+                if data then
+                    Log:error(string.format("ModuleManager: Alias '%s' was called with additional data, but it is a simple module and does not support it.", aliasName))
+                    return nil
+                end
                 if type(postLoadOrUpdateHook) ~= "function" then
                     Log:error(string.format("%s (alias): A valid function hook must be provided for path '%s'. Got hook type: %s.", aliasName, relativePathInModulesFile, type(postLoadOrUpdateHook)))
                     return nil
@@ -198,5 +201,37 @@ for aliasName, relativePathInModulesFile in pairs(Modules) do
                 tostring(aliasName), type(aliasName), tostring(relativePathInModulesFile), type(relativePathInModulesFile)))
     end
 end
+
+-- Generic alias creation for Parametrised Modules
+for aliasName, c in pairs(Modules.ParametrisedModules) do
+    ---@type ParametrisedModuleConfig
+    local config = c
+    if ModuleManager[aliasName] then
+        Log:error(string.format("ModuleManager: Alias '%s' from ParametrisedModules conflicts with an existing alias.", aliasName))
+    else
+        ModuleManager[aliasName] = function(postLoadOrUpdateHook, data)
+            if type(postLoadOrUpdateHook) ~= "function" then
+                Log:error(string.format("%s (alias): A valid function hook must be provided. Got type: %s.", aliasName, type(postLoadOrUpdateHook)))
+                return nil
+            end
+
+            local wrapperHook = function(baseModule)
+                local configuredModule = baseModule
+
+                -- If a 'configure' function is defined, use it to process the data.
+                if config.configure and type(config.configure) == 'function' then
+                    configuredModule = config.configure(baseModule, data)
+                elseif data then
+                    Log:warn(string.format("ModuleManager: Alias '%s' was called with data, but no 'configure' function is defined for it in modules.lua.", aliasName))
+                    return nil
+                end
+                postLoadOrUpdateHook(configuredModule)
+                return configuredModule
+            end
+            return registerModule(config.path, wrapperHook)
+        end
+    end
+end
+
 
 return ModuleManager

@@ -2,7 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)

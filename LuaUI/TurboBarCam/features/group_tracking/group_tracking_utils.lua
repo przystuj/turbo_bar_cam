@@ -1,7 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "GroupTrackingUtils")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 

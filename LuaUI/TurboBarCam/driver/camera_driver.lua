@@ -6,7 +6,7 @@ local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m 
 local QuaternionUtils = ModuleManager.QuaternionUtils(function(m) QuaternionUtils = m end)
 local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "CameraDriver")
 
 ---@class CameraDriver
 local CameraDriver = {}

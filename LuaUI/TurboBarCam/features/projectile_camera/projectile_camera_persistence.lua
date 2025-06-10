@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileCameraPersistence")
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class ProjectileCameraPersistence

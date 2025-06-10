@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "ParamUtils")
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 
 

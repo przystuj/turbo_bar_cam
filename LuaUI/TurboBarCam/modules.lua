@@ -1,4 +1,4 @@
----@class ModuleAliases
+---@class SimpleModuleAliases
 ---@field Actions fun(hook: fun(module: Actions)):Actions
 ---@field CameraAnchor fun(hook: fun(module: CameraAnchor)):CameraAnchor
 ---@field CameraAnchorPersistence fun(hook: fun(module: CameraAnchorPersistence)):CameraAnchorPersistence
@@ -25,7 +25,6 @@
 ---@field UnitFollowFreeCam fun(hook: fun(module: UnitFollowFreeCam)):UnitFollowFreeCam
 ---@field GroupTrackingCamera fun(hook: fun(module: GroupTrackingCamera)):GroupTrackingCamera
 ---@field GroupTrackingUtils fun(hook: fun(module: GroupTrackingUtils)):GroupTrackingUtils
----@field Log fun(hook: fun(module: Log)):Log
 ---@field ModeManager fun(hook: fun(module: ModeManager)):ModeManager
 ---@field MouseManager fun(hook: fun(module: MouseManager)):MouseManager
 ---@field MovementUtils fun(hook: fun(module: MovementUtils)):MovementUtils
@@ -61,13 +60,15 @@
 ---@field Utils fun(hook: fun(module: Utils)):Utils
 ---@field WorldUtils fun(hook: fun(module: WorldUtils)):WorldUtils
 
----@class Modules
-local Modules = {
+---@class ModuleAliases : SimpleModuleAliases
+---@field Log fun(hook: fun(module: LoggerInstance), prefix: string|nil):Log
+
+---@class SimpleModules
+local SimpleModules = {
     Actions = "actions.lua",
 
     CameraCommons = "common/camera_commons.lua",
     CONFIG = "context/config.lua",
-    Log = "common/log.lua",
     ModeManager = "common/mode_manager.lua",
     STATE = "context/state.lua",
     EasingFunctions = "common/easing_functions.lua",
@@ -131,5 +132,33 @@ local Modules = {
     TableUtils = "utils/table_utils.lua",
     Utils = "utils/utils.lua",
     WorldUtils = "utils/world_utils.lua",
+}
+
+---@class ParametrisedModuleConfig
+---@field path string The path to the module file.
+---@field configure fun(baseModule: any, data: any):any A function that takes the base module and the data provided at call-site, and returns the configured module.
+
+---@class ParametrisedModules
+local ParametrisedModules = {
+    ---@type ParametrisedModuleConfig
+    Log = {
+        path = "common/log.lua",
+        configure = function(m, prefix)
+            ---@type LoggerInstance
+            local loggerInstance = m
+            -- If data with a prefix is provided, return a new prefixed logger.
+            if prefix then
+                return loggerInstance:appendPrefix(prefix)
+            end
+            -- Otherwise, return the base logger unchanged.
+            return loggerInstance
+        end
+    },
+}
+
+---@class Modules
+local Modules = {
+    SimpleModules = SimpleModules,
+    ParametrisedModules = ParametrisedModules
 }
 return Modules

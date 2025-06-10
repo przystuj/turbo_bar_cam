@@ -1,7 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "CameraQuickControls")
 local MouseManager = ModuleManager.MouseManager(function(m) MouseManager = m end)
 local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
 

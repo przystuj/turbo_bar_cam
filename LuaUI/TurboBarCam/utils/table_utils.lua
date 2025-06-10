@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Log = ModuleManager.Log(function(m) Log = m end)
+local Log = ModuleManager.Log(function(m) Log = m end, "TableUtils")
 
 ---@class TableUtils
 local TableUtils = {}
