@@ -29,6 +29,8 @@ function UpdateManager.processCycle(dt)
         return
     end
 
+    Spring.SendCommands("viewfps")
+
     CameraStateTracker.update(dt)
     CameraDriver.update(dt)
 
@@ -82,7 +84,6 @@ end
 
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode(dt)
-    Spring.SendCommands("viewfps")
 
     if STATE.active.dollyCam.isNavigating then
         DollyCam.update(dt)

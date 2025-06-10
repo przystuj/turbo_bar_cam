@@ -72,6 +72,8 @@ if not WG.TurboBarCam.STATE then
                 -- Private state for the driver's physics simulation.
                 -- This state is managed exclusively by the driver during a move.
                 simulation = {
+                    position = {x = 0, y = 0, z = 0},
+                    orientation = {w = 1, x = 0, y = 0, z = 0},
                     velocity = {x = 0, y = 0, z = 0},
                     angularVelocity = {x = 0, y = 0, z = 0},
                     -- State for time-based transitions like 'linear'

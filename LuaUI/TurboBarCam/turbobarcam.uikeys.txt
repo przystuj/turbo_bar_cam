@@ -29,10 +29,6 @@ bind			Shift+F1			turbobarcam_anchor_focus 1
 bind			Shift+F2			turbobarcam_anchor_focus 2
 bind			Shift+F3			turbobarcam_anchor_focus 3
 bind			Shift+F4			turbobarcam_anchor_focus 4
-bind			Ctrl+Shift+F1		turbobarcam_anchor_focus_while_tracking 1
-bind			Ctrl+Shift+F2		turbobarcam_anchor_focus_while_tracking 2
-bind			Ctrl+Shift+F3		turbobarcam_anchor_focus_while_tracking 3
-bind			Ctrl+Shift+F4		turbobarcam_anchor_focus_while_tracking 4
 bind			Ctrl+Shift+numpad-	turbobarcam_anchor_adjust_params add;DURATION,-1
 bind			Ctrl+Shift+numpad+	turbobarcam_anchor_adjust_params add;DURATION,1
 
