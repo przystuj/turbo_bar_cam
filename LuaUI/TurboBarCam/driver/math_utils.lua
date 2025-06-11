@@ -5,6 +5,13 @@ local Log = ModuleManager.Log(function(m) Log = m end, "MathUtils")
 ---@class MathUtils
 local MathUtils = {}
 
+function MathUtils.expApproximation(smoothTime, dt)
+    local omega = 6 / smoothTime
+    local x = omega * dt
+    -- A Taylor series approximation for exp(-x) that is stable.
+    return 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x), omega
+end
+
 --- Smoothly dampens a 3D vector towards a target value using a stable, framerate-independent
 --- spring-damper model.
 --- Modifies the velocity_ref table in place.
@@ -19,12 +26,7 @@ function MathUtils.vectorSmoothDamp(position, target, velocity, smoothTime, dt)
     local maxSpeed = 10000
     smoothTime = math.max(0.0001, smoothTime)
 
-    -- This calculation is based on a critical-damped spring model.
-    -- The omega value influences how stiff the spring is.
-    local omega = 6 / smoothTime
-    local x = omega * dt
-    -- A Taylor series approximation for exp(-x) that is stable.
-    local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
+    local exp, omega = MathUtils.expApproximation(smoothTime, dt)
 
     -- In the formula, 'change' is the offset from the target we want to achieve this frame.
     -- We start with the full offset from the current position to the overall target.

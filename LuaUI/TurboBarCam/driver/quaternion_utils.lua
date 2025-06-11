@@ -1,8 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local Log = ModuleManager.Log(function(m) Log = m end, "QuaternionUtils")
-local STATE = ModuleManager.STATE(function(m) STATE = m end)
-
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 --- A library of utility functions for working with quaternions.
 ---@class QuaternionUtils
@@ -111,24 +110,22 @@ end
 
 function QuaternionUtils.log(q)
     local w = q.w
-    if w > 0.99999 then
+    local vMagSq = q.x * q.x + q.y * q.y + q.z * q.z
+
+    if vMagSq < 1e-12 then
         return { w = 0, x = 0, y = 0, z = 0 }
     end
 
-    local vMagSq = q.x*q.x + q.y*q.y + q.z*q.z
     local vMag = math.sqrt(vMagSq)
 
-    if vMag < 0.00001 then
-        return { w = 0, x = 0, y = 0, z = 0 }
-    end
-
     local halfAngle = math.atan2(vMag, w)
+    local scale = halfAngle / vMag
 
-    return scalePureQuaternion({w=0, x=q.x, y=q.y, z=q.z}, halfAngle / vMag)
+    return scalePureQuaternion({ w = 0, x = q.x, y = q.y, z = q.z }, scale)
 end
 
-function QuaternionUtils.exp(q)
-    local halfAngle = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z)
+function QuaternionUtils.expMap(q)
+    local halfAngle = math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z)
 
     if halfAngle < 0.00001 then return QuaternionUtils.identity() end
 
@@ -164,16 +161,14 @@ function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVeloci
     end
 
     -- Same spring physics constants as vectorSmoothDamp for synchronization
-    local omega = 6 / smoothTime
-    local x = omega * dt
-    local exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
+    local exp, omega = MathUtils.expApproximation(smoothTime, dt)
 
     -- Calculate change vector from current to target, analogous to `current - target`
     local delta_to_target = QuaternionUtils.multiply(orientation, QuaternionUtils.inverse(target_q))
     local log_delta = QuaternionUtils.log(delta_to_target)
     local change_v = { x = log_delta.x, y = log_delta.y, z = log_delta.z }
 
-    -- Add stability clamp, mirroring vectorSmoothDamp's maxSpeed
+     --Add stability clamp, mirroring vectorSmoothDamp's maxSpeed
     local maxAngularSpeed = 100 -- Radians per second, a very high but safe limit
     local maxAngleChange = maxAngularSpeed * smoothTime
     if vec_mag_sq(change_v) > maxAngleChange * maxAngleChange then
@@ -188,7 +183,7 @@ function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVeloci
     local output_disp_v = vec_mul_scalar(vec_add(change_v, temp_v), exp)
 
     -- Convert displacement vector to a quaternion and apply it to the target
-    local output_disp_q = QuaternionUtils.exp({ w = 0, x = output_disp_v.x, y = output_disp_v.y, z = output_disp_v.z })
+    local output_disp_q = QuaternionUtils.expMap({ w = 0, x = output_disp_v.x, y = output_disp_v.y, z = output_disp_v.z })
     local output_q = QuaternionUtils.multiply(output_disp_q, target_q)
 
     local newAngularVelocity = vec_mul_scalar(vec_sub(angularVelocity, vec_mul_scalar(temp_v, omega)), exp)

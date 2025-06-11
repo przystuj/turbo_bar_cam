@@ -20,7 +20,7 @@ local TestSuite = {
     [2] = { name = "1b) Translate +Y", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 4000, y = 800, z = 4000 }, duration = 1.5 } },
     [3] = { name = "1c) Translate +Z", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 4000, y = 300, z = 5000 }, duration = 1.5 } },
     [4] = { name = "2) Translate XYZ", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 800, z = 5000 }, duration = 1.5 } },
-    [5] = { name = "3) Rotate Pitch", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 2.0, ry = 0 }, duration = 0.6 } },
+    [5] = { name = "3) Rotate Pitch", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 2.0, ry = 0 }, duration = 2 } },
     [6] = { name = "4) Rotate Yaw", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 1.57, ry = 1.57 }, duration = 1.5 } },
     [7] = { name = "5) Rotate Pitch & Yaw", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 2.0, ry = 1.57 }, duration = 1.5 } },
     [8] = { name = "6) Combined All", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 800, z = 5000 }, euler = { rx = 2.0, ry = 1.57 }, duration = 2.5 } },

@@ -93,9 +93,8 @@ function CameraDriver.update(dt)
     end
 
     if finalTargetOrientation then
-        local newOrient, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTime, dt)
-        Log:title("quaternionSmoothDamp"):debug(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTime, dt, newOrient, newAngularVelocity)
-        simState.orientation = newOrient
+        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTime, dt)
+        simState.orientation = newOrientation
         simState.angularVelocity = newAngularVelocity
     end
 
@@ -114,7 +113,7 @@ function CameraDriver.update(dt)
         local ANG_VEL_EPSILON_SQ = 0.0001
 
         if angularVelSq < ANG_VEL_EPSILON_SQ then
-            if simState.isRotationOnly or (distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ ) then
+            if simState.isRotationOnly or (distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ) then
                 isComplete = true
                 Log:debug("Driver task completed")
             end
@@ -125,10 +124,10 @@ function CameraDriver.update(dt)
         end
     end
 
-    local finalEuler = { QuaternionUtils.toEuler(simState.orientation) }
+    local rx, ry = QuaternionUtils.toEuler(simState.orientation)
     local camState = {
         px = simState.position.x, py = simState.position.y, pz = simState.position.z,
-        rx = finalEuler[1], ry = finalEuler[2],
+        rx = rx, ry = ry,
     }
     Spring.SetCameraState(camState)
 end
