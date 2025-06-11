@@ -84,7 +84,8 @@ local function updateOrientation(dt)
     end
 
     if finalTargetOrientation then
-        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTime, dt)
+        local smoothTime = target.lookAt and target.smoothTime / 4 or target.smoothTime
+        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, smoothTime, dt)
         simState.orientation = newOrientation
         simState.angularVelocity = newAngularVelocity
     end
