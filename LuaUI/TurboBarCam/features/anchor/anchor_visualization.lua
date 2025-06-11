@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "CameraAnchorVisualization")
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 
 ---@class CameraAnchorVisualization
 local CameraAnchorVisualization = {}
@@ -80,61 +81,69 @@ function CameraAnchorVisualization.draw()
         return
     end
 
-    if not STATE.anchor.points or #STATE.anchor.points == 0 then
+    if not STATE.anchor.points or TableUtils.tableCount(STATE.anchor.points) == 0 then
         return
     end
 
     -- Get camera position once for distance calculations
     local camX, camY, camZ = Spring.GetCameraPosition()
     local camPos = { x = camX, y = camY, z = camZ }
+    local activeAnchorId = STATE.active.anchor.lastUsedAnchor
 
-    for i, anchor in ipairs(STATE.anchor.points) do
-        if anchor and anchor.position and anchor.target then
-            local isHighlighted = (i == STATE.active.anchor.activeAnchorId)
+    for id, anchor in pairs(STATE.anchor.points) do
+        if anchor and anchor.position then
+            local isHighlighted = (id == activeAnchorId)
             local sizeMultiplier = isHighlighted and CameraAnchorVisualization.settings.highlightMultiplier or 1.0
 
-            -- 1. Draw the saved camera position point and its label
+            -- Always draw the main position point and its label for all anchors.
             local pos = anchor.position
             local posColor = isHighlighted and CameraAnchorVisualization.colors.highlight or CameraAnchorVisualization.colors.positionPoint
             drawPoint(pos.px, pos.py, pos.pz,
                     CameraAnchorVisualization.settings.markerSize * sizeMultiplier,
                     posColor)
 
-            drawTextLabel(pos.px, pos.py, pos.pz, tostring(i), camPos, isHighlighted)
+            drawTextLabel(pos.px, pos.py, pos.pz, tostring(id), camPos, isHighlighted)
 
-            -- 2. Determine the look-at position and color
-            local lookAtPos = nil
-            local lookAtColor = nil
-
-            if anchor.target.type == "unit" then
-                local unitID = anchor.target.data
-                if Spring.ValidUnitID(unitID) then
-                    local uX, uY, uZ = Spring.GetUnitPosition(unitID)
-                    if uX then
-                        lookAtPos = { x = uX, y = uY, z = uZ }
+            -- Handle visualization for the look-at target, if it exists.
+            if anchor.target then
+                local lookAtPos, lookAtColor
+                if anchor.target.type == "unit" then
+                    local unitID = anchor.target.data
+                    if Spring.ValidUnitID(unitID) then
+                        local uX, uY, uZ = Spring.GetUnitPosition(unitID)
+                        if uX then lookAtPos = { x = uX, y = uY, z = uZ } end
                     end
+                    lookAtColor = isHighlighted and CameraAnchorVisualization.colors.highlight or CameraAnchorVisualization.colors.lookAtPoint_Unit
+                else -- "point" type
+                    lookAtPos = anchor.target.data
+                    lookAtColor = isHighlighted and CameraAnchorVisualization.colors.highlight or CameraAnchorVisualization.colors.lookAtPoint_Point
                 end
-                lookAtColor = isHighlighted and CameraAnchorVisualization.colors.highlight or CameraAnchorVisualization.colors.lookAtPoint_Unit
-            else
-                lookAtPos = anchor.target.data
-                lookAtColor = isHighlighted and CameraAnchorVisualization.colors.highlight or CameraAnchorVisualization.colors.lookAtPoint_Point
-            end
 
-            -- 3. If the look-at position is valid, draw it and the connecting line
-            if lookAtPos then
-                -- Draw the look-at point and its label
-                drawPoint(lookAtPos.x, lookAtPos.y, lookAtPos.z,
-                        CameraAnchorVisualization.settings.markerSize * sizeMultiplier,
-                        lookAtColor)
+                if lookAtPos then
+                    if isHighlighted then
+                        -- If this anchor is active, only draw the connecting line.
+                        local lineColor = CameraAnchorVisualization.colors.highlightLine
+                        drawLine(pos.px, pos.py, pos.pz,
+                                lookAtPos.x, lookAtPos.y, lookAtPos.z,
+                                lineColor,
+                                CameraAnchorVisualization.settings.lineWidth * sizeMultiplier)
+                    elseif not activeAnchorId then
+                        -- If no anchor is active, draw full details for all anchors.
+                        drawPoint(lookAtPos.x, lookAtPos.y, lookAtPos.z,
+                                CameraAnchorVisualization.settings.markerSize,
+                                lookAtColor)
 
-                drawTextLabel(lookAtPos.x, lookAtPos.y, lookAtPos.z, tostring(i), camPos, isHighlighted)
+                        drawTextLabel(lookAtPos.x, lookAtPos.y, lookAtPos.z, tostring(id), camPos, false)
 
-                -- Draw the line connecting the position and the look-at point
-                local lineColor = isHighlighted and CameraAnchorVisualization.colors.highlightLine or CameraAnchorVisualization.colors.line
-                drawLine(pos.px, pos.py, pos.pz,
-                        lookAtPos.x, lookAtPos.y, lookAtPos.z,
-                        lineColor,
-                        CameraAnchorVisualization.settings.lineWidth * sizeMultiplier)
+                        local lineColor = CameraAnchorVisualization.colors.line
+                        drawLine(pos.px, pos.py, pos.pz,
+                                lookAtPos.x, lookAtPos.y, lookAtPos.z,
+                                lineColor,
+                                CameraAnchorVisualization.settings.lineWidth)
+                    end
+                    -- If an anchor is active, but this is not it, we do nothing,
+                    -- which hides the lines and target points for all inactive anchors.
+                end
             end
         end
     end
