@@ -38,7 +38,7 @@ function DBSCAN.performClustering(units, epsilon, minPoints)
         end
 
         for otherUnitID, pos2 in pairs(unitPositions) do
-            local distSquared = CameraCommons.distanceSquared(pos1, pos2)
+            local distSquared = MathUtils.vector.distanceSq(pos1, pos2)
 
             if distSquared <= epsilon * epsilon then
                 table.insert(neighbors, otherUnitID)

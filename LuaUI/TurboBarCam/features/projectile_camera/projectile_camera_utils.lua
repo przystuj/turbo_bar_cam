@@ -29,10 +29,10 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     local distance = modeCfg.DISTANCE * rampUpFactor
     local height = modeCfg.HEIGHT * rampUpFactor
 
-    local projectileDir = CameraCommons.normalizeVector(pVel)
-    if CameraCommons.vectorMagnitudeSq(projectileDir) < 0.001 then
+    local projectileDir = MathUtils.vector.normalize(pVel)
+    if MathUtils.vector.magnitudeSq(projectileDir) < 0.001 then
         projectileDir = { x = 0, y = -0.5, z = -0.5 } -- Default fallback
-        projectileDir = CameraCommons.normalizeVector(projectileDir)
+        projectileDir = MathUtils.vector.normalize(projectileDir)
     end
 
     local camX, camY, camZ
@@ -41,7 +41,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         local awayDirXZ
         if STATE.active.mode.lastCamDir and (STATE.active.mode.lastCamDir.x ~= 0 or STATE.active.mode.lastCamDir.z ~= 0) then
             -- Use inverted XZ component of camera's forward vector.
-            awayDirXZ = CameraCommons.normalizeVector({ x = -STATE.active.mode.lastCamDir.x, y = 0, z = -STATE.active.mode.lastCamDir.z })
+            awayDirXZ = MathUtils.vector.normalize({ x = -STATE.active.mode.lastCamDir.x, y = 0, z = -STATE.active.mode.lastCamDir.z })
         else
             awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
         end
@@ -51,27 +51,27 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         camY = pPos.y + height
     else
         local worldUp = { x = 0, y = 1, z = 0 }
-        local right = CameraCommons.crossProduct(projectileDir, worldUp)
-        if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+        local right = MathUtils.vector.cross(projectileDir, worldUp)
+        if MathUtils.vector.magnitudeSq(right) < 0.001 then
             local worldFwdTemp = { x = 0, y = 0, z = 1 }
             if math.abs(projectileDir.y) > 0.99 then
                 worldFwdTemp = { x = 1, y = 0, z = 0 }
             end
-            right = CameraCommons.crossProduct(projectileDir, worldFwdTemp)
-            if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+            right = MathUtils.vector.cross(projectileDir, worldFwdTemp)
+            if MathUtils.vector.magnitudeSq(right) < 0.001 then
                 right = { x = 1, y = 0, z = 0 }
             end
         end
-        right = CameraCommons.normalizeVector(right)
-        local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, projectileDir))
+        right = MathUtils.vector.normalize(right)
+        local localUp = MathUtils.vector.normalize(MathUtils.vector.cross(right, projectileDir))
 
         -- Apply Y-constraint to localUp
         if localUp.y < 0 then
             localUp.y = 0
-            if CameraCommons.vectorMagnitudeSq(localUp) < 0.001 then
+            if MathUtils.vector.magnitudeSq(localUp) < 0.001 then
                 localUp = { x = 0, y = 1, z = 0 } -- Fallback to world up
             else
-                localUp = CameraCommons.normalizeVector(localUp)
+                localUp = MathUtils.vector.normalize(localUp)
             end
         end
         local upVectorForHeight = localUp
@@ -95,8 +95,8 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
     local subMode = STATE.active.mode.projectile_camera.cameraMode
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
-    local fwd = CameraCommons.normalizeVector(projectileVel)
-    if CameraCommons.vectorMagnitudeSq(fwd) < 0.001 then
+    local fwd = MathUtils.vector.normalize(projectileVel)
+    if MathUtils.vector.magnitudeSq(fwd) < 0.001 then
         fwd = { x = 0, y = 0, z = 1 }
     end
 
@@ -118,19 +118,19 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
         end
 
         local worldUp = { x = 0, y = 1, z = 0 }
-        local right = CameraCommons.crossProduct(fwd, worldUp)
-        if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+        local right = MathUtils.vector.cross(fwd, worldUp)
+        if MathUtils.vector.magnitudeSq(right) < 0.001 then
             local worldFwdTemp = { x = 0, y = 0, z = 1 }
             if math.abs(fwd.z) > 0.99 then
                 worldFwdTemp = { x = 1, y = 0, z = 0 }
             end
-            right = CameraCommons.crossProduct(fwd, worldFwdTemp)
-            if CameraCommons.vectorMagnitudeSq(right) < 0.001 then
+            right = MathUtils.vector.cross(fwd, worldFwdTemp)
+            if MathUtils.vector.magnitudeSq(right) < 0.001 then
                 right = { x = 1, y = 0, z = 0 }
             end
         end
-        right = CameraCommons.normalizeVector(right)
-        local localUp = CameraCommons.normalizeVector(CameraCommons.crossProduct(right, fwd))
+        right = MathUtils.vector.normalize(right)
+        local localUp = MathUtils.vector.normalize(MathUtils.vector.cross(right, fwd))
 
         return {
             x = baseTarget.x + localUp.x * offsetHeight + right.x * offsetSide,

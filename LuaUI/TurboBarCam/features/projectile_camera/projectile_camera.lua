@@ -395,10 +395,10 @@ function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
     local lastDirXZ = { x = lastDir.x, y = 0, z = lastDir.z }
 
     local angle = 0
-    local currentMagnitude = CameraCommons.vectorMagnitude(currentDirXZ)
-    local previousMagnitude = CameraCommons.vectorMagnitude(lastDirXZ)
+    local currentMagnitude = MathUtils.vector.magnitude(currentDirXZ)
+    local previousMagnitude = MathUtils.vector.magnitude(lastDirXZ)
     if currentMagnitude > 0.01 and previousMagnitude > 0.01 then
-        local dot_xz = CameraCommons.dotProduct(CameraCommons.normalizeVector(currentDirXZ), CameraCommons.normalizeVector(lastDirXZ))
+        local dot_xz = MathUtils.vector.dot(MathUtils.vector.normalize(currentDirXZ), MathUtils.vector.normalize(lastDirXZ))
         dot_xz = math.max(-1.0, math.min(1.0, dot_xz))
         angle = math.acos(dot_xz)
     end

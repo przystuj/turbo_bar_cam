@@ -27,16 +27,16 @@ function TransitionUtil.smoothDecelerationTransition(currentState, dt, easedProg
 
     local clampedVelocity = velocity
     local clampedRotVelocity = rotVelocity
-    local velMagnitude = CameraCommons.vectorMagnitude(velocity)
-    local rotVelMagnitude = CameraCommons.vectorMagnitude(rotVelocity)
+    local velMagnitude = MathUtils.vector.magnitude(velocity)
+    local rotVelMagnitude = MathUtils.vector.magnitude(rotVelocity)
 
     if velMagnitude > MAX_POSITION_VELOCITY then
-        clampedVelocity = CameraCommons.vectorMultiply(velocity, MAX_POSITION_VELOCITY / velMagnitude)
+        clampedVelocity = MathUtils.vector.multiply(velocity, MAX_POSITION_VELOCITY / velMagnitude)
         Log:trace("Clamping high velocity: " .. velMagnitude .. " to " .. MAX_POSITION_VELOCITY)
         velMagnitude = MAX_POSITION_VELOCITY
     end
     if rotVelMagnitude > MAX_ROTATION_VELOCITY then
-        clampedRotVelocity = CameraCommons.vectorMultiply(rotVelocity, MAX_ROTATION_VELOCITY / rotVelMagnitude)
+        clampedRotVelocity = MathUtils.vector.multiply(rotVelocity, MAX_ROTATION_VELOCITY / rotVelMagnitude)
         Log:trace("Clamping high rot velocity: " .. rotVelMagnitude .. " to " .. MAX_ROTATION_VELOCITY)
         rotVelMagnitude = MAX_ROTATION_VELOCITY
     end

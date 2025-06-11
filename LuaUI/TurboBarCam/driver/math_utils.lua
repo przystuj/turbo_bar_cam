@@ -4,70 +4,101 @@ local Log = ModuleManager.Log(function(m) Log = m end, "MathUtils")
 
 ---@class MathUtils
 local MathUtils = {}
+MathUtils.vector = {}
+
+--============================================================================--
+--=                                Vector Math                               =--
+--============================================================================--
+
+function MathUtils.vector.add(v1, v2)
+    return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
+end
+
+function MathUtils.vector.subtract(v1, v2)
+    return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) }
+end
+
+function MathUtils.vector.multiply(v, scalar)
+    return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar }
+end
+
+function MathUtils.vector.magnitudeSq(v)
+    local x, y, z = v.x or 0, v.y or 0, v.z or 0
+    return x * x + y * y + z * z
+end
+
+function MathUtils.vector.magnitude(v)
+    return math.sqrt(MathUtils.vector.magnitudeSq(v))
+end
+
+function MathUtils.vector.normalize(v)
+    local mag = MathUtils.vector.magnitude(v)
+    if mag > 1e-5 then
+        return MathUtils.vector.multiply(v, 1 / mag)
+    end
+    return { x = 0, y = 0, z = 0 }
+end
+
+function MathUtils.vector.dot(v1, v2)
+    return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
+end
+
+function MathUtils.vector.cross(v1, v2)
+    return {
+        x = (v1.y or 0) * (v2.z or 0) - (v1.z or 0) * (v2.y or 0),
+        y = (v1.z or 0) * (v2.x or 0) - (v1.x or 0) * (v2.z or 0),
+        z = (v1.x or 0) * (v2.y or 0) - (v1.y or 0) * (v2.x or 0)
+    }
+end
+
+function MathUtils.vector.distanceSq(p1, p2)
+    local dx = (p1.x or 0) - (p2.x or 0)
+    local dy = (p1.y or 0) - (p2.y or 0)
+    local dz = (p1.z or 0) - (p2.z or 0)
+    return dx * dx + dy * dy + dz * dz
+end
+
+
+--============================================================================--
+--=                                Damping                                   =--
+--============================================================================--
 
 function MathUtils.expApproximation(smoothTime, dt)
+    -- Using 2/T for omega is standard for this critically-damped spring approximation.
     local omega = 6 / smoothTime
     local x = omega * dt
-    -- A Taylor series approximation for exp(-x) that is stable.
     return 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x), omega
 end
 
 --- Smoothly dampens a 3D vector towards a target value using a stable, framerate-independent
 --- spring-damper model.
---- Modifies the velocity_ref table in place.
----@param position table The current vector position {x, y, z}.
----@param target table The target vector position {x, y, z}.
----@param velocity table A table holding the current velocity {x, y, z}, passed by reference.
----@param smoothTime number The approximate time to reach the target. A smaller value will reach the target faster.
----@param dt number The delta time for this frame.
----@return table The new smoothed vector for this frame.
 function MathUtils.vectorSmoothDamp(position, target, velocity, smoothTime, dt)
     dt = math.min(dt, 0.05) -- Prevent large steps during frame rate drops
-    local maxSpeed = 10000
+    local maxSpeed = 100000 -- Set a high practical limit
     smoothTime = math.max(0.0001, smoothTime)
 
     local exp, omega = MathUtils.expApproximation(smoothTime, dt)
 
-    -- In the formula, 'change' is the offset from the target we want to achieve this frame.
-    -- We start with the full offset from the current position to the overall target.
-    local change_x = position.x - target.x
-    local change_y = position.y - target.y
-    local change_z = position.z - target.z
+    -- 'change' is the offset from the target.
+    local change = MathUtils.vector.subtract(position, target)
 
     -- Clamp the maximum change vector magnitude based on maxSpeed.
-    -- This ensures the camera doesn't move faster than the specified limit.
     local maxChange = maxSpeed * smoothTime
-    local changeMagSq = change_x * change_x + change_y * change_y + change_z * change_z
-
-    if changeMagSq > maxChange * maxChange then
-        local changeMag = math.sqrt(changeMagSq)
-        local scale = maxChange / changeMag
-        change_x = change_x * scale
-        change_y = change_y * scale
-        change_z = change_z * scale
+    if MathUtils.vector.magnitudeSq(change) > maxChange * maxChange then
+        change = MathUtils.vector.multiply(MathUtils.vector.normalize(change), maxChange)
     end
 
     -- The effective target for this frame, after speed clamping.
-    local frame_target_x = position.x - change_x
-    local frame_target_y = position.y - change_y
-    local frame_target_z = position.z - change_z
+    local frame_target = MathUtils.vector.subtract(position, change)
 
     -- Calculate the intermediate term for the velocity and position update.
-    local temp_x = (velocity.x + omega * change_x) * dt
-    local temp_y = (velocity.y + omega * change_y) * dt
-    local temp_z = (velocity.z + omega * change_z) * dt
+    local temp = MathUtils.vector.multiply(MathUtils.vector.add(velocity, MathUtils.vector.multiply(change, omega)), dt)
 
-    -- Update velocity for the next frame. This is the 'damping' part.
-    local newVelocity = {}
-    newVelocity.x = (velocity.x - omega * temp_x) * exp
-    newVelocity.y = (velocity.y - omega * temp_y) * exp
-    newVelocity.z = (velocity.z - omega * temp_z) * exp
+    -- Update velocity for the next frame.
+    local newVelocity = MathUtils.vector.multiply(MathUtils.vector.subtract(velocity, MathUtils.vector.multiply(temp, omega)), exp)
 
     -- Calculate the new position for this frame.
-    local newPosition = {}
-    newPosition.x = frame_target_x + (change_x + temp_x) * exp
-    newPosition.y = frame_target_y + (change_y + temp_y) * exp
-    newPosition.z = frame_target_z + (change_z + temp_z) * exp
+    local newPosition = MathUtils.vector.add(frame_target, MathUtils.vector.multiply(MathUtils.vector.add(change, temp), exp))
 
     return newPosition, newVelocity
 end

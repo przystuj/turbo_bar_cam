@@ -50,7 +50,7 @@ function CameraAnchor.set(id)
     local existingAnchor = STATE.anchor.points[id]
 
     if existingAnchor then
-        local distSq = CameraCommons.distanceSquared(camPos, {x=existingAnchor.position.px, y=existingAnchor.position.py, z=existingAnchor.position.pz})
+        local distSq = MathUtils.vector.distanceSq(camPos, {x=existingAnchor.position.px, y=existingAnchor.position.py, z=existingAnchor.position.pz})
         if distSq < SET_POSITION_THRESHOLD_SQ then
             if existingAnchor.target then
                 existingAnchor.target = nil
@@ -103,9 +103,6 @@ function CameraAnchor.focus(id)
         duration = duration,
     }
 
-    Log:debug("Current camState", Spring.GetCameraState())
-    Log:debug("Cam tracker pos|rot|vel|avel", STATE.active.camera.position, STATE.active.camera.orientation, STATE.active.camera.velocity, STATE.active.camera.angularVelocity)
-    Log:debug("Set target to", camTarget)
     CameraDriver.setTarget(camTarget)
     return true
 end

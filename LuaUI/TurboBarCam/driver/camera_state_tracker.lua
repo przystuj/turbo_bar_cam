@@ -3,6 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local QuaternionUtils = ModuleManager.QuaternionUtils(function(m) QuaternionUtils = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class CameraStateTracker
 local CameraStateTracker = {}
@@ -32,11 +33,11 @@ function CameraStateTracker.update(dt)
         local totalDt = Spring.DiffTimers(now, oldest.time)
 
         if totalDt > 0.01 then
-            cs.velocity = CameraCommons.vectorMultiply(CameraCommons.vectorSubtract(currentRecord.pos, oldest.pos), 1 / totalDt)
+            cs.velocity = MathUtils.vector.multiply(MathUtils.vector.subtract(currentRecord.pos, oldest.pos), 1 / totalDt)
 
             local deltaOrient = QuaternionUtils.multiply(currentRecord.orient, QuaternionUtils.inverse(oldest.orient))
             local rotVector = QuaternionUtils.log(deltaOrient)
-            cs.angularVelocity = CameraCommons.vectorMultiply({x=rotVector.x, y=rotVector.y, z=rotVector.z}, 1 / totalDt)
+            cs.angularVelocity = MathUtils.vector.multiply({x=rotVector.x, y=rotVector.y, z=rotVector.z}, 1 / totalDt)
 
             cs.angularVelocityEuler = {
                 x = CameraCommons.getAngleDiff(oldest.euler.rx, currentRecord.euler.rx) / totalDt,

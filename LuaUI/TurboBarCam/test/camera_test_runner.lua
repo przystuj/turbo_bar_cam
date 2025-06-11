@@ -5,9 +5,9 @@ local Log = ModuleManager.Log(function(m) Log = m end, "TestRunner")
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local QuaternionUtils = ModuleManager.QuaternionUtils(function(m) QuaternionUtils = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class CameraTestRunner
 local CameraTestRunner = {}
@@ -60,21 +60,21 @@ local function analyzeData(dataLog, dt)
         local current = dataLog[i]
         local prev = dataLog[i - 1]
 
-        local velMag = CameraCommons.vectorMagnitude(current.vel)
+        local velMag = MathUtils.vector.magnitude(current.vel)
         if velMag > analysis.maxVelocity then
             analysis.maxVelocity = velMag
         end
 
-        local angVelMag = CameraCommons.vectorMagnitude(current.angVel)
+        local angVelMag = MathUtils.vector.magnitude(current.angVel)
         if angVelMag > analysis.maxAngularVelocity then
             analysis.maxAngularVelocity = angVelMag
         end
 
-        local accelVec = CameraCommons.vectorSubtract(current.vel, prev.vel)
-        table.insert(analysis.accelerations, CameraCommons.vectorMagnitude(accelVec) / dt)
+        local accelVec = MathUtils.vector.subtract(current.vel, prev.vel)
+        table.insert(analysis.accelerations, MathUtils.vector.magnitude(accelVec) / dt)
 
-        local posDeltaVec = CameraCommons.vectorSubtract(current.pos, prev.pos)
-        table.insert(analysis.posDeltas, CameraCommons.vectorMagnitude(posDeltaVec) / dt)
+        local posDeltaVec = MathUtils.vector.subtract(current.pos, prev.pos)
+        table.insert(analysis.posDeltas, MathUtils.vector.magnitude(posDeltaVec) / dt)
 
         local rotDeltaQuat = QuaternionUtils.multiply(current.orient, QuaternionUtils.inverse(prev.orient))
         local _, rotAngleRad = QuaternionUtils.toAxisAngle(rotDeltaQuat)

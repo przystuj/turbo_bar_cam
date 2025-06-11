@@ -130,8 +130,8 @@ end
 function VelocityTracker.getCurrentVelocity()
     local vel = STATE.cameraVelocity.currentVelocity
     local rotVel = STATE.cameraVelocity.currentRotationalVelocity
-    local magnitude = CameraCommons.vectorMagnitude(vel)
-    local rotMagnitude = CameraCommons.vectorMagnitude(rotVel)
+    local magnitude = MathUtils.vector.magnitude(vel)
+    local rotMagnitude = MathUtils.vector.magnitude(rotVel)
     return vel, magnitude, rotVel, rotMagnitude
 end
 
