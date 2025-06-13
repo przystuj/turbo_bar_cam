@@ -21,11 +21,14 @@ function CameraDriver.setTarget(targetConfig)
         return
     end
     local wasAlreadyActive = (STATE.active.driver.target and STATE.active.driver.target.position ~= nil)
-    STATE.active.driver.target.position = targetConfig.position
-    STATE.active.driver.target.lookAt = targetConfig.lookAt
-    STATE.active.driver.target.euler = targetConfig.euler
-    STATE.active.driver.target.smoothTime = targetConfig.duration or DEFAULT_SMOOTH_TIME
-    STATE.active.driver.target.transitionType = targetConfig.transitionType or "smooth"
+    local target = STATE.active.driver.target
+
+    target.position = targetConfig.position
+    target.lookAt = targetConfig.lookAt
+    target.euler = targetConfig.euler
+    -- Use separate smoothing times for position and rotation
+    target.smoothTimePos = targetConfig.smoothTimePos or DEFAULT_SMOOTH_TIME
+    target.smoothTimeRot = targetConfig.smoothTimeRot or target.smoothTimePos -- Default rot to pos time
 
     local sim = STATE.active.driver.simulation
 
@@ -36,12 +39,14 @@ function CameraDriver.setTarget(targetConfig)
         sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
     end
 
-    sim.startTime = Spring.GetTimer()
-    sim.startOrient = TableUtils.deepCopy(sim.orientation)
-
+    -- Determine if this is a rotation-only move to optimize completion checks
     local ROTATION_ONLY_THRESHOLD_SQ = 1.0
-    local distSq = MathUtils.vector.distanceSq(sim.position, targetConfig.position)
-    sim.isRotationOnly = (distSq < ROTATION_ONLY_THRESHOLD_SQ)
+    if targetConfig.position and sim.position then
+        local distSq = MathUtils.vector.distanceSq(sim.position, targetConfig.position)
+        sim.isRotationOnly = (distSq < ROTATION_ONLY_THRESHOLD_SQ)
+    else
+        sim.isRotationOnly = not targetConfig.position
+    end
 end
 
 --- Helper function to resolve the lookAt target to a concrete point
@@ -62,7 +67,8 @@ local function updatePosition(dt)
     local simState = STATE.active.driver.simulation
     if not target.position or simState.isRotationOnly then return end
 
-    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, target.smoothTime, dt)
+    -- Use the dedicated position smoothing time
+    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, target.smoothTimePos, dt)
     simState.position = newPosition
     simState.velocity = newVelocity
 end
@@ -84,8 +90,8 @@ local function updateOrientation(dt)
     end
 
     if finalTargetOrientation then
-        local smoothTime = target.lookAt and target.smoothTime / 4 or target.smoothTime
-        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, smoothTime, dt)
+        -- Use the dedicated rotation smoothing time, removing the old "/ 4" logic
+        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTimeRot, dt)
         simState.orientation = newOrientation
         simState.angularVelocity = newAngularVelocity
     end
@@ -95,9 +101,9 @@ end
 
 --- Checks if the movement has reached its target and resets the driver if complete.
 local function checkAndCompleteTask(finalTargetOrientation)
-
     local simState = STATE.active.driver.simulation
     local target = STATE.active.driver.target
+    if not target.position then return end -- Don't complete if there's no positional target
 
     local POS_EPSILON_SQ = 0.01
     local VEL_EPSILON_SQ = 0.01

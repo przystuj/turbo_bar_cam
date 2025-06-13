@@ -100,7 +100,8 @@ function CameraAnchor.focus(id)
         position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
         lookAt = anchorData.target,
         euler = anchorData.rotation,
-        duration = duration,
+        smoothTimePos = duration,
+        smoothTimeRot = duration / 2, -- Make rotation 4x faster than position
     }
 
     CameraDriver.setTarget(camTarget)
