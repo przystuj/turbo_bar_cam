@@ -100,30 +100,51 @@ local function updateOrientation(dt)
 end
 
 --- Checks if the movement has reached its target and resets the driver if complete.
-local function checkAndCompleteTask(finalTargetOrientation)
-    local simState = STATE.active.driver.simulation
+local function checkAndCompleteTask()
     local target = STATE.active.driver.target
-    if not target.position then return end -- Don't complete if there's no positional target
+
+    -- If a lookAt target is active, the driver should never complete on its own.
+    -- It will keep tracking until a new mode or target is set.
+    if target.lookAt then
+        return
+    end
+
+    -- If there's no positional or euler target, there's no task to complete.
+    if not target.position and not target.euler then
+        return
+    end
+
+    local simState = STATE.active.driver.simulation
 
     local POS_EPSILON_SQ = 0.01
     local VEL_EPSILON_SQ = 0.01
     local ANG_VEL_EPSILON_SQ = 0.0001
 
-    local angularVelSq = 0
-    if finalTargetOrientation then
-        angularVelSq = MathUtils.vector.magnitudeSq(simState.angularVelocity)
-    end
-
-    if angularVelSq < ANG_VEL_EPSILON_SQ then
-        local distSq = MathUtils.vector.distanceSq(simState.position, target.position)
-        local velSq = MathUtils.vector.magnitudeSq(simState.velocity)
-        -- if lookAt then never stop following target
-        if simState.isRotationOnly or (distSq < POS_EPSILON_SQ and velSq < VEL_EPSILON_SQ) and not target.lookAt then
-            Log:debug("Driver task completed")
-            STATE.active.driver.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
+    -- Check for rotational completion if there is an euler target
+    if target.euler then
+        if MathUtils.vector.magnitudeSq(simState.angularVelocity) >= ANG_VEL_EPSILON_SQ then
+            return -- Not complete yet
         end
     end
+
+    -- Check for positional completion if there is a position target
+    if target.position then
+        if simState.isRotationOnly then
+            -- For rotation-only moves, positional completion is assumed.
+        else
+            local distSq = MathUtils.vector.distanceSq(simState.position, target.position)
+            local velSq = MathUtils.vector.magnitudeSq(simState.velocity)
+            if distSq >= POS_EPSILON_SQ or velSq >= VEL_EPSILON_SQ then
+                return -- Not complete yet
+            end
+        end
+    end
+
+    -- If all relevant checks have passed, the task is complete.
+    Log:debug("Driver task completed")
+    STATE.active.driver.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
 end
+
 
 --- Applies the final calculated simulation state to the in-game camera.
 local function applySimulationToCamera()
@@ -151,10 +172,10 @@ function CameraDriver.update(dt)
 
     -- Perform simulation updates
     updatePosition(dt)
-    local finalTargetOrientation = updateOrientation(dt)
+    updateOrientation(dt)
 
     -- Apply the result to the game camera
-    checkAndCompleteTask(finalTargetOrientation)
+    checkAndCompleteTask()
     applySimulationToCamera()
 end
 
