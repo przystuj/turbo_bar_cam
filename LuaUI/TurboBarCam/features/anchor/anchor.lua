@@ -101,7 +101,7 @@ function CameraAnchor.focus(id)
         lookAt = anchorData.target,
         euler = anchorData.rotation,
         smoothTimePos = duration,
-        smoothTimeRot = duration / 2, -- Make rotation 4x faster than position
+        smoothTimeRot = duration / 4,
     }
 
     CameraDriver.setTarget(camTarget)

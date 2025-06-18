@@ -171,7 +171,7 @@ function WidgetManager.toggleZoom()
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    local cycle = { [45] = 24, [24] = 12, [12] = 45 }
+    local cycle = { [45] = 24, [24] = 45 }
     local camState = Spring.GetCameraState()
     local fov = cycle[camState.fov] or 45
     Spring.SetCameraState({fov = fov}, 1)

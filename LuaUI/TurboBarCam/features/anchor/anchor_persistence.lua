@@ -14,8 +14,8 @@ local CameraAnchorPersistence = {}
 ---@return boolean success Whether saving was successful
 function CameraAnchorPersistence.saveToFile(anchorSetId)
     if not anchorSetId or anchorSetId == "" then
-        Log:warn("Cannot save - no identifier specified")
-        return false
+        Log:info("No id specified - saving as default")
+        anchorSetId = "default"
     end
 
     -- Check if we have any anchors to save
@@ -50,8 +50,8 @@ end
 ---@return boolean success Whether loading was successful
 function CameraAnchorPersistence.loadFromFile(id)
     if not id or id == "" then
-        Log:warn("Cannot load - no identifier specified")
-        return false
+        Log:info("No id specified - loading default")
+        id = "default"
     end
 
     -- Get clean map name

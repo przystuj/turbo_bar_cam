@@ -4,6 +4,7 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "TransitionUtil")
 local VelocityTracker = ModuleManager.VelocityTracker(function(m) VelocityTracker = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class TransitionUtil
 local TransitionUtil = {}
