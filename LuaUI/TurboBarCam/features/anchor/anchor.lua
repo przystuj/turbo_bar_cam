@@ -89,8 +89,10 @@ function CameraAnchor.focus(id)
     end
 
     local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    local isForcedSmoothing = false
     if STATE.active.anchor.lastUsedAnchor == id then
         duration = 0.2
+        isForcedSmoothing = true
     end
 
     STATE.active.anchor.lastUsedAnchor = id
@@ -102,6 +104,7 @@ function CameraAnchor.focus(id)
         euler = anchorData.rotation,
         smoothTimePos = duration,
         smoothTimeRot = duration / 4,
+        isForcedSmoothing = isForcedSmoothing,
     }
 
     CameraDriver.setTarget(camTarget)

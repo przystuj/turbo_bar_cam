@@ -20,17 +20,31 @@ function CameraDriver.setTarget(targetConfig)
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    local wasAlreadyActive = (STATE.active.driver.target and STATE.active.driver.target.position ~= nil)
     local target = STATE.active.driver.target
+    local sim = STATE.active.driver.simulation
+    local wasAlreadyActive = (target and target.position ~= nil)
 
+    -- Set the main target values
     target.position = targetConfig.position
     target.lookAt = targetConfig.lookAt
     target.euler = targetConfig.euler
-    -- Use separate smoothing times for position and rotation
     target.smoothTimePos = targetConfig.smoothTimePos or DEFAULT_SMOOTH_TIME
-    target.smoothTimeRot = targetConfig.smoothTimeRot or target.smoothTimePos -- Default rot to pos time
+    target.smoothTimeRot = targetConfig.smoothTimeRot or target.smoothTimePos
 
-    local sim = STATE.active.driver.simulation
+    if targetConfig.isForcedSmoothing then
+        -- This is a FORCED override. Set the forced values and complete any running transition.
+        sim.forcedSmoothingPos = target.smoothTimePos
+        sim.forcedSmoothingRot = target.smoothTimeRot
+        sim.smoothTimeTransitionStart = nil
+    else
+        -- This is a NORMAL move. Clear any forced values and set up a gradual transition.
+        sim.forcedSmoothingPos = nil
+        sim.forcedSmoothingRot = nil
+
+        sim.sourceSmoothTimePos = sim.currentSmoothTimePos
+        sim.sourceSmoothTimeRot = sim.currentSmoothTimeRot
+        sim.smoothTimeTransitionStart = Spring.GetTimer()
+    end
 
     if not wasAlreadyActive then
         sim.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
@@ -39,7 +53,6 @@ function CameraDriver.setTarget(targetConfig)
         sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
     end
 
-    -- Determine if this is a rotation-only move to optimize completion checks
     local ROTATION_ONLY_THRESHOLD_SQ = 1.0
     if targetConfig.position and sim.position then
         local distSq = MathUtils.vector.distanceSq(sim.position, targetConfig.position)
@@ -47,6 +60,36 @@ function CameraDriver.setTarget(targetConfig)
     else
         sim.isRotationOnly = not targetConfig.position
     end
+end
+
+--- Determines the correct smoothing values to use for the current frame.
+local function getLiveSmoothTimes()
+    local sim = STATE.active.driver.simulation
+
+    -- If a forced smoothing override is active, use it immediately and bypass transitions.
+    if sim.forcedSmoothingPos then
+        return sim.forcedSmoothingPos, sim.forcedSmoothingRot
+    end
+    -- Otherwise, perform the gradual transition logic.
+    local target = STATE.active.driver.target
+    if not sim.smoothTimeTransitionStart then
+        -- No transition active, just use the target values.
+        sim.currentSmoothTimePos = target.smoothTimePos
+        sim.currentSmoothTimeRot = target.smoothTimeRot
+    else
+        -- Interpolate during an active transition.
+        local elapsed = Spring.DiffTimers(Spring.GetTimer(), sim.smoothTimeTransitionStart)
+        local alpha = math.min(1.0, sim.smoothTimeTransitionDuration and (elapsed / sim.smoothTimeTransitionDuration) or 1.0)
+
+        sim.currentSmoothTimePos = sim.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
+        sim.currentSmoothTimeRot = sim.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
+
+        if alpha >= 1.0 then
+            sim.smoothTimeTransitionStart = nil
+        end
+    end
+
+    return sim.currentSmoothTimePos, sim.currentSmoothTimeRot
 end
 
 --- Helper function to resolve the lookAt target to a concrete point
@@ -62,20 +105,18 @@ local function getLookAtPoint(target)
 end
 
 --- Updates the position of the camera simulation via smooth damping.
-local function updatePosition(dt)
+local function updatePosition(dt, liveSmoothTimePos)
     local target = STATE.active.driver.target
     local simState = STATE.active.driver.simulation
     if not target.position or simState.isRotationOnly then return end
 
-    -- Use the dedicated position smoothing time
-    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, target.smoothTimePos, dt)
+    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, liveSmoothTimePos, dt)
     simState.position = newPosition
     simState.velocity = newVelocity
 end
 
 --- Determines the target orientation and updates the simulation via smooth damping.
----@return table|nil finalTargetOrientation The calculated target orientation for this frame.
-local function updateOrientation(dt)
+local function updateOrientation(dt, liveSmoothTimeRot)
     local target = STATE.active.driver.target
     local simState = STATE.active.driver.simulation
     local finalTargetOrientation
@@ -90,26 +131,21 @@ local function updateOrientation(dt)
     end
 
     if finalTargetOrientation then
-        -- Use the dedicated rotation smoothing time, removing the old "/ 4" logic
-        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, target.smoothTimeRot, dt)
+        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, liveSmoothTimeRot, dt)
         simState.orientation = newOrientation
         simState.angularVelocity = newAngularVelocity
     end
-
-    return finalTargetOrientation
 end
 
 --- Checks if the movement has reached its target and resets the driver if complete.
 local function checkAndCompleteTask()
     local target = STATE.active.driver.target
 
-    -- If a lookAt target is active, the driver should never complete on its own.
-    -- It will keep tracking until a new mode or target is set.
+    -- if lookAt target is active, the driver should never complete on its own.
     if target.lookAt then
         return
     end
 
-    -- If there's no positional or euler target, there's no task to complete.
     if not target.position and not target.euler then
         return
     end
@@ -120,14 +156,12 @@ local function checkAndCompleteTask()
     local VEL_EPSILON_SQ = 0.01
     local ANG_VEL_EPSILON_SQ = 0.0001
 
-    -- Check for rotational completion if there is an euler target
     if target.euler then
         if MathUtils.vector.magnitudeSq(simState.angularVelocity) >= ANG_VEL_EPSILON_SQ then
             return -- Not complete yet
         end
     end
 
-    -- Check for positional completion if there is a position target
     if target.position then
         if simState.isRotationOnly then
             -- For rotation-only moves, positional completion is assumed.
@@ -140,11 +174,9 @@ local function checkAndCompleteTask()
         end
     end
 
-    -- If all relevant checks have passed, the task is complete.
     Log:debug("Driver task completed")
     STATE.active.driver.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
 end
-
 
 --- Applies the final calculated simulation state to the in-game camera.
 local function applySimulationToCamera()
@@ -171,8 +203,9 @@ function CameraDriver.update(dt)
     end
 
     -- Perform simulation updates
-    updatePosition(dt)
-    updateOrientation(dt)
+    local liveSmoothTimePos, liveSmoothTimeRot = getLiveSmoothTimes()
+    updatePosition(dt, liveSmoothTimePos)
+    updateOrientation(dt, liveSmoothTimeRot)
 
     -- Apply the result to the game camera
     checkAndCompleteTask()

@@ -85,27 +85,29 @@ if not WG.TurboBarCam.STATE then
             -- State for the low-level CameraDriver that executes movement.
             -- Managed exclusively by CameraDriver.
             driver = {
-                -- The target state for the current camera movement.
-                -- Is populated only when a programmatic move is in progress.
                 target = {
-                    position = nil,       -- e.g., {x, y, z}
-                    lookAt = nil,         -- e.g., {type="unit", data=123}
-                    euler = nil,          -- e.g., {rx, ry}
-                    smoothTime = nil,     -- e.g., 0.5 (seconds)
-                    transitionType = "smooth", -- "smooth" or "linear"
+                    position = nil,
+                    lookAt = nil,
+                    euler = nil,
+                    smoothTimePos = nil,
+                    smoothTimeRot = nil,
                 },
-                -- Private state for the driver's physics simulation.
-                -- This state is managed exclusively by the driver during a move.
                 simulation = {
                     position = {x = 0, y = 0, z = 0},
                     orientation = {w = 1, x = 0, y = 0, z = 0},
                     velocity = {x = 0, y = 0, z = 0},
                     angularVelocity = {x = 0, y = 0, z = 0},
-                    -- State for time-based transitions like 'linear'
-                    startTime = nil,
-                    startPos = nil,
-                    startOrient = nil,
                     isRotationOnly = nil,
+                    -- State for smoothing the smoothTime value itself
+                    sourceSmoothTimePos = 0.3,
+                    sourceSmoothTimeRot = 0.3,
+                    currentSmoothTimePos = 0.3,
+                    currentSmoothTimeRot = 0.3,
+                    smoothTimeTransitionStart = nil,
+                    smoothTimeTransitionDuration = 0.3,
+                    -- State for temporary override of smoothing
+                    forcedSmoothingPos = nil,
+                    forcedSmoothingRot = nil,
                 }
             },
 
