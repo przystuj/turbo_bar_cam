@@ -9,20 +9,20 @@ local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m 
 local VelocityTracker = {}
 
 function VelocityTracker.update()
-    if not STATE.cameraVelocity.initialized then
-        STATE.cameraVelocity.isTracking = true
-        STATE.cameraVelocity.initialized = true
+    if not STATE.core.cameraVelocity.initialized then
+        STATE.core.cameraVelocity.isTracking = true
+        STATE.core.cameraVelocity.initialized = true
         Log:trace("Camera velocity tracking initialized")
     end
 
-    if STATE.cameraVelocity.isTracking then
+    if STATE.core.cameraVelocity.isTracking then
         VelocityTracker.updateVelocityTracking()
     end
 end
 
 function VelocityTracker.updateVelocityTracking()
     local currentState = Spring.GetCameraState()
-    local velocityState = STATE.cameraVelocity
+    local velocityState = STATE.core.cameraVelocity
     local currentTime = Spring.GetTimer()
 
     local pos = { x = currentState.px, y = currentState.py, z = currentState.pz }
@@ -69,12 +69,12 @@ function VelocityTracker.updateVelocityTracking()
     end
 
     velocityState.lastUpdateTime = currentTime
-    STATE.cameraVelocity.lastPosition = pos
-    STATE.cameraVelocity.lastRotation = rot
+    STATE.core.cameraVelocity.lastPosition = pos
+    STATE.core.cameraVelocity.lastRotation = rot
 end
 
 function VelocityTracker.calculateVelocity()
-    local velocityState = STATE.cameraVelocity
+    local velocityState = STATE.core.cameraVelocity
     local history = velocityState.positionHistory
 
     if #history < 2 then
@@ -116,27 +116,27 @@ function VelocityTracker.calculateVelocity()
 end
 
 function VelocityTracker.startVelocityTracking()
-    STATE.cameraVelocity.isTracking = true
+    STATE.core.cameraVelocity.isTracking = true
     Log:trace("Camera velocity tracking enabled")
 end
 
 function VelocityTracker.stopVelocityTracking()
-    STATE.cameraVelocity.isTracking = false
-    STATE.cameraVelocity.positionHistory = {}
-    STATE.cameraVelocity.currentVelocity = {x = 0, y = 0, z = 0}
+    STATE.core.cameraVelocity.isTracking = false
+    STATE.core.cameraVelocity.positionHistory = {}
+    STATE.core.cameraVelocity.currentVelocity = {x = 0, y = 0, z = 0}
     Log:trace("Camera velocity tracking disabled")
 end
 
 function VelocityTracker.getCurrentVelocity()
-    local vel = STATE.cameraVelocity.currentVelocity
-    local rotVel = STATE.cameraVelocity.currentRotationalVelocity
+    local vel = STATE.core.cameraVelocity.currentVelocity
+    local rotVel = STATE.core.cameraVelocity.currentRotationalVelocity
     local magnitude = MathUtils.vector.magnitude(vel)
     local rotMagnitude = MathUtils.vector.magnitude(rotVel)
     return vel, magnitude, rotVel, rotMagnitude
 end
 
 function VelocityTracker.applyVelocityDecay(decayRate, deltaTime)
-    local velocityState = STATE.cameraVelocity
+    local velocityState = STATE.core.cameraVelocity
     local vel = velocityState.currentVelocity
     local decayFactor = math.exp(-decayRate * deltaTime)
     velocityState.currentVelocity = {

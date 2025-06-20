@@ -7,7 +7,7 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraQuickControls = ModuleManager.CameraQuickControls(function(m) CameraQuickControls = m end)
-local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 
 ---@class WidgetManager
 local WidgetManager = {}
@@ -26,7 +26,7 @@ local function restoreOriginalCameraState()
         elseif camMode == 4 then
             Spring.SendCommands('viewfree')
         end
-        Spring.SetCameraState(STATE.originalCameraState, 0)
+        Spring.SetCameraState(STATE.originalCameraState, 1)
         STATE.originalCameraState = nil
     end
 end
@@ -58,6 +58,7 @@ function WidgetManager.disable()
     if Utils.isTurboBarCamDisabled() then
         return
     end
+    STATE.core = TableUtils.deepCopy(STATE.DEFAULT.core)
     ModeManager.disableMode()
 
     -- Reset configuration
@@ -99,7 +100,7 @@ function WidgetManager.switchToFpsCamera()
     if #selectedUnits > 0 then
         local x, _, z = Spring.GetUnitPosition(selectedUnits[1])
         local fpsState = CameraCommons.getDefaultUnitView(x, z)
-        Spring.SetCameraState(fpsState, 0)
+        Spring.SetCameraState(fpsState, 1)
     end
     --Spring.SetCameraState({ fov = 45 }, 0)
     Spring.SendCommands("viewfps")

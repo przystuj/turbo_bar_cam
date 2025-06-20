@@ -53,35 +53,8 @@ if not WG.TurboBarCam.STATE then
             startPosition = nil,
         },
 
-        active = {
-
-            -- The ground-truth state of the camera as reported by the tracker.
-            -- Managed exclusively by CameraStateTracker.
-            camera = {
-                position = {x = 0, y = 0, z = 0},
-                velocity = {x = 0, y = 0, z = 0},
-                orientation = {w = 1, x = 0, y = 0, z = 0},
-                angularVelocity = {x = 0, y = 0, z = 0}, -- as a vector
-                euler = {rx = 0, ry = 0, rz = 0},
-                history = {},
-                maxHistorySize = 10,
-                angularVelocityEuler = {x = 0, y = 0, z = 0},
-                anomalyDetector = {
-                    initialized = false,
-                    -- Store deltas for statistical analysis
-                    posDeltaHistory = {},
-                    rotDeltaHistory = {},
-                    historySize = 30, -- A larger window for stats
-                    -- Running statistics
-                    posDeltaMean = 0,
-                    rotDeltaMean = 0,
-                    posDeltaStdDev = 0,
-                    rotDeltaStdDev = 0,
-                    -- Last log time to prevent spam
-                    lastLogTime = nil
-                },
-            },
-
+        -- all of these are reset when toggling widget off
+        core = {
             -- State for the low-level CameraDriver that executes movement.
             -- Managed exclusively by CameraDriver.
             driver = {
@@ -111,6 +84,36 @@ if not WG.TurboBarCam.STATE then
                 }
             },
 
+            -- The ground-truth state of the camera as reported by the tracker.
+            -- Managed exclusively by CameraStateTracker.
+            camera = {
+                position = {x = 0, y = 0, z = 0},
+                velocity = {x = 0, y = 0, z = 0},
+                orientation = {w = 1, x = 0, y = 0, z = 0},
+                angularVelocity = {x = 0, y = 0, z = 0}, -- as a vector
+                euler = {rx = 0, ry = 0, rz = 0},
+                history = {},
+                maxHistorySize = 10,
+                angularVelocityEuler = {x = 0, y = 0, z = 0},
+                anomalyDetector = {
+                    initialized = false,
+                    -- Store deltas for statistical analysis
+                    posDeltaHistory = {},
+                    rotDeltaHistory = {},
+                    historySize = 30, -- A larger window for stats
+                    -- Running statistics
+                    posDeltaMean = 0,
+                    rotDeltaMean = 0,
+                    posDeltaStdDev = 0,
+                    rotDeltaStdDev = 0,
+                    -- Last log time to prevent spam
+                    lastLogTime = nil
+                },
+            },
+        },
+
+        -- all of these are reset when changing camera mode
+        active = {
             projectileTracking = {
                 unitProjectiles = {}
             },
@@ -172,11 +175,11 @@ if not WG.TurboBarCam.STATE then
                 graceTimer = nil,
                 lastUnitID = nil,
 
-                ---@deprecated Will be replaced by STATE.cameraState
+                ---@deprecated Will be replaced by STATE.core.cameraState
                 lastCamPos = { x = 0, y = 0, z = 0 },
-                ---@deprecated Will be replaced by STATE.cameraState
+                ---@deprecated Will be replaced by STATE.core.cameraState
                 lastCamDir = { x = 0, y = 0, z = 0 },
-                ---@deprecated Will be replaced by STATE.cameraState
+                ---@deprecated Will be replaced by STATE.core.cameraState
                 lastRotation = { rx = 0, ry = 0, rz = 0 },
 
                 isModeTransitionInProgress = false,

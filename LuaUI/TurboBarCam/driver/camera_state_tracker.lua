@@ -10,9 +10,9 @@ local CameraStateTracker = {}
 
 --- The main update function, called every frame.
 function CameraStateTracker.update(dt)
-    if not STATE.active or not STATE.active.camera then return end
+    if not STATE.active or not STATE.core.camera then return end
 
-    local cs = STATE.active.camera
+    local cs = STATE.core.camera
     local raw = Spring.GetCameraState()
     local now = Spring.GetTimer()
 
@@ -55,19 +55,19 @@ end
 --- Getters for safe access to camera state ---
 
 function CameraStateTracker.getPosition()
-    return STATE.active and STATE.active.camera and STATE.active.camera.position
+    return STATE.active and STATE.core.camera and STATE.core.camera.position
 end
 
 function CameraStateTracker.getOrientation()
-    return STATE.active and STATE.active.camera and STATE.active.camera.orientation
+    return STATE.active and STATE.core.camera and STATE.core.camera.orientation
 end
 
 function CameraStateTracker.getVelocity()
-    return STATE.active and STATE.active.camera and STATE.active.camera.velocity
+    return STATE.active and STATE.core.camera and STATE.core.camera.velocity
 end
 
 function CameraStateTracker.getAngularVelocity()
-    return STATE.active and STATE.active.camera and STATE.active.camera.angularVelocity
+    return STATE.active and STATE.core.camera and STATE.core.camera.angularVelocity
 end
 
 return CameraStateTracker

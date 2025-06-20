@@ -20,8 +20,8 @@ function CameraDriver.setTarget(targetConfig)
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    local target = STATE.active.driver.target
-    local sim = STATE.active.driver.simulation
+    local target = STATE.core.driver.target
+    local sim = STATE.core.driver.simulation
     local wasAlreadyActive = (target and target.position ~= nil)
 
     -- Set the main target values
@@ -64,14 +64,14 @@ end
 
 --- Determines the correct smoothing values to use for the current frame.
 local function getLiveSmoothTimes()
-    local sim = STATE.active.driver.simulation
+    local sim = STATE.core.driver.simulation
 
     -- If a forced smoothing override is active, use it immediately and bypass transitions.
     if sim.forcedSmoothingPos then
         return sim.forcedSmoothingPos, sim.forcedSmoothingRot
     end
     -- Otherwise, perform the gradual transition logic.
-    local target = STATE.active.driver.target
+    local target = STATE.core.driver.target
     if not sim.smoothTimeTransitionStart then
         -- No transition active, just use the target values.
         sim.currentSmoothTimePos = target.smoothTimePos
@@ -106,8 +106,8 @@ end
 
 --- Updates the position of the camera simulation via smooth damping.
 local function updatePosition(dt, liveSmoothTimePos)
-    local target = STATE.active.driver.target
-    local simState = STATE.active.driver.simulation
+    local target = STATE.core.driver.target
+    local simState = STATE.core.driver.simulation
     if not target.position or simState.isRotationOnly then return end
 
     local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, liveSmoothTimePos, dt)
@@ -117,8 +117,8 @@ end
 
 --- Determines the target orientation and updates the simulation via smooth damping.
 local function updateOrientation(dt, liveSmoothTimeRot)
-    local target = STATE.active.driver.target
-    local simState = STATE.active.driver.simulation
+    local target = STATE.core.driver.target
+    local simState = STATE.core.driver.simulation
     local finalTargetOrientation
     if target.lookAt then
         local lookAtPoint = getLookAtPoint(target.lookAt)
@@ -139,7 +139,7 @@ end
 
 --- Checks if the movement has reached its target and resets the driver if complete.
 local function checkAndCompleteTask()
-    local target = STATE.active.driver.target
+    local target = STATE.core.driver.target
 
     -- if lookAt target is active, the driver should never complete on its own.
     if target.lookAt then
@@ -150,7 +150,7 @@ local function checkAndCompleteTask()
         return
     end
 
-    local simState = STATE.active.driver.simulation
+    local simState = STATE.core.driver.simulation
 
     local POS_EPSILON_SQ = 0.01
     local VEL_EPSILON_SQ = 0.01
@@ -175,12 +175,12 @@ local function checkAndCompleteTask()
     end
 
     Log:debug("Driver task completed")
-    STATE.active.driver.target = TableUtils.deepCopy(STATE.DEFAULT.active.driver.target)
+    STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
 end
 
 --- Applies the final calculated simulation state to the in-game camera.
 local function applySimulationToCamera()
-    local simState = STATE.active.driver.simulation
+    local simState = STATE.core.driver.simulation
     local rx, ry = QuaternionUtils.toEuler(simState.orientation)
     Spring.SetCameraState({
         px = simState.position.x, py = simState.position.y, pz = simState.position.z,
@@ -194,7 +194,7 @@ function CameraDriver.update(dt)
         return
     end
     -- Guard clauses for performance and safety
-    local driverState = STATE.active.driver
+    local driverState = STATE.core.driver
     if not driverState or not driverState.target or dt <= 0 then
         return
     end
@@ -210,6 +210,10 @@ function CameraDriver.update(dt)
     -- Apply the result to the game camera
     checkAndCompleteTask()
     applySimulationToCamera()
+end
+
+function CameraDriver.stop()
+    STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
 end
 
 return CameraDriver
