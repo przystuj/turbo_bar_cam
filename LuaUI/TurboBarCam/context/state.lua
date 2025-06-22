@@ -72,10 +72,10 @@ if not WG.TurboBarCam.STATE then
                     angularVelocity = {x = 0, y = 0, z = 0},
                     isRotationOnly = nil,
                     -- State for smoothing the smoothTime value itself
-                    sourceSmoothTimePos = 0.3,
-                    sourceSmoothTimeRot = 0.3,
-                    currentSmoothTimePos = 0.3,
-                    currentSmoothTimeRot = 0.3,
+                    sourceSmoothTimePos = 3,
+                    sourceSmoothTimeRot = 3,
+                    currentSmoothTimePos = 3,
+                    currentSmoothTimeRot = 3,
                     smoothTimeTransitionStart = nil,
                     smoothTimeTransitionDuration = 0.3,
                     -- State for temporary override of smoothing

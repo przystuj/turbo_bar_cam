@@ -7,7 +7,7 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraQuickControls = ModuleManager.CameraQuickControls(function(m) CameraQuickControls = m end)
-local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
 ---@class WidgetManager
 local WidgetManager = {}
@@ -187,6 +187,15 @@ function WidgetManager.setFov(fov)
         return
     end
     Spring.SetCameraState({fov = fov}, 1)
+end
+
+function WidgetManager.stop()
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+    Log:debug("Stop")
+    ModeManager.disableMode()
+    CameraDriver.stop()
 end
 
 return WidgetManager

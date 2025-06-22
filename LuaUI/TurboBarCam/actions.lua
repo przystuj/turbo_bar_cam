@@ -1,8 +1,5 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local Log = ModuleManager.Log(function(m) Log = m end, "Actions")
-local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
-local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
@@ -86,9 +83,7 @@ function Actions.coreActions()
 
     Actions.registerAction("turbobarcam_stop_tracking", 'tp',
             function()
-                Log:debug("Stop")
-                ModeManager.disableMode()
-                CameraDriver.stop()
+                WidgetManager.stop()
                 return false
             end)
 

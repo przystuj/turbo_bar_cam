@@ -79,7 +79,7 @@ local function getLiveSmoothTimes()
     else
         -- Interpolate during an active transition.
         local elapsed = Spring.DiffTimers(Spring.GetTimer(), sim.smoothTimeTransitionStart)
-        local alpha = math.min(1.0, sim.smoothTimeTransitionDuration and (elapsed / sim.smoothTimeTransitionDuration) or 1.0)
+        local alpha = elapsed / sim.smoothTimeTransitionDuration or 0.1
 
         sim.currentSmoothTimePos = sim.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
         sim.currentSmoothTimeRot = sim.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
@@ -152,8 +152,8 @@ local function checkAndCompleteTask()
 
     local simState = STATE.core.driver.simulation
 
-    local POS_EPSILON_SQ = 0.01
-    local VEL_EPSILON_SQ = 0.01
+    local POS_EPSILON_SQ = 1
+    local VEL_EPSILON_SQ = 1
     local ANG_VEL_EPSILON_SQ = 0.0001
 
     if target.euler then
