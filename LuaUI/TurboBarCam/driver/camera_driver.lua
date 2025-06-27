@@ -14,6 +14,28 @@ local CameraDriver = {}
 
 local DEFAULT_SMOOTH_TIME = 0.3
 
+--- Helper function to resolve the lookAt target to a concrete point
+local function getLookAtPoint(target)
+    if not target then return nil end
+    if target.type == "point" then
+        return target.data
+    elseif target.type == "unit" and Spring.ValidUnitID(target.data) then
+        local x, y, z = Spring.GetUnitPosition(target.data)
+        if x then return { x = x, y = y, z = z } end
+    end
+    return nil
+end
+
+--- Applies the final calculated simulation state to the in-game camera.
+local function applySimulationToCamera()
+    local simState = STATE.core.driver.simulation
+    local rx, ry = QuaternionUtils.toEuler(simState.orientation)
+    Spring.SetCameraState({
+        px = simState.position.x, py = simState.position.y, pz = simState.position.z,
+        rx = rx, ry = ry,
+    })
+end
+
 --- Sets the camera's declarative target state and seeds the simulation.
 ---@param targetConfig table Configuration for the target state.
 function CameraDriver.setTarget(targetConfig)
@@ -22,7 +44,39 @@ function CameraDriver.setTarget(targetConfig)
     end
     local target = STATE.core.driver.target
     local sim = STATE.core.driver.simulation
-    local wasAlreadyActive = (target and target.position ~= nil)
+    local wasAlreadyActive = (target.position ~= nil or target.lookAt ~= nil or target.euler ~= nil)
+
+    if targetConfig.isSnap then
+        if targetConfig.position then
+            sim.position = TableUtils.deepCopy(targetConfig.position)
+        end
+
+        local finalTargetOrientation
+        if targetConfig.lookAt then
+            local lookAtPoint = getLookAtPoint(targetConfig.lookAt)
+            if lookAtPoint then
+                local posForCalc = targetConfig.position or sim.position
+                local dirState = CameraCommons.calculateCameraDirectionToThePoint(posForCalc, lookAtPoint)
+                finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
+            end
+        elseif targetConfig.euler then
+            finalTargetOrientation = QuaternionUtils.fromEuler(targetConfig.euler.rx, targetConfig.euler.ry)
+        end
+
+        if finalTargetOrientation then
+            sim.orientation = finalTargetOrientation
+        end
+
+        sim.velocity = { x = 0, y = 0, z = 0 }
+        sim.angularVelocity = { x = 0, y = 0, z = 0 }
+        applySimulationToCamera()
+
+    elseif not wasAlreadyActive then
+        sim.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
+        sim.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
+        sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
+        sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
+    end
 
     -- Set the main target values
     target.position = targetConfig.position
@@ -44,13 +98,6 @@ function CameraDriver.setTarget(targetConfig)
         sim.sourceSmoothTimePos = sim.currentSmoothTimePos
         sim.sourceSmoothTimeRot = sim.currentSmoothTimeRot
         sim.smoothTimeTransitionStart = Spring.GetTimer()
-    end
-
-    if not wasAlreadyActive then
-        sim.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
-        sim.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
-        sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
-        sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
     end
 
     local ROTATION_ONLY_THRESHOLD_SQ = 1.0
@@ -79,29 +126,20 @@ local function getLiveSmoothTimes()
     else
         -- Interpolate during an active transition.
         local elapsed = Spring.DiffTimers(Spring.GetTimer(), sim.smoothTimeTransitionStart)
-        local alpha = elapsed / sim.smoothTimeTransitionDuration or 0.1
-
-        sim.currentSmoothTimePos = sim.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
-        sim.currentSmoothTimeRot = sim.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
+        local duration = sim.smoothTimeTransitionDuration or 0.3
+        local alpha = (duration > 0) and (elapsed / duration) or 1.0
 
         if alpha >= 1.0 then
+            sim.currentSmoothTimePos = target.smoothTimePos
+            sim.currentSmoothTimeRot = target.smoothTimeRot
             sim.smoothTimeTransitionStart = nil
+        else
+            sim.currentSmoothTimePos = sim.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
+            sim.currentSmoothTimeRot = sim.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
         end
     end
 
     return sim.currentSmoothTimePos, sim.currentSmoothTimeRot
-end
-
---- Helper function to resolve the lookAt target to a concrete point
-local function getLookAtPoint(target)
-    if not target then return nil end
-    if target.type == "point" then
-        return target.data
-    elseif target.type == "unit" and Spring.ValidUnitID(target.data) then
-        local x, y, z = Spring.GetUnitPosition(target.data)
-        if x then return { x = x, y = y, z = z } end
-    end
-    return nil
 end
 
 --- Updates the position of the camera simulation via smooth damping.
@@ -176,16 +214,6 @@ local function checkAndCompleteTask()
 
     Log:debug("Driver task completed")
     STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
-end
-
---- Applies the final calculated simulation state to the in-game camera.
-local function applySimulationToCamera()
-    local simState = STATE.core.driver.simulation
-    local rx, ry = QuaternionUtils.toEuler(simState.orientation)
-    Spring.SetCameraState({
-        px = simState.position.x, py = simState.position.y, pz = simState.position.z,
-        rx = rx, ry = ry,
-    })
 end
 
 --- The main update function, called every frame.

@@ -6,10 +6,10 @@ local CameraAnchorPersistence = ModuleManager.CameraAnchorPersistence(function(m
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "CameraAnchor")
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local CameraAnchorVisualization = ModuleManager.CameraAnchorVisualization(function(m) CameraAnchorVisualization = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class CameraAnchor
 local CameraAnchor = {}
@@ -88,24 +88,22 @@ function CameraAnchor.focus(id)
         return true
     end
 
-    local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
-    local isForcedSmoothing = false
-    if STATE.active.anchor.lastUsedAnchor == id then
-        duration = 0.2
-        isForcedSmoothing = true
-    end
-
-    STATE.active.anchor.lastUsedAnchor = id
-    if STATE.active.mode.name then ModeManager.disableMode() end
-
     local camTarget = {
         position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
         lookAt = anchorData.target,
         euler = anchorData.rotation,
-        smoothTimePos = duration,
-        smoothTimeRot = duration / 4,
-        isForcedSmoothing = isForcedSmoothing,
     }
+
+    -- If we're already moving to this anchor, the second press should snap instantly.
+    if STATE.active.anchor.lastUsedAnchor == id and STATE.core.driver.target.position then
+        camTarget.isSnap = true
+    end
+
+    local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    camTarget.smoothTimePos = duration
+    camTarget.smoothTimeRot = duration / 4
+    STATE.active.anchor.lastUsedAnchor = id
+    if STATE.active.mode.name then ModeManager.disableMode() end
 
     CameraDriver.setTarget(camTarget)
     return true
