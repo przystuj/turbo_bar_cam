@@ -99,34 +99,6 @@ function UnitFollowCombatMode.clearWeaponSelection()
     end
 
     STATE.active.mode.unit_follow.forcedWeaponNumber = nil
-
-    if STATE.active.mode.unit_follow.combatModeEnabled then
-        -- Update state but keep combat mode enabled
-        local unitID = STATE.active.mode.unitID
-        if unitID and Spring.ValidUnitID(unitID) then
-            -- Check if any weapon is targeting something
-            local unitDefID = Spring.GetUnitDefID(unitID)
-            local unitDef = UnitDefs[unitDefID]
-
-            if unitDef and unitDef.weapons then
-                for weaponNum, weaponData in pairs(unitDef.weapons) do
-                    if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
-                        local targetPos = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
-                        if targetPos then
-                            -- Set attacking state with debounce cancellation
-                            UnitFollowCombatMode.setAttackingState(true)
-                            STATE.active.mode.unit_follow.activeWeaponNum = weaponNum
-                            return
-                        end
-                    end
-                end
-            end
-        end
-
-        -- If we reach here, no active targeting was found - start debounce for disabling attack state
-        UnitFollowCombatMode.scheduleAttackStateDisable()
-    end
-
     Log:info("Cleared weapon selection.")
 end
 
@@ -504,19 +476,6 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
         STATE.active.mode.unit_follow.weaponDir = nil
         Log:info("Combat mode disabled")
     end
-
-    -- Trigger a transition for smooth camera movement
-    TransitionManager.start({
-        id = "UnitFollowCombatMode.CombatToWeaponMode",
-        easingFn = CameraCommons.easeOut,
-        duration = 1.5,
-        onUpdate = function(_, easedProgress, _)
-            STATE.active.mode.unit_follow.transitionFactor = CameraCommons.lerp(0.001, CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING.COMBAT.ROTATION_FACTOR, easedProgress)
-        end,
-        onComplete = function()
-            STATE.active.mode.unit_follow.transitionFactor = nil
-        end
-    })
     return true
 end
 

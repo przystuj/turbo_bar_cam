@@ -22,7 +22,6 @@
 ---@field UnitFollowTargetingSmoothing fun(hook: fun(module: UnitFollowTargetingSmoothing)):UnitFollowTargetingSmoothing
 ---@field UnitFollowTargetingUtils fun(hook: fun(module: UnitFollowTargetingUtils)):UnitFollowTargetingUtils
 ---@field UnitFollowPersistence fun(hook: fun(module: UnitFollowPersistence)):UnitFollowPersistence
----@field UnitFollowFreeCam fun(hook: fun(module: UnitFollowFreeCam)):UnitFollowFreeCam
 ---@field GroupTrackingCamera fun(hook: fun(module: GroupTrackingCamera)):GroupTrackingCamera
 ---@field GroupTrackingUtils fun(hook: fun(module: GroupTrackingUtils)):GroupTrackingUtils
 ---@field ModeManager fun(hook: fun(module: ModeManager)):ModeManager
@@ -105,7 +104,6 @@ local SimpleModules = {
     UnitFollowTargetingSmoothing = "features/unit_follow/unit_follow_targeting_smoothing.lua",
     UnitFollowTargetingUtils = "features/unit_follow/unit_follow_combat_targeting_utils.lua",
     UnitFollowPersistence = "features/unit_follow/unit_follow_persistence.lua",
-    UnitFollowFreeCam = "features/unit_follow/unit_follow_free_camera.lua",
     GroupTrackingCamera = "features/group_tracking/group_tracking.lua",
     MovementUtils = "features/overview/movement_utils.lua",
     OrbitCameraUtils = "features/orbit/orbit_utils.lua",

@@ -2,10 +2,10 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowUtils")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
 local UnitFollowTargetingUtils = ModuleManager.UnitFollowTargetingUtils(function(m) UnitFollowTargetingUtils = m end)
 local UnitFollowTargetingSmoothing = ModuleManager.UnitFollowTargetingSmoothing(function(m) UnitFollowTargetingSmoothing = m end)
@@ -96,24 +96,14 @@ end
 --- Creates direction state based on unit's hull direction
 --- @param unitID number Unit ID
 --- @param offsets table Offsets to use
---- @param rotFactor number Rotation smoothing factor
 --- @return table directionState Camera direction state
-function UnitFollowUtils.createHullDirectionState(unitID, offsets, rotFactor)
-    local front, _, _ = Spring.GetUnitVectors(unitID)
-    local frontX, frontY, frontZ = front[1], front[2], front[3]
-
+function UnitFollowUtils.createHullDirectionState(unitID, offsets)
     local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
     local targetRx = 1.8
-    local targetRz = 0
 
-    -- Create camera direction state with smoothed values
     return {
-        dx = CameraCommons.lerp(STATE.active.mode.lastCamDir.x, frontX, rotFactor),
-        dy = CameraCommons.lerp(STATE.active.mode.lastCamDir.y, frontY, rotFactor),
-        dz = CameraCommons.lerp(STATE.active.mode.lastCamDir.z, frontZ, rotFactor),
-        rx = CameraCommons.lerp(STATE.active.mode.lastRotation.rx, targetRx, rotFactor),
-        ry = CameraCommons.lerpAngle(STATE.active.mode.lastRotation.ry, targetRy, rotFactor),
-        rz = CameraCommons.lerp(STATE.active.mode.lastRotation.rz, targetRz, rotFactor),
+        rx = targetRx,
+        ry = targetRy,
     }
 end
 
@@ -123,13 +113,13 @@ end
 --- @param weaponNum number|nil Weapon number
 --- @param rotFactor number Rotation smoothing factor
 --- @return table|nil directionState Camera direction state or nil if it fails
-function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weaponNum, rotFactor)
+function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weaponNum)
     if not targetPos or not weaponNum then
         return nil
     end
 
     -- Get the weapon position if available
-    local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+    local posX, posY, posZ, destX = Spring.GetUnitWeaponVectors(unitID, weaponNum)
     if not posX or not destX then
         return nil
     end
@@ -163,31 +153,13 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
     STATE.active.mode.unit_follow.weaponDir = { dx, dy, dz }
     STATE.active.mode.unit_follow.activeWeaponNum = weaponNum
 
-    -- Get camera position with weapon offsets
-    local camPos = UnitFollowCombatMode.getCameraPositionForActiveWeapon(unitID, UnitFollowUtils.applyOffsets)
-
-    -- Create focusing direction to look at target
-    local directionState = CameraCommons.focusOnPoint(camPos, targetPos, rotFactor, rotFactor)
-
-    -- Apply rotation constraints to prevent too rapid rotation
-    if directionState and STATE.active.mode.unit_follow.isAttacking then
-        -- Get the constrained rotation values
-        local constrainedYaw, constrainedPitch = UnitFollowTargetingSmoothing.constrainRotationRate(
-                directionState.ry, directionState.rx)
-
-        -- Apply the constrained values
-        directionState.ry = constrainedYaw
-        directionState.rx = constrainedPitch
-    end
-
-    return directionState
+    return targetPos
 end
 
 --- Handles normal unit_follow mode camera orientation
 --- @param unitID number Unit ID
---- @param rotFactor number Rotation smoothing factor
 --- @return table directionState Camera direction and rotation state
-function UnitFollowUtils.handleNormalFollowMode(unitID, rotFactor)
+function UnitFollowUtils.handleNormalFollowMode(unitID)
     -- Check if combat mode is enabled
     if STATE.active.mode.unit_follow.combatModeEnabled then
         -- Check if the unit is actively targeting something
@@ -198,22 +170,21 @@ function UnitFollowUtils.handleNormalFollowMode(unitID, rotFactor)
 
         if STATE.active.mode.unit_follow.isAttacking then
             -- Try to create direction state based on targeting data
-            local targetingState = UnitFollowUtils.createTargetingDirectionState(
-                    unitID, targetPos, firingWeaponNum or STATE.active.mode.unit_follow.activeWeaponNum, rotFactor)
+            local targetingState = UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, firingWeaponNum or STATE.active.mode.unit_follow.activeWeaponNum)
 
             if targetingState then
                 -- Successfully created targeting state
-                return targetingState
+                return targetingState, CONSTANTS.TARGET_TYPE.POINT
             end
         end
 
         -- If we get here, we're in combat mode but not attacking (or couldn't create targeting state)
         -- Use combat offset mode
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT, rotFactor)
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT), CONSTANTS.TARGET_TYPE.NONE
     else
         -- Normal mode - always ensure isAttacking is false
         STATE.active.mode.unit_follow.isAttacking = false
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT, rotFactor)
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT), CONSTANTS.TARGET_TYPE.NONE
     end
 end
 
@@ -416,23 +387,15 @@ end
 ---@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
 function UnitFollowUtils.updateFixedPointTarget()
     if not STATE.active.mode.unit_follow.targetUnitID or not Spring.ValidUnitID(STATE.active.mode.unit_follow.targetUnitID) then
-        return STATE.active.mode.unit_follow.fixedPoint
+        return STATE.active.mode.unit_follow.fixedPoint, CONSTANTS.TARGET_TYPE.POINT
     end
-
-    -- Get the current position of the target unit
-    local targetX, targetY, targetZ = Spring.GetUnitPosition(STATE.active.mode.unit_follow.targetUnitID)
-    STATE.active.mode.unit_follow.fixedPoint = {
-        x = targetX,
-        y = targetY,
-        z = targetZ
-    }
-    return STATE.active.mode.unit_follow.fixedPoint
+    return STATE.active.mode.unit_follow.targetUnitID, CONSTANTS.TARGET_TYPE.UNIT
 end
 
 --- Determines appropriate smoothing factors based on current state
----@param smoothType string Type of smoothing ('position', 'rotation', 'direction')
+---@param smoothType string Type of smoothing ('position', 'rotation')
 ---@return number smoothingFactor The smoothing factor to use
-function UnitFollowUtils.getSmoothingFactor(smoothType, additionalFactor)
+function UnitFollowUtils.getSmoothingFactor(smoothType)
     -- Determine which mode we're in
     local smoothingMode
     if STATE.active.mode.unit_follow.combatModeEnabled then
@@ -445,17 +408,12 @@ function UnitFollowUtils.getSmoothingFactor(smoothType, additionalFactor)
         smoothingMode = "DEFAULT"
     end
 
-    local result = CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING.DEFAULT.POSITION_FACTOR
-
-    additionalFactor = additionalFactor or 1
     -- Get the appropriate smoothing factor based on mode and type
     if smoothType == 'position' then
-        result = CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].POSITION_FACTOR
+        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].POSITION_FACTOR
     elseif smoothType == 'rotation' then
-        result = CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].ROTATION_FACTOR
+        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].ROTATION_FACTOR
     end
-
-    return STATE.active.mode.unit_follow.transitionFactor or (result * additionalFactor)
 end
 
 local function getParamPrefixes()

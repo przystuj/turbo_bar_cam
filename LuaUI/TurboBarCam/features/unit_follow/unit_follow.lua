@@ -2,14 +2,12 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
-local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
-local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
-local UnitFollowFreeCam = ModuleManager.UnitFollowFreeCam(function(m) UnitFollowFreeCam = m end)
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local UnitFollowUtils = ModuleManager.UnitFollowUtils(function(m) UnitFollowUtils = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
 local UnitFollowTargetingSmoothing = ModuleManager.UnitFollowTargetingSmoothing(function(m) UnitFollowTargetingSmoothing = m end)
@@ -27,49 +25,6 @@ UnitFollowCamera.COMMAND_DEFINITION = {
     cursor = 'settarget',
     action = 'turbobarcam_unit_follow_set_fixed_look_point',
 }
-
-local UNIT_FOLLOW_ENTRY_TRANSITION_ID = "UnitFollowCamera.EntryTransition"
-
---- Internal: Starts a smooth transition into unit_follow mode by scaling steady-state smoothing factors.
----@param unitID number The ID of the unit to focus on.
-local function startEntryTransition(unitID)
-    -- init camera state when starting transition
-    STATE.active.mode.unit_follow.isModeInitialized = true
-    if not Spring.ValidUnitID(unitID) then
-        Log:warn("[UnitFollowCamera] Invalid unitID for startEntryTransition: " .. unitID)
-        return
-    end
-
-    TransitionManager.force({
-        id = UNIT_FOLLOW_ENTRY_TRANSITION_ID,
-        duration = CONFIG.CAMERA_MODES.UNIT_FOLLOW.INITIAL_TRANSITION_DURATION,
-        easingFn = CameraCommons.easeOut,
-        respectGameSpeed = false,
-        onUpdate = function(raw_progress, eased_progress, dt_effective)
-            if not Spring.ValidUnitID(unitID) then
-                TransitionManager.cancel(UNIT_FOLLOW_ENTRY_TRANSITION_ID)
-                ModeManager.disableMode()
-                return
-            end
-
-            local cameraPosition = UnitFollowCamera.getCameraPosition(eased_progress)
-            local directionState = UnitFollowCamera.getCameraDirection(cameraPosition, eased_progress)
-
-            if not directionState or not cameraPosition then
-                TransitionManager.cancel(UNIT_FOLLOW_ENTRY_TRANSITION_ID)
-                ModeManager.disableMode()
-                return
-            end
-
-            local camStatePatch = UnitFollowUtils.createCameraState(cameraPosition, directionState)
-            CameraTracker.updateLastKnownCameraState(camStatePatch)
-            Spring.SetCameraState(camStatePatch, 0)
-        end,
-        onComplete = function()
-            -- NO-OP
-        end
-    })
-end
 
 --- Toggles Unit Follow camera attached to a unit
 ---@param unitID number|nil The unit to track. If nil, uses the first selected unit.
@@ -94,7 +49,7 @@ function UnitFollowCamera.toggle(unitID)
     end
 
     if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID == unitID and not STATE.active.mode.optionalTargetCameraStateForModeEntry then
-        ModeManager.disableMode()
+        ModeManager.disableAndStopDriver()
         local selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             Spring.SelectUnitArray(selectedUnits)
@@ -118,76 +73,40 @@ end
 --- Updates the unit_follow camera position and orientation
 function UnitFollowCamera.update()
     if not UnitFollowUtils.shouldUpdateCamera() then
-        return
-    end
-
-    if STATE.active.mode.unit_follow and not STATE.active.mode.unit_follow.isModeInitialized then
-        startEntryTransition(STATE.active.mode.unitID)
-    end
-
-    if TransitionManager.isTransitioning(UNIT_FOLLOW_ENTRY_TRANSITION_ID) then
+        CameraDriver.stop()
         return
     end
 
     local cameraPosition = UnitFollowCamera.getCameraPosition()
-    local directionState = UnitFollowCamera.getCameraDirection(cameraPosition)
+    local target, targetType = UnitFollowCamera.getCameraDirection(cameraPosition)
 
-    if directionState then
-        local camStatePatch = UnitFollowUtils.createCameraState(cameraPosition, directionState)
-        Spring.SetCameraState(camStatePatch, 0)
-        CameraTracker.updateLastKnownCameraState(camStatePatch)
+    local camTarget = {
+        position = cameraPosition,
+        smoothTimePos = UnitFollowUtils.getSmoothingFactor('position'),
+        smoothTimeRot = UnitFollowUtils.getSmoothingFactor('rotation')
+    }
+
+    if targetType ~= CONSTANTS.TARGET_TYPE.NONE then
+        camTarget.lookAt = { type = targetType, data = target }
+    else
+        camTarget.euler = { rx = target.rx, ry = target.ry }
     end
+
+    CameraDriver.setTarget(camTarget)
 end
 
-function UnitFollowCamera.getCameraPosition(additionalFactor)
-    additionalFactor = additionalFactor or 1
+function UnitFollowCamera.getCameraPosition()
     local unitPos, front, up, right = WorldUtils.getUnitVectors(STATE.active.mode.unitID)
     local camPos = UnitFollowUtils.applyOffsets(unitPos, front, up, right)
-
-    local posFactor = UnitFollowUtils.getSmoothingFactor('position', additionalFactor)
-
-    local center = { x = unitPos.x, y = unitPos.y, z = unitPos.z }
-    local smoothedPos
-
-    if CameraCommons.shouldUseSphericalInterpolation(STATE.active.mode.lastCamPos, camPos, center) then
-        smoothedPos = CameraCommons.sphericalInterpolate(center, STATE.active.mode.lastCamPos, camPos, posFactor, true)
-    else
-        smoothedPos = {
-            x = CameraCommons.lerp(STATE.active.mode.lastCamPos.x, camPos.x, posFactor),
-            y = CameraCommons.lerp(STATE.active.mode.lastCamPos.y, camPos.y, posFactor),
-            z = CameraCommons.lerp(STATE.active.mode.lastCamPos.z, camPos.z, posFactor)
-        }
-    end
-    return smoothedPos
+    return camPos
 end
 
-function UnitFollowCamera.getCameraDirection(cameraPosition, additionalFactor)
-    local rotFactor = UnitFollowUtils.getSmoothingFactor('rotation', additionalFactor)
-
-    local directionState
+function UnitFollowCamera.getCameraDirection()
     if STATE.active.mode.unit_follow.isFixedPointActive then
-        UnitFollowUtils.updateFixedPointTarget()
-        directionState = CameraCommons.focusOnPoint(
-                cameraPosition,
-                STATE.active.mode.unit_follow.fixedPoint,
-                rotFactor,
-                rotFactor
-        )
-    elseif STATE.active.mode.unit_follow.isFreeCameraActive then
-        local rotation = UnitFollowFreeCam.updateMouseRotation(rotFactor)
-        UnitFollowFreeCam.updateUnitHeadingTracking(STATE.active.mode.unitID)
-        directionState = UnitFollowFreeCam.createCameraState(
-                cameraPosition,
-                rotation,
-                STATE.active.mode.lastCamDir,
-                STATE.active.mode.lastRotation,
-                rotFactor
-        )
+        return UnitFollowUtils.updateFixedPointTarget()
     else
-        directionState = UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID, rotFactor)
+        return UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID)
     end
-
-    return directionState
 end
 
 function UnitFollowCamera.checkFixedPointCommandActivation()
@@ -292,7 +211,6 @@ function UnitFollowCamera.toggleFreeCam()
         Log:debug("Free camera only works when tracking a unit in unit_follow mode")
         return
     end
-    UnitFollowFreeCam.toggle()
     if not STATE.active.mode.unit_follow.isFreeCameraActive and STATE.active.mode.unit_follow.isFixedPointActive then
         UnitFollowUtils.clearFixedLookPoint()
     end

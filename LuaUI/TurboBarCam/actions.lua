@@ -182,12 +182,6 @@ function Actions.unitFollowActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_unit_follow_toggle_free_cam", 'tp',
-            function()
-                UnitFollowCamera.toggleFreeCam()
-                return true
-            end)
-
     --- turbobarcam_unit_follow_set_fixed_look_point is an ui action so it's not listed here
     Actions.registerAction("turbobarcam_unit_follow_clear_fixed_look_point", 'tp',
             function()

@@ -122,7 +122,6 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
 end
 
 function MouseManager.update()
-    Log:debug("mouse update")
     if not shouldProcessInput() then
         return
     end
