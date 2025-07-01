@@ -9,7 +9,7 @@ LoggerPrototype.__index = LoggerPrototype -- For metatable behavior
 
 local function selfCheck(self)
     if not self or not self.getLogLevel or not self.prefix then
-        error(string.format("Log is misconfigured. Self=%s, getLogLevel=%s, prefix=%s", tostring(self),
+        error(string.format("Log is misconfigured. Did you use '.' instead of ':'? Self=%s, getLogLevel=%s, prefix=%s", tostring(self),
                 self and tostring(self.getLogLevel) or "nil",
                 self and tostring(self.prefix) or "nil"))
     end
@@ -172,14 +172,14 @@ function LoggerPrototype:serializeTable(t, indent, reservedSpace, filterConfig)
     return result
 end
 
-local function formatMessage(instance, ...)
+function LoggerPrototype:formatMessage(...)
     local args = {...}
     local preComputedParts = {}
     local isAnyPartLarge = false
     local MULTILINE_THRESHOLD = 140
 
     -- This is the full, static prefix for any non-itemized log from this logger instance.
-    local basePrefixLength = SPRING_ECHO_PREFIX_LENGTH + string.len("[" .. instance.prefix .. "] ") + LOG_LEVEL_PREFIX_LENGTH
+    local basePrefixLength = SPRING_ECHO_PREFIX_LENGTH + string.len("[" .. self.prefix .. "] ") + LOG_LEVEL_PREFIX_LENGTH
 
     -- Pass 1: Pre-compute all parts and check if a multi-line layout is needed.
     local i = 1
@@ -195,14 +195,14 @@ local function formatMessage(instance, ...)
             local labelPart = string.format("'%s' = ", arg)
             -- For this pre-computation, calculate reserved space assuming a single-line layout.
             local reservedSpace = runningSingleLineLength + #labelPart + (#preComputedParts * 3) -- * 3 for " | " separators
-            currentPart.content = labelPart .. instance:serializeTable(args[i+1], 0, reservedSpace, instance.filterConfig)
+            currentPart.content = labelPart .. self:serializeTable(args[i+1], 0, reservedSpace, self.filterConfig)
             i = i + 2
         else
             currentPart.originalArg = arg
             currentPart.isTable = (type(arg) == "table")
             if currentPart.isTable then
                 local reservedSpace = runningSingleLineLength + (#preComputedParts * 3)
-                currentPart.content = instance:serializeTable(arg, 0, reservedSpace, instance.filterConfig)
+                currentPart.content = self:serializeTable(arg, 0, reservedSpace, self.filterConfig)
             elseif type(arg) == "number" then
                 currentPart.content = string.format("%.6f", arg)
             else
@@ -222,7 +222,7 @@ local function formatMessage(instance, ...)
     end
 
     -- Pass 2: Assemble the final string based on the chosen layout.
-    local filterConfig = instance.filterConfig or {}
+    local filterConfig = self.filterConfig or {}
     local forceMultiline = (filterConfig.title ~= nil)
 
     if (isAnyPartLarge and #preComputedParts > 1) or forceMultiline then
@@ -235,9 +235,9 @@ local function formatMessage(instance, ...)
                 if part.label then
                     local labelPart = string.format("'%s' = ", part.label)
                     -- Pass the filterConfig to the top-level serialization here as well.
-                    content = labelPart .. instance:serializeTable(part.originalArg, 2, tablePrefixLength + #labelPart, instance.filterConfig)
+                    content = labelPart .. self:serializeTable(part.originalArg, 2, tablePrefixLength + #labelPart, self.filterConfig)
                 else
-                    content = instance:serializeTable(part.originalArg, 2, tablePrefixLength, instance.filterConfig)
+                    content = self:serializeTable(part.originalArg, 2, tablePrefixLength, self.filterConfig)
                 end
             else
                 content = part.content
@@ -282,7 +282,7 @@ function LoggerPrototype:info(...)
     if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
         return
     end
-    local message = "[INFO] " .. formatMessage(self, ...)
+    local message = "[INFO] " .. self:formatMessage(...)
     Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
 
@@ -294,7 +294,7 @@ function LoggerPrototype:trace(...)
         if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
             return
         end
-        local message = "[TRACE] " .. formatMessage(self, ...)
+        local message = "[TRACE] " .. self:formatMessage(...)
         Spring.Echo("[" .. self.prefix .. "] " .. message)
     end
 end
@@ -308,7 +308,7 @@ function LoggerPrototype:debug(...)
         if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
             return
         end
-        local message = "[DEBUG] " .. formatMessage(self, ...)
+        local message = "[DEBUG] " .. self:formatMessage(...)
         Spring.Echo("[" .. self.prefix .. "] " .. message)
     end
 end
@@ -320,7 +320,7 @@ function LoggerPrototype:warn(...)
     if self.filterConfig and self.filterConfig.stagger and (math.random() > self.filterConfig.stagger) then
         return
     end
-    local message = "[WARN] " .. formatMessage(self, ...)
+    local message = "[WARN] " .. self:formatMessage(...)
     Spring.Echo("[" .. self.prefix .. "] " .. message)
 end
 
@@ -333,7 +333,7 @@ function LoggerPrototype:staggeredLog(...)
     end
     local logLevel = self:getLogLevel()
     if logLevel == "TRACE" or logLevel == "DEBUG" then
-        local message = "[DEBUG] " .. formatMessage(self, ...)
+        local message = "[DEBUG] " .. self:formatMessage(...)
         Spring.Echo("[" .. self.prefix .. "] " .. message)
     end
 end
@@ -342,7 +342,7 @@ end
 ---@param self LoggerInstance
 function LoggerPrototype:error(...)
     selfCheck(self)
-    error("[" .. self.prefix .. "] Error: " .. formatMessage(self, ...))
+    error("[" .. self.prefix .. "] Error: " .. self:formatMessage(...))
 end
 
 --- Creates a new logger instance with an appended prefix.

@@ -2,7 +2,7 @@
 // TurboBarCam  |
 //---------------
 bind            numpad.             turbobarcam_toggle
-bind            Ctrl+numpad.        turbobarcam_toggle_playercam_selection
+bind            Ctrl+numpad.        togglewidget TurboBarCam UI
 bind		    Home      		    turbobarcam_toggle_zoom
 bind            Esc                 turbobarcam_stop_tracking
 

@@ -1,0 +1,39 @@
+<rml>
+    <head>
+        <title>TurboBarCam UI</title>
+        <link type="text/rcss" href="gui_turbobarcam.rcss"/>
+    </head>
+    <body id="turbobarcam-ui" data-model="turbobarcam_model">
+    <handle move_target="#document">
+        <div id="title_bar">
+            <span id="title">TurboBarCam</span>
+            <div class="toggle-button" onclick="widget.ToggleTurboBarCam()">
+                <span id="status-indicator" data-class-status-enabled="isEnabled"
+                      data-class-status-disabled="!isEnabled">{{ status }}</span>
+            </div>
+        </div>
+    </handle>
+
+    <div class="section">
+        <div>
+            Current Mode: <span>{{ currentMode }}</span>
+        </div>
+    </div>
+
+    <div class="section debug-section" data-if="isEnabled">
+        <div class="debug-title">Driver Debug Info</div>
+        <div class="debug-row"><span class="debug-label">Target Pos:</span> <span class="debug-value">{{ debug_target_pos }}</span></div>
+        <div class="debug-row"><span class="debug-label">LookAt:</span> <span class="debug-value">{{ debug_target_lookat }}</span></div>
+        <div class="debug-row"><span class="debug-label">Target Euler:</span> <span class="debug-value">{{ debug_target_euler }}</span></div>
+        <div class="debug-row"><span class="debug-label">Smooth (Pos/Rot):</span> <span class="debug-value">{{ debug_target_smooth_pos }} / {{ debug_target_smooth_rot }}</span></div>
+        <div class="debug-row"><span class="debug-label">Sim Pos:</span> <span class="debug-value">{{ debug_transition_distance }} -> {{ debug_transition_distance_target }}</span></div>
+        <div class="debug-row"><span class="debug-label">Sim Vel:</span> <span class="debug-value">{{ debug_transition_velocity_magnitude }} -> {{ debug_transition_velocity_magnitude_target }}</span></div>
+        <div class="debug-row"><span class="debug-label">Sim AngVel:</span> <span class="debug-value">{{ debug_transition_angular_velocity_magnitude }} -> {{ debug_transition_angular_velocity_magnitude_target }}</span></div>
+        <div class="debug-row"><span class="debug-label">Transition:</span> <span class="debug-value">{{ debug_transition_status }}</span></div>
+    </div>
+
+    <handle size_target="#document"
+            style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;">
+    </handle>
+    </body>
+</rml>

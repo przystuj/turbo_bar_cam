@@ -15,11 +15,6 @@ local CameraDriver = {}
 
 local DEFAULT_SMOOTH_TIME = 0.3
 
--- Thresholds for considering the movement as finished
-local POS_EPSILON_SQ = 1
-local VEL_EPSILON_SQ = 1
-local ANG_VEL_EPSILON_SQ = 0.0001
-
 --- Helper function to resolve the lookAt target to a concrete point
 local function getLookAtPoint(target)
     if not target then return nil end
@@ -97,7 +92,7 @@ function CameraDriver.setTarget(targetConfig)
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
-        simulationSTATE.isRotationOnly = (distSq < POS_EPSILON_SQ)
+        simulationSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
     else
         simulationSTATE.isRotationOnly = not targetConfig.position
     end
@@ -167,39 +162,44 @@ end
 
 --- Checks if the movement has reached its target and resets the driver if complete.
 local function checkAndCompleteTask()
-    local target = STATE.core.driver.target
+    local targetSTATE = STATE.core.driver.target
+    local simulationSTATE = STATE.core.driver.simulation
+    local transitionSTATE = STATE.core.driver.transition
 
     -- if lookAt target is active, the driver should never complete on its own.
-    if target.lookAt then
+    if targetSTATE.lookAt then
         return
     end
 
-    if not target.position and not target.euler then
+    if not targetSTATE.position and not targetSTATE.euler then
         return
     end
 
-    local simState = STATE.core.driver.simulation
+    local angularVelMag = MathUtils.vector.magnitudeSq(simulationSTATE.angularVelocity)
+    local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetSTATE.position)
+    local velSq = MathUtils.vector.magnitudeSq(simulationSTATE.velocity)
+    transitionSTATE.angularVelocityMagnitude = angularVelMag
+    transitionSTATE.velocityMagnitude = velSq
+    transitionSTATE.distance = distSq
 
-    if target.euler then
-        if MathUtils.vector.magnitudeSq(simState.angularVelocity) >= ANG_VEL_EPSILON_SQ then
+    if targetSTATE.euler then
+        if angularVelMag >= CONFIG.DRIVER.ANGULAR_VELOCITY_TARGET then
             return -- Not complete yet
         end
     end
 
-    if target.position then
-        if simState.isRotationOnly then
+    if targetSTATE.position then
+        if simulationSTATE.isRotationOnly then
             -- For rotation-only moves, positional completion is assumed.
         else
-            local distSq = MathUtils.vector.distanceSq(simState.position, target.position)
-            local velSq = MathUtils.vector.magnitudeSq(simState.velocity)
-            if distSq >= POS_EPSILON_SQ or velSq >= VEL_EPSILON_SQ then
+            if distSq >= CONFIG.DRIVER.DISTANCE_TARGET or velSq >= CONFIG.DRIVER.VELOCITY_TARGET then
                 return -- Not complete yet
             end
         end
     end
 
     Log:debug("Driver task completed")
-    STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
+    CameraDriver.stop()
 end
 
 --- The main update function, called every frame.
@@ -227,6 +227,7 @@ function CameraDriver.update(dt)
 end
 
 function CameraDriver.stop()
+    STATE.core.driver.transition = TableUtils.deepCopy(STATE.DEFAULT.core.driver.transition)
     STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
 end
 

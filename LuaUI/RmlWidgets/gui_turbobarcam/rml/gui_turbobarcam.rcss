@@ -1,0 +1,186 @@
+body {
+    font-family: Poppins;
+    font-weight: 200;
+    font-size: 14dp;
+    color: #F5F5F5;
+    width: 400dp;
+    padding: 10dp;
+    background-color: #11171D99;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 4dp;
+
+    /* Right-side middle positioning */
+    position: absolute;
+    right: 20dp; /* Distance from right edge of screen */
+    top: 50%; /* Position at 50% from top */
+    margin-top: -150dp; /* Offset by approximately half the height to center vertically */
+}
+
+/* Ensure all divs are block-level elements that start on new lines */
+div {
+    display: block;
+    margin-bottom: 5dp;
+}
+
+/* Title bar styles */
+#title_bar {
+    background-color: #1A2530;
+    padding: 5dp;
+    margin: -10dp -10dp 10dp -10dp; /* Negative margin to compensate for body padding */
+    border-radius: 4dp 4dp 0 0;
+    cursor: move;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#title {
+    font-family: "Exo 2";
+    font-size: 16dp;
+    color: #F5F5F5;
+    font-weight: bold;
+}
+
+#status-indicator {
+    margin-left: auto;
+    padding-right: 5dp;
+    padding-left: 5dp;
+    font-size: 14dp;
+}
+
+.toggle-button {
+    width: auto;
+    height: 20dp;
+    background-color: #263238;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    text-align: center;
+    margin-left: 5dp;
+    padding: 2dp;
+    font-size: 12dp;
+}
+
+.toggle-button:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
+}
+
+.section {
+    margin: 5dp 0dp;
+    padding: 5dp;
+    background-color: #232F3899;
+    border-radius: 3dp;
+}
+
+.keybind-section {
+    margin-top: 10dp;
+}
+
+.keybind-title {
+    font-family: "Exo 2";
+    font-size: 15dp;
+    color: #90CAF9;
+    margin-bottom: 5dp;
+}
+
+.keybind-row {
+    width: 100%;
+    margin-bottom: 3dp;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.keybind-action {
+    color: #E0E0E0;
+    width: 70%;
+    text-align: left;
+    padding: 2dp 0;
+}
+
+.keybind-key {
+    color: #FFCC80;
+    text-align: right;
+    font-family: Poppins;
+    background-color: #1A2530;
+    border-radius: 2dp;
+    padding: 2dp 4dp;
+    margin-left: 5dp;
+    flex-shrink: 0;
+}
+
+.btn-toggle {
+    font-family: "Exo 2";
+    display: block;
+    width: auto;
+    padding: 5dp 10dp;
+    background-color: #263238;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 3dp;
+    color: #B0BEC5;
+    cursor: pointer;
+    margin-top: 5dp;
+    text-align: center;
+}
+
+.btn-toggle:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
+}
+
+.status-enabled {
+    color: #8BC34A;
+    font-weight: bold;
+}
+
+.status-disabled {
+    color: #FF7043;
+    font-weight: bold;
+}
+
+.param-adjust {
+    color: #B0BEC5;
+    font-size: 12dp;
+    margin-top: 1dp;
+    display: block;
+}
+
+/* Debug Section */
+.debug-section {
+    margin-top: 10dp;
+    padding: 8dp;
+    background-color: #1A2530; /* Darker background */
+    border-radius: 3dp;
+    font-size: 11dp;
+}
+
+.debug-title {
+    font-family: "Exo 2";
+    font-size: 14dp;
+    color: #FFAB91; /* A distinct color for the title */
+    margin-bottom: 5dp;
+    font-weight: bold;
+}
+
+.debug-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2dp;
+}
+
+.debug-label {
+    color: #B0BEC5; /* Lighter grey for labels */
+    font-weight: bold;
+}
+
+.debug-value {
+    color: #CFD8DC; /* Slightly brighter for values */
+    font-family: Poppins;
+}

@@ -78,6 +78,9 @@ if not WG.TurboBarCam.STATE then
                     currentSmoothTimePos = 3,
                     currentSmoothTimeRot = 3,
                     smoothTimeTransitionStart = nil,
+                    angularVelocityMagnitude = nil,
+                    velocityMagnitude = nil,
+                    distance = nil,
                 }
             },
 

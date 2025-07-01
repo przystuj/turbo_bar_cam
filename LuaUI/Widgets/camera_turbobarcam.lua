@@ -36,14 +36,7 @@ local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
-
-function widget:Initialize()
-    -- Widget starts in disabled state, user must enable it manually
-    STATE.enabled = false
-
-    Actions.registerAllActions()
-
-    -- external hooks
+local function setupApi()
     WG.TurboBarCam.isInControl = function()
         return STATE.enabled and STATE.active.mode.name ~= nil
     end
@@ -56,7 +49,17 @@ function widget:Initialize()
     WG.TurboBarCam.handleCameraBroadcastEvent = function(cameraState)
         Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
     end
+    WG.TurboBarCam.UI = {
+        ToggleTurboBarCam = WidgetManager.toggle
+    }
+end
 
+
+function widget:Initialize()
+    -- Widget starts in disabled state, user must enable it manually
+    STATE.enabled = false
+    Actions.registerAllActions()
+    setupApi()
     Log:info("Loaded - Enable with /turbobarcam_toggle")
 end
 
