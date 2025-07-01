@@ -11,6 +11,10 @@ if not WG.TurboBarCam.CONFIG then
             TRACE_BACK = true, -- print stacktraces of errors
         },
 
+        DRIVER = {
+            TRANSITION_TIME = 0.3,
+        },
+
         -- Performance settings
         PERFORMANCE = {
             ANCHOR_STEPS_PER_SECOND = 240, -- Steps per second for smooth transitions

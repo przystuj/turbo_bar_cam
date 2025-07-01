@@ -1,5 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
@@ -13,6 +14,11 @@ local Log = ModuleManager.Log(function(m) Log = m end, "CameraDriver")
 local CameraDriver = {}
 
 local DEFAULT_SMOOTH_TIME = 0.3
+
+-- Thresholds for considering the movement as finished
+local POS_EPSILON_SQ = 1
+local VEL_EPSILON_SQ = 1
+local ANG_VEL_EPSILON_SQ = 0.0001
 
 --- Helper function to resolve the lookAt target to a concrete point
 local function getLookAtPoint(target)
@@ -42,20 +48,21 @@ function CameraDriver.setTarget(targetConfig)
     if Utils.isTurboBarCamDisabled() then
         return
     end
-    local target = STATE.core.driver.target
-    local sim = STATE.core.driver.simulation
-    local wasAlreadyActive = (target.position ~= nil or target.lookAt ~= nil or target.euler ~= nil)
+    local targetSTATE = STATE.core.driver.target
+    local simulationSTATE = STATE.core.driver.simulation
+    local transitionSTATE = STATE.core.driver.transition
+    local wasAlreadyActive = (targetSTATE.position ~= nil or targetSTATE.lookAt ~= nil or targetSTATE.euler ~= nil)
 
     if targetConfig.isSnap then
         if targetConfig.position then
-            sim.position = TableUtils.deepCopy(targetConfig.position)
+            simulationSTATE.position = TableUtils.deepCopy(targetConfig.position)
         end
 
         local finalTargetOrientation
         if targetConfig.lookAt then
             local lookAtPoint = getLookAtPoint(targetConfig.lookAt)
             if lookAtPoint then
-                local posForCalc = targetConfig.position or sim.position
+                local posForCalc = targetConfig.position or simulationSTATE.position
                 local dirState = CameraCommons.calculateCameraDirectionToThePoint(posForCalc, lookAtPoint)
                 finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
             end
@@ -64,82 +71,65 @@ function CameraDriver.setTarget(targetConfig)
         end
 
         if finalTargetOrientation then
-            sim.orientation = finalTargetOrientation
+            simulationSTATE.orientation = finalTargetOrientation
         end
 
-        sim.velocity = { x = 0, y = 0, z = 0 }
-        sim.angularVelocity = { x = 0, y = 0, z = 0 }
+        simulationSTATE.velocity = { x = 0, y = 0, z = 0 }
+        simulationSTATE.angularVelocity = { x = 0, y = 0, z = 0 }
         applySimulationToCamera()
 
     elseif not wasAlreadyActive then
-        sim.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
-        sim.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
-        sim.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
-        sim.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
+        simulationSTATE.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
+        simulationSTATE.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
+        simulationSTATE.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
+        simulationSTATE.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
     end
 
     -- Set the main target values
-    target.position = targetConfig.position
-    target.lookAt = targetConfig.lookAt
-    target.euler = targetConfig.euler
-    target.smoothTimePos = targetConfig.smoothTimePos or DEFAULT_SMOOTH_TIME
-    target.smoothTimeRot = targetConfig.smoothTimeRot or target.smoothTimePos
+    targetSTATE.position = targetConfig.position
+    targetSTATE.lookAt = targetConfig.lookAt
+    targetSTATE.euler = targetConfig.euler
+    targetSTATE.smoothTimePos = targetConfig.smoothTimePos or DEFAULT_SMOOTH_TIME
+    targetSTATE.smoothTimeRot = targetConfig.smoothTimeRot or targetSTATE.smoothTimePos
+    transitionSTATE.sourceSmoothTimePos = transitionSTATE.currentSmoothTimePos
+    transitionSTATE.sourceSmoothTimeRot = transitionSTATE.currentSmoothTimeRot
+    transitionSTATE.smoothTimeTransitionStart = Spring.GetTimer()
 
-    if targetConfig.isForcedSmoothing then
-        -- This is a FORCED override. Set the forced values and complete any running transition.
-        sim.forcedSmoothingPos = target.smoothTimePos
-        sim.forcedSmoothingRot = target.smoothTimeRot
-        sim.smoothTimeTransitionStart = nil
+    if targetConfig.position and simulationSTATE.position then
+        local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
+        simulationSTATE.isRotationOnly = (distSq < POS_EPSILON_SQ)
     else
-        -- This is a NORMAL move. Clear any forced values and set up a gradual transition.
-        sim.forcedSmoothingPos = nil
-        sim.forcedSmoothingRot = nil
-
-        sim.sourceSmoothTimePos = sim.currentSmoothTimePos
-        sim.sourceSmoothTimeRot = sim.currentSmoothTimeRot
-        sim.smoothTimeTransitionStart = Spring.GetTimer()
-    end
-
-    local ROTATION_ONLY_THRESHOLD_SQ = 1.0
-    if targetConfig.position and sim.position then
-        local distSq = MathUtils.vector.distanceSq(sim.position, targetConfig.position)
-        sim.isRotationOnly = (distSq < ROTATION_ONLY_THRESHOLD_SQ)
-    else
-        sim.isRotationOnly = not targetConfig.position
+        simulationSTATE.isRotationOnly = not targetConfig.position
     end
 end
 
 --- Determines the correct smoothing values to use for the current frame.
 local function getLiveSmoothTimes()
-    local sim = STATE.core.driver.simulation
+    local transitionSTATE = STATE.core.driver.transition
 
-    -- If a forced smoothing override is active, use it immediately and bypass transitions.
-    if sim.forcedSmoothingPos then
-        return sim.forcedSmoothingPos, sim.forcedSmoothingRot
-    end
     -- Otherwise, perform the gradual transition logic.
     local target = STATE.core.driver.target
-    if not sim.smoothTimeTransitionStart then
+    if not transitionSTATE.smoothTimeTransitionStart then
         -- No transition active, just use the target values.
-        sim.currentSmoothTimePos = target.smoothTimePos
-        sim.currentSmoothTimeRot = target.smoothTimeRot
+        transitionSTATE.currentSmoothTimePos = target.smoothTimePos
+        transitionSTATE.currentSmoothTimeRot = target.smoothTimeRot
     else
         -- Interpolate during an active transition.
-        local elapsed = Spring.DiffTimers(Spring.GetTimer(), sim.smoothTimeTransitionStart)
-        local duration = sim.smoothTimeTransitionDuration or 0.3
+        local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothTimeTransitionStart)
+        local duration = CONFIG.DRIVER.TRANSITION_TIME
         local alpha = (duration > 0) and (elapsed / duration) or 1.0
 
         if alpha >= 1.0 then
-            sim.currentSmoothTimePos = target.smoothTimePos
-            sim.currentSmoothTimeRot = target.smoothTimeRot
-            sim.smoothTimeTransitionStart = nil
+            transitionSTATE.currentSmoothTimePos = target.smoothTimePos
+            transitionSTATE.currentSmoothTimeRot = target.smoothTimeRot
+            transitionSTATE.smoothTimeTransitionStart = nil
         else
-            sim.currentSmoothTimePos = sim.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
-            sim.currentSmoothTimeRot = sim.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
+            transitionSTATE.currentSmoothTimePos = transitionSTATE.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
+            transitionSTATE.currentSmoothTimeRot = transitionSTATE.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
         end
     end
 
-    return sim.currentSmoothTimePos, sim.currentSmoothTimeRot
+    return transitionSTATE.currentSmoothTimePos, transitionSTATE.currentSmoothTimeRot
 end
 
 --- Updates the position of the camera simulation via smooth damping.
@@ -189,10 +179,6 @@ local function checkAndCompleteTask()
     end
 
     local simState = STATE.core.driver.simulation
-
-    local POS_EPSILON_SQ = 1
-    local VEL_EPSILON_SQ = 1
-    local ANG_VEL_EPSILON_SQ = 0.0001
 
     if target.euler then
         if MathUtils.vector.magnitudeSq(simState.angularVelocity) >= ANG_VEL_EPSILON_SQ then
