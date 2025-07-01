@@ -177,10 +177,6 @@ if not WG.TurboBarCam.STATE then
                 initialCameraStateForModeEntry = nil,
                 optionalTargetCameraStateForModeEntry = nil,
 
-                unit_tracking = {
-                    isModeInitialized = false,
-                },
-
                 unit_follow = {
                     isModeInitialized = false,
                     transitionFactor = nil,

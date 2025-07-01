@@ -187,7 +187,7 @@ if not WG.TurboBarCam.CONFIG then
                     TRACKING_FACTOR = 0.1,
                 },
                 DECELERATION_PROFILE = { -- When transitioning into unit tracking mode
-                    DURATION = 1,
+                    DURATION = 2,
                     INITIAL_BRAKING = 1.0,
                     PATH_ADHERENCE = 1,
                 },

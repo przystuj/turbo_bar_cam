@@ -262,6 +262,11 @@ function Actions.anchorActions()
             function()
                 return CameraAnchor.toggleVisualization()
             end)
+
+    Actions.registerAction("turbobarcam_anchor_update_all_durations", 'tp',
+            function()
+                return CameraAnchor.updateAllDurations()
+            end)
 end
 
 function Actions.trackingCameraActions()

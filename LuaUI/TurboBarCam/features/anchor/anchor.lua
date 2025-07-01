@@ -48,6 +48,7 @@ function CameraAnchor.set(id)
     local camState = Spring.GetCameraState()
     local camPos = { x = camState.px, y = camState.py, z = camState.pz }
     local existingAnchor = STATE.anchor.points[id]
+    local currentDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
     if existingAnchor then
         local distSq = MathUtils.vector.distanceSq(camPos, {x=existingAnchor.position.px, y=existingAnchor.position.py, z=existingAnchor.position.pz})
@@ -67,6 +68,7 @@ function CameraAnchor.set(id)
                     Log:info("Anchor '" .. id .. "': Look-at point added.")
                 end
             end
+            existingAnchor.duration = currentDuration
             return
         end
     end
@@ -74,6 +76,7 @@ function CameraAnchor.set(id)
     STATE.anchor.points[id] = {
         position = { px = camState.px, py = camState.py, pz = camState.pz },
         rotation = { rx = camState.rx, ry = camState.ry },
+        duration = currentDuration,
     }
     Log:info("Anchor '" .. id .. "': Simple anchor created/updated.")
 end
@@ -99,7 +102,7 @@ function CameraAnchor.focus(id)
         camTarget.isSnap = true
     end
 
-    local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    local duration = anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION
     camTarget.smoothTimePos = duration
     camTarget.smoothTimeRot = duration / 4
     STATE.active.anchor.lastUsedAnchor = id
@@ -135,5 +138,22 @@ function CameraAnchor.adjustParams(params)
         CONFIG.CAMERA_MODES.ANCHOR.DURATION = 2
     end)
 end
+
+--- Updates all existing anchors to use the current default transition duration.
+function CameraAnchor.updateAllDurations()
+    if Utils.isTurboBarCamDisabled() then return end
+    local currentDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    local updatedCount = 0
+    for _, anchorData in pairs(STATE.anchor.points) do
+        anchorData.duration = currentDuration
+        updatedCount = updatedCount + 1
+    end
+    if updatedCount > 0 then
+        Log:info("Updated duration for " .. updatedCount .. " anchor(s) to " .. currentDuration .. "s.")
+    else
+        Log:debug("No anchors to update.")
+    end
+end
+
 
 return CameraAnchor

@@ -21,7 +21,7 @@ local function resetFeatureInitializationFlag(modeNameKey)
         if featureState.isModeInitialized ~= nil then
             -- Check if the flag exists
             featureState.isModeInitialized = false
-            Log:trace("ModeManager: Reset isModeInitialized for mode: " .. modeNameKey)
+            Log:trace("Reset isModeInitialized for mode: " .. modeNameKey)
         end
     end
 end
@@ -52,7 +52,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
             validTarget = selectedUnits[1]
             finalValidType = STATE.TARGET_TYPES.UNIT
         else
-            Log:warn("ModeManager: No valid target for initializeMode: " .. newModeName)
+            Log:warn("No valid target for initializeMode: " .. newModeName)
             return false
         end
     end
@@ -64,7 +64,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
             not allowReinit and not TransitionManager.isTransitioning() then
         SettingsManager.saveModeSettings(newModeName, STATE.active.mode.unitID)
         ModeManager.disableMode()
-        Log:trace("ModeManager: Toggled off mode " .. newModeName .. " for unit " .. validTarget)
+        Log:trace("Toggled off mode " .. newModeName .. " for unit " .. validTarget)
         return false
     end
 
@@ -76,7 +76,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
         end
     end
 
-    Log:debug("ModeManager: Initializing mode: " .. newModeName)
+    Log:debug("Initializing mode: " .. newModeName)
     STATE.active.mode.name = newModeName
     STATE.active.mode.targetType = finalValidType
 
@@ -107,7 +107,7 @@ end
 --- Disables active camera mode and resets relevant state.
 function ModeManager.disableMode()
     if STATE.active.mode.name then
-        Log:debug("ModeManager: Disabling mode: " .. (STATE.active.mode.name or "None"))
+        Log:debug("Disabling mode: " .. (STATE.active.mode.name or "None"))
     end
     TransitionManager.stopAll()
 
