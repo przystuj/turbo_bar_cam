@@ -48,16 +48,13 @@ if not WG.TurboBarCam.CONFIG then
         -- Camera mode settings
         CAMERA_MODES = {
             ANCHOR = {
-                -- modes which will trigger focus_while_tracking effect
-                COMPATIBLE_MODES = { "unit_follow", "unit_tracking", "orbit", "projectile_camera" },
                 -- Transition settings
-                DURATION = 8.0, -- Default transition duration (seconds)
+                DURATION = 5.0, -- Default transition duration (seconds)
             },
 
             UNIT_FOLLOW = {
                 MOUSE_SENSITIVITY = 0.004,
                 INITIAL_TRANSITION_DURATION = 1.2,  -- Duration of the entry transition into unit_follow mode
-                INITIAL_TRANSITION_FACTOR = 0.01,
                 OFFSETS = {
                     -- DEFAULT mode offsets
                     DEFAULT = {
@@ -108,20 +105,20 @@ if not WG.TurboBarCam.CONFIG then
                 SMOOTHING = {
                     -- DEFAULT mode smoothing
                     DEFAULT = {
-                        POSITION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
-                        ROTATION_FACTOR = 0.02, -- Lower = smoother but more lag (0.0-1.0)
+                        POSITION_FACTOR = 3,
+                        ROTATION_FACTOR = 3,
                     },
 
                     -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
                     COMBAT = {
-                        POSITION_FACTOR = 0.03,
-                        ROTATION_FACTOR = 0.03,
+                        POSITION_FACTOR = 2,
+                        ROTATION_FACTOR = 2,
                     },
 
                     -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
-                        POSITION_FACTOR = 0.02,
-                        ROTATION_FACTOR = 0.009,
+                        POSITION_FACTOR = 2,
+                        ROTATION_FACTOR = 1,
                     }
                 },
             },
@@ -129,7 +126,6 @@ if not WG.TurboBarCam.CONFIG then
             -- Orbit camera settings
             ORBIT = {
                 INITIAL_TRANSITION_DURATION = 2,
-                INITIAL_TRANSITION_FACTOR = 0.01,
                 HEIGHT_FACTOR = 8, -- Height is 8x unit height
                 OFFSETS = {
                     DISTANCE = 800, -- Distance from unit
@@ -141,7 +137,7 @@ if not WG.TurboBarCam.CONFIG then
                     DISTANCE = 800,
                     HEIGHT = nil, -- It's calculated from unit height
                 },
-                SMOOTHING_FACTOR = 0.06,
+                SMOOTHING_FACTOR = 3,
             },
 
             -- Overview camera settings

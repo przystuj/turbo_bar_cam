@@ -176,7 +176,7 @@ function Actions.unitFollowActions()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'pR',
             function(_, params)
                 UnitFollowCamera.adjustParams(params)
                 return false
@@ -222,7 +222,7 @@ function Actions.projectileActions()
             end)
 
     -- Projectile camera parameter adjustments
-    Actions.registerAction("turbobarcam_projectile_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_projectile_adjust_params", 'pR',
             function(_, params)
                 ProjectileCamera.adjustParams(params)
                 return false
@@ -242,7 +242,7 @@ function Actions.anchorActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_anchor_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_anchor_adjust_params", 'pR',
             function(_, params)
                 CameraAnchor.adjustParams(params)
                 return false
@@ -276,7 +276,7 @@ function Actions.trackingCameraActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'pR',
             function(_, params)
                 UnitTrackingCamera.adjustParams(params)
                 return false
@@ -298,7 +298,7 @@ function Actions.orbitActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_orbit_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_orbit_adjust_params", 'pR',
             function(_, params)
                 OrbitingCamera.adjustParams(params)
                 return false
@@ -357,7 +357,7 @@ function Actions.groupTrackingActions()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'ptR',
+    Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'pR',
             function(_, params)
                 GroupTrackingCamera.adjustParams(params)
                 return false

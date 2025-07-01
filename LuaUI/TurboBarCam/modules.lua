@@ -44,6 +44,7 @@
 ---@field SettingsManager fun(hook: fun(module: SettingsManager)):SettingsManager
 ---@field SpecGroups fun(hook: fun(module: SpecGroups)):SpecGroups
 ---@field STATE fun(hook: fun(module: WidgetState)):WidgetState
+---@field CONSTANTS fun(hook: fun(module: Constants)):Constants
 ---@field TransitionManager fun(hook: fun(module: TransitionManager)):TransitionManager
 ---@field TransitionUtil fun(hook: fun(module: TransitionUtil)):TransitionUtil
 ---@field UnitTrackingCamera fun(hook: fun(module: UnitTrackingCamera)):UnitTrackingCamera
@@ -69,10 +70,12 @@ local SimpleModules = {
     Actions = "actions.lua",
 
     CameraCommons = "common/camera_commons.lua",
-    CONFIG = "context/config.lua",
     ModeManager = "common/mode_manager.lua",
-    STATE = "context/state.lua",
     EasingFunctions = "common/easing_functions.lua",
+
+    CONFIG = "context/config.lua",
+    STATE = "context/state.lua",
+    CONSTANTS = "context/constants.lua",
 
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",

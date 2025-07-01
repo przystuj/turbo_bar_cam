@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "OrbitPersistence")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
@@ -31,9 +32,9 @@ function OrbitPersistence.serializeCurrentOrbitState()
         isPaused = STATE.active.mode.orbit.isPaused or false -- Save paused state
     }
 
-    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+    if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
         data.targetID = STATE.active.mode.unitID
-    elseif STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT then
+    elseif STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT then
         if STATE.active.mode.targetPoint then
             data.targetPoint = TableUtils.deepCopy(STATE.active.mode.targetPoint)
         else

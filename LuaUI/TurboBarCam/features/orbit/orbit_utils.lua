@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "OrbitCameraUtils")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
@@ -37,7 +38,7 @@ function OrbitCameraUtils.ensureHeightIsSet()
         return
     end
 
-    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+    if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
         local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.active.mode.unitID), 100)
         CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT = unitHeight * CONFIG.CAMERA_MODES.ORBIT.HEIGHT_FACTOR
     else
@@ -72,14 +73,14 @@ end
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.getTargetPosition()
     local targetPos
-    if STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT then
+    if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
         -- Check if unit still exists
         if not Spring.ValidUnitID(STATE.active.mode.unitID) then
             Log:trace("Unit no longer exists, switching to point tracking")
 
             -- Switch to point tracking using last known position
             if STATE.active.mode.lastTargetPoint then
-                STATE.active.mode.targetType = STATE.TARGET_TYPES.POINT
+                STATE.active.mode.targetType = CONSTANTS.TARGET_TYPE.POINT
                 STATE.active.mode.targetPoint = STATE.active.mode.lastTargetPoint
                 STATE.active.mode.unitID = nil
 

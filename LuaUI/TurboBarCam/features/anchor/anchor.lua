@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local CameraAnchorPersistence = ModuleManager.CameraAnchorPersistence(function(m) CameraAnchorPersistence = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "CameraAnchor")
@@ -61,10 +62,10 @@ function CameraAnchor.set(id)
                 existingAnchor.rotation = nil
                 local selectedUnits = Spring.GetSelectedUnits()
                 if #selectedUnits > 0 then
-                    existingAnchor.target = { type = "unit", data = selectedUnits[1] }
+                    existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.UNIT, data = selectedUnits[1] }
                     Log:info("Anchor '" .. id .. "': Look-at point added (unit " .. selectedUnits[1] .. ").")
                 else
-                    existingAnchor.target = { type = "point", data = getLookAtTargetFromRaycast(camState) }
+                    existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.POINT, data = getLookAtTargetFromRaycast(camState) }
                     Log:info("Anchor '" .. id .. "': Look-at point added.")
                 end
             end

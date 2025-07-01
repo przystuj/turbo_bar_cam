@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UpdateManager")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
@@ -62,7 +63,7 @@ function UpdateManager.handleTrackingGracePeriod()
         local elapsed = Spring.DiffTimers(now, STATE.active.mode.graceTimer)
 
         -- Skip grace period for point tracking
-        if STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT then
+        if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT then
             STATE.active.mode.graceTimer = Spring.GetTimer()
             return
         end

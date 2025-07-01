@@ -99,6 +99,11 @@ if not WG.TurboBarCam.STATE then
                 maxHistorySize = 10,
                 angularVelocityEuler = {x = 0, y = 0, z = 0},
             },
+
+            mouse = {
+                registeredModes = {},
+                callbacks = {}
+            },
         },
 
         -- all of these are reset when changing camera mode
@@ -138,7 +143,6 @@ if not WG.TurboBarCam.STATE then
             },
 
             mouse = {
-                registeredModes = {},
                 isLeftMouseDown = false,
                 isMiddleMouseDown = false,
                 isRightMouseDown = false,
@@ -149,7 +153,6 @@ if not WG.TurboBarCam.STATE then
                 doubleClickThreshold = 0.3,
                 dragThreshold = 30,
                 dragTimeThreshold = 0.15,
-                callbacks = {}
             },
 
             -- Camera tracking

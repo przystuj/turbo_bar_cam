@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
@@ -242,7 +243,7 @@ function ProjectileCamera.checkAndActivate()
     end
 
     local modeState = STATE.active.mode.projectile_camera
-    if ModeManager.initializeMode('projectile_camera', unitID, STATE.TARGET_TYPES.UNIT) then
+    if ModeManager.initializeMode('projectile_camera', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         STATE.active.mode.projectile_camera = modeState
         STATE.active.mode.projectile_camera.armed = false -- Consume armed state
         Log:trace("ProjectileCamera: CheckAndActivate - Activated, tracking new projectile from unit", unitID, "(Original log trace)")

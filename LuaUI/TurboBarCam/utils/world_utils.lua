@@ -1,6 +1,6 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
-local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 
 
 ---@class WorldUtils
@@ -25,19 +25,19 @@ function WorldUtils.validateTarget(target)
     -- Check if target is a unit ID
     if type(target) == "number" then
         if Spring.ValidUnitID(target) then
-            return target, STATE.TARGET_TYPES.UNIT
+            return target, CONSTANTS.TARGET_TYPE.UNIT
         end
-        return nil, STATE.TARGET_TYPES.NONE
+        return nil, CONSTANTS.TARGET_TYPE.NONE
     end
 
     -- Check if target is a point
     if type(target) == "table" and target.x and target.z then
         -- Ensure y coordinate is present
         target.y = target.y or Spring.GetGroundHeight(target.x, target.z)
-        return target, STATE.TARGET_TYPES.POINT
+        return target, CONSTANTS.TARGET_TYPE.POINT
     end
 
-    return nil, STATE.TARGET_TYPES.NONE
+    return nil, CONSTANTS.TARGET_TYPE.NONE
 end
 
 --- Gets the height of a unit

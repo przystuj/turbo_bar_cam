@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
@@ -18,9 +19,9 @@ local DEFAULT_SMOOTH_TIME = 0.3
 --- Helper function to resolve the lookAt target to a concrete point
 local function getLookAtPoint(target)
     if not target then return nil end
-    if target.type == "point" then
+    if target.type == CONSTANTS.TARGET_TYPE.POINT then
         return target.data
-    elseif target.type == "unit" and Spring.ValidUnitID(target.data) then
+    elseif target.type == CONSTANTS.TARGET_TYPE.UNIT and Spring.ValidUnitID(target.data) then
         local x, y, z = Spring.GetUnitPosition(target.data)
         if x then return { x = x, y = y, z = z } end
     end

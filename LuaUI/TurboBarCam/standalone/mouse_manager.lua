@@ -8,14 +8,14 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local MouseManager = {}
 
 function MouseManager.registerMode(modeName)
-    if not STATE.active.mouse.registeredModes[modeName] then
-        STATE.active.mouse.registeredModes[modeName] = true
+    if not STATE.core.mouse.registeredModes[modeName] then
+        STATE.core.mouse.registeredModes[modeName] = true
         Log:trace("Mouse input tracking registered for mode: " .. modeName)
     end
 end
 
 local function shouldProcessInput()
-    for modeName, _ in pairs(STATE.active.mouse.registeredModes) do
+    for modeName, _ in pairs(STATE.core.mouse.registeredModes) do
         if not Utils.isModeDisabled(modeName) then
             return true
         end
@@ -24,9 +24,9 @@ local function shouldProcessInput()
 end
 
 local function fireCallbacks(eventType, ...)
-    if STATE.active.mouse.callbacks[eventType] then
-        for modeName, callback in pairs(STATE.active.mouse.callbacks[eventType]) do
-            if STATE.active.mouse.registeredModes[modeName] and not Utils.isModeDisabled(modeName) then
+    if STATE.core.mouse.callbacks[eventType] then
+        for modeName, callback in pairs(STATE.core.mouse.callbacks[eventType]) do
+            if STATE.core.mouse.registeredModes[modeName] and not Utils.isModeDisabled(modeName) then
                 callback(...)
             end
         end
@@ -34,11 +34,11 @@ local function fireCallbacks(eventType, ...)
 end
 
 local function registerCallback(eventType, modeName, callback)
-    if not STATE.active.mouse.callbacks[eventType] then
-        STATE.active.mouse.callbacks[eventType] = {}
+    if not STATE.core.mouse.callbacks[eventType] then
+        STATE.core.mouse.callbacks[eventType] = {}
     end
 
-    STATE.active.mouse.callbacks[eventType][modeName] = callback
+    STATE.core.mouse.callbacks[eventType][modeName] = callback
     Log:trace("Registered " .. eventType .. " callback for mode: " .. modeName)
 end
 
@@ -122,6 +122,7 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
 end
 
 function MouseManager.update()
+    Log:debug("mouse update")
     if not shouldProcessInput() then
         return
     end

@@ -2,21 +2,18 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "OrbitingCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local OrbitCameraUtils = ModuleManager.OrbitCameraUtils(function(m) OrbitCameraUtils = m end)
 local OrbitPersistence = ModuleManager.OrbitPersistence(function(m) OrbitPersistence = m end)
-local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
-local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class OrbitingCamera
 local OrbitingCamera = {}
-
-local ORBIT_ENTRY_TRANSITION_ID = "OrbitingCamera.EntryTransition"
 
 local function setupAngleForUnit(unitID)
     local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
@@ -24,35 +21,12 @@ local function setupAngleForUnit(unitID)
     STATE.active.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 end
 
-local function startOrbitEntryTransition()
-    STATE.active.mode.orbit.isModeInitialized = true
-    -- angle will be null when transitioning back from projectile camera
-    if not STATE.active.mode.orbit.angle then
-        setupAngleForUnit(STATE.active.mode.unitID)
-    end
-
-    TransitionManager.force({
-        id = ORBIT_ENTRY_TRANSITION_ID,
-        duration = CONFIG.CAMERA_MODES.ORBIT.INITIAL_TRANSITION_DURATION,
-        easingFn = CameraCommons.easeOut,
-        onUpdate = function(raw_progress, eased_progress, dt)
-            local transitionFactor = CameraCommons.lerp(CONFIG.CAMERA_MODES.ORBIT.INITIAL_TRANSITION_FACTOR, CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR, eased_progress)
-            local camStatePatch = OrbitingCamera.getNewCameraState(dt, transitionFactor)
-
-            CameraTracker.updateLastKnownCameraState(camStatePatch)
-            Spring.SetCameraState(camStatePatch, 0)
-        end,
-        onComplete = function()
-        end
-    })
-end
-
 function OrbitingCamera.toggle(unitID)
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
-    local currentTargetIsPoint = STATE.active.mode.name == 'orbit' and STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT
+    local currentTargetIsPoint = STATE.active.mode.name == CONSTANTS.MODE.ORBIT and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT
 
     if not unitID then
         local selectedUnits = Spring.GetSelectedUnits()
@@ -60,49 +34,48 @@ function OrbitingCamera.toggle(unitID)
             unitID = selectedUnits[1]
         else
             if currentTargetIsPoint then
-                ModeManager.disableMode()
+                ModeManager.disableAndStopDriver()
             end
-            Log:debug("[ORBIT] No unit selected.")
+            Log:debug("No unit selected.")
             return
         end
     end
 
     if not Spring.ValidUnitID(unitID) then
         if currentTargetIsPoint then
-            ModeManager.disableMode()
+            ModeManager.disableAndStopDriver()
         end
-        Log:trace("[ORBIT] Invalid unit ID: " .. tostring(unitID))
+        Log:debug("Invalid unit ID: " .. tostring(unitID))
         return
     end
 
-    if STATE.active.mode.name == 'orbit' and STATE.active.mode.unitID == unitID and STATE.active.mode.targetType == STATE.TARGET_TYPES.UNIT and
+    if STATE.active.mode.name == CONSTANTS.MODE.ORBIT and STATE.active.mode.unitID == unitID and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT and
             not STATE.active.mode.optionalTargetCameraStateForModeEntry then
-        ModeManager.disableMode()
-        Log:trace("[ORBIT] Orbiting camera detached from unit " .. unitID)
+        ModeManager.disableAndStopDriver()
+        Log:debug("Orbiting camera detached from unit " .. unitID)
         return
     end
 
-    if ModeManager.initializeMode('orbit', unitID, STATE.TARGET_TYPES.UNIT, false, nil) then
+    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         STATE.active.mode.orbit.isPaused = false
         setupAngleForUnit(unitID)
-        Log:debug("[ORBIT] Orbiting camera enabled for unit " .. unitID)
+        Log:debug("Orbiting camera enabled for unit " .. unitID)
     end
 end
 
-function OrbitingCamera.togglePointOrbit(point)
+function OrbitingCamera.togglePointOrbit()
+    Log:debug("toggle point");
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
+    local point = WorldUtils.getCursorWorldPosition()
     if not point then
-        point = WorldUtils.getCursorWorldPosition()
-        if not point then
-            Log:debug("[ORBIT] Couldn't get cursor position.");
-            return
-        end
+        Log:debug("Couldn't get cursor position.");
+        return
     end
 
-    if ModeManager.initializeMode('orbit', point, STATE.TARGET_TYPES.POINT, false, nil) then
+    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, point, CONSTANTS.TARGET_TYPE.POINT) then
         STATE.active.mode.orbit.isPaused = false
         local camState = Spring.GetCameraState()
         STATE.active.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
@@ -110,72 +83,68 @@ function OrbitingCamera.togglePointOrbit(point)
 end
 
 function OrbitingCamera.update(dt)
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
         return
     end
 
-    if STATE.active.mode.orbit and not STATE.active.mode.orbit.isModeInitialized then
-        startOrbitEntryTransition()
-    end
-
-    if TransitionManager.isTransitioning(ORBIT_ENTRY_TRANSITION_ID) then
-        return
-    end
-
-    if STATE.active.mode.targetType == STATE.TARGET_TYPES.POINT and STATE.active.mode.orbit.isPaused then
-        return
-    end
-
-    local camStatePatch = OrbitingCamera.getNewCameraState(dt)
-    if camStatePatch then
-        CameraTracker.updateLastKnownCameraState(camStatePatch)
-        Spring.SetCameraState(camStatePatch, 0)
-    end
-end
-
-function OrbitingCamera.getNewCameraState(dt, transitionFactor)
     local targetPos = OrbitCameraUtils.getTargetPosition()
     if not targetPos then
-        ModeManager.disableMode()
-        Log:debug("[ORBIT] Target lost, disabling orbit.")
+        ModeManager.disableAndStopDriver()
+        Log:debug("Target lost, disabling orbit.")
+        return
+    end
+
+    if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT and STATE.active.mode.orbit.isPaused then
+        -- For point targets, if paused, we let the driver settle completely.
+        -- By not calling setTarget, the driver will reach its destination and stop.
         return
     end
 
     if not STATE.active.mode.orbit.isPaused then
         STATE.active.mode.orbit.angle = STATE.active.mode.orbit.angle + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.SPEED * dt
     end
-    local smoothing = transitionFactor or CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR
 
     local camPos = OrbitCameraUtils.calculateOrbitPosition(targetPos)
-    return CameraCommons.focusOnPoint(camPos, targetPos, smoothing, smoothing)
+    local lookAtTargetData = (STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT) and STATE.active.mode.unitID or STATE.active.mode.targetPoint
+
+    local smoothTime = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR
+
+    local camTarget = {
+        position = camPos,
+        lookAt = { type = STATE.active.mode.targetType, data = lookAtTargetData },
+        smoothTimePos = smoothTime,
+        smoothTimeRot = smoothTime / 2, -- Faster rotation for better tracking
+    }
+
+    CameraDriver.setTarget(camTarget)
 end
 
 function OrbitingCamera.pauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
         return
     end
     if STATE.active.mode.orbit.isPaused then
-        Log:trace("[ORBIT] Orbit is already paused.");
+        Log:trace("Orbit is already paused.");
         return
     end
     STATE.active.mode.orbit.isPaused = true
-    Log:info("[ORBIT] Orbit paused.")
+    Log:info("Orbit paused.")
 end
 
 function OrbitingCamera.resumeOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
         return
     end
     if not STATE.active.mode.orbit.isPaused then
-        Log:trace("[ORBIT] Orbit is not paused.");
+        Log:trace("Orbit is not paused.");
         return
     end
     STATE.active.mode.orbit.isPaused = false
-    Log:info("[ORBIT] Orbit resumed.")
+    Log:info("Orbit resumed.")
 end
 
 function OrbitingCamera.togglePauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
         return
     end
     if STATE.active.mode.orbit.isPaused then
@@ -186,11 +155,11 @@ function OrbitingCamera.togglePauseOrbit()
 end
 
 function OrbitingCamera.saveOrbit(orbitId)
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= 'orbit' then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
         return
     end
     if not orbitId or orbitId == "" then
-        Log:warn("[ORBIT] orbitId is required.");
+        Log:warn("orbitId is required.");
         return
     end
     local dataToSave = OrbitPersistence.serializeCurrentOrbitState()
@@ -204,7 +173,7 @@ function OrbitingCamera.loadOrbit(orbitId)
         return
     end
     if not orbitId or orbitId == "" then
-        Log:warn("[ORBIT] orbitId is required.");
+        Log:warn("orbitId is required.");
         return
     end
 
@@ -220,44 +189,44 @@ function OrbitingCamera.loadOrbit(orbitId)
     local targetToUse
     local targetTypeToUse = loadedData.targetType
 
-    if targetTypeToUse == STATE.TARGET_TYPES.UNIT then
+    if targetTypeToUse == CONSTANTS.TARGET_TYPE.UNIT then
         if loadedData.targetID and Spring.ValidUnitID(loadedData.targetID) then
             targetToUse = loadedData.targetID
         else
             local selectedUnits = Spring.GetSelectedUnits()
             if #selectedUnits > 0 then
                 targetToUse = selectedUnits[1];
-                targetTypeToUse = STATE.TARGET_TYPES.UNIT
+                targetTypeToUse = CONSTANTS.TARGET_TYPE.UNIT
             else
-                Log:warn("[ORBIT] Invalid saved unit & no selection for load.");
-                ModeManager.disableMode();
+                Log:warn("Invalid saved unit & no selection for load.");
+                ModeManager.disableAndStopDriver()
                 return
             end
         end
-    elseif targetTypeToUse == STATE.TARGET_TYPES.POINT then
+    elseif targetTypeToUse == CONSTANTS.TARGET_TYPE.POINT then
         if loadedData.targetPoint then
             targetToUse = TableUtils.deepCopy(loadedData.targetPoint)
         else
-            Log:warn("[ORBIT] No targetPoint data for load.");
-            ModeManager.disableMode();
+            Log:warn("No targetPoint data for load.");
+            ModeManager.disableAndStopDriver()
             return
         end
     else
-        Log:error("[ORBIT] Unknown target type in load data: " .. tostring(targetTypeToUse));
-        ModeManager.disableMode();
+        Log:error("Unknown target type in load data: " .. tostring(targetTypeToUse));
+        ModeManager.disableAndStopDriver()
         return
     end
 
     if STATE.active.mode.name then
-        ModeManager.disableMode()
+        ModeManager.disableAndStopDriver()
     end
 
-    if ModeManager.initializeMode('orbit', targetToUse, targetTypeToUse, false, nil) then
+    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, targetToUse, targetTypeToUse, false, nil) then
         STATE.active.mode.orbit.loadedAngleForEntry = loadedData.angle
         STATE.active.mode.orbit.isPaused = loadedData.isPaused or false
-        Log:info("[ORBIT] Loaded orbit ID: " .. orbitId .. (STATE.active.mode.orbit.isPaused and " (PAUSED)" or ""))
+        Log:info("Loaded orbit ID: " .. orbitId .. (STATE.active.mode.orbit.isPaused and " (PAUSED)" or ""))
     else
-        Log:error("[ORBIT] Failed to initialize orbit for loaded data: " .. orbitId)
+        Log:error("Failed to initialize orbit for loaded data: " .. orbitId)
     end
 end
 
