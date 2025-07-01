@@ -21,15 +21,67 @@
     </div>
 
     <div class="section debug-section" data-if="isEnabled">
-        <div class="debug-title">Driver Debug Info</div>
-        <div class="debug-row"><span class="debug-label">Target Pos:</span> <span class="debug-value">{{ debug_target_pos }}</span></div>
-        <div class="debug-row"><span class="debug-label">LookAt:</span> <span class="debug-value">{{ debug_target_lookat }}</span></div>
-        <div class="debug-row"><span class="debug-label">Target Euler:</span> <span class="debug-value">{{ debug_target_euler }}</span></div>
-        <div class="debug-row"><span class="debug-label">Smooth (Pos/Rot):</span> <span class="debug-value">{{ debug_target_smooth_pos }} / {{ debug_target_smooth_rot }}</span></div>
-        <div class="debug-row"><span class="debug-label">Sim Pos:</span> <span class="debug-value">{{ debug_transition_distance }} -> {{ debug_transition_distance_target }}</span></div>
-        <div class="debug-row"><span class="debug-label">Sim Vel:</span> <span class="debug-value">{{ debug_transition_velocity_magnitude }} -> {{ debug_transition_velocity_magnitude_target }}</span></div>
-        <div class="debug-row"><span class="debug-label">Sim AngVel:</span> <span class="debug-value">{{ debug_transition_angular_velocity_magnitude }} -> {{ debug_transition_angular_velocity_magnitude_target }}</span></div>
-        <div class="debug-row"><span class="debug-label">Transition:</span> <span class="debug-value">{{ debug_transition_status }}</span></div>
+        <div class="debug-title">Driver Transition Info</div>
+        <div class="debug-row">
+            <span class="debug-label">Pos Smoothing:</span>
+            <span class="debug-value">{{ debug_pos_smooth }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Rot Smoothing:</span>
+            <span class="debug-value">{{ debug_rot_smooth }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Distance:</span>
+            <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Velocity:</span>
+            <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Ang. Velocity:</span>
+            <span class="debug-value" data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span>
+        </div>
+    </div>
+
+    <div class="section debug-section" data-if="isEnabled">
+        <div class="debug-title">Simulation State</div>
+        <div class="debug-row">
+            <span class="debug-label">Position:</span>
+            <span class="debug-value">{{ sim_position }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Velocity:</span>
+            <span class="debug-value">{{ sim_velocity }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Rotation (Euler):</span>
+            <span class="debug-value">{{ sim_orientation }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Ang. Velocity:</span>
+            <span class="debug-value">{{ sim_ang_velocity }}</span>
+        </div>
+    </div>
+
+    <div class="section debug-section" data-if="isEnabled">
+        <div class="debug-title">Camera State</div>
+        <div class="debug-row">
+            <span class="debug-label">Position:</span>
+            <span class="debug-value">{{ raw_position }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Velocity:</span>
+            <span class="debug-value">{{ raw_velocity }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Rotation (Euler):</span>
+            <span class="debug-value">{{ raw_orientation }}</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Ang. Velocity:</span>
+            <span class="debug-value">{{ raw_ang_velocity }}</span>
+        </div>
     </div>
 
     <handle size_target="#document"

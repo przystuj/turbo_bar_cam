@@ -31,6 +31,7 @@ end
 local function applySimulationToCamera()
     local simState = STATE.core.driver.simulation
     local rx, ry = QuaternionUtils.toEuler(simState.orientation)
+    simState.euler = { rx = rx, ry = ry }
     Spring.SetCameraState({
         px = simState.position.x, py = simState.position.y, pz = simState.position.z,
         rx = rx, ry = ry,
@@ -74,10 +75,11 @@ function CameraDriver.setTarget(targetConfig)
         applySimulationToCamera()
 
     elseif not wasAlreadyActive then
-        simulationSTATE.position = TableUtils.deepCopy(CameraStateTracker.getPosition())
-        simulationSTATE.orientation = TableUtils.deepCopy(CameraStateTracker.getOrientation())
-        simulationSTATE.velocity = TableUtils.deepCopy(CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 })
-        simulationSTATE.angularVelocity = TableUtils.deepCopy(CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 })
+        simulationSTATE.euler = CameraStateTracker.getEuler()
+        simulationSTATE.position = CameraStateTracker.getPosition()
+        simulationSTATE.orientation = CameraStateTracker.getOrientation()
+        simulationSTATE.velocity = CameraStateTracker.getVelocity() or { x = 0, y = 0, z = 0 }
+        simulationSTATE.angularVelocity = CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 }
     end
 
     -- Set the main target values
@@ -92,9 +94,9 @@ function CameraDriver.setTarget(targetConfig)
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
-        simulationSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
+        transitionSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
     else
-        simulationSTATE.isRotationOnly = not targetConfig.position
+        transitionSTATE.isRotationOnly = not targetConfig.position
     end
 end
 
@@ -129,13 +131,17 @@ end
 
 --- Updates the position of the camera simulation via smooth damping.
 local function updatePosition(dt, liveSmoothTimePos)
-    local target = STATE.core.driver.target
-    local simState = STATE.core.driver.simulation
-    if not target.position or simState.isRotationOnly then return end
+    local targetSTATE = STATE.core.driver.target
+    local simulationSTATE = STATE.core.driver.simulation
+    local transitionSTATE = STATE.core.driver.transition
+    if not targetSTATE.position or transitionSTATE.isRotationOnly then
+        simulationSTATE.position = CameraStateTracker.getPosition()
+        return
+    end
 
-    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simState.position, target.position, simState.velocity, liveSmoothTimePos, dt)
-    simState.position = newPosition
-    simState.velocity = newVelocity
+    local newPosition, newVelocity = MathUtils.vectorSmoothDamp(simulationSTATE.position, targetSTATE.position, simulationSTATE.velocity, liveSmoothTimePos, dt)
+    simulationSTATE.position = newPosition
+    simulationSTATE.velocity = newVelocity
 end
 
 --- Determines the target orientation and updates the simulation via smooth damping.
@@ -166,40 +172,46 @@ local function checkAndCompleteTask()
     local simulationSTATE = STATE.core.driver.simulation
     local transitionSTATE = STATE.core.driver.transition
 
-    -- if lookAt target is active, the driver should never complete on its own.
-    if targetSTATE.lookAt then
-        return
-    end
-
-    if not targetSTATE.position and not targetSTATE.euler then
-        return
-    end
-
+    -- Calculate current metrics for UI feedback
     local angularVelMag = MathUtils.vector.magnitudeSq(simulationSTATE.angularVelocity)
-    local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetSTATE.position)
-    local velSq = MathUtils.vector.magnitudeSq(simulationSTATE.velocity)
     transitionSTATE.angularVelocityMagnitude = angularVelMag
-    transitionSTATE.velocityMagnitude = velSq
-    transitionSTATE.distance = distSq
-
-    if targetSTATE.euler then
-        if angularVelMag >= CONFIG.DRIVER.ANGULAR_VELOCITY_TARGET then
-            return -- Not complete yet
-        end
-    end
 
     if targetSTATE.position then
-        if simulationSTATE.isRotationOnly then
-            -- For rotation-only moves, positional completion is assumed.
-        else
-            if distSq >= CONFIG.DRIVER.DISTANCE_TARGET or velSq >= CONFIG.DRIVER.VELOCITY_TARGET then
-                return -- Not complete yet
-            end
+        transitionSTATE.distance = MathUtils.vector.distanceSq(simulationSTATE.position, targetSTATE.position)
+        transitionSTATE.velocityMagnitude = MathUtils.vector.magnitudeSq(simulationSTATE.velocity)
+    else
+        transitionSTATE.distance = 0
+        transitionSTATE.velocityMagnitude = 0
+    end
+
+    -- Reset completion flags each frame
+    transitionSTATE.isPositionComplete = false
+    transitionSTATE.isRotationComplete = false
+
+    local hasRotationTask = targetSTATE.euler ~= nil
+    local hasPositionTask = targetSTATE.position ~= nil
+
+    -- Check rotation completion
+    if not hasRotationTask or angularVelMag < CONFIG.DRIVER.ANGULAR_VELOCITY_TARGET then
+        transitionSTATE.isRotationComplete = true
+    end
+
+    -- Check position completion
+    if not hasPositionTask then
+        transitionSTATE.isPositionComplete = true
+    else
+        if transitionSTATE.isRotationOnly then
+            transitionSTATE.isPositionComplete = true -- Positional part is ignored
+        elseif transitionSTATE.distance < CONFIG.DRIVER.DISTANCE_TARGET and transitionSTATE.velocityMagnitude < CONFIG.DRIVER.VELOCITY_TARGET then
+            transitionSTATE.isPositionComplete = true
         end
     end
 
-    Log:debug("Driver task completed")
-    CameraDriver.stop()
+    -- if lookAt target is active, the driver should never complete on its own.
+    if transitionSTATE.isPositionComplete and transitionSTATE.isRotationComplete and not targetSTATE.lookAt then
+        Log:debug("Driver task completed")
+        CameraDriver.stop()
+    end
 end
 
 --- The main update function, called every frame.
@@ -208,11 +220,8 @@ function CameraDriver.update(dt)
         return
     end
     -- Guard clauses for performance and safety
-    local driverState = STATE.core.driver
-    if not driverState or not driverState.target or dt <= 0 then
-        return
-    end
-    if not driverState.target.position and not driverState.target.lookAt and not driverState.target.euler then
+    local driverSTATE = STATE.core.driver
+    if not driverSTATE.target.position and not driverSTATE.target.lookAt and not driverSTATE.target.euler then
         return
     end
 

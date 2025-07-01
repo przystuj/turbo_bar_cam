@@ -63,45 +63,42 @@ local function updateDataModel()
 
     -- Update current mode
     local currentMode = (STATE.tracking and STATE.tracking.mode) or "None"
-    dm_handle.currentMode = currentMode ~= "None"
-            and (availableModes[currentMode] or currentMode)
-            or "None"
+    dm_handle.currentMode = currentMode ~= "None" and (availableModes[currentMode] or currentMode) or "None"
 
     -- Update debug info
-    if STATE.core and STATE.core.driver then
-        local driver = STATE.core.driver
-        local target = driver.target
-        local sim = driver.simulation
-        local trans = driver.transition
+    local target = STATE.core.driver.target
+    local trans = STATE.core.driver.transition
+    local config_driver = CONFIG.DRIVER
 
-        dm_handle.debug_target_pos = Log:serializeTable(target.position)
-        dm_handle.debug_target_lookat = target.lookAt and (target.lookAt.type .. ":" .. tostring(target.lookAt.data)) or "nil"
-        dm_handle.debug_target_euler = Log:serializeTable(target.euler)
-        dm_handle.debug_target_smooth_pos = target.smoothTimePos and string.format("%.2f", target.smoothTimePos) or "nil"
-        dm_handle.debug_target_smooth_rot = target.smoothTimeRot and string.format("%.2f", target.smoothTimeRot) or "nil"
+    local isPosTask = target.position ~= nil
+    local isRotTask = target.euler ~= nil
+    local isLookAtTask = target.lookAt ~= nil
 
-        dm_handle.debug_sim_pos = Log:serializeTable(sim.position)
-        dm_handle.debug_sim_vel = Log:serializeTable(sim.velocity)
-        dm_handle.debug_sim_orient = Log:serializeTable(sim.orientation)
-        dm_handle.debug_sim_ang_vel = Log:serializeTable(sim.angularVelocity)
+    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", trans.currentSmoothTimePos or 0, target.smoothTimePos or 0)
+    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", trans.currentSmoothTimeRot or 0, target.smoothTimeRot or 0)
 
-        dm_handle.debug_sim_ang_vel = Log:serializeTable(sim.angularVelocity)
+    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", trans.velocityMagnitude or 0, config_driver.VELOCITY_TARGET) or "N/A"
+    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", trans.distance or 0, config_driver.DISTANCE_TARGET) or "N/A"
+    dm_handle.debug_ang_velocity = (isRotTask and string.format("%.4f -> <%.4f", trans.angularVelocityMagnitude or 0, config_driver.ANGULAR_VELOCITY_TARGET))
+            or (isLookAtTask and string.format("%.4f", trans.angularVelocityMagnitude or 0))
+            or "N/A"
 
-        local transition_status
-        if trans.smoothTimeTransitionStart then
-            local elapsed = Spring.DiffTimers(Spring.GetTimer(), trans.smoothTimeTransitionStart)
-            transition_status = string.format("In progress (%.2fs)", elapsed)
-        else
-            transition_status = "Idle"
-        end
-        dm_handle.debug_transition_status = transition_status
-        dm_handle.debug_transition_angular_velocity_magnitude = trans.angularVelocityMagnitude
-        dm_handle.debug_transition_velocity_magnitude = trans.velocityMagnitude
-        dm_handle.debug_transition_distance = trans.distance
-        dm_handle.debug_transition_angular_velocity_magnitude_target = CONFIG.DRIVER.ANGULAR_VELOCITY_TARGET
-        dm_handle.debug_transition_velocity_magnitude_target = CONFIG.DRIVER.VELOCITY_TARGET
-        dm_handle.debug_transition_distance_target = CONFIG.DRIVER.DISTANCE_TARGET
-    end
+    dm_handle.debug_pos_complete = trans.isPositionComplete or false
+    dm_handle.debug_rot_complete = trans.isRotationComplete or false
+
+    -- Update simulation info
+    local sim = STATE.core.driver.simulation
+    dm_handle.sim_position = string.format("x: %.1f, y: %.1f, z: %.1f", sim.position.x, sim.position.y, sim.position.z)
+    dm_handle.sim_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", sim.velocity.x, sim.velocity.y, sim.velocity.z)
+    dm_handle.sim_orientation = string.format("rx: %.3f, ry: %.3f", sim.euler.rx, sim.euler.ry)
+    dm_handle.sim_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", sim.angularVelocity.x, sim.angularVelocity.y, sim.angularVelocity.z)
+
+    -- Update raw camera info
+    local rawCam = STATE.core.camera
+    dm_handle.raw_position = string.format("x: %.1f, y: %.1f, z: %.1f", rawCam.position.x, rawCam.position.y, rawCam.position.z)
+    dm_handle.raw_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", rawCam.velocity.x, rawCam.velocity.y, rawCam.velocity.z)
+    dm_handle.raw_orientation = string.format("rx: %.3f, ry: %.3f", rawCam.euler.rx, rawCam.euler.ry)
+    dm_handle.raw_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", rawCam.angularVelocity.x, rawCam.angularVelocity.y, rawCam.angularVelocity.z)
 end
 
 -- Widget initialization
@@ -129,22 +126,23 @@ function widget:Initialize()
         currentMode = STATE.tracking and STATE.tracking.mode or "None",
         isEnabled = STATE.enabled,
         -- Debug Info
-        debug_target_pos = "",
-        debug_target_lookat = "",
-        debug_target_euler = "",
-        debug_target_smooth_pos = "",
-        debug_target_smooth_rot = "",
-        debug_sim_pos = "",
-        debug_sim_vel = "",
-        debug_sim_orient = "",
-        debug_sim_ang_vel = "",
-        debug_transition_status = "",
-        debug_transition_angular_velocity_magnitude = "",
-        debug_transition_velocity_magnitude = "",
-        debug_transition_distance = "",
-        debug_transition_angular_velocity_magnitude_target = "",
-        debug_transition_velocity_magnitude_target = "",
-        debug_transition_distance_target = "",
+        debug_pos_smooth = "",
+        debug_rot_smooth = "",
+        debug_velocity = "",
+        debug_ang_velocity = "",
+        debug_distance = "",
+        debug_pos_complete = false,
+        debug_rot_complete = false,
+        -- Simulation Info
+        sim_position = "",
+        sim_velocity = "",
+        sim_orientation = "",
+        sim_ang_velocity = "",
+        -- Raw camera Info
+        raw_position = "",
+        raw_velocity = "",
+        raw_orientation = "",
+        raw_ang_velocity = "",
     })
 
     if not dm_handle then

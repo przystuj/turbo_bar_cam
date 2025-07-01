@@ -68,9 +68,9 @@ if not WG.TurboBarCam.STATE then
                 simulation = {
                     position = {x = 0, y = 0, z = 0},
                     orientation = {w = 1, x = 0, y = 0, z = 0},
+                    euler = {rx = 0, ry = 0},
                     velocity = {x = 0, y = 0, z = 0},
                     angularVelocity = {x = 0, y = 0, z = 0},
-                    isRotationOnly = nil,
                 },
                 transition = {
                     sourceSmoothTimePos = 3,
@@ -81,6 +81,9 @@ if not WG.TurboBarCam.STATE then
                     angularVelocityMagnitude = nil,
                     velocityMagnitude = nil,
                     distance = nil,
+                    isPositionComplete = false,
+                    isRotationComplete = false,
+                    isRotationOnly = nil,
                 }
             },
 
@@ -90,25 +93,11 @@ if not WG.TurboBarCam.STATE then
                 position = {x = 0, y = 0, z = 0},
                 velocity = {x = 0, y = 0, z = 0},
                 orientation = {w = 1, x = 0, y = 0, z = 0},
-                angularVelocity = {x = 0, y = 0, z = 0}, -- as a vector
+                angularVelocity = {x = 0, y = 0, z = 0},
                 euler = {rx = 0, ry = 0, rz = 0},
                 history = {},
                 maxHistorySize = 10,
                 angularVelocityEuler = {x = 0, y = 0, z = 0},
-                anomalyDetector = {
-                    initialized = false,
-                    -- Store deltas for statistical analysis
-                    posDeltaHistory = {},
-                    rotDeltaHistory = {},
-                    historySize = 30, -- A larger window for stats
-                    -- Running statistics
-                    posDeltaMean = 0,
-                    rotDeltaMean = 0,
-                    posDeltaStdDev = 0,
-                    rotDeltaStdDev = 0,
-                    -- Last log time to prevent spam
-                    lastLogTime = nil
-                },
             },
         },
 
