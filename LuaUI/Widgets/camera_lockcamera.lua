@@ -102,8 +102,8 @@ local function LockCamera(playerID)
 end
 
 function CameraBroadcastEvent(playerID, cameraState)
-    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.isInControl and WG.TurboBarCam.isInControl() -- TurboBarCam is controlling the camera now
-    local forceFpsCamera = WG.TurboBarCam and WG.TurboBarCam.forceFpsCamera and WG.TurboBarCam.forceFpsCamera() -- TurboBarCam is enabled
+    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.API.isInControl() -- TurboBarCam is controlling the camera now
+    local forceFpsCamera = WG.TurboBarCam and WG.TurboBarCam.API.forceFpsCamera() -- TurboBarCam is enabled
 
     -- if cameraState is empty then transmission has stopped
     if not cameraState then
@@ -125,7 +125,7 @@ function CameraBroadcastEvent(playerID, cameraState)
 
     if playerID == lockPlayerID and not skipCameraUpdate then
         if forceFpsCamera then
-            WG.TurboBarCam.handleCameraBroadcastEvent(cameraState)
+            WG.TurboBarCam.API.handleCameraBroadcastEvent(cameraState)
         else
             Spring.SetCameraState(cameraState, transitionTime)
         end

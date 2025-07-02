@@ -109,9 +109,10 @@ function CameraAnchor.focus(id)
     cameraDriverJob.position = { x = anchorData.position.px, y = anchorData.position.py, z = anchorData.position.pz }
     cameraDriverJob.targetEuler = anchorData.rotation
     cameraDriverJob.positionSmoothing = duration
-    cameraDriverJob.rotationSmoothing = duration / 4
+    cameraDriverJob.rotationSmoothing = duration
     if anchorData.target then
         cameraDriverJob.setTarget(anchorData.target.type, anchorData.target.data)
+        cameraDriverJob.rotationSmoothing = cameraDriverJob.rotationSmoothing / 10
     end
     -- If we're already moving to this anchor, the second press should snap instantly.
     if STATE.active.anchor.lastUsedAnchor == id and STATE.core.driver.target.position then
@@ -137,6 +138,7 @@ function CameraAnchor.toggleVisualization()
     if Utils.isTurboBarCamDisabled() then return end
     STATE.active.anchor.visualizationEnabled = not STATE.active.anchor.visualizationEnabled
     Log:info("Camera anchor visualization " .. (STATE.active.anchor.visualizationEnabled and "enabled" or "disabled"))
+    return true
 end
 
 function CameraAnchor.draw()

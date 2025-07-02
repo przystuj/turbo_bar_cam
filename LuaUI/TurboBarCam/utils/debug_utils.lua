@@ -1,5 +1,4 @@
----@type ModuleManager
-local ModuleManager = WG.TurboBarCam.ModuleManager
+local ModuleManager = WG.TurboBarCam.ModuleManager ---@type ModuleManager
 local Log = ModuleManager.Log(function(m) Log = m end, "DebugUtils")
 
 ---@class DebugUtils
@@ -15,6 +14,7 @@ function DebugUtils.wrapInTrace(func, name)
                 function(err)
                     Log:warn("Error in " .. name .. ": " .. tostring(err))
                     Log:warn(debug.traceback("", 2))
+                    WG.TurboBarCam.API.stop()
                     return nil
                 end
         )

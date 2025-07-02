@@ -17,7 +17,7 @@ function widget:GetInfo()
         author = "SuperKitowiec",
         date = "April 2025",
         license = "GNU GPL, v2 or later",
-        layer = 1,
+        layer = 0,
         enabled = true,
         version = 1
     }
@@ -189,8 +189,8 @@ function widget:Shutdown()
 end
 
 function widget:ToggleTurboBarCam()
-    if WG.TurboBarCam and WG.TurboBarCam.UI and WG.TurboBarCam.UI.ToggleTurboBarCam then
-        WG.TurboBarCam.UI.ToggleTurboBarCam()
+    if WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.ToggleTurboBarCam then
+        WG.TurboBarCam.API.ToggleTurboBarCam()
     else
         Log:warn(" Could not toggle TurboBarCam - UI functions not loaded")
     end
@@ -204,5 +204,13 @@ end
 function widget:Update()
     if initialized and visible then
         updateDataModel()
+    end
+end
+
+function widget:RecvLuaMsg(msg, playerID)
+    if msg:sub(1, 19) == 'LobbyOverlayActive0' then
+        document:Show()
+    elseif msg:sub(1, 19) == 'LobbyOverlayActive1' then
+        document:Hide()
     end
 end

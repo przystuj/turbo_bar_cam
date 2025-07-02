@@ -37,20 +37,24 @@ local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end
 -- SPRING ENGINE CALLINS
 --------------------------------------------------------------------------------
 local function setupApi()
-    WG.TurboBarCam.isInControl = function()
-        return STATE.enabled and STATE.active.mode.name ~= nil
-    end
-    WG.TurboBarCam.forceFpsCamera = function()
-        return STATE.enabled
-    end
-    WG.TurboBarCam.isUnitSelectionAllowed = function()
-        return STATE.allowPlayerCamUnitSelection
-    end
-    WG.TurboBarCam.handleCameraBroadcastEvent = function(cameraState)
-        Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
-    end
-    WG.TurboBarCam.UI = {
-        ToggleTurboBarCam = WidgetManager.toggle
+    ---@class TurboBarCamAPI
+    WG.TurboBarCam.API = {
+        ToggleTurboBarCam = WidgetManager.toggle,
+        handleCameraBroadcastEvent = function(cameraState)
+            Spring.SetCameraState(CameraCommons.convertSpringToFPSCameraState(cameraState), 1)
+        end,
+        isUnitSelectionAllowed = function()
+            return STATE.allowPlayerCamUnitSelection
+        end,
+        forceFpsCamera = function()
+            return STATE.enabled
+        end,
+        isInControl = function()
+            return STATE.enabled and STATE.active.mode.name ~= nil
+        end,
+        stop = function()
+            WidgetManager.stop()
+        end,
     }
 end
 

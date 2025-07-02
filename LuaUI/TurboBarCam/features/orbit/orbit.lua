@@ -14,6 +14,7 @@ local OrbitPersistence = ModuleManager.OrbitPersistence(function(m) OrbitPersist
 
 ---@class OrbitingCamera
 local OrbitingCamera = {}
+local MODE_NAME = CONSTANTS.MODE.ORBIT
 
 local function setupAngleForUnit(unitID)
     local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
@@ -21,24 +22,23 @@ local function setupAngleForUnit(unitID)
     STATE.active.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
 end
 
-function OrbitingCamera.toggle(unitID)
+function OrbitingCamera.toggle()
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
-    local currentTargetIsPoint = STATE.active.mode.name == CONSTANTS.MODE.ORBIT and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT
+    local currentTargetIsPoint = STATE.active.mode.name == MODE_NAME and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT
+    local unitID
 
-    if not unitID then
-        local selectedUnits = Spring.GetSelectedUnits()
-        if #selectedUnits > 0 then
-            unitID = selectedUnits[1]
-        else
-            if currentTargetIsPoint then
-                ModeManager.disableAndStopDriver()
-            end
-            Log:debug("No unit selected.")
-            return
+    local selectedUnits = Spring.GetSelectedUnits()
+    if #selectedUnits > 0 then
+        unitID = selectedUnits[1]
+    else
+        if currentTargetIsPoint then
+            ModeManager.disableAndStopDriver()
         end
+        Log:debug("No unit selected.")
+        return
     end
 
     if not Spring.ValidUnitID(unitID) then
@@ -49,14 +49,14 @@ function OrbitingCamera.toggle(unitID)
         return
     end
 
-    if STATE.active.mode.name == CONSTANTS.MODE.ORBIT and STATE.active.mode.unitID == unitID and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT and
+    if STATE.active.mode.name == MODE_NAME and STATE.active.mode.unitID == unitID and STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT and
             not STATE.active.mode.optionalTargetCameraStateForModeEntry then
         ModeManager.disableAndStopDriver()
         Log:debug("Orbiting camera detached from unit " .. unitID)
         return
     end
 
-    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, unitID, CONSTANTS.TARGET_TYPE.UNIT) then
+    if ModeManager.initializeMode(MODE_NAME, unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         STATE.active.mode.orbit.isPaused = false
         setupAngleForUnit(unitID)
         Log:debug("Orbiting camera enabled for unit " .. unitID)
@@ -75,7 +75,7 @@ function OrbitingCamera.togglePointOrbit()
         return
     end
 
-    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, point, CONSTANTS.TARGET_TYPE.POINT) then
+    if ModeManager.initializeMode(MODE_NAME, point, CONSTANTS.TARGET_TYPE.POINT) then
         STATE.active.mode.orbit.isPaused = false
         local camState = Spring.GetCameraState()
         STATE.active.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
@@ -83,7 +83,7 @@ function OrbitingCamera.togglePointOrbit()
 end
 
 function OrbitingCamera.update(dt)
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
         return
     end
 
@@ -117,7 +117,7 @@ function OrbitingCamera.update(dt)
 end
 
 function OrbitingCamera.pauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
         return
     end
     if STATE.active.mode.orbit.isPaused then
@@ -129,7 +129,7 @@ function OrbitingCamera.pauseOrbit()
 end
 
 function OrbitingCamera.resumeOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
         return
     end
     if not STATE.active.mode.orbit.isPaused then
@@ -141,7 +141,7 @@ function OrbitingCamera.resumeOrbit()
 end
 
 function OrbitingCamera.togglePauseOrbit()
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
         return
     end
     if STATE.active.mode.orbit.isPaused then
@@ -152,7 +152,7 @@ function OrbitingCamera.togglePauseOrbit()
 end
 
 function OrbitingCamera.saveOrbit(orbitId)
-    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= CONSTANTS.MODE.ORBIT then
+    if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
         return
     end
     if not orbitId or orbitId == "" then
@@ -218,7 +218,7 @@ function OrbitingCamera.loadOrbit(orbitId)
         ModeManager.disableAndStopDriver()
     end
 
-    if ModeManager.initializeMode(CONSTANTS.MODE.ORBIT, targetToUse, targetTypeToUse, false, nil) then
+    if ModeManager.initializeMode(MODE_NAME, targetToUse, targetTypeToUse, false, nil) then
         STATE.active.mode.orbit.loadedAngleForEntry = loadedData.angle
         STATE.active.mode.orbit.isPaused = loadedData.isPaused or false
         Log:info("Loaded orbit ID: " .. orbitId .. (STATE.active.mode.orbit.isPaused and " (PAUSED)" or ""))

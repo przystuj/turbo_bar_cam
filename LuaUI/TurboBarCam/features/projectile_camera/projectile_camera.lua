@@ -339,12 +339,10 @@ function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     local camPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVelocity, STATE.active.mode.projectile_camera.cameraMode, STATE.active.mode.projectile_camera.isHighArc)
     local targetPos = ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVelocity)
 
-    local smoothTime = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING_FACTOR
-
     local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, targetPos)
     cameraDriverJob.position = camPos
-    cameraDriverJob.positionSmoothing = smoothTime
-    cameraDriverJob.rotationSmoothing = smoothTime / 2
+    cameraDriverJob.positionSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.POSITION_SMOOTHING
+    cameraDriverJob.rotationSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.ROTATION_SMOOTHING
     cameraDriverJob.run()
 end
 
