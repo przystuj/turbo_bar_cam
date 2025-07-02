@@ -7,13 +7,6 @@ if not WG.TurboBarCam.STATE then
         originalCameraState = nil,
         allowPlayerCamUnitSelection = true,
 
-        -- Target types
-        TARGET_TYPES = {
-            UNIT = "UNIT",
-            POINT = "POINT",
-            NONE = "NONE"
-        },
-
         settings = {
             initialized = false,
             storages = {},
@@ -58,46 +51,53 @@ if not WG.TurboBarCam.STATE then
             -- State for the low-level CameraDriver that executes movement.
             -- Managed exclusively by CameraDriver.
             driver = {
-                target = {
-                    position = nil,
-                    lookAt = nil,
-                    euler = nil,
-                    smoothTimePos = nil,
-                    smoothTimeRot = nil,
-                },
+                ---@type DriverTargetConfig
+                target = {},
                 simulation = {
-                    position = {x = 0, y = 0, z = 0},
-                    orientation = {w = 1, x = 0, y = 0, z = 0},
-                    euler = {rx = 0, ry = 0},
-                    velocity = {x = 0, y = 0, z = 0},
-                    angularVelocity = {x = 0, y = 0, z = 0},
+                    position = { x = 0, y = 0, z = 0 },
+                    orientation = { w = 1, x = 0, y = 0, z = 0 },
+                    euler = { rx = 0, ry = 0 },
+                    velocity = { x = 0, y = 0, z = 0 },
+                    angularVelocity = { x = 0, y = 0, z = 0 },
                 },
-                transition = {
+                smoothingTransition = {
                     sourceSmoothTimePos = 3,
                     sourceSmoothTimeRot = 3,
                     currentSmoothTimePos = 3,
                     currentSmoothTimeRot = 3,
                     smoothTimeTransitionStart = nil,
+
+                    -- deprecated /
                     angularVelocityMagnitude = nil,
                     velocityMagnitude = nil,
                     distance = nil,
                     isPositionComplete = false,
                     isRotationComplete = false,
                     isRotationOnly = nil,
-                }
+                    -- / deprecated
+                },
+                job = {
+                    angularVelocityMagnitude = nil,
+                    velocityMagnitude = nil,
+                    distance = nil,
+                    isPositionComplete = false,
+                    isRotationComplete = false,
+                    isRotationOnly = nil,
+                    isActive = false,
+                },
             },
 
             -- The ground-truth state of the camera as reported by the tracker.
             -- Managed exclusively by CameraStateTracker.
             camera = {
-                position = {x = 0, y = 0, z = 0},
-                velocity = {x = 0, y = 0, z = 0},
-                orientation = {w = 1, x = 0, y = 0, z = 0},
-                angularVelocity = {x = 0, y = 0, z = 0},
-                euler = {rx = 0, ry = 0, rz = 0},
+                position = { x = 0, y = 0, z = 0 },
+                velocity = { x = 0, y = 0, z = 0 },
+                orientation = { w = 1, x = 0, y = 0, z = 0 },
+                angularVelocity = { x = 0, y = 0, z = 0 },
+                euler = { rx = 0, ry = 0, rz = 0 },
                 history = {},
                 maxHistorySize = 10,
-                angularVelocityEuler = {x = 0, y = 0, z = 0},
+                angularVelocityEuler = { x = 0, y = 0, z = 0 },
             },
 
             mouse = {

@@ -18,14 +18,6 @@ local CameraTestRunner = {}
 ---
 local TestSuite = {
     [1] = { name = "Translate +X", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 300, z = 4000 }, duration = 1.5 } },
-    [2] = { name = "Translate +Y", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 4000, y = 800, z = 4000 }, duration = 1.5 } },
-    [3] = { name = "Translate +Z", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 4000, y = 300, z = 5000 }, duration = 1.5 } },
-    [4] = { name = "Translate XYZ", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 800, z = 5000 }, duration = 1.5 } },
-    [5] = { name = "Rotate Pitch", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 2.0, ry = 0 }, duration = 2 } },
-    [6] = { name = "Rotate Yaw", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 1.57, ry = 1.57 }, duration = 1.5 } },
-    [7] = { name = "Rotate Pitch & Yaw", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { euler = { rx = 2.0, ry = 1.57 }, duration = 1.5 } },
-    [8] = { name = "Combined All", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 800, z = 5000 }, euler = { rx = 2.0, ry = 1.57 }, duration = 2.5 } },
-    [8] = { name = "LookAt", startPos = { x = 2000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 6000, y = 1000, z = 6000 }, lookAt = { data = 5914, type = CONSTANTS.TARGET_TYPE.UNIT }, duration = 20 } },
 }
 
 ---

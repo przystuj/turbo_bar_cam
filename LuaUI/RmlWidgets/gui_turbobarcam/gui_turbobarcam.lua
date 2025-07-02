@@ -66,25 +66,25 @@ local function updateDataModel()
     dm_handle.currentMode = currentMode ~= "None" and (availableModes[currentMode] or currentMode) or "None"
 
     -- Update debug info
-    local target = STATE.core.driver.target
-    local trans = STATE.core.driver.transition
-    local config_driver = CONFIG.DRIVER
+    local targetSTATE = STATE.core.driver.target
+    local smoothingTransSTATE = STATE.core.driver.smoothingTransition
+    local driverCONFIG = CONFIG.DRIVER
 
-    local isPosTask = target.position ~= nil
-    local isRotTask = target.euler ~= nil
-    local isLookAtTask = target.lookAt ~= nil
+    local isPosTask = targetSTATE.position ~= nil
+    local isRotTask = targetSTATE.euler ~= nil
+    local isLookAtTask = targetSTATE.lookAt ~= nil
 
-    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", trans.currentSmoothTimePos or 0, target.smoothTimePos or 0)
-    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", trans.currentSmoothTimeRot or 0, target.smoothTimeRot or 0)
+    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentSmoothTimePos or 0, targetSTATE.smoothTimePos or 0)
+    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentSmoothTimeRot or 0, targetSTATE.smoothTimeRot or 0)
 
-    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", trans.velocityMagnitude or 0, config_driver.VELOCITY_TARGET) or "N/A"
-    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", trans.distance or 0, config_driver.DISTANCE_TARGET) or "N/A"
-    dm_handle.debug_ang_velocity = (isRotTask and string.format("%.4f -> <%.4f", trans.angularVelocityMagnitude or 0, config_driver.ANGULAR_VELOCITY_TARGET))
-            or (isLookAtTask and string.format("%.4f", trans.angularVelocityMagnitude or 0))
+    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", smoothingTransSTATE.velocityMagnitude or 0, driverCONFIG.VELOCITY_TARGET) or "N/A"
+    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", smoothingTransSTATE.distance or 0, driverCONFIG.DISTANCE_TARGET) or "N/A"
+    dm_handle.debug_ang_velocity = (isRotTask and string.format("%.4f -> <%.4f", smoothingTransSTATE.angularVelocityMagnitude or 0, driverCONFIG.ANGULAR_VELOCITY_TARGET))
+            or (isLookAtTask and string.format("%.4f", smoothingTransSTATE.angularVelocityMagnitude or 0))
             or "N/A"
 
-    dm_handle.debug_pos_complete = trans.isPositionComplete or false
-    dm_handle.debug_rot_complete = trans.isRotationComplete or false
+    dm_handle.debug_pos_complete = smoothingTransSTATE.isPositionComplete or false
+    dm_handle.debug_rot_complete = smoothingTransSTATE.isRotationComplete or false
 
     -- Update simulation info
     local sim = STATE.core.driver.simulation

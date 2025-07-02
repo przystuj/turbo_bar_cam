@@ -277,20 +277,18 @@ if not WG.TurboBarCam.CONFIG then
 
                 -- Smoothing settings
                 SMOOTHING = {
-                    POSITION = 0.05, -- Position smoothing factor (lower = smoother but more lag)
-                    ROTATION = 0.005, -- Rotation smoothing factor
-                    STABLE_POSITION = 0.005, -- Stable mode position smoothing
-                    STABLE_ROTATION = 0.005, -- Stable mode rotation smoothing
-                    TRACKING_FACTOR = 0.1, -- Specific for Tracking Camera mode
+                    POSITION = 1.5, -- Position smoothing factor (lower = smoother but more lag)
+                    ROTATION = 1.5, -- Rotation smoothing factor
+                    STABLE_POSITION = 3, -- Stable mode position smoothing
+                    STABLE_ROTATION = 3, -- Stable mode rotation smoothing
                 },
 
                 -- Default smoothing values (for reset)
                 DEFAULT_SMOOTHING = {
-                    POSITION = 0.03,
-                    ROTATION = 0.03,
-                    STABLE_POSITION = 0.03,
-                    STABLE_ROTATION = 0.03,
-                    TRACKING_FACTOR = 0.1,
+                    POSITION = 1.5,
+                    ROTATION = 1.5,
+                    STABLE_POSITION = 3,
+                    STABLE_ROTATION = 3,
                 },
 
                 -- Aircraft handling

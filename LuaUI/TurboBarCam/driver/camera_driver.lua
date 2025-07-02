@@ -40,14 +40,14 @@ local function applySimulationToCamera()
 end
 
 --- Sets the camera's declarative target state and seeds the simulation.
----@param targetConfig table Configuration for the target state.
+---@param targetConfig DriverTargetConfig Configuration for the target state.
 function CameraDriver.setTarget(targetConfig)
     if Utils.isTurboBarCamDisabled() then
         return
     end
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
-    local transitionSTATE = STATE.core.driver.transition
+    local transitionSTATE = STATE.core.driver.smoothingTransition
     local wasAlreadyActive = (targetSTATE.position ~= nil or targetSTATE.lookAt ~= nil or targetSTATE.euler ~= nil)
 
     if targetConfig.isSnap then
@@ -103,7 +103,7 @@ end
 
 --- Determines the correct smoothing values to use for the current frame.
 local function getLiveSmoothTimes()
-    local transitionSTATE = STATE.core.driver.transition
+    local transitionSTATE = STATE.core.driver.smoothingTransition
 
     -- Otherwise, perform the gradual transition logic.
     local target = STATE.core.driver.target
@@ -134,7 +134,7 @@ end
 local function updatePosition(dt, liveSmoothTimePos)
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
-    local transitionSTATE = STATE.core.driver.transition
+    local transitionSTATE = STATE.core.driver.smoothingTransition
     if not targetSTATE.position or transitionSTATE.isRotationOnly then
         simulationSTATE.position = CameraStateTracker.getPosition()
         return
@@ -171,7 +171,7 @@ end
 local function checkAndCompleteTask()
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
-    local transitionSTATE = STATE.core.driver.transition
+    local transitionSTATE = STATE.core.driver.smoothingTransition
 
     -- Calculate current metrics for UI feedback
     local angularVelMag = MathUtils.vector.magnitudeSq(simulationSTATE.angularVelocity)
@@ -210,7 +210,7 @@ local function checkAndCompleteTask()
 
     -- if lookAt target is active, the driver should never complete on its own.
     if transitionSTATE.isPositionComplete and transitionSTATE.isRotationComplete and not targetSTATE.lookAt then
-        Log:debug("Driver task completed")
+        Log:trace("Driver task completed")
         CameraDriver.stop()
     end
 end
@@ -237,7 +237,7 @@ function CameraDriver.update(dt)
 end
 
 function CameraDriver.stop()
-    STATE.core.driver.transition = TableUtils.deepCopy(STATE.DEFAULT.core.driver.transition)
+    STATE.core.driver.smoothingTransition = TableUtils.deepCopy(STATE.DEFAULT.core.driver.smoothingTransition)
     STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
 end
 
