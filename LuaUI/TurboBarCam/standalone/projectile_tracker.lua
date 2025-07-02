@@ -25,8 +25,8 @@ function ProjectileTracker.initUnitTracking(unitID)
         return
     end
 
-    if not STATE.active.projectileTracking.unitProjectiles[unitID] then
-        STATE.active.projectileTracking.unitProjectiles[unitID] = {
+    if not STATE.core.projectileTracking.unitProjectiles[unitID] then
+        STATE.core.projectileTracking.unitProjectiles[unitID] = {
             lastUpdateTime = Spring.GetGameSeconds(),
             active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
@@ -34,19 +34,19 @@ function ProjectileTracker.initUnitTracking(unitID)
         Log:trace("Initialized projectile tracking for unit " .. unitID)
     else
         -- Unit already being tracked, just mark as active
-        STATE.active.projectileTracking.unitProjectiles[unitID].active = true
-        STATE.active.projectileTracking.unitProjectiles[unitID].lastUpdateTime = Spring.GetGameSeconds()
+        STATE.core.projectileTracking.unitProjectiles[unitID].active = true
+        STATE.core.projectileTracking.unitProjectiles[unitID].lastUpdateTime = Spring.GetGameSeconds()
     end
 end
 
 -- Mark unit tracking as inactive but retain projectile data
 ---@param unitID number Unit ID to mark as inactive
 function ProjectileTracker.markUnitInactive(unitID)
-    if not unitID or not STATE.active.projectileTracking.unitProjectiles[unitID] then
+    if not unitID or not STATE.core.projectileTracking.unitProjectiles[unitID] then
         return
     end
 
-    STATE.active.projectileTracking.unitProjectiles[unitID].active = false
+    STATE.core.projectileTracking.unitProjectiles[unitID].active = false
     Log:trace("Marked unit " .. unitID .. " as inactive for projectile tracking")
 end
 
@@ -57,7 +57,7 @@ function ProjectileTracker.removeUnitTracking(unitID)
         return
     end
 
-    STATE.active.projectileTracking.unitProjectiles[unitID] = nil
+    STATE.core.projectileTracking.unitProjectiles[unitID] = nil
     Log:trace("Removed projectile tracking for unit " .. unitID)
 end
 
@@ -96,8 +96,8 @@ function ProjectileTracker.findNewProjectiles(unitID)
             -- Check if this projectile is already being tracked
             local isTracked = false
 
-            if STATE.active.projectileTracking.unitProjectiles[unitID] then
-                for _, proj in pairs(STATE.active.projectileTracking.unitProjectiles[unitID].projectiles) do
+            if STATE.core.projectileTracking.unitProjectiles[unitID] then
+                for _, proj in pairs(STATE.core.projectileTracking.unitProjectiles[unitID].projectiles) do
                     if proj.id == projectileID then
                         isTracked = true
                         break
@@ -139,9 +139,9 @@ function ProjectileTracker.update(frameNum)
         -- Add new projectiles to tracking
         for _, proj in ipairs(newProjectiles) do
             -- Limit number of tracked projectiles per unit
-            if #STATE.active.projectileTracking.unitProjectiles[currentUnitID].projectiles >= ProjectileTracker.config.maxProjectilesPerUnit then
+            if #STATE.core.projectileTracking.unitProjectiles[currentUnitID].projectiles >= ProjectileTracker.config.maxProjectilesPerUnit then
                 -- Remove oldest projectile
-                table.remove(STATE.active.projectileTracking.unitProjectiles[currentUnitID].projectiles, 1)
+                table.remove(STATE.core.projectileTracking.unitProjectiles[currentUnitID].projectiles, 1)
             end
 
             -- Add the new projectile
@@ -153,14 +153,14 @@ function ProjectileTracker.update(frameNum)
                 velocity = { x = 0, y = 0, z = 0, speed = 0 }, -- Will be updated below
                 previousVelocity = { x = 0, y = 0, z = 0, speed = 0 }   -- Will be updated below
             }
-            table.insert(STATE.active.projectileTracking.unitProjectiles[currentUnitID].projectiles, projectile)
+            table.insert(STATE.core.projectileTracking.unitProjectiles[currentUnitID].projectiles, projectile)
 
             Log:trace("Added new projectile " .. proj.id .. " for unit " .. currentUnitID)
         end
     end
 
     -- Update all tracked projectiles and clean up
-    for unitID, unitData in pairs(STATE.active.projectileTracking.unitProjectiles) do
+    for unitID, unitData in pairs(STATE.core.projectileTracking.unitProjectiles) do
         -- Check if unit data should be removed (inactive and old)
         if not unitData.active and
                 (currentTime - unitData.lastUpdateTime > ProjectileTracker.config.retentionTime) then
@@ -203,11 +203,11 @@ end
 ---@param unitID number Unit ID to get projectile for
 ---@return table|nil projectile Newest projectile data or nil if none
 function ProjectileTracker.getNewestProjectile(unitID)
-    if not unitID or not STATE.active.projectileTracking.unitProjectiles[unitID] then
+    if not unitID or not STATE.core.projectileTracking.unitProjectiles[unitID] then
         return nil
     end
 
-    local projectiles = STATE.active.projectileTracking.unitProjectiles[unitID].projectiles
+    local projectiles = STATE.core.projectileTracking.unitProjectiles[unitID].projectiles
     if #projectiles == 0 then
         return nil
     end
@@ -227,11 +227,11 @@ end
 ---@param unitID number Unit ID to get projectiles for
 ---@return table projectiles Array of all projectile data for the unit
 function ProjectileTracker.getUnitProjectiles(unitID)
-    if not unitID or not STATE.active.projectileTracking.unitProjectiles[unitID] then
+    if not unitID or not STATE.core.projectileTracking.unitProjectiles[unitID] then
         return {}
     end
 
-    return STATE.active.projectileTracking.unitProjectiles[unitID].projectiles
+    return STATE.core.projectileTracking.unitProjectiles[unitID].projectiles
 end
 
 return ProjectileTracker

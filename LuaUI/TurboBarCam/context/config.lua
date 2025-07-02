@@ -200,7 +200,7 @@ if not WG.TurboBarCam.CONFIG then
                 DIRECTION_TRANSITION_DURATION = 5,
                 DIRECTION_TRANSITION_THRESHOLD = 0.0003,
 
-                SMOOTHING_FACTOR = 0.05,
+                SMOOTHING_FACTOR = 1,
 
                 FOLLOW = {
                     DISTANCE = 800,

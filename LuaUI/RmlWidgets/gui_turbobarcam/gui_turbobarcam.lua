@@ -35,12 +35,12 @@ local STATE
 local CONFIG
 
 local availableModes = {
-    fps = "FPS Camera",
+    unit_follow = "Unit Follow",
     unit_tracking = "Unit Tracking",
     orbit = "Orbit Camera",
     overview = "Overview",
     group_tracking = "Group Tracking",
-    projectile = "Projectile Camera"
+    projectile_camera = "Projectile Camera"
 }
 
 -- Update data model with current TurboBarCam state and keybindings
@@ -62,7 +62,7 @@ local function updateDataModel()
     dm_handle.status = dm_handle.isEnabled and "Enabled" or "Disabled"
 
     -- Update current mode
-    local currentMode = (STATE.tracking and STATE.tracking.mode) or "None"
+    local currentMode = STATE.active.mode.name or "None"
     dm_handle.currentMode = currentMode ~= "None" and (availableModes[currentMode] or currentMode) or "None"
 
     -- Update debug info
@@ -123,7 +123,7 @@ function widget:Initialize()
     widget.rmlContext:RemoveDataModel(MODEL_NAME)
     dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, {
         status = STATE.enabled and "ENABLED" or "DISABLED",
-        currentMode = STATE.tracking and STATE.tracking.mode or "None",
+        currentMode = STATE.active.mode.name or "None",
         isEnabled = STATE.enabled,
         -- Debug Info
         debug_pos_smooth = "",

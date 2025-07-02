@@ -104,14 +104,14 @@ if not WG.TurboBarCam.STATE then
                 registeredModes = {},
                 callbacks = {}
             },
+
+            projectileTracking = {
+                unitProjectiles = {}
+            },
         },
 
         -- all of these are reset when changing camera mode
         active = {
-            projectileTracking = {
-                unitProjectiles = {}
-            },
-
             -- Camera anchors
             anchor = {
                 visualizationEnabled = false,
@@ -254,7 +254,6 @@ if not WG.TurboBarCam.STATE then
                 },
 
                 projectile_camera = {
-                    isModeInitialized = false,
                     armed = false,
                     watchedUnitID = nil,
                     continuouslyArmedUnitID = nil,
@@ -265,13 +264,11 @@ if not WG.TurboBarCam.STATE then
                     impactPosition = nil,
                     cameraMode = nil,
                     initialCamPos = nil,
-                    initialImpactVelocity = nil,
-                    initialImpactRotVelocity = nil,
                     isHighArc = false,
                     highArcGoingUpward = false,
                     highArcDirectionChangeCompleted = false,
-                    transitionFactor = nil,
-                    rampUpFactor = 1,
+                    isDeceleratingToImpact = false,
+                    impactDecelStartTime = nil,
 
                     projectile = {
                         selectedProjectileID = nil,

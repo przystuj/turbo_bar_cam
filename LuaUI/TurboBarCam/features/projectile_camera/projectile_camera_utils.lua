@@ -5,9 +5,9 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileCameraUtils")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local ProjectileCameraPersistence = ModuleManager.ProjectileCameraPersistence(function(m) ProjectileCameraPersistence = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class ProjectileCameraUtils
 local ProjectileCameraUtils = {}
@@ -24,10 +24,9 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         return { x = camState.px, y = camState.py, z = camState.pz }
     end
 
-    local rampUpFactor = STATE.active.mode.projectile_camera.rampUpFactor
     local modeCfg = cfg.FOLLOW
-    local distance = modeCfg.DISTANCE * rampUpFactor
-    local height = modeCfg.HEIGHT * rampUpFactor
+    local distance = modeCfg.DISTANCE
+    local height = modeCfg.HEIGHT
 
     local projectileDir = MathUtils.vector.normalize(pVel)
     if MathUtils.vector.magnitudeSq(projectileDir) < 0.001 then
