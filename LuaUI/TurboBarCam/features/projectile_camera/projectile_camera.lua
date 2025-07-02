@@ -341,13 +341,11 @@ function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
 
     local smoothTime = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.SMOOTHING_FACTOR
 
-    local camTarget = {
-        position = camPos,
-        lookAt = { type = CONSTANTS.TARGET_TYPE.POINT, data = targetPos },
-        smoothTimePos = smoothTime,
-        smoothTimeRot = smoothTime / 2,
-    }
-    CameraDriver.setTarget(camTarget)
+    local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, targetPos)
+    cameraDriverJob.position = camPos
+    cameraDriverJob.positionSmoothing = smoothTime
+    cameraDriverJob.rotationSmoothing = smoothTime / 2
+    cameraDriverJob.run()
 end
 
 ---@param currentProjectile Projectile
@@ -400,7 +398,7 @@ end
 function ProjectileCamera.decelerateToImpactPosition()
     STATE.active.mode.projectile_camera.isDeceleratingToImpact = true
     local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
-    local duration = profile.DURATION
+    local smoothing = profile.DURATION
 
     -- The point to look at is the impact site
     local impactWorldPos = STATE.active.mode.projectile_camera.impactPosition.pos
@@ -412,15 +410,11 @@ function ProjectileCamera.decelerateToImpactPosition()
     local subMode = STATE.active.mode.projectile_camera.cameraMode or CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_CAMERA_MODE
     local finalCamPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(impactWorldPos, impactVel, subMode, STATE.active.mode.projectile_camera.isHighArc)
 
-
-    local camTarget = {
-        position = finalCamPos,
-        lookAt = { type = CONSTANTS.TARGET_TYPE.POINT, data = targetLookPos },
-        -- Use the profile duration to control the feel of the movement
-        smoothTimePos = duration,
-        smoothTimeRot = duration / 2,
-    }
-    CameraDriver.setTarget(camTarget)
+    local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, targetLookPos)
+    cameraDriverJob.position = finalCamPos
+    cameraDriverJob.positionSmoothing = smoothing
+    cameraDriverJob.rotationSmoothing = smoothing / 2
+    cameraDriverJob.run()
 
     -- Set a timer to know when this phase is over
     STATE.active.mode.projectile_camera.impactDecelStartTime = Spring.GetTimer()

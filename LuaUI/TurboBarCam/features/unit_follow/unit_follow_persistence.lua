@@ -43,7 +43,7 @@ function UnitFollowPersistence.loadUnitSettings(_, unitId)
     local function loadOffsets(mode, unitName)
         local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
         local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
-        Utils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
+        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
     end
 
     local unitName = getUnitName(unitId)

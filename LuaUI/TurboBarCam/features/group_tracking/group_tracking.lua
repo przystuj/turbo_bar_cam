@@ -224,12 +224,10 @@ function GroupTrackingCamera.update()
         rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
     end
 
-    local cameraDriverJob = CameraDriver.prepare()
-    cameraDriverJob.rotationSmoothing = posFactor/4
+    local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, center)
+    cameraDriverJob.rotationSmoothing = posFactor / 4
     cameraDriverJob.positionSmoothing = posFactor
     cameraDriverJob.position = newCamPos
-    cameraDriverJob.targetType = CONSTANTS.TARGET_TYPE.POINT
-    cameraDriverJob.targetPoint = center
     cameraDriverJob.run()
 end
 

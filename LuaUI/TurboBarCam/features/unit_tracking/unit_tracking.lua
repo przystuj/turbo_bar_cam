@@ -56,18 +56,16 @@ function UnitTrackingCamera.update()
         return
     end
 
-    if STATE.core.driver.target.lookAt and STATE.core.driver.target.lookAt.data == unitID then
+    if STATE.core.driver.target and STATE.core.driver.target.targetUnitId == unitID then
         -- already tracking this unit
         return
     end
 
-    local camTarget = { lookAt = { type = CONSTANTS.TARGET_TYPE.UNIT, data = unitID } }
-
-    local duration = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE.DURATION
-    camTarget.smoothTimePos = duration
-    camTarget.smoothTimeRot = duration / 4
-
-    CameraDriver.setTarget(camTarget)
+    local smoothing = CONFIG.CAMERA_MODES.UNIT_TRACKING.DECELERATION_PROFILE.DURATION
+    local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.UNIT, unitID)
+    cameraDriverJob.positionSmoothing = smoothing
+    cameraDriverJob.rotationSmoothing = smoothing / 4
+    cameraDriverJob.run()
 end
 
 function UnitTrackingCamera.adjustParams(params)

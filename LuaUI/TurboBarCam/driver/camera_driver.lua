@@ -14,15 +14,36 @@ local Log = ModuleManager.Log(function(m) Log = m end, "CameraDriver")
 ---@class CameraDriver
 local CameraDriver = {}
 
-local DEFAULT_SMOOTH_TIME = 0.3
+local DEFAULT_SMOOTHING = 2
+local TARGET_TYPE = CONSTANTS.TARGET_TYPE
+
+function CameraDriver.prepare(targetType, target)
+    ---@class DriverJob : DriverTargetConfig
+    local config = {}
+    config.run = function()
+        config.setTarget(targetType, target)
+        CameraDriver.runJob(config)
+    end
+    ---@type fun(targetType: TargetType, target: number | Vector | Euler)
+    config.setTarget = function(type, data)
+        if type then
+            config.targetEuler = type == TARGET_TYPE.EULER and data
+            config.targetUnitId = type == TARGET_TYPE.UNIT and data
+            config.targetPoint = type == TARGET_TYPE.POINT and data
+            config.targetType = type
+        end
+    end
+    return config
+end
 
 --- Helper function to resolve the lookAt target to a concrete point
+---@param target table The target configuration object (e.g., targetConfig or STATE.core.driver.target)
 local function getLookAtPoint(target)
     if not target then return nil end
-    if target.type == CONSTANTS.TARGET_TYPE.POINT then
-        return target.data
-    elseif target.type == CONSTANTS.TARGET_TYPE.UNIT and Spring.ValidUnitID(target.data) then
-        local x, y, z = Spring.GetUnitPosition(target.data)
+    if target.targetType == TARGET_TYPE.POINT then
+        return target.targetPoint
+    elseif target.targetType == TARGET_TYPE.UNIT and target.targetUnitId and Spring.ValidUnitID(target.targetUnitId) then
+        local x, y, z = Spring.GetUnitPosition(target.targetUnitId)
         if x then return { x = x, y = y, z = z } end
     end
     return nil
@@ -39,42 +60,46 @@ local function applySimulationToCamera()
     })
 end
 
+--- Move camera instantly, bypassing simulation
+local function handleCameraSnap(targetConfig)
+    local simulationSTATE = STATE.core.driver.simulation
+    if targetConfig.position then
+        simulationSTATE.position = TableUtils.deepCopy(targetConfig.position)
+    end
+
+    local finalTargetOrientation
+    local lookAtPoint = getLookAtPoint(targetConfig)
+    if lookAtPoint then
+        local posForCalc = targetConfig.position or simulationSTATE.position
+        local dirState = CameraCommons.calculateCameraDirectionToThePoint(posForCalc, lookAtPoint)
+        finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
+    elseif targetConfig.targetEuler then
+        finalTargetOrientation = QuaternionUtils.fromEuler(targetConfig.targetEuler.rx, targetConfig.targetEuler.ry)
+    end
+
+    if finalTargetOrientation then
+        simulationSTATE.orientation = finalTargetOrientation
+    end
+
+    simulationSTATE.velocity = { x = 0, y = 0, z = 0 }
+    simulationSTATE.angularVelocity = { x = 0, y = 0, z = 0 }
+    applySimulationToCamera()
+end
+
 --- Sets the camera's declarative target state and seeds the simulation.
 ---@param targetConfig DriverTargetConfig Configuration for the target state.
-function CameraDriver.setTarget(targetConfig)
+function CameraDriver.runJob(targetConfig)
     if Utils.isTurboBarCamDisabled() then
         return
     end
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
+    local jobSTATE = STATE.core.driver.job
     local transitionSTATE = STATE.core.driver.smoothingTransition
-    local wasAlreadyActive = (targetSTATE.position ~= nil or targetSTATE.lookAt ~= nil or targetSTATE.euler ~= nil)
+    local wasAlreadyActive = jobSTATE.isActive
 
     if targetConfig.isSnap then
-        if targetConfig.position then
-            simulationSTATE.position = TableUtils.deepCopy(targetConfig.position)
-        end
-
-        local finalTargetOrientation
-        if targetConfig.lookAt then
-            local lookAtPoint = getLookAtPoint(targetConfig.lookAt)
-            if lookAtPoint then
-                local posForCalc = targetConfig.position or simulationSTATE.position
-                local dirState = CameraCommons.calculateCameraDirectionToThePoint(posForCalc, lookAtPoint)
-                finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
-            end
-        elseif targetConfig.euler then
-            finalTargetOrientation = QuaternionUtils.fromEuler(targetConfig.euler.rx, targetConfig.euler.ry)
-        end
-
-        if finalTargetOrientation then
-            simulationSTATE.orientation = finalTargetOrientation
-        end
-
-        simulationSTATE.velocity = { x = 0, y = 0, z = 0 }
-        simulationSTATE.angularVelocity = { x = 0, y = 0, z = 0 }
-        applySimulationToCamera()
-
+        handleCameraSnap(targetConfig)
     elseif not wasAlreadyActive then
         simulationSTATE.euler = CameraStateTracker.getEuler()
         simulationSTATE.position = CameraStateTracker.getPosition()
@@ -83,59 +108,63 @@ function CameraDriver.setTarget(targetConfig)
         simulationSTATE.angularVelocity = CameraStateTracker.getAngularVelocity() or { x = 0, y = 0, z = 0 }
     end
 
-    -- Set the main target values
-    targetSTATE.position = targetConfig.position
-    targetSTATE.lookAt = targetConfig.lookAt
-    targetSTATE.euler = targetConfig.euler
-    targetSTATE.smoothTimePos = targetConfig.smoothTimePos or DEFAULT_SMOOTH_TIME
-    targetSTATE.smoothTimeRot = targetConfig.smoothTimeRot or targetSTATE.smoothTimePos
-    transitionSTATE.sourceSmoothTimePos = transitionSTATE.currentSmoothTimePos
-    transitionSTATE.sourceSmoothTimeRot = transitionSTATE.currentSmoothTimeRot
-    transitionSTATE.smoothTimeTransitionStart = Spring.GetTimer()
+    jobSTATE.isActive = true
+
+    TableUtils.syncTable(targetSTATE, targetConfig)
+
+    -- Use new smoothing parameter names with fallback to deprecated names
+    targetSTATE.positionSmoothing = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
+    targetSTATE.rotationSmoothing = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
+
+    transitionSTATE.startingPositionSmoothing = transitionSTATE.currentPositionSmoothing
+    transitionSTATE.startingRotationSmoothing = transitionSTATE.currentRotationSmoothing
+    transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
-        transitionSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
+        jobSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
     else
-        transitionSTATE.isRotationOnly = not targetConfig.position
+        jobSTATE.isRotationOnly = not targetConfig.position
     end
 end
 
 --- Determines the correct smoothing values to use for the current frame.
 local function getLiveSmoothTimes()
     local transitionSTATE = STATE.core.driver.smoothingTransition
-
-    -- Otherwise, perform the gradual transition logic.
     local target = STATE.core.driver.target
-    if not transitionSTATE.smoothTimeTransitionStart then
+
+    local targetSmoothPos = target.positionSmoothing
+    local targetSmoothRot = target.rotationSmoothing
+
+    if not transitionSTATE.smoothingTransitionStart then
         -- No transition active, just use the target values.
-        transitionSTATE.currentSmoothTimePos = target.smoothTimePos
-        transitionSTATE.currentSmoothTimeRot = target.smoothTimeRot
+        transitionSTATE.currentPositionSmoothing = targetSmoothPos
+        transitionSTATE.currentRotationSmoothing = targetSmoothRot
     else
         -- Interpolate during an active transition.
-        local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothTimeTransitionStart)
+        local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothingTransitionStart)
         local duration = CONFIG.DRIVER.TRANSITION_TIME
         local alpha = (duration > 0) and (elapsed / duration) or 1.0
 
         if alpha >= 1.0 then
-            transitionSTATE.currentSmoothTimePos = target.smoothTimePos
-            transitionSTATE.currentSmoothTimeRot = target.smoothTimeRot
-            transitionSTATE.smoothTimeTransitionStart = nil
+            transitionSTATE.currentPositionSmoothing = targetSmoothPos
+            transitionSTATE.currentRotationSmoothing = targetSmoothRot
+            transitionSTATE.smoothingTransitionStart = nil
         else
-            transitionSTATE.currentSmoothTimePos = transitionSTATE.sourceSmoothTimePos * (1.0 - alpha) + target.smoothTimePos * alpha
-            transitionSTATE.currentSmoothTimeRot = transitionSTATE.sourceSmoothTimeRot * (1.0 - alpha) + target.smoothTimeRot * alpha
+            transitionSTATE.currentPositionSmoothing = transitionSTATE.startingPositionSmoothing * (1.0 - alpha) + targetSmoothPos * alpha
+            transitionSTATE.currentRotationSmoothing = transitionSTATE.startingRotationSmoothing * (1.0 - alpha) + targetSmoothRot * alpha
         end
     end
 
-    return transitionSTATE.currentSmoothTimePos, transitionSTATE.currentSmoothTimeRot
+    return transitionSTATE.currentPositionSmoothing, transitionSTATE.currentRotationSmoothing
 end
 
 --- Updates the position of the camera simulation via smooth damping.
 local function updatePosition(dt, liveSmoothTimePos)
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
-    local transitionSTATE = STATE.core.driver.smoothingTransition
-    if not targetSTATE.position or transitionSTATE.isRotationOnly then
+    local jobSTATE = STATE.core.driver.job
+    if not targetSTATE.position or jobSTATE.isRotationOnly then
         simulationSTATE.position = CameraStateTracker.getPosition()
         return
     end
@@ -147,23 +176,22 @@ end
 
 --- Determines the target orientation and updates the simulation via smooth damping.
 local function updateOrientation(dt, liveSmoothTimeRot)
-    local target = STATE.core.driver.target
-    local simState = STATE.core.driver.simulation
+    local targetSTATE = STATE.core.driver.target
+    local simulationSTATE = STATE.core.driver.simulation
     local finalTargetOrientation
-    if target.lookAt then
-        local lookAtPoint = getLookAtPoint(target.lookAt)
-        if lookAtPoint then
-            local dirState = CameraCommons.calculateCameraDirectionToThePoint(simState.position, lookAtPoint)
-            finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
-        end
-    elseif target.euler then
-        finalTargetOrientation = QuaternionUtils.fromEuler(target.euler.rx, target.euler.ry)
+
+    local lookAtPoint = getLookAtPoint(targetSTATE)
+    if lookAtPoint then
+        local dirState = CameraCommons.calculateCameraDirectionToThePoint(simulationSTATE.position, lookAtPoint)
+        finalTargetOrientation = QuaternionUtils.fromEuler(dirState.rx, dirState.ry)
+    elseif targetSTATE.targetEuler then
+        finalTargetOrientation = QuaternionUtils.fromEuler(targetSTATE.targetEuler.rx, targetSTATE.targetEuler.ry)
     end
 
     if finalTargetOrientation then
-        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simState.orientation, finalTargetOrientation, simState.angularVelocity, liveSmoothTimeRot, dt)
-        simState.orientation = newOrientation
-        simState.angularVelocity = newAngularVelocity
+        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simulationSTATE.orientation, finalTargetOrientation, simulationSTATE.angularVelocity, liveSmoothTimeRot, dt)
+        simulationSTATE.orientation = newOrientation
+        simulationSTATE.angularVelocity = newAngularVelocity
     end
 end
 
@@ -171,45 +199,46 @@ end
 local function checkAndCompleteTask()
     local targetSTATE = STATE.core.driver.target
     local simulationSTATE = STATE.core.driver.simulation
-    local transitionSTATE = STATE.core.driver.smoothingTransition
+    local jobSTATE = STATE.core.driver.job
 
-    -- Calculate current metrics for UI feedback
+    -- Calculate current metrics and store them in the job state
     local angularVelMag = MathUtils.vector.magnitudeSq(simulationSTATE.angularVelocity)
-    transitionSTATE.angularVelocityMagnitude = angularVelMag
+    jobSTATE.angularVelocityMagnitude = angularVelMag
 
     if targetSTATE.position then
-        transitionSTATE.distance = MathUtils.vector.distanceSq(simulationSTATE.position, targetSTATE.position)
-        transitionSTATE.velocityMagnitude = MathUtils.vector.magnitudeSq(simulationSTATE.velocity)
+        jobSTATE.distance = MathUtils.vector.distanceSq(simulationSTATE.position, targetSTATE.position)
+        jobSTATE.velocityMagnitude = MathUtils.vector.magnitudeSq(simulationSTATE.velocity)
     else
-        transitionSTATE.distance = 0
-        transitionSTATE.velocityMagnitude = 0
+        jobSTATE.distance = 0
+        jobSTATE.velocityMagnitude = 0
     end
 
     -- Reset completion flags each frame
-    transitionSTATE.isPositionComplete = false
-    transitionSTATE.isRotationComplete = false
+    jobSTATE.isPositionComplete = false
+    jobSTATE.isRotationComplete = false
 
-    local hasRotationTask = targetSTATE.euler ~= nil
+    local hasLookAtTarget = TableUtils.tableContains({ TARGET_TYPE.POINT, TARGET_TYPE.UNIT }, targetSTATE.targetType)
+    local hasRotationTask = hasLookAtTarget or targetSTATE.targetEuler
     local hasPositionTask = targetSTATE.position ~= nil
 
     -- Check rotation completion
     if not hasRotationTask or angularVelMag < CONFIG.DRIVER.ANGULAR_VELOCITY_TARGET then
-        transitionSTATE.isRotationComplete = true
+        jobSTATE.isRotationComplete = true
     end
 
     -- Check position completion
     if not hasPositionTask then
-        transitionSTATE.isPositionComplete = true
+        jobSTATE.isPositionComplete = true
     else
-        if transitionSTATE.isRotationOnly then
-            transitionSTATE.isPositionComplete = true -- Positional part is ignored
-        elseif transitionSTATE.distance < CONFIG.DRIVER.DISTANCE_TARGET and transitionSTATE.velocityMagnitude < CONFIG.DRIVER.VELOCITY_TARGET then
-            transitionSTATE.isPositionComplete = true
+        if jobSTATE.isRotationOnly then
+            jobSTATE.isPositionComplete = true -- Positional part is ignored
+        elseif jobSTATE.distance < CONFIG.DRIVER.DISTANCE_TARGET and jobSTATE.velocityMagnitude < CONFIG.DRIVER.VELOCITY_TARGET then
+            jobSTATE.isPositionComplete = true
         end
     end
 
-    -- if lookAt target is active, the driver should never complete on its own.
-    if transitionSTATE.isPositionComplete and transitionSTATE.isRotationComplete and not targetSTATE.lookAt then
+    -- If a lookAt target is active, the driver should never complete on its own.
+    if jobSTATE.isPositionComplete and jobSTATE.isRotationComplete and not hasLookAtTarget then
         Log:trace("Driver task completed")
         CameraDriver.stop()
     end
@@ -217,12 +246,7 @@ end
 
 --- The main update function, called every frame.
 function CameraDriver.update(dt)
-    if Utils.isTurboBarCamDisabled() then
-        return
-    end
-    -- Guard clauses for performance and safety
-    local driverSTATE = STATE.core.driver
-    if not driverSTATE.target.position and not driverSTATE.target.lookAt and not driverSTATE.target.euler then
+    if Utils.isTurboBarCamDisabled() or not STATE.core.driver.job.isActive then
         return
     end
 
@@ -237,8 +261,9 @@ function CameraDriver.update(dt)
 end
 
 function CameraDriver.stop()
-    STATE.core.driver.smoothingTransition = TableUtils.deepCopy(STATE.DEFAULT.core.driver.smoothingTransition)
+    STATE.core.driver.job = TableUtils.deepCopy(STATE.DEFAULT.core.driver.job)
     STATE.core.driver.target = TableUtils.deepCopy(STATE.DEFAULT.core.driver.target)
+    STATE.core.driver.smoothingTransition = TableUtils.deepCopy(STATE.DEFAULT.core.driver.smoothingTransition)
 end
 
 return CameraDriver

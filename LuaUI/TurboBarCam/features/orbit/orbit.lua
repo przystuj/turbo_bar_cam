@@ -109,14 +109,11 @@ function OrbitingCamera.update(dt)
 
     local smoothTime = CONFIG.CAMERA_MODES.ORBIT.SMOOTHING_FACTOR
 
-    local camTarget = {
-        position = camPos,
-        lookAt = { type = STATE.active.mode.targetType, data = lookAtTargetData },
-        smoothTimePos = smoothTime,
-        smoothTimeRot = smoothTime / 2, -- Faster rotation for better tracking
-    }
-
-    CameraDriver.setTarget(camTarget)
+    local cameraDriverJob = CameraDriver.prepare(STATE.active.mode.targetType, lookAtTargetData)
+    cameraDriverJob.position = camPos
+    cameraDriverJob.positionSmoothing = smoothTime
+    cameraDriverJob.rotationSmoothing = smoothTime / 2 -- Faster rotation for better tracking
+    cameraDriverJob.run()
 end
 
 function OrbitingCamera.pauseOrbit()

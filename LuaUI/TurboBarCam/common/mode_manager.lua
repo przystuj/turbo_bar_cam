@@ -122,7 +122,7 @@ function ModeManager.disableMode()
     end
 
     -- Reset modes to default state
-    Utils.syncTable(STATE.active, STATE.DEFAULT.active)
+    TableUtils.syncTable(STATE.active, STATE.DEFAULT.active)
 end
 
 function ModeManager.disableAndStopDriver()

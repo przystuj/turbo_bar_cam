@@ -4,7 +4,6 @@ local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "OrbitPersistence")
-local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
@@ -103,7 +102,7 @@ function OrbitPersistence.saveSettings(_, _)
 end
 
 function OrbitPersistence.loadSettings(_, _)
-    Utils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS,SettingsManager.loadUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS))
+    TableUtils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS,SettingsManager.loadUserSetting("orbit_offsets", "orbit", CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS))
     OrbitCameraUtils.ensureHeightIsSet()
 end
 

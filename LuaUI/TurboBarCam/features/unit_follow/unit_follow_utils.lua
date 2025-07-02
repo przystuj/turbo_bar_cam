@@ -101,10 +101,7 @@ function UnitFollowUtils.createHullDirectionState(unitID, offsets)
     local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
     local targetRx = 1.8
 
-    return {
-        rx = targetRx,
-        ry = targetRy,
-    }
+    return { rx = targetRx, ry = targetRy, }, CONSTANTS.TARGET_TYPE.EULER
 end
 
 --- Creates direction state when actively firing at a target
@@ -180,11 +177,11 @@ function UnitFollowUtils.handleNormalFollowMode(unitID)
 
         -- If we get here, we're in combat mode but not attacking (or couldn't create targeting state)
         -- Use combat offset mode
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT), CONSTANTS.TARGET_TYPE.NONE
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT)
     else
         -- Normal mode - always ensure isAttacking is false
         STATE.active.mode.unit_follow.isAttacking = false
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT), CONSTANTS.TARGET_TYPE.NONE
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT)
     end
 end
 
@@ -470,7 +467,7 @@ end
 --- Resets camera offsets to default values
 function UnitFollowUtils.resetOffsets()
     local function reset(mode)
-        Utils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
+        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
     end
 
     reset("DEFAULT")

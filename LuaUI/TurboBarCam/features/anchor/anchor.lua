@@ -23,7 +23,7 @@ local function getLookAtTargetFromRaycast(startState)
     if groundPos then
         return { x = groundPos[1], y = groundPos[2], z = groundPos[3] }
     else
-        local camDir = {Spring.GetCameraDirection()}
+        local camDir = { Spring.GetCameraDirection() }
         local DISTANCE = 10000
         return {
             x = startState.px + camDir[1] * DISTANCE,
@@ -44,7 +44,10 @@ end
 
 function CameraAnchor.set(id)
     if Utils.isTurboBarCamDisabled() then return end
-    if not id or id == "" then Log:warn("CameraAnchor.set: Invalid anchor ID."); return end
+    if not id or id == "" then
+        Log:warn("CameraAnchor.set: Invalid anchor ID.");
+        return
+    end
 
     local camState = Spring.GetCameraState()
     local camPos = { x = camState.px, y = camState.py, z = camState.pz }
@@ -52,7 +55,7 @@ function CameraAnchor.set(id)
     local currentDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
     if existingAnchor then
-        local distSq = MathUtils.vector.distanceSq(camPos, {x=existingAnchor.position.px, y=existingAnchor.position.py, z=existingAnchor.position.pz})
+        local distSq = MathUtils.vector.distanceSq(camPos, { x = existingAnchor.position.px, y = existingAnchor.position.py, z = existingAnchor.position.pz })
         if distSq < SET_POSITION_THRESHOLD_SQ then
             if existingAnchor.target then
                 existingAnchor.target = nil
@@ -62,9 +65,11 @@ function CameraAnchor.set(id)
                 existingAnchor.rotation = nil
                 local selectedUnits = Spring.GetSelectedUnits()
                 if #selectedUnits > 0 then
+                    ---@class AnchorUnitTarget
                     existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.UNIT, data = selectedUnits[1] }
                     Log:info("Anchor '" .. id .. "': Look-at point added (unit " .. selectedUnits[1] .. ").")
                 else
+                    ---@class AnchorPointTarget
                     existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.POINT, data = getLookAtTargetFromRaycast(camState) }
                     Log:info("Anchor '" .. id .. "': Look-at point added.")
                 end
@@ -74,6 +79,8 @@ function CameraAnchor.set(id)
         end
     end
 
+    ---@class AnchorPoint
+    ---@field target AnchorPointTarget | AnchorUnitTarget
     STATE.anchor.points[id] = {
         position = { px = camState.px, py = camState.py, pz = camState.pz },
         rotation = { rx = camState.rx, ry = camState.ry },
@@ -92,24 +99,27 @@ function CameraAnchor.focus(id)
         return true
     end
 
-    local camTarget = {
-        position = {x=anchorData.position.px, y=anchorData.position.py, z=anchorData.position.pz},
-        lookAt = anchorData.target,
-        euler = anchorData.rotation,
-    }
-
-    -- If we're already moving to this anchor, the second press should snap instantly.
-    if STATE.active.anchor.lastUsedAnchor == id and STATE.core.driver.target.position then
-        camTarget.isSnap = true
+    if STATE.active.mode.name then
+        ModeManager.disableMode()
     end
 
     local duration = anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION
-    camTarget.smoothTimePos = duration
-    camTarget.smoothTimeRot = duration / 4
-    STATE.active.anchor.lastUsedAnchor = id
-    if STATE.active.mode.name then ModeManager.disableMode() end
 
-    CameraDriver.setTarget(camTarget)
+    local cameraDriverJob = CameraDriver.prepare()
+    cameraDriverJob.position = { x = anchorData.position.px, y = anchorData.position.py, z = anchorData.position.pz }
+    cameraDriverJob.targetEuler = anchorData.rotation
+    cameraDriverJob.positionSmoothing = duration
+    cameraDriverJob.rotationSmoothing = duration / 4
+    if anchorData.target then
+        cameraDriverJob.setTarget(anchorData.target.type, anchorData.target.data)
+    end
+    -- If we're already moving to this anchor, the second press should snap instantly.
+    if STATE.active.anchor.lastUsedAnchor == id and STATE.core.driver.target.position then
+        cameraDriverJob.isSnap = true
+    end
+
+    cameraDriverJob.run()
+    STATE.active.anchor.lastUsedAnchor = id
     return true
 end
 
@@ -155,6 +165,5 @@ function CameraAnchor.updateAllDurations()
         Log:debug("No anchors to update.")
     end
 end
-
 
 return CameraAnchor

@@ -24,6 +24,7 @@ if not WG.TurboBarCam.STATE then
 
         anchor = {
             initialized = false,
+            ---@type AnchorPoint[]
             points = {},
         },
 
@@ -61,20 +62,11 @@ if not WG.TurboBarCam.STATE then
                     angularVelocity = { x = 0, y = 0, z = 0 },
                 },
                 smoothingTransition = {
-                    sourceSmoothTimePos = 3,
-                    sourceSmoothTimeRot = 3,
-                    currentSmoothTimePos = 3,
-                    currentSmoothTimeRot = 3,
-                    smoothTimeTransitionStart = nil,
-
-                    -- deprecated /
-                    angularVelocityMagnitude = nil,
-                    velocityMagnitude = nil,
-                    distance = nil,
-                    isPositionComplete = false,
-                    isRotationComplete = false,
-                    isRotationOnly = nil,
-                    -- / deprecated
+                    startingPositionSmoothing = 3,
+                    startingRotationSmoothing = 3,
+                    currentPositionSmoothing = 3,
+                    currentRotationSmoothing = 3,
+                    smoothingTransitionStart = nil,
                 },
                 job = {
                     angularVelocityMagnitude = nil,

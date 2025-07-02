@@ -92,7 +92,11 @@ function UnitFollowCamera.update()
         camTarget.euler = { rx = target.rx, ry = target.ry }
     end
 
-    CameraDriver.setTarget(camTarget)
+    local cameraDriverJob = CameraDriver.prepare(targetType, target)
+    cameraDriverJob.position = cameraPosition
+    cameraDriverJob.positionSmoothing = UnitFollowUtils.getSmoothingFactor('position')
+    cameraDriverJob.rotationSmoothing = UnitFollowUtils.getSmoothingFactor('rotation')
+    cameraDriverJob.run()
 end
 
 function UnitFollowCamera.getCameraPosition()

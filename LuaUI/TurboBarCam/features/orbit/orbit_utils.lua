@@ -65,7 +65,7 @@ end
 --- Resets orbit settings to defaults
 ---@return boolean success Whether settings were reset successfully
 function OrbitCameraUtils.resetSettings()
-    Utils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS, CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS)
+    TableUtils.patchTable(CONFIG.CAMERA_MODES.ORBIT.OFFSETS, CONFIG.CAMERA_MODES.ORBIT.DEFAULT_OFFSETS)
     Log:trace("Restored orbit camera settings to defaults")
 end
 

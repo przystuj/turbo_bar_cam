@@ -17,7 +17,7 @@ function widget:GetInfo()
         author = "SuperKitowiec",
         date = "April 2025",
         license = "GNU GPL, v2 or later",
-        layer = 2,
+        layer = 1,
         enabled = true,
         version = 1
     }
@@ -68,23 +68,21 @@ local function updateDataModel()
     -- Update debug info
     local targetSTATE = STATE.core.driver.target
     local smoothingTransSTATE = STATE.core.driver.smoothingTransition
+    local jobSTATE = STATE.core.driver.job
     local driverCONFIG = CONFIG.DRIVER
 
     local isPosTask = targetSTATE.position ~= nil
     local isRotTask = targetSTATE.euler ~= nil
-    local isLookAtTask = targetSTATE.lookAt ~= nil
 
-    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentSmoothTimePos or 0, targetSTATE.smoothTimePos or 0)
-    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentSmoothTimeRot or 0, targetSTATE.smoothTimeRot or 0)
+    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentPositionSmoothing or 0, targetSTATE.positionSmoothing or 0)
+    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentRotationSmoothing or 0, targetSTATE.rotationSmoothing or 0)
 
-    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", smoothingTransSTATE.velocityMagnitude or 0, driverCONFIG.VELOCITY_TARGET) or "N/A"
-    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", smoothingTransSTATE.distance or 0, driverCONFIG.DISTANCE_TARGET) or "N/A"
-    dm_handle.debug_ang_velocity = (isRotTask and string.format("%.4f -> <%.4f", smoothingTransSTATE.angularVelocityMagnitude or 0, driverCONFIG.ANGULAR_VELOCITY_TARGET))
-            or (isLookAtTask and string.format("%.4f", smoothingTransSTATE.angularVelocityMagnitude or 0))
-            or "N/A"
+    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.velocityMagnitude or 0, driverCONFIG.VELOCITY_TARGET) or "N/A"
+    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.distance or 0, driverCONFIG.DISTANCE_TARGET) or "N/A"
+    dm_handle.debug_ang_velocity = isRotTask and string.format("%.4f -> <%.4f", jobSTATE.angularVelocityMagnitude or 0, driverCONFIG.ANGULAR_VELOCITY_TARGET) or "N/A"
 
-    dm_handle.debug_pos_complete = smoothingTransSTATE.isPositionComplete or false
-    dm_handle.debug_rot_complete = smoothingTransSTATE.isRotationComplete or false
+    dm_handle.debug_pos_complete = jobSTATE.isPositionComplete or false
+    dm_handle.debug_rot_complete = jobSTATE.isRotationComplete or false
 
     -- Update simulation info
     local sim = STATE.core.driver.simulation

@@ -13,11 +13,15 @@ local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 ---@class CameraTestRunner
 local CameraTestRunner = {}
 
----
+---@class Test
+---@field name string
+---@field startPos Vector
+---@field startEuler Euler
+---@field targetConfig DriverTargetConfig
 -- Test Suite Definition
----
+
+---@type Test[]
 local TestSuite = {
-    [1] = { name = "Translate +X", startPos = { x = 4000, y = 300, z = 4000 }, startEuler = { rx = 1.57, ry = 0 }, targetConfig = { position = { x = 5000, y = 300, z = 4000 }, duration = 1.5 } },
 }
 
 ---
@@ -261,7 +265,7 @@ function CameraTestRunner.update(dt)
         if not target.position then
             target.position = test.startPos
         end
-        CameraDriver.setTarget(target)
+        CameraDriver.runJob(target) -- fixme
 
     elseif runnerState.testPhase == "running" then
         table.insert(runnerState.results[testId].data, {

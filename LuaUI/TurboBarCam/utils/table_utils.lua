@@ -42,7 +42,7 @@ end
 ---@param t1 table The table to subtract from (Minuend).
 ---@param t2 table The table whose values are subtracted (Subtrahend).
 ---@return table result A new table containing the subtraction results.
-function Utils.subtractTable(t1, t2)
+function TableUtils.subtractTable(t1, t2)
     -- Check if inputs are tables
     if type(t1) ~= "table" or type(t2) ~= "table" then
         Log:warn("Both inputs must be tables.")
@@ -80,22 +80,18 @@ function Utils.subtractTable(t1, t2)
 end
 
 
---- Recursively applies parameters from a source table to a target table.
---- Modifies the targetTable in place.
---- If a key from sourceTable exists in targetTable:
----   - If both values are tables, the function recursively calls itself to merge them.
----   - If the sourceValue is a table and targetValue is not (or nil),
----     the targetTable key is set to a deep copy of sourceValue.
----   - Otherwise (sourceValue is not a table, or targetValue is not a table to recurse into),
----     the value from sourceTable overwrites the value in targetTable.
---- If a key from sourceTable does not exist in targetTable, it is added.
----   (If the sourceValue is a table, it's deep copied to the targetTable).
---- Keys in targetTable not present in sourceTable are unaffected.
+--- Applies new values from a source table to a target table.
+--- This function modifies the target table in place.
 ---
----@param target table The table to apply parameters to.
----@param source table The table to get parameters from.
----@return table targetTable The modified targetTable.
-function Utils.patchTable(target, source)
+--- • It ADDS new key-value pairs from the source to the target.
+--- • It UPDATES existing values in the target with those from the source.
+--- • It recursively patches nested tables.
+--- • It NEVER removes keys from the target. Keys that exist in the target but not in the source are left untouched.
+---
+---@param target table The table to be updated.
+---@param source table The table containing the new values.
+---@return table The modified target table.
+function TableUtils.patchTable(target, source)
     if type(target) ~= "table" then
         Log:warn("Utils.deepApplyTableParams: targetTable is not a table. Got: " .. type(target))
         return target -- Or return nil/error based on desired strictness
@@ -112,7 +108,7 @@ function Utils.patchTable(target, source)
         if type(sourceValue) == "table" then
             if type(targetValue) == "table" then
                 -- Both are tables, recurse to merge
-                Utils.patchTable(targetValue, sourceValue)
+                TableUtils.patchTable(targetValue, sourceValue)
             else
                 -- Source is a table, target is not (or nil).
                 -- Assign a deep copy of the source table to the target.
@@ -127,19 +123,25 @@ function Utils.patchTable(target, source)
     return target
 end
 
---- Synchronizes a target table with a source table.
---- Modifies the targetTable in place to match the structure of the sourceTable.
+--- Makes a target table an exact structural copy of a source table.
+--- This function modifies the target table in place.
 ---
----@param target table The table to synchronize.
----@param source table The table to use as the blueprint.
----@return table targetTable The modified targetTable.
-function Utils.syncTable(target, source)
+--- • It ADDS new key-value pairs from the source to the target.
+--- • It UPDATES existing values in the target with those from the source.
+--- • It REMOVES any keys from the target that are not present in the source.
+---
+--- After this operation, the target table will be a structural mirror of the source.
+---
+---@param target table The table to be synchronized.
+---@param source table The blueprint table to copy from.
+---@return table The modified target table.
+function TableUtils.syncTable(target, source)
     if type(target) ~= "table" then
-        Log:warn("Utils.syncTable: target is not a table. Got: " .. type(target))
+        Log:warn("TableUtils.syncTable: target is not a table. Got: " .. type(target))
         return target
     end
     if type(source) ~= "table" then
-        Log:warn("Utils.syncTable: source is not a table. Got: " .. type(source))
+        Log:warn("TableUtils.syncTable: source is not a table. Got: " .. type(source))
         -- If source is not a table, it has no keys.
         -- Therefore, all keys must be removed from target.
         for k in pairs(target) do
@@ -158,7 +160,7 @@ function Utils.syncTable(target, source)
             if type(targetValue) == "table" then
                 -- If both the source and target values for a key are tables,
                 -- recurse into them to synchronize their contents.
-                Utils.syncTable(targetValue, sourceValue)
+                TableUtils.syncTable(targetValue, sourceValue)
             else
                 -- If the source value is a table but the target's is not (or nil),
                 -- replace the target value with a deep copy of the source table
