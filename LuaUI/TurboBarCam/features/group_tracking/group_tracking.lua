@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "GroupTrackingCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
@@ -9,10 +10,12 @@ local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local GroupTrackingUtils = ModuleManager.GroupTrackingUtils(function(m) GroupTrackingUtils = m end)
 local DBSCAN = ModuleManager.DBSCAN(function(m) DBSCAN = m end)
-local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
+local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
 ---@class GroupTrackingCamera
 local GroupTrackingCamera = {}
+
+local MODE_NAME = CONSTANTS.MODE.GROUP_TRACKING
 
 --- Toggles group tracking camera mode
 ---@return boolean success Always returns true for widget handler
@@ -25,7 +28,7 @@ function GroupTrackingCamera.toggle()
     local selectedUnits = Spring.GetSelectedUnits()
     if #selectedUnits == 0 then
         -- If no units are selected and tracking is currently on, turn it off
-        if STATE.active.mode.name == 'group_tracking' then
+        if STATE.active.mode.name == MODE_NAME then
             ModeManager.disableMode()
             Log:trace("Group Tracking Camera disabled")
         else
@@ -35,7 +38,7 @@ function GroupTrackingCamera.toggle()
     end
 
     -- If we're already in group tracking mode, turn it off
-    if STATE.active.mode.name == 'group_tracking' then
+    if STATE.active.mode.name == MODE_NAME then
         ModeManager.disableMode()
         Log:trace("Group Tracking Camera disabled")
         return true
@@ -43,7 +46,7 @@ function GroupTrackingCamera.toggle()
 
     -- Initialize the tracking system for group tracking
     -- We use unitID = 0 as a placeholder since we're tracking multiple units
-    if ModeManager.initializeMode('group_tracking', selectedUnits[1]) then
+    if ModeManager.initializeMode(MODE_NAME, selectedUnits[1]) then
         -- Store the group of units we're tracking
         STATE.active.mode.group_tracking.unitIDs = {}
         for _, unitID in ipairs(selectedUnits) do
@@ -86,6 +89,148 @@ function GroupTrackingCamera.toggle()
     end
 
     return true
+end
+
+--- Updates tracking camera to point at the group center of mass
+function GroupTrackingCamera.update()
+    if STATE.active.mode.name ~= MODE_NAME then
+        return
+    end
+
+    -- Check if we have any units to track
+    if #STATE.active.mode.group_tracking.unitIDs == 0 then
+        ModeManager.disableMode()
+        return
+    end
+
+    -- Check for invalid units
+    local validUnits = {}
+    for _, unitID in ipairs(STATE.active.mode.group_tracking.unitIDs) do
+        if Spring.ValidUnitID(unitID) then
+            table.insert(validUnits, unitID)
+        end
+    end
+
+    -- Update tracked units list
+    STATE.active.mode.group_tracking.unitIDs = validUnits
+
+    if #validUnits == 0 then
+        ModeManager.disableMode()
+        return
+    end
+
+    -- Main tracking update
+    GroupTrackingCamera.detectClusters()
+    GroupTrackingCamera.calculateCenterOfMass()
+    GroupTrackingCamera.calculateGroupRadius()
+
+    -- Get center position
+    local center = STATE.active.mode.group_tracking.centerOfMass
+
+    -- Calculate required camera distance
+    local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
+
+
+    -- Determine camera height
+    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
+    local targetHeight = center.y + (targetDistance * heightFactor)
+
+    -- Check if we should be in stable camera mode
+    local shouldUseStable = GroupTrackingCamera.shouldUseStableMode()
+
+    -- Toggle stable mode if necessary
+    if shouldUseStable and not STATE.active.mode.group_tracking.inStableMode then
+        STATE.active.mode.group_tracking.inStableMode = true
+        STATE.active.mode.group_tracking.stableModeStartTime = Spring.GetGameSeconds()
+    elseif not shouldUseStable and STATE.active.mode.group_tracking.inStableMode then
+        STATE.active.mode.group_tracking.inStableMode = false
+    end
+
+    -- Determine camera direction based on mode
+    local newCameraDir
+
+    if STATE.active.mode.group_tracking.inStableMode then
+        -- In stable mode, maintain current camera direction
+        newCameraDir = STATE.active.mode.group_tracking.lastCameraDir
+    else
+        -- Normal tracking mode
+        -- Get smoothed velocity and calculate direction
+        local smoothedVelocity = STATE.active.mode.group_tracking.smoothedVelocity
+        local velocityMagnitude = DBSCAN.vectorMagnitude(smoothedVelocity)
+
+        if velocityMagnitude > 5.0 then
+            -- Use velocity direction (position camera behind units)
+            newCameraDir = {
+                x = -smoothedVelocity.x / velocityMagnitude,
+                z = -smoothedVelocity.z / velocityMagnitude
+            }
+
+            -- Limit maximum rotation per update (gradual turns)
+            local lastDir = STATE.active.mode.group_tracking.lastCameraDir
+            local currentDot = newCameraDir.x * lastDir.x + newCameraDir.z * lastDir.z
+
+            -- If directions are very different, limit the change
+            if currentDot < 0 then
+                -- Severe direction change (more than 90 degrees)
+                -- Limit to a maximum of 45 degrees per update
+                local angle = math.atan2(lastDir.z, lastDir.x)
+                local targetAngle = math.atan2(newCameraDir.z, newCameraDir.x)
+                local angleDiff = targetAngle - angle
+
+                -- Normalize to -pi to pi
+                while angleDiff > math.pi do
+                    angleDiff = angleDiff - 2 * math.pi
+                end
+                while angleDiff < -math.pi do
+                    angleDiff = angleDiff + 2 * math.pi
+                end
+
+                -- Limit angle change to 45 degrees max (π/4 radians)
+                local maxChange = math.pi / 4
+                if math.abs(angleDiff) > maxChange then
+                    local sign = angleDiff > 0 and 1 or -1
+                    angle = angle + (sign * maxChange)
+
+                    -- Convert back to direction vector
+                    newCameraDir = {
+                        x = math.cos(angle),
+                        z = math.sin(angle)
+                    }
+                end
+            end
+        else
+            -- For slow/stationary units, maintain current camera direction
+            newCameraDir = STATE.active.mode.group_tracking.lastCameraDir
+        end
+    end
+
+    -- Apply orbit-style camera adjustments
+    local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
+    local totalHeight = targetHeight + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
+    local newCamPos = GroupTrackingUtils.applyCameraAdjustments(
+            center,
+            newCameraDir,
+            totalDistance,
+            totalHeight
+    )
+
+    -- Determine smoothing factors based on stable mode
+    local posFactor, rotFactor
+    if STATE.active.mode.group_tracking.inStableMode then
+        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION
+        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION
+    else
+        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.POSITION
+        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
+    end
+
+    local cameraDriverJob = CameraDriver.prepare()
+    cameraDriverJob.rotationSmoothing = posFactor/4
+    cameraDriverJob.positionSmoothing = posFactor
+    cameraDriverJob.position = newCamPos
+    cameraDriverJob.targetType = CONSTANTS.TARGET_TYPE.POINT
+    cameraDriverJob.targetPoint = center
+    cameraDriverJob.run()
 end
 
 --- Calculates the weighted center of mass for the group
@@ -378,76 +523,6 @@ function GroupTrackingCamera.detectClusters()
     end
 end
 
---- Initializes camera position for group tracking
-function GroupTrackingCamera.initializeCameraPosition()
-    local center = STATE.active.mode.group_tracking.centerOfMass
-    local currentState = Spring.GetCameraState()
-
-    -- Calculate a good initial position more to the side than directly behind the group
-    -- Try to position camera between current pos and center for a smooth transition
-    local dx = currentState.px - center.x
-    local dz = currentState.pz - center.z
-    local distance = math.sqrt(dx * dx + dz * dz)
-
-    if distance < 1 then
-        -- If camera is too close to center, use a default angle
-        dx = -1
-        dz = -1
-        distance = math.sqrt(2)
-    end
-
-    -- Normalize direction vector
-    dx = dx / distance
-    dz = dz / distance
-
-    -- Set distance to initial target distance
-    distance = STATE.active.mode.group_tracking.targetDistance
-
-    -- Adjust camera position to be more to the side (45 degrees offset)
-    -- We'll rotate the normalized direction vector to position camera more to the side
-    local sideAngle = math.pi / 4  -- 45 degrees in radians
-    local rotatedDx = dx * math.cos(sideAngle) - dz * math.sin(sideAngle)
-    local rotatedDz = dx * math.sin(sideAngle) + dz * math.cos(sideAngle)
-
-    -- Use the rotated vector instead
-    dx = rotatedDx
-    dz = rotatedDz
-
-    -- Save current camera height for smoother transition
-    local currentHeight = currentState.py
-
-    -- Reduce the height factor to position camera less above the units (60% of original)
-    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
-    local targetHeight = center.y + (distance * heightFactor)
-
-    -- Apply a gradual height transition from current to target height
-    -- Start at an intermediate height rather than jumping directly to final height
-    local transitionHeight = currentHeight + ((targetHeight - currentHeight) * 0.3)
-
-    -- Set camera position with smoother height transition
-    local camPos = {
-        x = center.x + (dx * distance),
-        y = transitionHeight, -- Use transition height instead of target height
-        z = center.z + (dz * distance)
-    }
-
-    -- Save initial camera direction
-    STATE.active.mode.group_tracking.lastCameraDir = { x = dx, z = dz }
-
-    -- Calculate look direction to center
-    local camState = CameraCommons.focusOnPoint(camPos, center, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.TRACKING_FACTOR, CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION_FACTOR)
-
-    -- Initialize tracking state with this position
-
-    CameraTracker.updateLastKnownCameraState(camState)
-
-    -- Store the target height for smooth transition in the update function
-    STATE.active.mode.group_tracking.targetHeight = targetHeight
-
-    -- Apply camera state with a slower initial transition
-    Spring.SetCameraState(camState, 0)
-end
-
 --- Calculates required camera distance to see all units
 function GroupTrackingCamera.calculateRequiredDistance()
     local radius = STATE.active.mode.group_tracking.radius
@@ -534,175 +609,6 @@ function GroupTrackingCamera.shouldUseStableMode()
     end
 
     return false
-end
-
---- Updates tracking camera to point at the group center of mass
-function GroupTrackingCamera.update()
-    if STATE.active.mode.name ~= 'group_tracking' then
-        return
-    end
-
-    -- Check if we have any units to track
-    if #STATE.active.mode.group_tracking.unitIDs == 0 then
-        ModeManager.disableMode()
-        return
-    end
-
-    -- Check for invalid units
-    local validUnits = {}
-    for _, unitID in ipairs(STATE.active.mode.group_tracking.unitIDs) do
-        if Spring.ValidUnitID(unitID) then
-            table.insert(validUnits, unitID)
-        end
-    end
-
-    -- Update tracked units list
-    STATE.active.mode.group_tracking.unitIDs = validUnits
-
-    if #validUnits == 0 then
-        ModeManager.disableMode()
-        return
-    end
-
-    -- Main tracking update
-    GroupTrackingCamera.detectClusters()
-    GroupTrackingCamera.calculateCenterOfMass()
-    GroupTrackingCamera.calculateGroupRadius()
-
-    -- Get center position
-    local center = STATE.active.mode.group_tracking.centerOfMass
-
-    -- Calculate required camera distance
-    local targetDistance = GroupTrackingCamera.calculateRequiredDistance()
-
-
-    -- Determine camera height
-    local heightFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_HEIGHT_FACTOR * 0.6
-    local targetHeight = center.y + (targetDistance * heightFactor)
-
-    -- Check if we should be in stable camera mode
-    local shouldUseStable = GroupTrackingCamera.shouldUseStableMode()
-
-    -- Toggle stable mode if necessary
-    if shouldUseStable and not STATE.active.mode.group_tracking.inStableMode then
-        STATE.active.mode.group_tracking.inStableMode = true
-        STATE.active.mode.group_tracking.stableModeStartTime = Spring.GetGameSeconds()
-    elseif not shouldUseStable and STATE.active.mode.group_tracking.inStableMode then
-        STATE.active.mode.group_tracking.inStableMode = false
-    end
-
-    -- Determine camera direction based on mode
-    local newCameraDir
-
-    if STATE.active.mode.group_tracking.inStableMode then
-        -- In stable mode, maintain current camera direction
-        newCameraDir = STATE.active.mode.group_tracking.lastCameraDir
-    else
-        -- Normal tracking mode
-        -- Get smoothed velocity and calculate direction
-        local smoothedVelocity = STATE.active.mode.group_tracking.smoothedVelocity
-        local velocityMagnitude = DBSCAN.vectorMagnitude(smoothedVelocity)
-
-        if velocityMagnitude > 5.0 then
-            -- Use velocity direction (position camera behind units)
-            newCameraDir = {
-                x = -smoothedVelocity.x / velocityMagnitude,
-                z = -smoothedVelocity.z / velocityMagnitude
-            }
-
-            -- Limit maximum rotation per update (gradual turns)
-            local lastDir = STATE.active.mode.group_tracking.lastCameraDir
-            local currentDot = newCameraDir.x * lastDir.x + newCameraDir.z * lastDir.z
-
-            -- If directions are very different, limit the change
-            if currentDot < 0 then
-                -- Severe direction change (more than 90 degrees)
-                -- Limit to a maximum of 45 degrees per update
-                local angle = math.atan2(lastDir.z, lastDir.x)
-                local targetAngle = math.atan2(newCameraDir.z, newCameraDir.x)
-                local angleDiff = targetAngle - angle
-
-                -- Normalize to -pi to pi
-                while angleDiff > math.pi do
-                    angleDiff = angleDiff - 2 * math.pi
-                end
-                while angleDiff < -math.pi do
-                    angleDiff = angleDiff + 2 * math.pi
-                end
-
-                -- Limit angle change to 45 degrees max (π/4 radians)
-                local maxChange = math.pi / 4
-                if math.abs(angleDiff) > maxChange then
-                    local sign = angleDiff > 0 and 1 or -1
-                    angle = angle + (sign * maxChange)
-
-                    -- Convert back to direction vector
-                    newCameraDir = {
-                        x = math.cos(angle),
-                        z = math.sin(angle)
-                    }
-                end
-            end
-        else
-            -- For slow/stationary units, maintain current camera direction
-            newCameraDir = STATE.active.mode.group_tracking.lastCameraDir
-        end
-    end
-
-    -- Apply orbit-style camera adjustments
-    local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
-    local totalHeight = targetHeight + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
-    local newCamPos = GroupTrackingUtils.applyCameraAdjustments(
-            center,
-            newCameraDir,
-            totalDistance,
-            totalHeight
-    )
-
-    -- Get current camera position
-    local currentState = Spring.GetCameraState()
-    local camPos = { x = currentState.px, y = currentState.py, z = currentState.pz }
-
-    -- Determine smoothing factors based on stable mode
-    local posFactor, rotFactor
-    if STATE.active.mode.group_tracking.inStableMode then
-        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_POSITION
-        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.STABLE_ROTATION
-    else
-        posFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.POSITION
-        rotFactor = CONFIG.CAMERA_MODES.GROUP_TRACKING.SMOOTHING.ROTATION
-    end
-
-    posFactor, rotFactor = CameraCommons.handleModeTransition(posFactor, rotFactor)
-
-    -- Apply smoothing with spherical interpolation for significant direction changes
-    local smoothedPos
-    if CameraCommons.shouldUseSphericalInterpolation(camPos, newCamPos, center) then
-        smoothedPos = CameraCommons.sphericalInterpolate(center, camPos, newCamPos, posFactor, true)
-    else
-        smoothedPos = {
-            x = CameraCommons.lerp(camPos.x, newCamPos.x, posFactor),
-            y = CameraCommons.lerp(camPos.y, newCamPos.y, posFactor),
-            z = CameraCommons.lerp(camPos.z, newCamPos.z, posFactor)
-        }
-    end
-
-    -- Calculate look direction to center using the smoothed position
-    local camStatePatch = CameraCommons.focusOnPoint(smoothedPos, center, posFactor, rotFactor)
-
-    -- Update camera state
-    STATE.active.mode.lastCamPos.x = camStatePatch.px
-    STATE.active.mode.lastCamPos.y = camStatePatch.py
-    STATE.active.mode.lastCamPos.z = camStatePatch.pz
-    STATE.active.mode.lastCamDir.x = camStatePatch.dx
-    STATE.active.mode.lastCamDir.y = camStatePatch.dy
-    STATE.active.mode.lastCamDir.z = camStatePatch.dz
-    STATE.active.mode.lastRotation.rx = camStatePatch.rx
-    STATE.active.mode.lastRotation.ry = camStatePatch.ry
-    STATE.active.mode.group_tracking.lastCameraDir = newCameraDir
-
-    -- Apply camera state
-    Spring.SetCameraState(camStatePatch, 0)
 end
 
 ---@see ModifiableParams

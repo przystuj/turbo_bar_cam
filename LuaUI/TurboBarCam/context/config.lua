@@ -382,10 +382,10 @@ CONFIG.MODIFIABLE_PARAMS = {
             ORBIT_OFFSET = { -3.14, 3.14, "rad" }, -- Orbit offset angle in radians
 
             -- Smoothing factors
-            ["SMOOTHING.POSITION"] = { 0.006, 0.2 }, -- Min/max for position smoothing
-            ["SMOOTHING.ROTATION"] = { 0.001, 0.2 }, -- Min/max for rotation smoothing
-            ["SMOOTHING.STABLE_POSITION"] = { 0.006, 0.2 }, -- Min/max for stable position smoothing
-            ["SMOOTHING.STABLE_ROTATION"] = { 0.001, 0.2 }, -- Min/max for stable rotation smoothing
+            ["SMOOTHING.POSITION"] = { 1, nil }, -- Min/max for position smoothing
+            ["SMOOTHING.ROTATION"] = { 1, nil }, -- Min/max for rotation smoothing
+            ["SMOOTHING.STABLE_POSITION"] = { 1, nil }, -- Min/max for stable position smoothing
+            ["SMOOTHING.STABLE_ROTATION"] = { 1, nil }, -- Min/max for stable rotation smoothing
         }
     },
     PROJECTILE_CAMERA = {
