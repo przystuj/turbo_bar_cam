@@ -14,73 +14,75 @@
         </div>
     </handle>
 
-    <div class="section">
-        <div>
-            Current Mode: <span>{{ currentMode }}</span>
+    <div class="tabs">
+        <div class="tab-button" data-class-active="activeTab == 'driver'" onclick="widget.SetTab('driver')">Driver</div>
+        <div class="tab-button" data-class-active="activeTab == 'mode'" onclick="widget.SetTab('mode')">Mode State</div>
+    </div>
+
+    <div class="tab-pane" data-if="activeTab == 'driver'">
+        <div class="section debug-section" data-if="isEnabled">
+            <div class="debug-title">Driver Transition Info</div>
+            <div class="debug-row">
+                <span class="debug-label">Pos Smoothing:</span>
+                <span class="debug-value">{{ debug_pos_smooth }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Rot Smoothing:</span>
+                <span class="debug-value">{{ debug_rot_smooth }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Distance:</span>
+                <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Velocity:</span>
+                <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Ang. Velocity:</span>
+                <span class="debug-value" data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span>
+            </div>
+        </div>
+
+        <div class="section debug-section" data-if="isEnabled">
+            <div class="debug-title">Simulation State</div>
+            <div class="debug-row">
+                <span class="debug-label">Position:</span>
+                <span class="debug-value">{{ sim_position }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Velocity:</span>
+                <span class="debug-value">{{ sim_velocity }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Rotation (Euler):</span>
+                <span class="debug-value">{{ sim_orientation }}</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Ang. Velocity:</span>
+                <span class="debug-value">{{ sim_ang_velocity }}</span>
+            </div>
         </div>
     </div>
 
-    <div class="section debug-section" data-if="isEnabled">
-        <div class="debug-title">Driver Transition Info</div>
-        <div class="debug-row">
-            <span class="debug-label">Pos Smoothing:</span>
-            <span class="debug-value">{{ debug_pos_smooth }}</span>
+    <div class="tab-pane" data-if="activeTab == 'mode'">
+        <div class="section">
+            <div>Current Mode: <span>{{ currentMode }}</span></div>
         </div>
-        <div class="debug-row">
-            <span class="debug-label">Rot Smoothing:</span>
-            <span class="debug-value">{{ debug_rot_smooth }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Distance:</span>
-            <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Velocity:</span>
-            <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Ang. Velocity:</span>
-            <span class="debug-value" data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span>
-        </div>
-    </div>
 
-    <div class="section debug-section" data-if="isEnabled">
-        <div class="debug-title">Simulation State</div>
-        <div class="debug-row">
-            <span class="debug-label">Position:</span>
-            <span class="debug-value">{{ sim_position }}</span>
+        <div class="mode-section" data-if="isProjectileCameraActive">
+            <div class="debug-title">Projectile Camera</div>
+            <div class="debug-row"><span class="debug-label">Submode:</span> <span class="debug-value">{{ proj_cam_submode }}</span></div>
+            <div class="debug-row"><span class="debug-label">Status:</span> <span class="debug-value" data-class-status-enabled="proj_cam_status == 'Tracking'">{{ proj_cam_status }}</span></div>
+            <div class="debug-row" data-if="proj_cam_status == 'Impact'"><span class="debug-label">Impact Countdown:</span> <span class="debug-value">{{ proj_cam_impact_countdown }}s</span></div>
+            <div class="debug-row"><span class="debug-label">Previous Mode:</span> <span class="debug-value">{{ proj_cam_prev_mode }}</span></div>
+            <div class="debug-title" style="margin-top: 8dp; margin-bottom: 3dp;">Recent Projectiles</div>
+            <div data-for="projectile in proj_cam_projectiles" class="projectile-item debug-value">
+                {{ projectile }}
+            </div>
         </div>
-        <div class="debug-row">
-            <span class="debug-label">Velocity:</span>
-            <span class="debug-value">{{ sim_velocity }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Rotation (Euler):</span>
-            <span class="debug-value">{{ sim_orientation }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Ang. Velocity:</span>
-            <span class="debug-value">{{ sim_ang_velocity }}</span>
-        </div>
-    </div>
-
-    <div class="section debug-section" data-if="isEnabled">
-        <div class="debug-title">Camera State</div>
-        <div class="debug-row">
-            <span class="debug-label">Position:</span>
-            <span class="debug-value">{{ raw_position }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Velocity:</span>
-            <span class="debug-value">{{ raw_velocity }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Rotation (Euler):</span>
-            <span class="debug-value">{{ raw_orientation }}</span>
-        </div>
-        <div class="debug-row">
-            <span class="debug-label">Ang. Velocity:</span>
-            <span class="debug-value">{{ raw_ang_velocity }}</span>
+        <div class="mode-section" data-if="show_mode_placeholder">
+            <span>No active mode with specific state tracking.</span>
         </div>
     </div>
 

@@ -97,6 +97,49 @@ local function updateDataModel()
     dm_handle.raw_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", rawCam.velocity.x, rawCam.velocity.y, rawCam.velocity.z)
     dm_handle.raw_orientation = string.format("rx: %.3f, ry: %.3f", rawCam.euler.rx, rawCam.euler.ry)
     dm_handle.raw_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", rawCam.angularVelocity.x, rawCam.angularVelocity.y, rawCam.angularVelocity.z)
+
+    -- Update mode-specific info
+    local isProjCam = STATE.active.mode.name == 'projectile_camera'
+    dm_handle.isProjectileCameraActive = isProjCam
+    dm_handle.show_mode_placeholder = (dm_handle.activeTab == 'mode' and not isProjCam)
+
+    if isProjCam then
+        local projCamState = STATE.active.mode.projectile_camera
+        dm_handle.proj_cam_submode = projCamState.cameraMode or "N/A"
+        dm_handle.proj_cam_prev_mode = projCamState.previousMode or "N/A"
+
+        if projCamState.impactTime then
+            dm_handle.proj_cam_status = "Impact"
+            local impactDuration = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_VIEW_DURATION
+            local timeSinceImpact = Spring.DiffTimers(Spring.GetTimer(), projCamState.impactTime)
+            local countdown = impactDuration - timeSinceImpact
+            dm_handle.proj_cam_impact_countdown = string.format("%.2f", countdown > 0 and countdown or 0)
+        else
+            dm_handle.proj_cam_status = "Tracking"
+            dm_handle.proj_cam_impact_countdown = ""
+        end
+
+        local unitID = STATE.active.mode.unitID
+        local unitProjectiles = (unitID and STATE.core.projectileTracking.unitProjectiles[unitID]) or {}
+        local sortedProjectiles = {}
+        for _, p in ipairs(unitProjectiles) do table.insert(sortedProjectiles, p) end
+
+        table.sort(sortedProjectiles, function(a, b)
+            if type(a) ~= 'table' or type(b) ~= 'table' or not a.creationTime or not b.creationTime then
+                return false
+            end
+            return a.creationTime > b.creationTime
+        end)
+
+        dm_handle.proj_cam_projectiles = {}
+        for i = 1, math.min(3, #sortedProjectiles) do
+            local p = sortedProjectiles[i]
+            if p and p.position then
+                local pos_str = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
+                table.insert(dm_handle.proj_cam_projectiles, string.format("- ID: %s, Pos: (%s)", p.id, pos_str))
+            end
+        end
+    end
 end
 
 -- Widget initialization
@@ -123,6 +166,7 @@ function widget:Initialize()
         status = STATE.enabled and "ENABLED" or "DISABLED",
         currentMode = STATE.active.mode.name or "None",
         isEnabled = STATE.enabled,
+        activeTab = "driver",
         -- Debug Info
         debug_pos_smooth = "",
         debug_rot_smooth = "",
@@ -141,6 +185,14 @@ function widget:Initialize()
         raw_velocity = "",
         raw_orientation = "",
         raw_ang_velocity = "",
+        -- Projectile Camera Info
+        isProjectileCameraActive = false,
+        proj_cam_submode = "",
+        proj_cam_prev_mode = "",
+        proj_cam_status = "",
+        proj_cam_impact_countdown = "",
+        proj_cam_projectiles = {},
+        show_mode_placeholder = false,
     })
 
     if not dm_handle then
@@ -193,6 +245,12 @@ function widget:ToggleTurboBarCam()
         WG.TurboBarCam.API.ToggleTurboBarCam()
     else
         Log:warn(" Could not toggle TurboBarCam - UI functions not loaded")
+    end
+end
+
+function widget:SetTab(tabName)
+    if dm_handle then
+        dm_handle.activeTab = tabName
     end
 end
 

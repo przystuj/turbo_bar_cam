@@ -3,7 +3,7 @@ body {
     font-weight: 200;
     font-size: 14dp;
     color: #F5F5F5;
-    width: 400dp;
+    width: 420dp;
     padding: 10dp;
     background-color: #11171D99;
     border-width: 1dp;
@@ -41,6 +41,41 @@ div {
     font-size: 16dp;
     color: #F5F5F5;
     font-weight: bold;
+}
+
+.tabs {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 5dp;
+    border-bottom-width: 1dp;
+    border-bottom-style: solid;
+    border-bottom-color: #455A64;
+}
+
+.tab-button {
+    padding: 5dp 10dp;
+    cursor: pointer;
+    background-color: #263238;
+    color: #B0BEC5;
+    border-radius: 3dp 3dp 0 0;
+    margin-right: 2dp;
+    border-width: 1dp;
+    border-color: transparent;
+    border-bottom-color: transparent;
+    font-size: 13dp;
+}
+
+.tab-button:hover {
+    background-color: #2C3B47;
+    color: #F5F5F5;
+}
+
+.tab-button.active {
+    background-color: #1A2530;
+    color: #F5F5F5;
+    border-color: #455A64;
+    border-bottom-color: transparent;
+    margin-bottom: -1dp;
 }
 
 #status-indicator {
@@ -150,6 +185,17 @@ div {
     font-size: 12dp;
     margin-top: 1dp;
     display: block;
+}
+
+.mode-section {
+    margin-top: 10dp;
+    padding: 8dp;
+    background-color: #1A2530;
+    border-radius: 3dp;
+    font-size: 11dp;
+}
+.projectile-item {
+    margin-left: 5dp;
 }
 
 /* Debug Section */
