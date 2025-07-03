@@ -234,6 +234,7 @@ if not WG.TurboBarCam.STATE then
                     lastArmingTime = 0,
                     previousMode = nil,
                     previousCameraState = nil,
+                    previousModeState = nil,
                     impactPosition = nil,
                     cameraMode = nil,
                     initialCamPos = nil,

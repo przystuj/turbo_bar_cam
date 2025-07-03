@@ -99,6 +99,10 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
         if not STATE.active.mode.projectile_camera.previousCameraState then
             STATE.active.mode.projectile_camera.previousMode = STATE.active.mode.name
             STATE.active.mode.projectile_camera.previousCameraState = Spring.GetCameraState()
+            if STATE.active.mode.name == CONSTANTS.MODE.UNIT_FOLLOW and STATE.active.mode.unit_follow then
+                --todo do the same for each mode
+                STATE.active.mode.projectile_camera.previousModeState = TableUtils.deepCopy(STATE.active.mode.unit_follow)
+            end
         end
     end
 
@@ -149,6 +153,7 @@ end
 function ProjectileCamera.returnToPreviousMode(shouldReArm)
     local prevMode = STATE.active.mode.projectile_camera.previousMode
     local prevCamState = STATE.active.mode.projectile_camera.previousCameraState
+    local previousModeState = STATE.active.mode.projectile_camera.previousModeState
     local previouslyWatchedUnitID = STATE.active.mode.projectile_camera.watchedUnitID
     local unitToReArmWith = STATE.active.mode.projectile_camera.continuouslyArmedUnitID
 
@@ -166,6 +171,11 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
         elseif ProjectileCameraUtils.isUnitCentricMode(prevMode) and unitToReArmWith and Spring.ValidUnitID(unitToReArmWith) then
             targetForPrevMode = unitToReArmWith
         end
+
+        if prevMode == CONSTANTS.MODE.UNIT_FOLLOW and previousModeState then
+            --todo do the same for each mode
+            STATE.active.mode.unit_follow = previousModeState
+        end
         ModeManager.initializeMode(prevMode, targetForPrevMode, nil, true, prevCamStateCopy)
 
     elseif STATE.active.mode.name == 'projectile_camera' then
@@ -176,6 +186,7 @@ function ProjectileCamera.returnToPreviousMode(shouldReArm)
         STATE.active.mode.projectile_camera.continuouslyArmedUnitID = nil
         STATE.active.mode.projectile_camera.previousMode = nil
         STATE.active.mode.projectile_camera.previousCameraState = nil
+        STATE.active.mode.projectile_camera.previousModeState = nil
     else
         ProjectileCameraUtils.loadSettings(unitToReArmWith)
         ProjectileCamera.armProjectileTracking(currentCameraMode, unitToReArmWith)

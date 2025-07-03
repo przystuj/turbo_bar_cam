@@ -110,19 +110,10 @@ end
 ---@param _ table Command options (unused)
 ---@return boolean handled Whether the command was handled
 function widget:CommandNotify(cmdID, cmdParams, _)
-    Log:debug(cmdID)
     if cmdID == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
         return UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
     return false
-end
-
----@param cmdID number Command ID
----@param cmdParams table Command parameters
----@param _ table Command options (unused)
----@return boolean handled Whether the command was handled
-function widget:ActiveCommandChanged(cmdId, cmdType)
-    Log:debug(cmdId, cmdType)
 end
 
 function widget:CommandsChanged()
