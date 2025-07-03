@@ -33,6 +33,25 @@ local function getLookAtTargetFromRaycast(startState)
     end
 end
 
+local function toggleAnchorTarget(anchor, anchorId)
+    local camState = Spring.GetCameraState()
+    if anchor.target then
+        anchor.target = nil
+        anchor.rotation = { rx = camState.rx, ry = camState.ry }
+        Log:info("Anchor '" .. anchorId .. "': Switched to Simple (free look).")
+    else
+        anchor.rotation = nil
+        local selectedUnits = Spring.GetSelectedUnits()
+        if #selectedUnits > 0 then
+            anchor.target = { type = CONSTANTS.TARGET_TYPE.UNIT, data = selectedUnits[1] }
+            Log:info("Anchor '" .. anchorId .. "': Switched to LookAt Unit (" .. selectedUnits[1] .. ").")
+        else
+            anchor.target = { type = CONSTANTS.TARGET_TYPE.POINT, data = getLookAtTargetFromRaycast(camState) }
+            Log:info("Anchor '" .. anchorId .. "': Switched to LookAt Point.")
+        end
+    end
+end
+
 --- Loads default anchors for current map when first launching widget
 function CameraAnchor.initialize()
     if STATE.anchor.initialized then
@@ -57,30 +76,13 @@ function CameraAnchor.set(id)
     if existingAnchor then
         local distSq = MathUtils.vector.distanceSq(camPos, { x = existingAnchor.position.px, y = existingAnchor.position.py, z = existingAnchor.position.pz })
         if distSq < SET_POSITION_THRESHOLD_SQ then
-            if existingAnchor.target then
-                existingAnchor.target = nil
-                existingAnchor.rotation = { rx = camState.rx, ry = camState.ry }
-                Log:info("Anchor '" .. id .. "': Look-at point removed.")
-            else
-                existingAnchor.rotation = nil
-                local selectedUnits = Spring.GetSelectedUnits()
-                if #selectedUnits > 0 then
-                    ---@class AnchorUnitTarget
-                    existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.UNIT, data = selectedUnits[1] }
-                    Log:info("Anchor '" .. id .. "': Look-at point added (unit " .. selectedUnits[1] .. ").")
-                else
-                    ---@class AnchorPointTarget
-                    existingAnchor.target = { type = CONSTANTS.TARGET_TYPE.POINT, data = getLookAtTargetFromRaycast(camState) }
-                    Log:info("Anchor '" .. id .. "': Look-at point added.")
-                end
-            end
+            toggleAnchorTarget(existingAnchor, id)
             existingAnchor.duration = currentDuration
             return
         end
     end
 
     ---@class AnchorPoint
-    ---@field target AnchorPointTarget | AnchorUnitTarget
     STATE.anchor.points[id] = {
         position = { px = camState.px, py = camState.py, pz = camState.pz },
         rotation = { rx = camState.rx, ry = camState.ry },
@@ -121,6 +123,34 @@ function CameraAnchor.focus(id)
 
     cameraDriverJob.run()
     STATE.active.anchor.lastUsedAnchor = id
+    return true
+end
+
+function CameraAnchor.delete(id)
+    if Utils.isTurboBarCamDisabled() then return false end
+    if not id or not STATE.anchor.points[id] then
+        Log:warn("Invalid anchor ID: " .. tostring(id));
+        return false
+    end
+
+    STATE.anchor.points[id] = nil
+    Log:info("Anchor '" .. id .. "' deleted.")
+
+    if STATE.active.anchor.lastUsedAnchor == id then
+        STATE.active.anchor.lastUsedAnchor = nil
+    end
+
+    return true
+end
+
+function CameraAnchor.toggleLookAt(id)
+    if Utils.isTurboBarCamDisabled() then return false end
+    local anchor = STATE.anchor.points[id]
+    if not anchor then
+        Log:warn("Invalid anchor ID: " .. tostring(id));
+        return false
+    end
+    toggleAnchorTarget(anchor, id)
     return true
 end
 

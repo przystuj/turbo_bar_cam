@@ -42,7 +42,7 @@ function ProjectileCamera.toggle(requestedSubMode)
     end
 
     local currentActualMode = STATE.active.mode.name
-    local isArmed = STATE.active.mode.projectile_camera.armed
+    local isArmed = STATE.active.mode.projectile_camera.isArmed
     local isFollowingProjectileMode = currentActualMode == 'projectile_camera'
     local currentSubMode = STATE.active.mode.projectile_camera.cameraMode
     local isContinuous = (STATE.active.mode.projectile_camera.continuouslyArmedUnitID == unitToWatchForToggle)
@@ -95,7 +95,8 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
         return false
     end
 
-    if not STATE.active.mode.projectile_camera.armed and STATE.active.mode.name ~= 'projectile_camera' then
+    -- save previous mode state
+    if not STATE.active.mode.projectile_camera.isArmed and STATE.active.mode.name ~= 'projectile_camera' then
         if not STATE.active.mode.projectile_camera.previousCameraState then
             STATE.active.mode.projectile_camera.previousMode = STATE.active.mode.name
             STATE.active.mode.projectile_camera.previousCameraState = Spring.GetCameraState()
@@ -115,7 +116,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
         STATE.active.mode.projectile_camera.initialCamPos = nil
     end
 
-    STATE.active.mode.projectile_camera.armed = true
+    STATE.active.mode.projectile_camera.isArmed = true
     STATE.active.mode.projectile_camera.watchedUnitID = unitID
     STATE.active.mode.projectile_camera.lastArmingTime = Spring.GetGameSeconds()
     STATE.active.mode.projectile_camera.impactPosition = nil
@@ -128,7 +129,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
 end
 
 function ProjectileCamera.disableProjectileArming()
-    STATE.active.mode.projectile_camera.armed = false
+    STATE.active.mode.projectile_camera.isArmed = false
     STATE.active.mode.projectile_camera.impactPosition = nil
     STATE.active.mode.projectile_camera.isHighArc = false
 
@@ -141,7 +142,7 @@ end
 function ProjectileCamera.switchCameraSubModes(newSubMode)
     STATE.active.mode.projectile_camera.cameraMode = newSubMode
     if newSubMode == "static" and not STATE.active.mode.projectile_camera.initialCamPos then
-        if STATE.active.mode.name == 'projectile_camera' or STATE.active.mode.projectile_camera.armed then
+        if STATE.active.mode.name == 'projectile_camera' or STATE.active.mode.projectile_camera.isArmed then
             local camState = Spring.GetCameraState()
             STATE.active.mode.projectile_camera.initialCamPos = { x = camState.px, y = camState.py, z = camState.pz }
         end
@@ -208,7 +209,7 @@ function ProjectileCamera.checkAndActivate()
         return true
     end
 
-    if not STATE.active.mode.projectile_camera.armed or STATE.active.mode.name == 'projectile_camera' then
+    if not STATE.active.mode.projectile_camera.isArmed or STATE.active.mode.name == 'projectile_camera' then
         return false
     end
 
@@ -238,7 +239,7 @@ function ProjectileCamera.checkAndActivate()
     local modeState = TableUtils.deepCopy(STATE.active.mode.projectile_camera)
     if ModeManager.initializeMode('projectile_camera', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         STATE.active.mode.projectile_camera = modeState
-        STATE.active.mode.projectile_camera.armed = false -- Consume armed state
+        STATE.active.mode.projectile_camera.isArmed = false -- Consume armed state
         if latestProjectile and latestProjectile.position then
             STATE.active.mode.projectile_camera.impactPosition = {
                 pos = TableUtils.deepCopy(latestProjectile.position),

@@ -40,13 +40,6 @@ function Actions.coreActions()
                 return true
             end)
 
-
-    Actions.registerAction("turbobarcam_dev_reload", 'tp',
-            function()
-                ModuleManager.reloadChanged()
-                return true
-            end)
-
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
                 WidgetManager.toggle()
@@ -63,6 +56,12 @@ function Actions.coreActions()
                 return WidgetManager.toggleLockUnitSelection()
             end)
 
+    Actions.registerAction("turbobarcam_toggle_require_unit_selection", 'tp',
+            function()
+                WidgetManager.toggleRequireUnitSelection()
+                return true
+            end)
+
     Actions.registerAction("turbobarcam_toggle_zoom", 'p',
             function()
                 WidgetManager.toggleZoom()
@@ -72,12 +71,6 @@ function Actions.coreActions()
     Actions.registerAction("turbobarcam_set_fov", 'tp',
             function(_, param)
                 WidgetManager.setFov(param)
-                return true
-            end)
-
-    Actions.registerAction("turbobarcam_toggle_require_unit_selection", 'tp',
-            function()
-                WidgetManager.toggleRequireUnitSelection()
                 return true
             end)
 
@@ -176,7 +169,7 @@ function Actions.unitFollowActions()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'tR',
             function(_, params)
                 UnitFollowCamera.adjustParams(params)
                 return false
@@ -216,7 +209,7 @@ function Actions.projectileActions()
             end)
 
     -- Projectile camera parameter adjustments
-    Actions.registerAction("turbobarcam_projectile_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_projectile_adjust_params", 'tR',
             function(_, params)
                 ProjectileCamera.adjustParams(params)
                 return false
@@ -224,19 +217,19 @@ function Actions.projectileActions()
 end
 
 function Actions.anchorActions()
-    Actions.registerAction("turbobarcam_anchor_set", 'p',
+    Actions.registerAction("turbobarcam_anchor_set", 't',
             function(_, index)
                 CameraAnchor.set(index)
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_anchor_focus", 'p',
+    Actions.registerAction("turbobarcam_anchor_focus", 't',
             function(_, index)
                 CameraAnchor.focus(index)
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_anchor_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_anchor_adjust_params", 'tR',
             function(_, params)
                 CameraAnchor.adjustParams(params)
                 return false
@@ -252,14 +245,24 @@ function Actions.anchorActions()
                 return CameraAnchor.load(params)
             end)
 
-    Actions.registerAction("turbobarcam_anchor_toggle_visualization", 'tp',
+    Actions.registerAction("turbobarcam_anchor_toggle_visualization", 't',
             function()
                 return CameraAnchor.toggleVisualization()
             end)
 
-    Actions.registerAction("turbobarcam_anchor_update_all_durations", 'tp',
+    Actions.registerAction("turbobarcam_anchor_update_all_durations", 't',
             function()
                 return CameraAnchor.updateAllDurations()
+            end)
+
+    Actions.registerAction("turbobarcam_anchor_toggle_type", 't',
+            function(_, params)
+                return CameraAnchor.toggleLookAt(params)
+            end)
+
+    Actions.registerAction("turbobarcam_anchor_delete", 't',
+            function(_, params)
+                return CameraAnchor.delete(params)
             end)
 end
 
@@ -270,7 +273,7 @@ function Actions.trackingCameraActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_tracking_camera_adjust_params", 'tR',
             function(_, params)
                 UnitTrackingCamera.adjustParams(params)
                 return false
@@ -292,7 +295,7 @@ function Actions.orbitActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_orbit_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_orbit_adjust_params", 'tR',
             function(_, params)
                 OrbitingCamera.adjustParams(params)
                 return false
@@ -351,7 +354,7 @@ function Actions.groupTrackingActions()
                 return true
             end, nil)
 
-    Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'pR',
+    Actions.registerAction("turbobarcam_group_tracking_adjust_params", 'tR',
             function(_, params)
                 GroupTrackingCamera.adjustParams(params)
                 return false

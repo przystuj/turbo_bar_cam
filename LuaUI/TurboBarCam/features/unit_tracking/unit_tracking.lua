@@ -80,7 +80,6 @@ function UnitTrackingCamera.adjustParams(params)
         return
     end
     ParamUtils.adjustParams(params, "UNIT_TRACKING", function()
-        CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT = 0
     end)
 end
 

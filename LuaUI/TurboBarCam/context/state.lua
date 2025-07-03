@@ -9,6 +9,7 @@ if not WG.TurboBarCam.STATE then
 
         settings = {
             initialized = false,
+            ---@type PersistentStorage[]
             storages = {},
             loadModeSettingsFn = {
                 unit_follow = nil,
@@ -226,7 +227,7 @@ if not WG.TurboBarCam.STATE then
                 },
 
                 projectile_camera = {
-                    armed = false,
+                    isArmed = false,
                     watchedUnitID = nil,
                     continuouslyArmedUnitID = nil,
                     currentProjectileID = nil,

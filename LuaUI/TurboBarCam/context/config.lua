@@ -362,12 +362,6 @@ CONFIG.MODIFIABLE_PARAMS = {
             DURATION = { 0, nil },
         }
     },
-    UNIT_TRACKING = {
-        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_TRACKING,
-        PARAM_NAMES = {
-            HEIGHT = { -2000, 2000 },
-        }
-    },
     GROUP_TRACKING = {
         PARAMS_ROOT = CONFIG.CAMERA_MODES.GROUP_TRACKING,
         PARAM_NAMES = {

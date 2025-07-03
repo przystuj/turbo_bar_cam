@@ -26,34 +26,38 @@ UnitFollowCamera.COMMAND_DEFINITION = {
     action = 'turbobarcam_unit_follow_set_fixed_look_point',
 }
 
+local function disableMode()
+    ModeManager.disableAndStopDriver()
+    local selectedUnits = Spring.GetSelectedUnits()
+    if #selectedUnits > 0 then
+        Spring.SelectUnitArray(selectedUnits)
+    end
+end
+
 --- Toggles Unit Follow camera attached to a unit
----@param unitID number|nil The unit to track. If nil, uses the first selected unit.
-function UnitFollowCamera.toggle(unitID)
+function UnitFollowCamera.toggle()
+    local unitID
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
-    if not unitID then
-        local selectedUnits = Spring.GetSelectedUnits()
-        if #selectedUnits > 0 then
-            unitID = selectedUnits[1]
-        else
-            Log:debug("No unit selected for unit_follow view")
-            return
-        end
+    local selectedUnits = Spring.GetSelectedUnits()
+    if #selectedUnits > 0 then
+        unitID = selectedUnits[1]
+    else
+        Log:debug("No unit selected for unit_follow view")
+        disableMode()
+        return
     end
 
     if not Spring.ValidUnitID(unitID) then
         Log:trace("Invalid unit ID for unit_follow view: " .. tostring(unitID))
+        disableMode()
         return
     end
 
     if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID == unitID and not STATE.active.mode.optionalTargetCameraStateForModeEntry then
-        ModeManager.disableAndStopDriver()
-        local selectedUnits = Spring.GetSelectedUnits()
-        if #selectedUnits > 0 then
-            Spring.SelectUnitArray(selectedUnits)
-        end
+        disableMode()
         return
     end
 

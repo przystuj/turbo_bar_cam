@@ -127,7 +127,7 @@ function CameraAnchorVisualization.draw()
                                 lookAtPos.x, lookAtPos.y, lookAtPos.z,
                                 lineColor,
                                 CameraAnchorVisualization.settings.lineWidth * sizeMultiplier)
-                    elseif not activeAnchorId then
+                    elseif not activeAnchorId and lookAtPos and type(lookAtPos) == "table" then
                         -- If no anchor is active, draw full details for all anchors.
                         drawPoint(lookAtPos.x, lookAtPos.y, lookAtPos.z,
                                 CameraAnchorVisualization.settings.markerSize,

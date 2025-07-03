@@ -1,4 +1,4 @@
----@class Widget : RulesUnsyncedCallins
+---@type RulesUnsyncedCallins
 widget = widget
 
 ---@class Main just for navigation in IDE
@@ -35,6 +35,7 @@ local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionMan
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -57,6 +58,12 @@ local function setupApi()
         end,
         stop = function()
             WidgetManager.stop()
+        end,
+        loadSettings = function(name, id, default)
+            if not STATE.settings.storages[name] then
+                return nil
+            end
+            return SettingsManager.loadUserSetting(name, id, default)
         end,
     }
 end
