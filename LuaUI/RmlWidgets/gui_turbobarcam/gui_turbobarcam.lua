@@ -43,6 +43,39 @@ local availableModes = {
     projectile_camera = "Projectile Camera"
 }
 
+local initDataModel = {
+    status = "DISABLED",
+    currentMode = "None",
+    isEnabled = false,
+    activeTab = "driver",
+    -- Debug Info
+    debug_pos_smooth = "",
+    debug_rot_smooth = "",
+    debug_velocity = "",
+    debug_ang_velocity = "",
+    debug_distance = "",
+    debug_pos_complete = false,
+    debug_rot_complete = false,
+    -- Simulation Info
+    sim_position = "",
+    sim_velocity = "",
+    sim_orientation = "",
+    sim_ang_velocity = "",
+    -- Raw camera Info
+    raw_position = "",
+    raw_velocity = "",
+    raw_orientation = "",
+    raw_ang_velocity = "",
+    -- Projectile Camera Info
+    isProjectileCameraActive = false,
+    proj_cam_submode = "",
+    proj_cam_prev_mode = "",
+    proj_cam_status = "",
+    proj_cam_impact_countdown = "",
+    proj_cam_projectiles = {{id=0, pos="position"}},
+    show_mode_placeholder = false,
+}
+
 -- Update data model with current TurboBarCam state and keybindings
 local function updateDataModel()
     if not initialized or not dm_handle then
@@ -131,14 +164,22 @@ local function updateDataModel()
             return a.creationTime > b.creationTime
         end)
 
-        dm_handle.proj_cam_projectiles = {}
+        -- Clear the existing array in-place by removing elements from the end
+        while #dm_handle.proj_cam_projectiles > 0 do
+            table.remove(dm_handle.proj_cam_projectiles)
+        end
+
+        -- Insert new data into the original table instance
         for i = 1, math.min(3, #sortedProjectiles) do
             local p = sortedProjectiles[i]
             if p and p.position then
-                local pos_str = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
-                table.insert(dm_handle.proj_cam_projectiles, string.format("- ID: %s, Pos: (%s)", p.id, pos_str))
+                table.insert(dm_handle.proj_cam_projectiles, {
+                    id = p.id,
+                    pos = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
+                })
             end
         end
+
     end
 end
 
@@ -157,48 +198,24 @@ function widget:Initialize()
 
     STATE = WG.TurboBarCam and WG.TurboBarCam.STATE or {
         enabled = false,
-        tracking = { mode = "None" },
+        active = {
+            mode = {
+                name = nil
+            }
+        }
     }
 
     -- Open data model with all variables
     widget.rmlContext:RemoveDataModel(MODEL_NAME)
-    dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, {
-        status = STATE.enabled and "ENABLED" or "DISABLED",
-        currentMode = STATE.active.mode.name or "None",
-        isEnabled = STATE.enabled,
-        activeTab = "driver",
-        -- Debug Info
-        debug_pos_smooth = "",
-        debug_rot_smooth = "",
-        debug_velocity = "",
-        debug_ang_velocity = "",
-        debug_distance = "",
-        debug_pos_complete = false,
-        debug_rot_complete = false,
-        -- Simulation Info
-        sim_position = "",
-        sim_velocity = "",
-        sim_orientation = "",
-        sim_ang_velocity = "",
-        -- Raw camera Info
-        raw_position = "",
-        raw_velocity = "",
-        raw_orientation = "",
-        raw_ang_velocity = "",
-        -- Projectile Camera Info
-        isProjectileCameraActive = false,
-        proj_cam_submode = "",
-        proj_cam_prev_mode = "",
-        proj_cam_status = "",
-        proj_cam_impact_countdown = "",
-        proj_cam_projectiles = {},
-        show_mode_placeholder = false,
-    })
+    dm_handle = widget.rmlContext:OpenDataModel(MODEL_NAME, initDataModel)
 
     if not dm_handle then
         Log:warn("Failed to open data model")
         return false
     end
+
+    -- Get and set initial bindings
+    updateDataModel()
 
     -- Load the document (passing the widget for events)
     document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml", widget)
@@ -208,9 +225,6 @@ function widget:Initialize()
         widget.rmlContext:RemoveDataModel(MODEL_NAME)
         return false
     end
-
-    -- Get and set initial bindings
-    updateDataModel()
 
     -- Setup document
     document:ReloadStyleSheet()

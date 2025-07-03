@@ -46,10 +46,14 @@ div {
 .tabs {
     display: flex;
     flex-direction: row;
-    margin-bottom: 5dp;
-    border-bottom-width: 1dp;
-    border-bottom-style: solid;
-    border-bottom-color: #455A64;
+    position: relative;
+    z-index: 1;
+}
+
+.horizontal-rule {
+    height: 1dp;
+    background-color: #455A64;
+    margin-top: -6dp;
 }
 
 .tab-button {
@@ -61,7 +65,6 @@ div {
     margin-right: 2dp;
     border-width: 1dp;
     border-color: transparent;
-    border-bottom-color: transparent;
     font-size: 13dp;
 }
 
@@ -74,7 +77,6 @@ div {
     background-color: #1A2530;
     color: #F5F5F5;
     border-color: #455A64;
-    border-bottom-color: transparent;
     margin-bottom: -1dp;
 }
 
