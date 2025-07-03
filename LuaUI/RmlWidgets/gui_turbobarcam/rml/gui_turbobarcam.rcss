@@ -14,20 +14,18 @@ body {
     position: absolute;
     right: 20dp; /* Distance from right edge of screen */
     top: 50%; /* Position at 50% from top */
-    margin-top: -150dp; /* Offset by approximately half the height to center vertically */
+    transform: translateY(-50%);
 }
 
-/* Ensure all divs are block-level elements that start on new lines */
 div {
     display: block;
-    margin-bottom: 5dp;
 }
 
 /* Title bar styles */
 #title_bar {
     background-color: #1A2530;
-    padding: 5dp;
-    margin: -10dp -10dp 10dp -10dp; /* Negative margin to compensate for body padding */
+    padding: 5dp 8dp;
+    margin: -10dp -10dp 10dp -10dp;
     border-radius: 4dp 4dp 0 0;
     cursor: move;
     display: flex;
@@ -43,52 +41,12 @@ div {
     font-weight: bold;
 }
 
-.tabs {
-    display: flex;
-    flex-direction: row;
-    position: relative;
-    z-index: 1;
-}
-
-.horizontal-rule {
-    height: 1dp;
-    background-color: #455A64;
-    margin-top: -6dp;
-}
-
-.tab-button {
-    padding: 5dp 10dp;
-    cursor: pointer;
-    background-color: #263238;
-    color: #B0BEC5;
-    border-radius: 3dp 3dp 0 0;
-    margin-right: 2dp;
-    border-width: 1dp;
-    border-color: transparent;
-    font-size: 13dp;
-}
-
-.tab-button:hover {
-    background-color: #2C3B47;
-    color: #F5F5F5;
-}
-
-.tab-button.active {
-    background-color: #1A2530;
-    color: #F5F5F5;
-    border-color: #455A64;
-    margin-bottom: -1dp;
-}
-
 #status-indicator {
-    margin-left: auto;
-    padding-right: 5dp;
-    padding-left: 5dp;
+    padding: 0 5dp;
     font-size: 14dp;
 }
 
 .toggle-button {
-    width: auto;
     height: 20dp;
     background-color: #263238;
     border-width: 1dp;
@@ -107,112 +65,163 @@ div {
     color: #F5F5F5;
 }
 
-.section {
-    margin: 5dp 0dp;
-    padding: 5dp;
+.section-title {
+    font-size: 14dp;
+    color: #CFD8DC;
+    margin-bottom: 8dp;
+    padding: 4dp;
+    background-color: #232f38aa;
+    border-radius: 3dp;
+    text-align: center;
+}
+
+.highlight {
+    color: #90CAF9;
+    font-weight: bold;
+}
+
+.mode-section {
+    margin-bottom: 8dp;
+    padding: 8dp;
     background-color: #232F3899;
     border-radius: 3dp;
 }
 
-.keybind-section {
-    margin-top: 10dp;
-}
-
-.keybind-title {
+.mode-header {
     font-family: "Exo 2";
-    font-size: 15dp;
+    font-size: 14dp;
     color: #90CAF9;
-    margin-bottom: 5dp;
+    margin-bottom: 6dp;
+    padding-bottom: 3dp;
+    border-bottom: 1dp solid #455A64;
 }
 
-.keybind-row {
-    width: 100%;
-    margin-bottom: 3dp;
+.mode-actions {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+    gap: 5dp;
+    margin-bottom: 6dp;
 }
 
-.keybind-action {
-    color: #E0E0E0;
-    width: 70%;
-    text-align: left;
-    padding: 2dp 0;
-}
-
-.keybind-key {
-    color: #FFCC80;
-    text-align: right;
-    font-family: Poppins;
-    background-color: #1A2530;
-    border-radius: 2dp;
-    padding: 2dp 4dp;
-    margin-left: 5dp;
-    flex-shrink: 0;
-}
-
-.btn-toggle {
-    font-family: "Exo 2";
-    display: block;
-    width: auto;
-    padding: 5dp 10dp;
+.action-button {
+    flex-grow: 1;
+    padding: 4dp;
     background-color: #263238;
-    border-width: 1dp;
-    border-color: #455A64;
-    border-radius: 3dp;
+    border: 1dp solid #455A64;
     color: #B0BEC5;
-    cursor: pointer;
-    margin-top: 5dp;
+    border-radius: 3dp;
     text-align: center;
+    cursor: pointer;
+    font-size: 12dp;
 }
-
-.btn-toggle:hover {
+.action-button.full-width {
+    flex-basis: 100%;
+}
+.action-button:hover {
     background-color: #2C3B47;
+    border-color: #546E7A;
     color: #F5F5F5;
 }
 
-.status-enabled {
-    color: #8BC34A;
-    font-weight: bold;
+.param-grid, .param-grid-single {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 4dp 8dp;
+    align-items: center;
+    margin-bottom: 6dp;
+}
+.param-grid-single {
+    grid-template-columns: 1fr;
+}
+.param-grid-single > .param-controls {
+    justify-self: end;
 }
 
-.status-disabled {
-    color: #FF7043;
-    font-weight: bold;
-}
-
-.param-adjust {
-    color: #B0BEC5;
+.param-label {
     font-size: 12dp;
-    margin-top: 1dp;
-    display: block;
+    color: #B0BEC5;
+}
+.param-value {
+    color: #FFCC80;
+    font-weight: bold;
 }
 
-.mode-section {
+.param-controls {
+    display: flex;
+    flex-direction: row;
+}
+
+.param-button {
+    width: 22dp;
+    height: 22dp;
+    line-height: 22dp;
+    text-align: center;
+    background-color: #37474F;
+    color: #ECEFF1;
+    cursor: pointer;
+    font-size: 16dp;
+    font-weight: bold;
+}
+.param-button:hover {
+    background-color: #455A64;
+}
+.param-button:first-child {
+    border-radius: 3dp 0 0 3dp;
+    margin-right: 1dp;
+}
+.param-button:last-child {
+    border-radius: 0 3dp 3dp 0;
+}
+
+
+.placeholder-text {
+    text-align: center;
+    color: #78909C;
+    margin: 20dp;
+}
+
+/* Foldable Section */
+.foldable-section {
     margin-top: 10dp;
-    padding: 8dp;
+}
+
+.foldable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6dp;
     background-color: #1A2530;
     border-radius: 3dp;
-    font-size: 11dp;
+    cursor: pointer;
+    font-size: 13dp;
 }
-.projectile-item {
-    margin-left: 5dp;
+.foldable-header:hover {
+    background-color: #2C3B47;
 }
 
-/* Debug Section */
-.debug-section {
-    margin-top: 10dp;
+.arrow {
+    width: 8dp;
+    height: 8dp;
+    border-right: 2dp solid #90A4AE;
+    border-bottom: 2dp solid #90A4AE;
+    transform: rotate(-45deg);
+    transition: transform 0.2s;
+}
+.arrow.down {
+    transform: rotate(45deg);
+}
+
+.foldable-content {
     padding: 8dp;
-    background-color: #1A2530; /* Darker background */
-    border-radius: 3dp;
+    background-color: #1A2530;
+    border-radius: 0 0 3dp 3dp;
     font-size: 11dp;
 }
 
 .debug-title {
     font-family: "Exo 2";
     font-size: 14dp;
-    color: #FFAB91; /* A distinct color for the title */
+    color: #FFAB91;
     margin-bottom: 5dp;
     font-weight: bold;
 }
@@ -222,13 +231,17 @@ div {
     justify-content: space-between;
     margin-bottom: 2dp;
 }
+.debug-label { color: #B0BEC5; }
+.debug-value { color: #CFD8DC; }
+.projectile-item { margin-left: 5dp; }
 
-.debug-label {
-    color: #B0BEC5; /* Lighter grey for labels */
+/* Status Colors */
+.status-enabled {
+    color: #8BC34A;
     font-weight: bold;
 }
 
-.debug-value {
-    color: #CFD8DC; /* Slightly brighter for values */
-    font-family: Poppins;
+.status-disabled {
+    color: #FF7043;
+    font-weight: bold;
 }

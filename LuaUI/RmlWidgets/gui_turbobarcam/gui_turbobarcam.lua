@@ -47,7 +47,22 @@ local initDataModel = {
     status = "DISABLED",
     currentMode = "None",
     isEnabled = false,
-    activeTab = "driver",
+    isDriverFolded = true,
+    -- Parameter adjustment step values
+    adjustments = {
+        unit_follow = { DEFAULT = { HEIGHT = 5, FORWARD = 5, SIDE = 5, ROTATION = 0.1 } },
+        unit_tracking = { HEIGHT = 20 },
+        orbit = { DISTANCE = 20, HEIGHT = 20, SPEED = 0.01 },
+        group_tracking = { EXTRA_DISTANCE = 15, EXTRA_HEIGHT = 5, ORBIT_OFFSET = 0.01 },
+        overview = { HEIGHT = 1 },
+    },
+    -- Current values for display
+    current_params = {
+        unit_follow = { DEFAULT = { HEIGHT = 0, FORWARD = 0, SIDE = 0, ROTATION = 0 } },
+        unit_tracking = { HEIGHT = 0 },
+        orbit = { DISTANCE = 0, HEIGHT = 0, SPEED = 0 },
+        group_tracking = { EXTRA_DISTANCE = 0, EXTRA_HEIGHT = 0, ORBIT_OFFSET = 0 },
+    },
     -- Debug Info
     debug_pos_smooth = "",
     debug_rot_smooth = "",
@@ -61,11 +76,6 @@ local initDataModel = {
     sim_velocity = "",
     sim_orientation = "",
     sim_ang_velocity = "",
-    -- Raw camera Info
-    raw_position = "",
-    raw_velocity = "",
-    raw_orientation = "",
-    raw_ang_velocity = "",
     -- Projectile Camera Info
     isProjectileCameraActive = false,
     proj_cam_submode = "",
@@ -73,7 +83,6 @@ local initDataModel = {
     proj_cam_status = "",
     proj_cam_impact_countdown = "",
     proj_cam_projectiles = {{id=0, pos="position"}},
-    show_mode_placeholder = false,
 }
 
 -- Update data model with current TurboBarCam state and keybindings
@@ -97,6 +106,23 @@ local function updateDataModel()
     -- Update current mode
     local currentMode = STATE.active.mode.name or "None"
     dm_handle.currentMode = currentMode ~= "None" and (availableModes[currentMode] or currentMode) or "None"
+
+    -- Update current parameter values from CONFIG for display
+    if CONFIG then
+        local p = dm_handle.current_params
+        p.unit_follow.DEFAULT.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT
+        p.unit_follow.DEFAULT.FORWARD = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.FORWARD
+        p.unit_follow.DEFAULT.SIDE = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.SIDE
+        p.unit_follow.DEFAULT.ROTATION = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.ROTATION
+        p.unit_tracking.HEIGHT = CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT_OFFSET
+        p.orbit.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
+        p.orbit.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
+        p.orbit.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
+        p.group_tracking.EXTRA_DISTANCE = CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
+        p.group_tracking.EXTRA_HEIGHT = CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
+        p.group_tracking.ORBIT_OFFSET = CONFIG.CAMERA_MODES.GROUP_TRACKING.ORBIT_OFFSET
+    end
+
 
     -- Update debug info
     local targetSTATE = STATE.core.driver.target
@@ -124,17 +150,9 @@ local function updateDataModel()
     dm_handle.sim_orientation = string.format("rx: %.3f, ry: %.3f", sim.euler.rx, sim.euler.ry)
     dm_handle.sim_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", sim.angularVelocity.x, sim.angularVelocity.y, sim.angularVelocity.z)
 
-    -- Update raw camera info
-    local rawCam = STATE.core.camera
-    dm_handle.raw_position = string.format("x: %.1f, y: %.1f, z: %.1f", rawCam.position.x, rawCam.position.y, rawCam.position.z)
-    dm_handle.raw_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", rawCam.velocity.x, rawCam.velocity.y, rawCam.velocity.z)
-    dm_handle.raw_orientation = string.format("rx: %.3f, ry: %.3f", rawCam.euler.rx, rawCam.euler.ry)
-    dm_handle.raw_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", rawCam.angularVelocity.x, rawCam.angularVelocity.y, rawCam.angularVelocity.z)
-
     -- Update mode-specific info
     local isProjCam = STATE.active.mode.name == 'projectile_camera'
     dm_handle.isProjectileCameraActive = isProjCam
-    dm_handle.show_mode_placeholder = (dm_handle.activeTab == 'mode' and not isProjCam)
 
     if isProjCam then
         local projCamState = STATE.active.mode.projectile_camera
@@ -164,12 +182,12 @@ local function updateDataModel()
             return a.creationTime > b.creationTime
         end)
 
-        -- Clear the existing array in-place by removing elements from the end
+        -- Clear the existing array in-place
         while #dm_handle.proj_cam_projectiles > 0 do
             table.remove(dm_handle.proj_cam_projectiles)
         end
 
-        -- Insert new data into the original table instance
+        -- Insert new data
         for i = 1, math.min(3, #sortedProjectiles) do
             local p = sortedProjectiles[i]
             if p and p.position then
@@ -179,7 +197,6 @@ local function updateDataModel()
                 })
             end
         end
-
     end
 end
 
@@ -254,17 +271,37 @@ function widget:Shutdown()
     Log:info("Shutdown complete")
 end
 
-function widget:ToggleTurboBarCam()
-    if WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.ToggleTurboBarCam then
-        WG.TurboBarCam.API.ToggleTurboBarCam()
-    else
-        Log:warn(" Could not toggle TurboBarCam - UI functions not loaded")
-    end
+function widget:CallAction(action)
+    Spring.SendCommands(action)
 end
 
-function widget:SetTab(tabName)
+function widget:AdjustParam(mode, param_path, sign)
+    local path_parts = {}
+    for part in string.gmatch(param_path, "[^.]+") do
+        table.insert(path_parts, part)
+    end
+
+    local adj_value_tbl = dm_handle.adjustments[mode]
+    for i = 1, #path_parts do
+        adj_value_tbl = adj_value_tbl[path_parts[i]]
+    end
+    local value = adj_value_tbl
+
+    if sign == '-' then
+        value = -value
+    end
+    local action = string.format("turbobarcam_%s_adjust_params add;%s,%s", mode, param_path, tostring(value))
+    Spring.SendCommands(action)
+end
+
+function widget:ResetParams(mode)
+    local action = string.format("turbobarcam_%s_adjust_params reset", mode)
+    Spring.SendCommands(action)
+end
+
+function widget:ToggleDriverInfo()
     if dm_handle then
-        dm_handle.activeTab = tabName
+        dm_handle.isDriverFolded = not dm_handle.isDriverFolded
     end
 end
 

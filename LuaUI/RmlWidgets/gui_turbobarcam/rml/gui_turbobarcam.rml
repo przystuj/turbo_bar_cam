@@ -8,99 +8,154 @@
         <handle move_target="#document">
             <div id="title_bar">
                 <span id="title">TurboBarCam</span>
-                <div class="toggle-button" onclick="widget:ToggleTurboBarCam()">
-                    <span id="status-indicator" data-class-status-enabled="isEnabled"
-                          data-class-status-disabled="!isEnabled">{{ status }}</span>
+                <div class="toggle-button" onclick="widget:CallAction('turbobarcam_toggle')">
+                    <span id="status-indicator" data-class-status-enabled="isEnabled" data-class-status-disabled="!isEnabled">{{ status }}</span>
                 </div>
             </div>
         </handle>
 
-        <div class="tabs">
-            <div class="tab-button" data-class-active="activeTab == 'driver'" onclick="widget:SetTab('driver')">Driver
-            </div>
-            <div class="tab-button" data-class-active="activeTab == 'mode'" onclick="widget:SetTab('mode')">Mode State
-            </div>
-        </div>
-        <div class="horizontal-rule"></div>
-
-        <div class="tab-pane" data-if="activeTab == 'driver'">
-            <div class="section debug-section" data-if="isEnabled">
-                <div class="debug-title">Driver Transition Info</div>
-                <div class="debug-row">
-                    <span class="debug-label">Pos Smoothing:</span>
-                    <span class="debug-value">{{ debug_pos_smooth }}</span>
-                </div>
-                <div class="debug-row">
-                    <span class="debug-label">Rot Smoothing:</span>
-                    <span class="debug-value">{{ debug_rot_smooth }}</span>
-                </div>
-                <div class="debug-row">
-                    <span class="debug-label">Distance:</span>
-                    <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span>
-                </div>
-                <div class="debug-row">
-                    <span class="debug-label">Velocity:</span>
-                    <span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span>
-                </div>
-                <div class="debug-row">
-                    <span class="debug-label">Ang. Velocity:</span>
-                    <span class="debug-value"
-                          data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span>
-                </div>
+        <div data-if="isEnabled">
+            <div class="section-title" data-if="currentMode ~= 'None'">
+                Current Mode: <span class="highlight">{{ currentMode }}</span>
             </div>
 
-            <div class="section debug-section" data-if="isEnabled">
-                <div class="debug-title">Simulation State</div>
-                <div class="debug-row">
-                    <span class="debug-label">Position:</span>
-                    <span class="debug-value">{{ sim_position }}</span>
+            <div class="mode-section">
+                <div class="mode-header">Unit Follow</div>
+                <div class="mode-actions">
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_unit_follow_camera')">Toggle</div>
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_toggle_combat_mode')">Combat</div>
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_set_fixed_look_point')">Set Look</div>
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look</div>
                 </div>
-                <div class="debug-row">
-                    <span class="debug-label">Velocity:</span>
-                    <span class="debug-value">{{ sim_velocity }}</span>
+                <div class="param-grid">
+                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.HEIGHT) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '+')">+</div>
+                    </div>
+                    <div class="param-label">Forward: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.FORWARD) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '+')">+</div>
+                    </div>
+                    <div class="param-label">Side: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.SIDE) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '+')">+</div>
+                    </div>
                 </div>
-                <div class="debug-row">
-                    <span class="debug-label">Rotation (Euler):</span>
-                    <span class="debug-value">{{ sim_orientation }}</span>
-                </div>
-                <div class="debug-row">
-                    <span class="debug-label">Ang. Velocity:</span>
-                    <span class="debug-value">{{ sim_ang_velocity }}</span>
+                <div class="mode-actions">
+                    <div class="action-button full-width" onclick="widget:ResetParams('unit_follow')">Reset Params</div>
                 </div>
             </div>
-        </div>
 
-        <div class="tab-pane" data-if="activeTab == 'mode'">
-            <div class="section">
-                <div>Current Mode: <span>{{ currentMode }}</span></div>
+            <div class="mode-section">
+                <div class="mode-header">Unit Tracking</div>
+                <div class="mode-actions">
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_tracking_camera')">Toggle</div>
+                    <div class="action-button full-width" onclick="widget:ResetParams('unit_tracking')">Reset Params</div>
+                </div>
+                <div class="param-grid-single">
+                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.unit_tracking.HEIGHT) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '+')">+</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-section">
+                <div class="mode-header">Orbit</div>
+                <div class="mode-actions">
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_orbit_toggle')">Toggle</div>
+                    <div class="action-button full-width" onclick="widget:ResetParams('orbit')">Reset Params</div>
+                </div>
+                <div class="param-grid">
+                    <div class="param-label">Dist: <span class="param-value">{{ string.format('%.0f', current_params.orbit.DISTANCE) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '+')">+</div>
+                    </div>
+                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.orbit.HEIGHT) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '+')">+</div>
+                    </div>
+                    <div class="param-label">Speed: <span class="param-value">{{ string.format('%.2f', current_params.orbit.SPEED) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '+')">+</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-section">
+                <div class="mode-header">Group Tracking</div>
+                <div class="mode-actions">
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_group_tracking_camera')">Toggle</div>
+                    <div class="action-button full-width" onclick="widget:ResetParams('group_tracking')">Reset Params</div>
+                </div>
+                <div class="param-grid">
+                    <div class="param-label">Dist: <span class="param-value">{{ string.format('%.0f', current_params.group_tracking.EXTRA_DISTANCE) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '+')">+</div>
+                    </div>
+                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.group_tracking.EXTRA_HEIGHT) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '+')">+</div>
+                    </div>
+                    <div class="param-label">Orbit: <span class="param-value">{{ string.format('%.2f', current_params.group_tracking.ORBIT_OFFSET) }}</span></div>
+                    <div class="param-controls">
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '-')">-</div>
+                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '+')">+</div>
+                    </div>
+                </div>
             </div>
 
             <div class="mode-section" data-if="isProjectileCameraActive">
-                <div class="debug-title">Projectile Camera</div>
-                <div class="debug-row"><span class="debug-label">Submode:</span> <span class="debug-value">{{ proj_cam_submode }}</span>
+                <div class="mode-header">Projectile Camera</div>
+                <div class="mode-actions">
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_projectile_camera_track')">Track</div>
+                    <div class="action-button" onclick="widget:CallAction('turbobarcam_projectile_camera_follow')">Follow</div>
+                    <div class="action-button full-width" onclick="widget:ResetParams('projectile')">Reset Params</div>
                 </div>
-                <div class="debug-row"><span class="debug-label">Status:</span> <span class="debug-value"
-                                                                                      data-class-status-enabled="proj_cam_status == 'Tracking'">{{ proj_cam_status }}</span>
-                </div>
-                <div class="debug-row" data-if="proj_cam_status == 'Impact'"><span
-                        class="debug-label">Impact Countdown:</span> <span class="debug-value">{{ proj_cam_impact_countdown }}s</span>
-                </div>
-                <div class="debug-row"><span class="debug-label">Previous Mode:</span> <span class="debug-value">{{ proj_cam_prev_mode }}</span>
-                </div>
+                <div class="debug-row"><span class="debug-label">Submode:</span> <span class="debug-value">{{ proj_cam_submode }}</span></div>
+                <div class="debug-row"><span class="debug-label">Status:</span> <span class="debug-value" data-class-status-enabled="proj_cam_status == 'Tracking'">{{ proj_cam_status }}</span></div>
+                <div class="debug-row" data-if="proj_cam_status == 'Impact'"><span class="debug-label">Impact Countdown:</span> <span class="debug-value">{{ proj_cam_impact_countdown }}s</span></div>
                 <div class="debug-title" style="margin-top: 8dp; margin-bottom: 3dp;">Recent Projectiles</div>
-
-                <div data-for="p, i: proj_cam_projectiles" class="projectile-item debug-value" >
-                    - ID: {{ p.id }}, Pos: ({{ p.pos }})
-                </div>
+                <div data-for="p: proj_cam_projectiles" class="projectile-item debug-value" >- ID: {{ p.id }}, Pos: ({{ p.pos }})</div>
             </div>
-            <div class="mode-section" data-if="show_mode_placeholder">
-                <span>No active mode with specific state tracking.</span>
+
+        </div>
+
+        <div class="placeholder-text" data-if="!isEnabled">
+            TurboBarCam is disabled.
+        </div>
+
+        <div class="foldable-section">
+            <div class="foldable-header" onclick="widget:ToggleDriverInfo()">
+                <span>Driver & Simulation Info</span>
+                <div class="arrow" data-class-down="!isDriverFolded"/>
+            </div>
+            <div class="foldable-content" data-if="!isDriverFolded and isEnabled">
+                <div class="debug-title">Driver Transition Info</div>
+                <div class="debug-row"><span class="debug-label">Pos Smoothing:</span><span class="debug-value">{{ debug_pos_smooth }}</span></div>
+                <div class="debug-row"><span class="debug-label">Rot Smoothing:</span><span class="debug-value">{{ debug_rot_smooth }}</span></div>
+                <div class="debug-row"><span class="debug-label">Distance:</span><span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span></div>
+                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span></div>
+                <div class="debug-row"><span class="debug-label">Ang. Velocity:</span><span class="debug-value" data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span></div>
+
+                <div class="debug-title">Simulation State</div>
+                <div class="debug-row"><span class="debug-label">Position:</span><span class="debug-value">{{ sim_position }}</span></div>
+                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value">{{ sim_velocity }}</span></div>
+                <div class="debug-row"><span class="debug-label">Rotation (Euler):</span><span class="debug-value">{{ sim_orientation }}</span></div>
+                <div class="debug-row"><span class="debug-label">Ang. Velocity:</span><span class="debug-value">{{ sim_ang_velocity }}</span></div>
             </div>
         </div>
 
-        <handle size_target="#document"
-                style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;">
-        </handle>
+        <handle size_target="#document" style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;"></handle>
     </div>
     </body>
 </rml>
