@@ -271,6 +271,12 @@ function ProjectileCamera.update(dt)
     STATE.active.mode.projectile_camera.projectile = STATE.active.mode.projectile_camera.projectile or {}
     STATE.active.mode.projectile_camera.projectile.smoothedPositions = STATE.active.mode.projectile_camera.projectile.smoothedPositions or { camPos = nil, targetPos = nil }
 
+    if STATE.active.mode.projectile_camera.currentProjectileID then
+        if not ProjectileCamera.getCurrentProjectile(unitID) then
+            STATE.active.mode.projectile_camera.currentProjectileID = nil
+        end
+    end
+
     if not STATE.active.mode.projectile_camera.currentProjectileID then
         ProjectileCamera.selectProjectile(unitID)
         if not STATE.active.mode.projectile_camera.currentProjectileID then
