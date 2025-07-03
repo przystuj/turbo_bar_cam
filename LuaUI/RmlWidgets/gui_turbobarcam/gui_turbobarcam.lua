@@ -56,12 +56,12 @@ local initDataModel = {
         group_tracking = { EXTRA_DISTANCE = 15, EXTRA_HEIGHT = 5, ORBIT_OFFSET = 0.01 },
         overview = { HEIGHT = 1 },
     },
-    -- Current values for display
-    current_params = {
-        unit_follow = { DEFAULT = { HEIGHT = 0, FORWARD = 0, SIDE = 0, ROTATION = 0 } },
-        unit_tracking = { HEIGHT = 0 },
-        orbit = { DISTANCE = 0, HEIGHT = 0, SPEED = 0 },
-        group_tracking = { EXTRA_DISTANCE = 0, EXTRA_HEIGHT = 0, ORBIT_OFFSET = 0 },
+    -- Pre-formatted strings for display
+    display_params = {
+        unit_follow = { DEFAULT = { HEIGHT = "0", FORWARD = "0", SIDE = "0" } },
+        unit_tracking = { HEIGHT = "0" },
+        orbit = { DISTANCE = "0", HEIGHT = "0", SPEED = "0.00" },
+        group_tracking = { EXTRA_DISTANCE = "0", EXTRA_HEIGHT = "0", ORBIT_OFFSET = "0.00" },
     },
     -- Debug Info
     debug_pos_smooth = "",
@@ -82,7 +82,7 @@ local initDataModel = {
     proj_cam_prev_mode = "",
     proj_cam_status = "",
     proj_cam_impact_countdown = "",
-    proj_cam_projectiles = {{id=0, pos="position"}},
+    proj_cam_projectiles = {},
 }
 
 -- Update data model with current TurboBarCam state and keybindings
@@ -107,20 +107,20 @@ local function updateDataModel()
     local currentMode = STATE.active.mode.name or "None"
     dm_handle.currentMode = currentMode ~= "None" and (availableModes[currentMode] or currentMode) or "None"
 
-    -- Update current parameter values from CONFIG for display
+    -- Update current parameter values from CONFIG and format for display
     if CONFIG then
-        local p = dm_handle.current_params
-        p.unit_follow.DEFAULT.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT
-        p.unit_follow.DEFAULT.FORWARD = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.FORWARD
-        p.unit_follow.DEFAULT.SIDE = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.SIDE
-        p.unit_follow.DEFAULT.ROTATION = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.ROTATION
-        p.unit_tracking.HEIGHT = CONFIG.CAMERA_MODES.UNIT_TRACKING.HEIGHT_OFFSET
-        p.orbit.DISTANCE = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_DISTANCE
-        p.orbit.HEIGHT = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_HEIGHT
-        p.orbit.SPEED = CONFIG.CAMERA_MODES.ORBIT.DEFAULT_SPEED
-        p.group_tracking.EXTRA_DISTANCE = CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE
-        p.group_tracking.EXTRA_HEIGHT = CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
-        p.group_tracking.ORBIT_OFFSET = CONFIG.CAMERA_MODES.GROUP_TRACKING.ORBIT_OFFSET
+        local dp = dm_handle.display_params
+        local cfg = CONFIG.CAMERA_MODES
+        dp.unit_follow.DEFAULT.HEIGHT = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT or 0)
+        dp.unit_follow.DEFAULT.FORWARD = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.FORWARD or 0)
+        dp.unit_follow.DEFAULT.SIDE = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.SIDE or 0)
+        dp.unit_tracking.HEIGHT = string.format('%.0f', cfg.UNIT_TRACKING.HEIGHT or 0)
+        dp.orbit.DISTANCE = string.format('%.0f', cfg.ORBIT.OFFSETS.DISTANCE or 0)
+        dp.orbit.HEIGHT = string.format('%.0f', cfg.ORBIT.OFFSETS.HEIGHT or 0)
+        dp.orbit.SPEED = string.format('%.2f', cfg.ORBIT.OFFSETS.SPEED or 0)
+        dp.group_tracking.EXTRA_DISTANCE = string.format('%.0f', cfg.GROUP_TRACKING.EXTRA_DISTANCE or 0)
+        dp.group_tracking.EXTRA_HEIGHT = string.format('%.0f', cfg.GROUP_TRACKING.EXTRA_HEIGHT or 0)
+        dp.group_tracking.ORBIT_OFFSET = string.format('%.2f', cfg.GROUP_TRACKING.ORBIT_OFFSET or 0)
     end
 
 
@@ -171,9 +171,11 @@ local function updateDataModel()
         end
 
         local unitID = STATE.active.mode.unitID
-        local unitProjectiles = (unitID and STATE.core.projectileTracking.unitProjectiles[unitID]) or {}
+        local unitProjectiles = (unitID and STATE.core.projectileTracking.unitProjectiles[unitID].projectiles) or {}
         local sortedProjectiles = {}
-        for _, p in ipairs(unitProjectiles) do table.insert(sortedProjectiles, p) end
+        for _, p in ipairs(unitProjectiles) do
+            table.insert(sortedProjectiles, p)
+        end
 
         table.sort(sortedProjectiles, function(a, b)
             if type(a) ~= 'table' or type(b) ~= 'table' or not a.creationTime or not b.creationTime then
@@ -182,21 +184,27 @@ local function updateDataModel()
             return a.creationTime > b.creationTime
         end)
 
+
         -- Clear the existing array in-place
         while #dm_handle.proj_cam_projectiles > 0 do
             table.remove(dm_handle.proj_cam_projectiles)
         end
 
+        local selectedProjectiles = {}
+
         -- Insert new data
         for i = 1, math.min(3, #sortedProjectiles) do
             local p = sortedProjectiles[i]
-            if p and p.position then
-                table.insert(dm_handle.proj_cam_projectiles, {
-                    id = p.id,
-                    pos = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
-                })
-            end
+            table.insert(selectedProjectiles, {
+                id = p.id,
+                pos = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
+            })
         end
+
+        dm_handle.proj_cam_projectiles = selectedProjectiles
+
+        Log:debug(selectedProjectiles)
+        Log:debug(dm_handle.proj_cam_projectiles)
     end
 end
 
@@ -273,6 +281,16 @@ end
 
 function widget:CallAction(action)
     Spring.SendCommands(action)
+end
+
+function widget:SetUnitFollowLookPoint()
+    if CONFIG and CONFIG.COMMANDS then
+        local cmdID = CONFIG.COMMANDS.SET_FIXED_LOOK_POINT
+        local cmdDescIndex = Spring.GetCmdDescIndex(cmdID)
+        if cmdDescIndex then
+            Spring.SetActiveCommand(cmdDescIndex, 1, true, false, Spring.GetModKeyState())
+        end
+    end
 end
 
 function widget:AdjustParam(mode, param_path, sign)

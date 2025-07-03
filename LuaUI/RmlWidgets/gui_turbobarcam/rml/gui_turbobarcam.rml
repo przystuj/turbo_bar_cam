@@ -15,7 +15,7 @@
         </handle>
 
         <div data-if="isEnabled">
-            <div class="section-title" data-if="currentMode ~= 'None'">
+            <div class="section-title" data-if="currentMode != 'None'">
                 Current Mode: <span class="highlight">{{ currentMode }}</span>
             </div>
 
@@ -24,24 +24,30 @@
                 <div class="mode-actions">
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_unit_follow_camera')">Toggle</div>
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_toggle_combat_mode')">Combat</div>
-                    <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_set_fixed_look_point')">Set Look</div>
+                    <div class="action-button" onclick="widget:SetUnitFollowLookPoint()">Set Look</div>
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look</div>
                 </div>
-                <div class="param-grid">
-                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.HEIGHT) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '+')">+</div>
+                <div class="param-container">
+                    <div class="param-row">
+                        <div class="param-label">Height: <span class="param-value">{{ display_params.unit_follow.DEFAULT.HEIGHT }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.HEIGHT', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Forward: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.FORWARD) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Forward: <span class="param-value">{{ display_params.unit_follow.DEFAULT.FORWARD }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.FORWARD', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Side: <span class="param-value">{{ string.format('%.0f', current_params.unit_follow.DEFAULT.SIDE) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Side: <span class="param-value">{{ display_params.unit_follow.DEFAULT.SIDE }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('unit_follow', 'DEFAULT.SIDE', '+')">+</div>
+                        </div>
                     </div>
                 </div>
                 <div class="mode-actions">
@@ -55,11 +61,13 @@
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_tracking_camera')">Toggle</div>
                     <div class="action-button full-width" onclick="widget:ResetParams('unit_tracking')">Reset Params</div>
                 </div>
-                <div class="param-grid-single">
-                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.unit_tracking.HEIGHT) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '+')">+</div>
+                <div class="param-container">
+                    <div class="param-row">
+                        <div class="param-label">Height: <span class="param-value">{{ display_params.unit_tracking.HEIGHT }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('unit_tracking', 'HEIGHT', '+')">+</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -70,21 +78,27 @@
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_orbit_toggle')">Toggle</div>
                     <div class="action-button full-width" onclick="widget:ResetParams('orbit')">Reset Params</div>
                 </div>
-                <div class="param-grid">
-                    <div class="param-label">Dist: <span class="param-value">{{ string.format('%.0f', current_params.orbit.DISTANCE) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '+')">+</div>
+                <div class="param-container">
+                    <div class="param-row">
+                        <div class="param-label">Dist: <span class="param-value">{{ display_params.orbit.DISTANCE }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'DISTANCE', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.orbit.HEIGHT) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Height: <span class="param-value">{{ display_params.orbit.HEIGHT }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'HEIGHT', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Speed: <span class="param-value">{{ string.format('%.2f', current_params.orbit.SPEED) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Speed: <span class="param-value">{{ display_params.orbit.SPEED }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('orbit', 'SPEED', '+')">+</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -95,21 +109,27 @@
                     <div class="action-button" onclick="widget:CallAction('turbobarcam_toggle_group_tracking_camera')">Toggle</div>
                     <div class="action-button full-width" onclick="widget:ResetParams('group_tracking')">Reset Params</div>
                 </div>
-                <div class="param-grid">
-                    <div class="param-label">Dist: <span class="param-value">{{ string.format('%.0f', current_params.group_tracking.EXTRA_DISTANCE) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '+')">+</div>
+                <div class="param-container">
+                    <div class="param-row">
+                        <div class="param-label">Dist: <span class="param-value">{{ display_params.group_tracking.EXTRA_DISTANCE }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_DISTANCE', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Height: <span class="param-value">{{ string.format('%.0f', current_params.group_tracking.EXTRA_HEIGHT) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Height: <span class="param-value">{{ display_params.group_tracking.EXTRA_HEIGHT }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'EXTRA_HEIGHT', '+')">+</div>
+                        </div>
                     </div>
-                    <div class="param-label">Orbit: <span class="param-value">{{ string.format('%.2f', current_params.group_tracking.ORBIT_OFFSET) }}</span></div>
-                    <div class="param-controls">
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '-')">-</div>
-                        <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '+')">+</div>
+                    <div class="param-row">
+                        <div class="param-label">Orbit: <span class="param-value">{{ display_params.group_tracking.ORBIT_OFFSET }}</span></div>
+                        <div class="param-controls">
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '-')">-</div>
+                            <div class="param-button" onclick="widget:AdjustParam('group_tracking', 'ORBIT_OFFSET', '+')">+</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -137,9 +157,9 @@
         <div class="foldable-section">
             <div class="foldable-header" onclick="widget:ToggleDriverInfo()">
                 <span>Driver & Simulation Info</span>
-                <div class="arrow" data-class-down="!isDriverFolded"/>
+                <span class="arrow" data-class-down="!isDriverFolded">></span>
             </div>
-            <div class="foldable-content" data-if="!isDriverFolded and isEnabled">
+            <div class="foldable-content" data-if="!isDriverFolded && isEnabled">
                 <div class="debug-title">Driver Transition Info</div>
                 <div class="debug-row"><span class="debug-label">Pos Smoothing:</span><span class="debug-value">{{ debug_pos_smooth }}</span></div>
                 <div class="debug-row"><span class="debug-label">Rot Smoothing:</span><span class="debug-value">{{ debug_rot_smooth }}</span></div>
