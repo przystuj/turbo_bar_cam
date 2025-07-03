@@ -16,10 +16,24 @@ local OrbitPersistence = ModuleManager.OrbitPersistence(function(m) OrbitPersist
 local OrbitingCamera = {}
 local MODE_NAME = CONSTANTS.MODE.ORBIT
 
-local function setupAngleForUnit(unitID)
-    local unitX, _, unitZ = Spring.GetUnitPosition(unitID)
-    local camState = Spring.GetCameraState()
-    STATE.active.mode.orbit.angle = math.atan2(camState.px - unitX, camState.pz - unitZ)
+local function initialize()
+    Log:debug("Initializing Orbit mode.")
+    if STATE.active.mode.orbit.loadedAngleForEntry then
+        STATE.active.mode.orbit.angle = STATE.active.mode.orbit.loadedAngleForEntry
+        STATE.active.mode.orbit.loadedAngleForEntry = nil
+        Log:trace("Using loaded angle for entry.")
+    else
+        local targetPos = OrbitCameraUtils.getTargetPosition()
+        if not targetPos then
+            Log:debug("Could not get target position for angle setup. Disabling mode.")
+            ModeManager.disableAndStopDriver()
+            return
+        end
+        local camState = Spring.GetCameraState()
+        STATE.active.mode.orbit.angle = math.atan2(camState.px - targetPos.x, camState.pz - targetPos.z)
+        Log:trace("Orbit angle initialized via setup.")
+    end
+    STATE.active.mode.orbit.isModeInitialized = true
 end
 
 function OrbitingCamera.toggle()
@@ -58,7 +72,6 @@ function OrbitingCamera.toggle()
 
     if ModeManager.initializeMode(MODE_NAME, unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         STATE.active.mode.orbit.isPaused = false
-        setupAngleForUnit(unitID)
         Log:debug("Orbiting camera enabled for unit " .. unitID)
     end
 end
@@ -77,13 +90,20 @@ function OrbitingCamera.togglePointOrbit()
 
     if ModeManager.initializeMode(MODE_NAME, point, CONSTANTS.TARGET_TYPE.POINT) then
         STATE.active.mode.orbit.isPaused = false
-        local camState = Spring.GetCameraState()
-        STATE.active.mode.orbit.angle = math.atan2(camState.px - point.x, camState.pz - point.z)
     end
 end
 
 function OrbitingCamera.update(dt)
     if Utils.isTurboBarCamDisabled() or STATE.active.mode.name ~= MODE_NAME then
+        return
+    end
+
+    if not STATE.active.mode.orbit.isModeInitialized then
+        initialize()
+    end
+
+    -- Check if initialize() might have disabled the mode
+    if STATE.active.mode.name ~= MODE_NAME then
         return
     end
 
