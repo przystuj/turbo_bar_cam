@@ -271,22 +271,6 @@ function UnitFollowUtils.handleNewTarget()
         z = currentCameraState.pz
     }
 
-    -- Store previous direction vector (used for calculating target camera position)
-    if STATE.active.mode.unit_follow.weaponDir then
-        STATE.active.mode.unit_follow.previousWeaponDir = {
-            STATE.active.mode.unit_follow.weaponDir[1],
-            STATE.active.mode.unit_follow.weaponDir[2],
-            STATE.active.mode.unit_follow.weaponDir[3]
-        }
-    else
-        local _, frontVec, _, _ = Spring.GetUnitVectors(trackedUnitID)
-        if frontVec then
-            STATE.active.mode.unit_follow.previousWeaponDir = { frontVec[1], frontVec[2], frontVec[3] }
-        else
-            STATE.active.mode.unit_follow.previousWeaponDir = { 0, 0, 1 }  -- Fallback
-        end
-    end
-
     -- Start transition
     STATE.active.mode.unit_follow.isTargetSwitchTransition = true
     STATE.active.mode.unit_follow.targetSwitchStartTime = currentTime
@@ -606,7 +590,6 @@ function UnitFollowUtils.applyStabilizationOrTransition(targetCamPosWorld)
 end
 
 -- Separate function to handle camera transition
--- This follows the guideline to split large conditionals into functions
 function UnitFollowUtils.handleTransition(targetCamPosWorld)
     local now = Spring.GetTimer()
     local elapsed = Spring.DiffTimers(now, STATE.active.mode.unit_follow.targetSwitchStartTime or now)
@@ -614,7 +597,6 @@ function UnitFollowUtils.handleTransition(targetCamPosWorld)
 
     -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
     local rawProgress = math.min(1.0, elapsed / transitionDuration)
-    -- Ease-in-out: smoother at start and end of transition
     local progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
 
     if progress < 1.0 then

@@ -44,11 +44,8 @@
 ---@field SpecGroups fun(hook: fun(module: SpecGroups)):SpecGroups
 ---@field STATE fun(hook: fun(module: WidgetState)):WidgetState
 ---@field CONSTANTS fun(hook: fun(module: Constants)):Constants
----@field TransitionManager fun(hook: fun(module: TransitionManager)):TransitionManager
----@field TransitionUtil fun(hook: fun(module: TransitionUtil)):TransitionUtil
 ---@field UnitTrackingCamera fun(hook: fun(module: UnitTrackingCamera)):UnitTrackingCamera
 ---@field UpdateManager fun(hook: fun(module: UpdateManager)):UpdateManager
----@field VelocityTracker fun(hook: fun(module: VelocityTracker)):VelocityTracker
 ---@field WidgetManager fun(hook: fun(module: WidgetManager)):WidgetManager
 ---@field QuaternionUtils fun(hook: fun(module: QuaternionUtils)):QuaternionUtils
 ---@field CameraStateTracker fun(hook: fun(module: CameraStateTracker )):CameraStateTracker
@@ -78,7 +75,6 @@ local SimpleModules = {
 
     SelectionManager = "core/selection_manager.lua",
     SettingsManager = "core/settings_manager.lua",
-    TransitionManager = "core/transition_manager.lua",
     UpdateManager = "core/update_manager.lua",
     WidgetManager = "core/widget_manager.lua",
 
@@ -126,8 +122,6 @@ local SimpleModules = {
     MouseManager = "standalone/mouse_manager.lua",
     ProjectileTracker = "standalone/projectile_tracker.lua",
     Scheduler = "standalone/scheduler.lua",
-    TransitionUtil = "standalone/transition_util.lua",
-    VelocityTracker = "standalone/velocity_tracker.lua",
 
     DebugUtils = "utils/debug_utils.lua",
     ParamUtils = "utils/param_utils.lua",

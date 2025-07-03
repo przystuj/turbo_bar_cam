@@ -125,7 +125,6 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
             if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID then
                 STATE.active.mode.unit_follow.inTargetSelectionMode = true
                 STATE.active.mode.unit_follow.prevFreeCamState = STATE.active.mode.unit_follow.isFreeCameraActive
-                STATE.active.mode.unit_follow.prevMode = STATE.active.mode.name
                 STATE.active.mode.unit_follow.prevFixedPoint = STATE.active.mode.unit_follow.fixedPoint
                 STATE.active.mode.unit_follow.prevFixedPointActive = STATE.active.mode.unit_follow.isFixedPointActive
 

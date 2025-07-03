@@ -1,12 +1,9 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowCombatMode")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
-local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "unit_follow_attack_state_debounce"
@@ -150,11 +147,6 @@ function UnitFollowCombatMode.clearAttackingState()
     STATE.active.mode.unit_follow.activeWeaponNum = nil
     STATE.active.mode.unit_follow.lastTargetPos = nil -- Clear the last target position
     STATE.active.mode.unit_follow.lastTargetUnitID = nil -- Clear the last target unit ID
-    STATE.active.mode.unit_follow.lastTargetUnitName = nil -- Clear the last target unit name
-    STATE.active.mode.unit_follow.lastTargetType = nil -- Clear the last target type
-    STATE.active.mode.unit_follow.lastRotationRx = nil -- Clear last rotation values
-    STATE.active.mode.unit_follow.lastRotationRy = nil
-    STATE.active.mode.unit_follow.targetRotationHistory = {} -- Clear rotation history
 end
 
 --- Extracts target position from a weapon target and detects target switches.
@@ -202,12 +194,7 @@ function UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
 
     -- Update the globally tracked last target info *after* comparison and potential transition trigger
     STATE.active.mode.unit_follow.lastTargetPos = newTargetPos
-    STATE.active.mode.unit_follow.lastTargetType = targetType
     STATE.active.mode.unit_follow.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
-    if targetUnitID then
-        local unitDef = UnitDefs[Spring.GetUnitDefID(targetUnitID)]
-        STATE.active.mode.unit_follow.lastTargetUnitName = unitDef and unitDef.name or "Unnamed unit"
-    end
 
     -- Return the determined target position for the specific weapon
     return newTargetPos, isNewTarget, targetUnitID, targetType
@@ -312,7 +299,7 @@ function UnitFollowCombatMode.getCurrentAttackTarget(unitID)
 
     -- If no target was found, but we have a last target position and we're in attacking state
     if not targetPos and STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
-        Log:debug("Using last target position for " .. (STATE.active.mode.unit_follow.lastTargetUnitName or "unknown target"))
+        Log:debug("Using last target position")
         UnitFollowCombatMode.scheduleAttackStateDisable()
         -- Return the last known target position and the active weapon number
         return STATE.active.mode.unit_follow.lastTargetPos, STATE.active.mode.unit_follow.activeWeaponNum

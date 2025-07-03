@@ -43,9 +43,6 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
         if STATE.active.mode.name == 'unit_follow' then
             UnitFollowCamera.handleSelectNewUnit()
-            STATE.active.mode.unit_follow.lastUnitProjectileID = nil
-            STATE.active.mode.unit_follow.projectileTrackingEnabled = false
-            STATE.active.mode.unit_follow.lastProjectilePosition = nil
         end
 
         -- Switch tracking to the new unit

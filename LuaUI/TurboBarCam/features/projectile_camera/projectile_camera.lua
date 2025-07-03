@@ -115,13 +115,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     STATE.active.mode.projectile_camera.lastArmingTime = Spring.GetGameSeconds()
     STATE.active.mode.projectile_camera.impactPosition = nil
     STATE.active.mode.projectile_camera.isHighArc = false
-    STATE.active.mode.projectile_camera.highArcDirectionChangeCompleted = false
-
-    if STATE.active.mode.projectile_camera.projectile then
-        STATE.active.mode.projectile_camera.projectile.selectedProjectileID = nil
-        STATE.active.mode.projectile_camera.projectile.currentProjectileID = nil
-        ProjectileCameraUtils.resetSmoothedPositions()
-    end
+    STATE.active.mode.projectile_camera.currentProjectileID = nil
 
     ProjectileTracker.initUnitTracking(unitID)
     Log:debug("Projectile tracking enabled in mode = " .. subMode)
@@ -134,8 +128,7 @@ function ProjectileCamera.disableProjectileArming()
     STATE.active.mode.projectile_camera.isHighArc = false
 
     if STATE.active.mode.projectile_camera.projectile then
-        STATE.active.mode.projectile_camera.projectile.selectedProjectileID = nil
-        STATE.active.mode.projectile_camera.projectile.currentProjectileID = nil
+        STATE.active.mode.projectile_camera.currentProjectileID = nil
     end
     Log:debug("Projectile tracking disabled") -- This was an original log message
 end
@@ -149,7 +142,6 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
         end
     end
     Log:debug("Projectile tracking switched to " .. newSubMode)
-    ProjectileCameraUtils.resetSmoothedPositions()
     return true
 end
 
@@ -282,9 +274,9 @@ function ProjectileCamera.update(dt)
     STATE.active.mode.projectile_camera.projectile = STATE.active.mode.projectile_camera.projectile or {}
     STATE.active.mode.projectile_camera.projectile.smoothedPositions = STATE.active.mode.projectile_camera.projectile.smoothedPositions or { camPos = nil, targetPos = nil }
 
-    if not STATE.active.mode.projectile_camera.projectile.currentProjectileID then
+    if not STATE.active.mode.projectile_camera.currentProjectileID then
         ProjectileCamera.selectProjectile(unitID)
-        if not STATE.active.mode.projectile_camera.projectile.currentProjectileID then
+        if not STATE.active.mode.projectile_camera.currentProjectileID then
             ProjectileCamera.handleImpactView()
             return
         end
@@ -311,10 +303,10 @@ function ProjectileCamera.handleProjectileTracking(unitID, dt)
 end
 
 function ProjectileCamera.getCurrentProjectile(unitID)
-    if not STATE.active.mode.projectile_camera.projectile or not STATE.active.mode.projectile_camera.projectile.currentProjectileID then
+    if not STATE.active.mode.projectile_camera.projectile or not STATE.active.mode.projectile_camera.currentProjectileID then
         return nil
     end
-    local currentID = STATE.active.mode.projectile_camera.projectile.currentProjectileID
+    local currentID = STATE.active.mode.projectile_camera.currentProjectileID
     local projectiles = ProjectileTracker.getUnitProjectiles(unitID)
     for _, proj in ipairs(projectiles) do
         if proj.id == currentID then
@@ -337,7 +329,7 @@ function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     local projectilePos = currentProjectile.position
     local projectileVelocity = currentProjectile.velocity
     local camPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(projectilePos, projectileVelocity, STATE.active.mode.projectile_camera.cameraMode, STATE.active.mode.projectile_camera.isHighArc)
-    local targetPos = ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVelocity)
+    local targetPos = ProjectileCameraUtils.calculateTargetPosition(projectilePos, projectileVelocity)
 
     local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, targetPos)
     cameraDriverJob.position = camPos
@@ -354,9 +346,6 @@ function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
         return
     end
 
-    local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
-    local ROTATION_THRESHOLD = cfg.DIRECTION_TRANSITION_THRESHOLD
-
     local currentDir = { x = projectileVelocity.x, y = projectileVelocity.y, z = projectileVelocity.z }
     local lastDir = { x = projectilePreviousVelocity.x, y = projectilePreviousVelocity.y, z = projectilePreviousVelocity.z }
     local currentDirXZ = { x = currentDir.x, y = 0, z = currentDir.z }
@@ -369,14 +358,6 @@ function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
         local dot_xz = MathUtils.vector.dot(MathUtils.vector.normalize(currentDirXZ), MathUtils.vector.normalize(lastDirXZ))
         dot_xz = math.max(-1.0, math.min(1.0, dot_xz))
         angle = math.acos(dot_xz)
-    end
-
-    if angle > ROTATION_THRESHOLD and not STATE.active.mode.projectile_camera.highArcDirectionChangeCompleted then
-        STATE.active.mode.projectile_camera.highArcDirectionChangeCompleted = true
-        -- FIXME
-        -- The visual "dip" effect via TransitionManager has been removed for this refactoring.
-        -- The camera will naturally follow the projectile's change in direction via continuous
-        -- updates to the CameraDriver.
     end
 end
 
@@ -401,7 +382,7 @@ function ProjectileCamera.decelerateToImpactPosition()
     -- The point to look at is the impact site
     local impactWorldPos = STATE.active.mode.projectile_camera.impactPosition.pos
     local impactVel = STATE.active.mode.projectile_camera.impactPosition.vel or { x = 0, y = 0, z = 0 }
-    local targetLookPos = ProjectileCameraUtils.calculateIdealTargetPosition(impactWorldPos, impactVel)
+    local targetLookPos = ProjectileCameraUtils.calculateTargetPosition(impactWorldPos, impactVel)
 
     -- FIX: Calculate a final camera position near the impact to fly towards,
     -- instead of stopping in place.
@@ -449,9 +430,9 @@ function ProjectileCamera.selectProjectile(unitID)
     end
 
     local newProjectileSelected = false
-    if latestValidProjectile and (STATE.active.mode.projectile_camera.projectile.currentProjectileID ~= latestValidProjectile.id) then
+    if latestValidProjectile and (STATE.active.mode.projectile_camera.currentProjectileID ~= latestValidProjectile.id) then
         newProjectileSelected = true
-    elseif not latestValidProjectile and STATE.active.mode.projectile_camera.projectile.currentProjectileID ~= nil then
+    elseif not latestValidProjectile and STATE.active.mode.projectile_camera.currentProjectileID ~= nil then
         newProjectileSelected = true
     end
 
@@ -462,32 +443,24 @@ function ProjectileCamera.selectProjectile(unitID)
 
     if latestValidProjectile and newProjectileSelected then
         STATE.active.mode.projectile_camera.projectile = STATE.active.mode.projectile_camera.projectile or {}
-        STATE.active.mode.projectile_camera.projectile.selectedProjectileID = latestValidProjectile.id
-        STATE.active.mode.projectile_camera.projectile.currentProjectileID = latestValidProjectile.id
-        ProjectileCameraUtils.resetSmoothedPositions()
+        STATE.active.mode.projectile_camera.currentProjectileID = latestValidProjectile.id
         Log:trace("ProjectileCamera: Selected projectile " .. latestValidProjectile.id) -- Original log
-        -- REMOVED STATE.active.mode.projectile_camera.impactPosition = nil
-        STATE.active.mode.projectile_camera.projectile.trackingStartTime = Spring.GetTimer()
 
         local projectileVelocity = latestValidProjectile.velocity
         if projectileVelocity.speed > 0.01 then
             local upComponent = projectileVelocity.y
             if upComponent > HIGH_ARC_THRESHOLD then
                 STATE.active.mode.projectile_camera.isHighArc = true
-                STATE.active.mode.projectile_camera.highArcDirectionChangeCompleted = false -- Initialize based on some criteria if needed
                 Log:trace("ProjectileCamera: High Arc detected.") -- Original log
             else
                 STATE.active.mode.projectile_camera.isHighArc = false
             end
         else
             STATE.active.mode.projectile_camera.isHighArc = false
-            STATE.active.mode.projectile_camera.highArcDirectionChangeCompleted = false
         end
     elseif newProjectileSelected then
         STATE.active.mode.projectile_camera.projectile = STATE.active.mode.projectile_camera.projectile or {}
-        STATE.active.mode.projectile_camera.projectile.selectedProjectileID = nil
-        STATE.active.mode.projectile_camera.projectile.currentProjectileID = nil
-        STATE.active.mode.projectile_camera.projectile.trackingStartTime = nil
+        STATE.active.mode.projectile_camera.currentProjectileID = nil
     end
 end
 --------------------------------------------------------------------------------

@@ -89,7 +89,7 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
     return result
 end
 
-function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, projectileVel)
+function ProjectileCameraUtils.calculateTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local subMode = STATE.active.mode.projectile_camera.cameraMode
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
@@ -138,13 +138,6 @@ function ProjectileCameraUtils.calculateIdealTargetPosition(projectilePos, proje
         }
     end
     return baseTarget
-end
-
-function ProjectileCameraUtils.resetSmoothedPositions()
-    if STATE.active.mode.projectile_camera.projectile and STATE.active.mode.projectile_camera.projectile.smoothedPositions then
-        STATE.active.mode.projectile_camera.projectile.smoothedPositions.camPos = nil
-        STATE.active.mode.projectile_camera.projectile.smoothedPositions.targetPos = nil
-    end
 end
 
 function ProjectileCameraUtils.resetToDefaults()

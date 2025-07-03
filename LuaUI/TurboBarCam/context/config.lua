@@ -192,10 +192,6 @@ if not WG.TurboBarCam.CONFIG then
             PROJECTILE_CAMERA = {
                 DEFAULT_CAMERA_MODE = "follow",
                 COMPATIBLE_MODES_FROM = { "unit_follow", "unit_tracking", "orbit" },
-                DEFAULT_MODE_FALLBACK = "unit_tracking",
-                IMPACT_TIMEOUT = 0, -- Time to stay on impact after deceleration
-
-                ENTRY_TRANSITION_DURATION = 1,
 
                 DIRECTION_TRANSITION_DURATION = 5,
                 DIRECTION_TRANSITION_THRESHOLD = 0.0003,

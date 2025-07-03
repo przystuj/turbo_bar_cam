@@ -2,7 +2,6 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "CameraCommons")
-local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 
 ---@class CameraCommons
@@ -60,21 +59,6 @@ function CameraCommons.sphericalInterpolate(center, startPos, endPos, factor, pr
     return result
 end
 
-function CameraCommons.shouldUseSphericalInterpolation(currentPos, targetPos, center)
-    if TransitionManager.isTransitioning() then
-        return false
-    end
-    local vec = MathUtils.vector
-
-    local currentVec = vec.normalize({x = currentPos.x - center.x, y = 0, z = currentPos.z - center.z})
-    local newVec = vec.normalize({x = targetPos.x - center.x, y = 0, z = targetPos.z - center.z})
-
-    local dot = vec.dot(currentVec, newVec)
-
-    -- Return true if angle is significant (dot < 0.7 is roughly > 45 degrees)
-    return dot < 0.7
-end
-
 --- Calculates camera direction vector and rotation angles to look from camPos to targetPos.
 function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
     local cPos = {x = camPos.x or camPos.px, y = camPos.y or camPos.py, z = camPos.z or camPos.pz}
@@ -90,22 +74,6 @@ function CameraCommons.calculateCameraDirectionToThePoint(camPos, targetPos)
     local ry = math.atan2(dirNorm.x, -dirNorm.z)
 
     return { dx = dirNorm.x, dy = dirNorm.y, dz = dirNorm.z, rx = rx, ry = ry, rz = 0 }
-end
-
---- Converts rotation angles (pitch, yaw) into a normalized direction vector.
-function CameraCommons.getDirectionFromRotation(rx, ry)
-    rx = rx or 0
-    ry = ry or 0
-
-    local sin_rx, cos_rx = math.sin(rx), math.cos(rx)
-    local sin_ry, cos_ry = math.sin(ry), math.cos(ry)
-
-    local dir = {
-        x = sin_rx * sin_ry,
-        y = cos_rx,
-        z = -sin_rx * cos_ry
-    }
-    return MathUtils.vector.normalize(dir)
 end
 
 --============================================================================--

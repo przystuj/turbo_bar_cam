@@ -113,9 +113,6 @@ if not WG.TurboBarCam.STATE then
 
             scheduler = { schedules = {} },
 
-            -- Transitions (Managed by TransitionManager)
-            transitions = {},
-
             dollyCam = {
                 isNavigating = false,
                 currentDistance = 0,
@@ -173,11 +170,8 @@ if not WG.TurboBarCam.STATE then
                 optionalTargetCameraStateForModeEntry = nil,
 
                 unit_follow = {
-                    isModeInitialized = false,
-                    transitionFactor = nil,
                     inTargetSelectionMode = false,
                     prevFreeCamState = false,
-                    prevMode = nil,
                     prevFixedPoint = nil,
                     isFreeCameraActive = false,
                     targetUnitID = nil,
@@ -188,25 +182,12 @@ if not WG.TurboBarCam.STATE then
                     weaponDir = nil,
                     activeWeaponNum = nil,
                     forcedWeaponNumber = nil,
-                    projectileTrackingEnabled = false,
-                    lastUnitProjectileID = nil,
-                    lastProjectilePosition = nil,
                     combatModeEnabled = false,
-                    useLookAtTarget = false,
                     lastTargetPos = nil,
                     lastTargetUnitID = nil,
-                    lastTargetUnitName = nil,
-                    lastTargetType = nil,
-                    lastRotationRx = nil,
-                    lastRotationRy = nil,
-                    initialTargetAcquisitionTime = nil,
-                    targetRotationHistory = {},
-                    rotationChangeThreshold = 0.05,
                     isTargetSwitchTransition = false,
                     targetSwitchStartTime = nil,
                     targetSwitchDuration = 0.4,
-                    previousWeaponDir = { x = 0, y = 0, z = 0 },
-                    previousCamPosRelative = { x = 0, y = 0, z = 0 },
 
                     freeCam = {
                         lastMouseX = nil,
@@ -227,7 +208,6 @@ if not WG.TurboBarCam.STATE then
                         lastTargetSwitchTime = nil,
                         targetSwitchCount = 0,
                         currentTargetKey = nil,
-                        targetAimOffset = { x = 0, y = 0, z = 0 },
                         targetPrediction = {
                             enabled = false,
                             velocityX = 0,
@@ -249,6 +229,7 @@ if not WG.TurboBarCam.STATE then
                     armed = false,
                     watchedUnitID = nil,
                     continuouslyArmedUnitID = nil,
+                    currentProjectileID = nil,
                     returnToPreviousMode = false,
                     lastArmingTime = 0,
                     previousMode = nil,
@@ -257,21 +238,8 @@ if not WG.TurboBarCam.STATE then
                     cameraMode = nil,
                     initialCamPos = nil,
                     isHighArc = false,
-                    highArcGoingUpward = false,
-                    highArcDirectionChangeCompleted = false,
                     isDeceleratingToImpact = false,
                     impactDecelStartTime = nil,
-
-                    projectile = {
-                        selectedProjectileID = nil,
-                        currentProjectileID = nil,
-                        lastSwitchTime = nil,
-                        isWatchingForProjectiles = false,
-                        smoothedPositions = nil,
-                        trackingStartTime = nil,
-                        lastProjectileVel = nil,
-                        lastProjectileVelY = nil,
-                    },
                 },
 
                 group_tracking = {

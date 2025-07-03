@@ -7,7 +7,6 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
-local TransitionManager = ModuleManager.TransitionManager(function(m) TransitionManager = m end)
 local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
@@ -63,7 +62,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
 
     if STATE.active.mode.name == newModeName and finalValidType == CONSTANTS.TARGET_TYPE.UNIT and
             finalValidType == STATE.active.mode.targetType and validTarget == STATE.active.mode.unitID and
-            not allowReinit and not TransitionManager.isTransitioning() then
+            not allowReinit then
         SettingsManager.saveModeSettings(newModeName, STATE.active.mode.unitID)
         ModeManager.disableMode()
         Log:trace("Toggled off mode " .. newModeName .. " for unit " .. validTarget)
@@ -111,7 +110,6 @@ function ModeManager.disableMode()
     if STATE.active.mode.name then
         Log:debug("Disabling mode: " .. STATE.active.mode.name)
     end
-    TransitionManager.stopAll()
 
     if STATE.active.mode.name then
         if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
