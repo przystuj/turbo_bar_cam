@@ -238,8 +238,7 @@ if not WG.TurboBarCam.STATE then
                     cameraMode = nil,
                     initialCamPos = nil,
                     isHighArc = false,
-                    isDeceleratingToImpact = false,
-                    impactDecelStartTime = nil,
+                    impactTime = nil,
                 },
 
                 group_tracking = {

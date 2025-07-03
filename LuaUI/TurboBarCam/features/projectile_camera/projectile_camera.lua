@@ -6,6 +6,7 @@ local CONSTANTS = ModuleManager.CONSTANTS(function(m) CONSTANTS = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileCamera")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
+local MathUtils = ModuleManager.MathUtils(function(m) MathUtils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
 local ProjectileCameraUtils = ModuleManager.ProjectileCameraUtils(function(m) ProjectileCameraUtils = m end)
@@ -45,7 +46,7 @@ function ProjectileCamera.toggle(requestedSubMode)
     local isFollowingProjectileMode = currentActualMode == 'projectile_camera'
     local currentSubMode = STATE.active.mode.projectile_camera.cameraMode
     local isContinuous = (STATE.active.mode.projectile_camera.continuouslyArmedUnitID == unitToWatchForToggle)
-    local isImpactDecelerating = STATE.active.mode.projectile_camera.isDeceleratingToImpact
+    local isImpactDecelerating = STATE.active.mode.projectile_camera.impactTime ~= nil
 
     if isFollowingProjectileMode or isImpactDecelerating then
         if currentSubMode == requestedSubMode and not isImpactDecelerating then
@@ -247,16 +248,12 @@ function ProjectileCamera.update(dt)
         return
     end
 
-    if STATE.active.mode.projectile_camera.isDeceleratingToImpact then
-        local startTime = STATE.active.mode.projectile_camera.impactDecelStartTime
-        if startTime then
-            local duration = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE.DURATION
-            if Spring.DiffTimers(Spring.GetTimer(), startTime) >= duration then
-                STATE.active.mode.projectile_camera.isDeceleratingToImpact = false
-                STATE.active.mode.projectile_camera.impactDecelStartTime = nil
-                STATE.active.mode.projectile_camera.returnToPreviousMode = true
-                CameraDriver.stop()
-            end
+    local impactTime = STATE.active.mode.projectile_camera.impactTime
+    if impactTime then
+        local impactViewDuration = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_VIEW_DURATION
+        if Spring.DiffTimers(Spring.GetTimer(), impactTime) >= impactViewDuration then
+            STATE.active.mode.projectile_camera.impactTime = nil
+            STATE.active.mode.projectile_camera.returnToPreviousMode = true
         end
         return
     end
@@ -277,7 +274,9 @@ function ProjectileCamera.update(dt)
     if not STATE.active.mode.projectile_camera.currentProjectileID then
         ProjectileCamera.selectProjectile(unitID)
         if not STATE.active.mode.projectile_camera.currentProjectileID then
-            ProjectileCamera.handleImpactView()
+            if not STATE.active.mode.projectile_camera.impactTime then
+                STATE.active.mode.projectile_camera.impactTime = Spring.GetTimer()
+            end
             return
         end
     end
@@ -296,9 +295,7 @@ function ProjectileCamera.handleProjectileTracking(unitID, dt)
             pos = TableUtils.deepCopy(currentProjectile.position),
             vel = TableUtils.deepCopy(currentProjectile.velocity)
         }
-        ProjectileCamera.trackActiveProjectile(currentProjectile)
-    else
-        ProjectileCamera.handleImpactView()
+        ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     end
 end
 
@@ -317,14 +314,6 @@ function ProjectileCamera.getCurrentProjectile(unitID)
 end
 
 ---@param currentProjectile Projectile
-function ProjectileCamera.trackActiveProjectile(currentProjectile)
-    if STATE.active.mode.projectile_camera.isHighArc then
-        ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
-    end
-
-    ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
-end
-
 function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     local projectilePos = currentProjectile.position
     local projectileVelocity = currentProjectile.velocity
@@ -359,44 +348,6 @@ function ProjectileCamera.handleHighArcProjectileTurn(currentProjectile)
         dot_xz = math.max(-1.0, math.min(1.0, dot_xz))
         angle = math.acos(dot_xz)
     end
-end
-
-function ProjectileCamera.handleImpactView()
-    if not STATE.active.mode.projectile_camera.impactPosition then
-        Log:warn("No impact position available!! Please report a bug")
-        ModeManager.disableMode()
-        return
-    end
-
-    if STATE.active.mode.projectile_camera.isDeceleratingToImpact then
-        return
-    end
-    ProjectileCamera.decelerateToImpactPosition()
-end
-
-function ProjectileCamera.decelerateToImpactPosition()
-    STATE.active.mode.projectile_camera.isDeceleratingToImpact = true
-    local profile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
-    local smoothing = profile.DURATION
-
-    -- The point to look at is the impact site
-    local impactWorldPos = STATE.active.mode.projectile_camera.impactPosition.pos
-    local impactVel = STATE.active.mode.projectile_camera.impactPosition.vel or { x = 0, y = 0, z = 0 }
-    local targetLookPos = ProjectileCameraUtils.calculateTargetPosition(impactWorldPos, impactVel)
-
-    -- FIX: Calculate a final camera position near the impact to fly towards,
-    -- instead of stopping in place.
-    local subMode = STATE.active.mode.projectile_camera.cameraMode or CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DEFAULT_CAMERA_MODE
-    local finalCamPos = ProjectileCameraUtils.calculateCameraPositionForProjectile(impactWorldPos, impactVel, subMode, STATE.active.mode.projectile_camera.isHighArc)
-
-    local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, targetLookPos)
-    cameraDriverJob.position = finalCamPos
-    cameraDriverJob.positionSmoothing = smoothing
-    cameraDriverJob.rotationSmoothing = smoothing / 2
-    cameraDriverJob.run()
-
-    -- Set a timer to know when this phase is over
-    STATE.active.mode.projectile_camera.impactDecelStartTime = Spring.GetTimer()
 end
 
 function ProjectileCamera.shouldUpdate()

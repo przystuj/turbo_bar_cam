@@ -193,11 +193,9 @@ if not WG.TurboBarCam.CONFIG then
                 DEFAULT_CAMERA_MODE = "follow",
                 COMPATIBLE_MODES_FROM = { "unit_follow", "unit_tracking", "orbit" },
 
-                DIRECTION_TRANSITION_DURATION = 5,
-                DIRECTION_TRANSITION_THRESHOLD = 0.0003,
-
-                POSITION_SMOOTHING = 1,
-                ROTATION_SMOOTHING = 3,
+                POSITION_SMOOTHING = 2,
+                ROTATION_SMOOTHING = 1,
+                IMPACT_VIEW_DURATION = 1.5,
 
                 FOLLOW = {
                     DISTANCE = 800,
@@ -394,12 +392,6 @@ CONFIG.MODIFIABLE_PARAMS = {
             ["FOLLOW.DISTANCE"] = { nil, nil },
             ["FOLLOW.HEIGHT"] = { nil, nil },
             ["FOLLOW.LOOK_AHEAD"] = { nil, nil },
-            ["DECELERATION_PROFILE.DURATION"] = { 0, 10 },
-            ["DECELERATION_PROFILE.INITIAL_BRAKING"] = { 1, 2000 },
-            ["DECELERATION_PROFILE.PATH_ADHERENCE"] = { 0.1, 1 },
-            ["DIRECTION_TRANSITION_DURATION"] = { 0.1, 5.0 },
-            ["DIRECTION_TRANSITION_ROTATION_FACTOR"] = { 0.001, 0.5 },
-            ["DIRECTION_TRANSITION_THRESHOLD_RAD"] = { 0.0087, 0.349, "rad"}, -- Approx 0.5 to 20 degrees
         }
     },
 }
