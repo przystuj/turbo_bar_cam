@@ -68,9 +68,9 @@ end
 
 local function UpdateNewAnchorSetName(event)
     local params_map = event.parameters
-     if params_map and params_map['value'] then
-         dm_handle.anchors.newAnchorSetName = params_map['value']
-     end
+    if params_map and params_map['value'] then
+        dm_handle.anchors.newAnchorSetName = params_map['value']
+    end
 end
 
 local function AdjustParam(_, mode, param_path, sign)
@@ -172,6 +172,19 @@ local function SaveExistingAnchorSet(_, setId)
     Spring.SendCommands("turbobarcam_anchor_save " .. setId)
 end
 
+local function SetNewAnchorDuration(event)
+    local params_map = event.parameters
+    if params_map and params_map['value'] then
+        local value = tonumber(params_map['value'])
+        if value then
+            dm_handle.anchors.newAnchorDuration = value
+            dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', value)
+            local action = string.format("turbobarcam_anchor_adjust_params set;DURATION,%s", tostring(value))
+            Spring.SendCommands(action)
+        end
+    end
+end
+
 local function AddNewAnchor(_)
     local maxId = 0
     if STATE.anchor and STATE.anchor.points then
@@ -207,6 +220,8 @@ local initDataModel = {
         hasAnchors = false,
         visualizationEnabled = false,
         newAnchorSetName = "",
+        newAnchorDuration = 10,
+        newAnchorDurationDisplay = "10.0s",
     },
     savedAnchorSets = {},
     hasSavedAnchorSets = false,
@@ -284,6 +299,7 @@ local initDataModel = {
     SaveNewAnchorSet = SaveNewAnchorSet,
     SaveExistingAnchorSet = SaveExistingAnchorSet,
     AddNewAnchor = AddNewAnchor,
+    SetNewAnchorDuration = SetNewAnchorDuration,
     UpdateAllAnchorDurations = UpdateAllAnchorDurations,
 }
 
@@ -498,6 +514,12 @@ function widget:Initialize()
     if not dm_handle then
         Log:warn("Failed to open data model")
         return false
+    end
+
+    if CONFIG and CONFIG.CAMERA_MODES and CONFIG.CAMERA_MODES.ANCHOR then
+        local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION or 10
+        dm_handle.anchors.newAnchorDuration = duration
+        dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', duration)
     end
 
     -- Get and set initial bindings

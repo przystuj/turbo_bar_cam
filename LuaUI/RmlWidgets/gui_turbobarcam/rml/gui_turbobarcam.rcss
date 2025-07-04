@@ -438,11 +438,9 @@ input.text-input::placeholder {
 .option-item {
     padding-bottom: 10dp;
     margin-bottom: 10dp;
-    border-bottom: 1dp solid #455A64;
 }
 
 .option-item:last-child {
-    border-bottom: none;
     margin-bottom: 0;
     padding-bottom: 0;
 }

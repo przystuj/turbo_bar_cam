@@ -9,8 +9,8 @@
             <div id="title_bar">
                 <span id="title">TurboBarCam</span>
                 <div class="toggle-button" data-event-click="CallAction('turbobarcam_toggle')">
-                  <span id="status-indicator" data-class-status-enabled="isEnabled"
-                        data-class-status-disabled="!isEnabled">{{ status }}</span>
+                    <span id="status-indicator" data-class-status-enabled="isEnabled"
+                          data-class-status-disabled="!isEnabled">{{ status }}</span>
                 </div>
             </div>
         </handle>
@@ -23,8 +23,7 @@
                      class="mode-button"
                      data-class-active="currentMode == mode.id"
                      data-class-disabled="!isUnitSelected && currentMode != mode.id"
-                     data-event-click="CallAction(mode.action, isUnitSelected ||
-                  currentMode == mode.id)">
+                     data-event-click="CallAction(mode.action, isUnitSelected || currentMode == mode.id)">
                     {{ mode.name }}
                 </div>
             </div>
@@ -210,6 +209,10 @@
                         <div class="action-button" data-event-click="ToggleAnchorVisualization"
                              data-class-active="anchors.visualizationEnabled">Toggle HUD
                         </div>
+                    </div>
+                    <div style="padding: 5dp 8dp 0 8dp;">
+                        <div class="input-field-label">Duration of new anchors: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span></div>
+                        <input type="range" min="1" max="200" step="1" data-attr-value="anchors.newAnchorDuration" data-event-change="SetNewAnchorDuration" style="width: 100%;" />
                     </div>
                     <div class="sub-section-title">Current Anchors</div>
                     <div class="item-list" data-if="anchors.hasAnchors">
