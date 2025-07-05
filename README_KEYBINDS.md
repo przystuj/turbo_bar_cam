@@ -18,12 +18,13 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Anchor Params**<br>`turbobarcam_anchor_adjust_params` | Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'. | `Ctrl+Shift+numpad-`<br>`Ctrl+Shift+numpad+` | `add;DURATION,-1`<br>`add;DURATION,1` |
-| **Focus Anchor**<br>`turbobarcam_anchor_focus` | Smoothly transitions the camera to a previously saved anchor point. | `Shift+F1`<br>`Shift+F2`<br>`Shift+F3`<br>`Shift+F4` | `1`<br>`2`<br>`3`<br>`4` |
-| **Focus Anchor & Track**<br>`turbobarcam_anchor_focus_while_tracking` | Transitions to a camera anchor while attempting to keep the currently tracked unit (if any from a compatible mode) in view. If no unit is tracked or mode is incompatible, behaves like 'Focus Anchor'. | `Ctrl+Shift+F1`<br>`Ctrl+Shift+F2`<br>`Ctrl+Shift+F3`<br>`Ctrl+Shift+F4` | `1`<br>`2`<br>`3`<br>`4` |
+| **Delete anchor**<br>`turbobarcam_anchor_delete` | Deletes the anchor by id | N/A | N/A |
+| **Focus Anchor**<br>`turbobarcam_anchor_focus` | Smoothly transitions the camera to a previously saved anchor point. | `Shift+F1`<br>`Shift+F2`<br>`Shift+F3`<br>`Shift+F4`<br>`Shift+F5`<br>`Shift+F6` | `1`<br>`2`<br>`3`<br>`4`<br>`5`<br>`6` |
 | **Load Anchors**<br>`turbobarcam_anchor_load` | Loads a set of camera anchor points from the storage, specific to the current map. | N/A | N/A |
 | **Save Anchors**<br>`turbobarcam_anchor_save` | Saves the current set of camera anchor points to the storage, specific to the current map. | N/A | N/A |
-| **Set Anchor**<br>`turbobarcam_anchor_set` | Saves the current camera position and state as a numbered anchor point. | `Ctrl+F1`<br>`Ctrl+F2`<br>`Ctrl+F3`<br>`Ctrl+F4` | `1`<br>`2`<br>`3`<br>`4` |
-| **Set Anchor Easing**<br>`turbobarcam_anchor_easing` | Sets the easing function for camera anchor transitions, affecting the acceleration and deceleration of the movement. | N/A | N/A |
+| **Set Anchor**<br>`turbobarcam_anchor_set` | Saves the current camera position and state as a numbered anchor point. | `Ctrl+F1`<br>`Ctrl+F2`<br>`Ctrl+F3`<br>`Ctrl+F4`<br>`Ctrl+F5`<br>`Ctrl+F6` | `1`<br>`2`<br>`3`<br>`4`<br>`5`<br>`6` |
+| **Sync anchors duration**<br>`turbobarcam_anchor_update_all_durations` | Sets all anchors to the same duration (the one you can control with duration adjustment) | `Ctrl+Shift+Alt+numpad+` | N/A |
+| **Toggle anchors HUD**<br>`turbobarcam_anchor_toggle_visualization` | Toggle anchors HUD (Shows them as points in the game) | `Ctrl+Shift+Alt+numpad-` | N/A |
 
 ## DollyCam Mode
 
@@ -51,14 +52,13 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | **Next Weapon**<br>`turbobarcam_unit_follow_next_weapon` | Cycles to the next available weapon of the unit in combat mode for aiming. | `PageDown` | N/A |
 | **Set Look Point**<br>`turbobarcam_unit_follow_set_fixed_look_point` | Activates target selection mode. Click on a point on the map or a unit to make the camera continuously look at that target while following the primary unit. | `numpad/` | N/A |
 | **Toggle Combat Mode**<br>`turbobarcam_unit_follow_toggle_combat_mode` | Toggles combat mode, which may change camera offsets and enable weapon-specific aiming. | `End` | N/A |
-| **Toggle Free Cam**<br>`turbobarcam_unit_follow_toggle_free_cam` | Toggles free camera mouse look in mode, allowing manual control of the camera direction independent of unit heading. | N/A | N/A |
 | **Toggle Unit Follow**<br>`turbobarcam_toggle_unit_follow_camera` | Toggles Unit Follow camera mode. Attaches the camera to the currently selected unit. If already in mode for that unit, it disables it. | `numpad1` | N/A |
 
 ## Group Tracking Mode
 
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
-| **Adjust Group Track Params**<br>`turbobarcam_group_tracking_adjust_params` | Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'. | `numpad5`<br>`numpad8`<br>`Ctrl+numpad8`<br>`Ctrl+numpad5`<br>`numpad4`<br>`numpad6`<br>`numpad7`<br>`numpad9`<br>`Ctrl+numpad0`<br>`Ctrl+numpad9`<br>`Ctrl+numpad7` | `add;EXTRA_DISTANCE,15`<br>`add;EXTRA_DISTANCE,-15`<br>`add;EXTRA_HEIGHT,5`<br>`add;EXTRA_HEIGHT,-5`<br>`add;ORBIT_OFFSET,0.01`<br>`add;ORBIT_OFFSET,-0.01`<br>`add;SMOOTHING.POSITION,-0.002;SMOOTHING.STABLE_POSITION,-0.002`<br>`add;SMOOTHING.POSITION,0.002;SMOOTHING.STABLE_POSITION,0.002`<br>`reset`<br>`set;SMOOTHING.POSITION,0.2;SMOOTHING.STABLE_POSITION,0.2;SMOOTHING.ROTATION,0.2;SMOOTHING.STABLE_ROTATION,0.2`<br>`set;SMOOTHING.POSITION,0.03;SMOOTHING.STABLE_POSITION,0.03;SMOOTHING.ROTATION,0.03;SMOOTHING.STABLE_ROTATION,0.03` |
+| **Adjust Group Track Params**<br>`turbobarcam_group_tracking_adjust_params` | Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'. | `numpad5`<br>`numpad8`<br>`Ctrl+numpad8`<br>`Ctrl+numpad5`<br>`numpad4`<br>`numpad6`<br>`numpad7`<br>`numpad9`<br>`Ctrl+numpad0`<br>`Ctrl+numpad9`<br>`Ctrl+numpad7` | `add;EXTRA_DISTANCE,15`<br>`add;EXTRA_DISTANCE,-15`<br>`add;EXTRA_HEIGHT,5`<br>`add;EXTRA_HEIGHT,-5`<br>`add;ORBIT_OFFSET,0.01`<br>`add;ORBIT_OFFSET,-0.01`<br>`add;SMOOTHING.POSITION,-1;SMOOTHING.STABLE_POSITION,-1`<br>`add;SMOOTHING.POSITION,1;SMOOTHING.STABLE_POSITION,1`<br>`reset`<br>`set;SMOOTHING.POSITION,1;SMOOTHING.STABLE_POSITION,1;SMOOTHING.ROTATION,1;SMOOTHING.STABLE_ROTATION,1`<br>`set;SMOOTHING.POSITION,20;SMOOTHING.STABLE_POSITION,20;SMOOTHING.ROTATION,20;SMOOTHING.STABLE_ROTATION,20` |
 | **Toggle Group Tracking**<br>`turbobarcam_toggle_group_tracking_camera` | Toggles the Group Tracking Camera mode. Tracks the center of mass of the currently selected units. If already tracking, it disables the mode. | `numpad0` | N/A |
 
 ## Orbit Mode
@@ -100,11 +100,10 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Spectator Unit Group**<br>`turbobarcam_spec_unit_group` | Manages spectator unit groups. Allows setting a group with selected units, selecting units from a group, or clearing a group. Requires spectator mode. | N/A | N/A |
-| **Toggle PlayerCam Selection Lock**<br>`turbobarcam_toggle_playercam_selection` | Toggles whether unit selection is locked or follows the spectated player's selection when the game's Player Camera view is active. | `Ctrl+numpad.` | N/A |
+| **Toggle PlayerCam Selection Lock**<br>`turbobarcam_toggle_playercam_selection` | Toggles whether unit selection is locked or follows the spectated player's selection when the game's Player Camera view is active. | N/A | N/A |
 
 ## Development Actions
 
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Dev: Change Config**<br>`turbobarcam_dev_config` | Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors. | N/A | N/A |
-| **Dev: Reload Widget**<br>`turbobarcam_dev_reload` | Hot reloads widget files without losing the current state, useful for development to apply code changes instantly. | N/A | N/A |

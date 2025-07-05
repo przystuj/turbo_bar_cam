@@ -4,19 +4,9 @@
     "label": "Adjust Anchor Params",
     "parameters": "`action;param,value;...` (e.g., `add;DURATION,0.5` or `set;DURATION,3` or `reset`). Available param: `DURATION`."
   },
-  "turbobarcam_anchor_easing": {
-    "description": "Sets the easing function for camera anchor transitions, affecting the acceleration and deceleration of the movement.",
-    "label": "Set Anchor Easing",
-    "parameters": "`none|in|out|inout` (e.g., `inout` for smooth start and end)"
-  },
   "turbobarcam_anchor_focus": {
     "description": "Smoothly transitions the camera to a previously saved anchor point.",
     "label": "Focus Anchor",
-    "parameters": "`index` (numeric, e.g., 1)"
-  },
-  "turbobarcam_anchor_focus_while_tracking": {
-    "description": "Transitions to a camera anchor while attempting to keep the currently tracked unit (if any from a compatible mode) in view. If no unit is tracked or mode is incompatible, behaves like 'Focus Anchor'.",
-    "label": "Focus Anchor & Track",
     "parameters": "`index` (numeric, e.g., 1)"
   },
   "turbobarcam_anchor_load": {
@@ -43,11 +33,6 @@
     "description": "Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.",
     "label": "Dev: Change Config",
     "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.UNIT_FOLLOW.OFFSETS.UP 25`)"
-  },
-  "turbobarcam_dev_reload": {
-    "description": "Hot reloads widget files without losing the current state, useful for development to apply code changes instantly.",
-    "label": "Dev: Reload Widget",
-    "parameters": "None"
   },
   "turbobarcam_dollycam_add": {
     "description": "Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode.",
@@ -132,11 +117,6 @@
   "turbobarcam_unit_follow_toggle_combat_mode": {
     "description": "Toggles combat mode, which may change camera offsets and enable weapon-specific aiming.",
     "label": "Toggle Combat Mode",
-    "parameters": "None"
-  },
-  "turbobarcam_unit_follow_toggle_free_cam": {
-    "description": "Toggles free camera mouse look in mode, allowing manual control of the camera direction independent of unit heading.",
-    "label": "Toggle Free Cam",
     "parameters": "None"
   },
   "turbobarcam_group_tracking_adjust_params": {
@@ -258,5 +238,20 @@
     "description": "Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', or 'reset'.",
     "label": "Adjust Unit Track Params",
     "parameters": "`action;param,value;...` (e.g., `add;HEIGHT,50` or `reset`). Available param: `HEIGHT`."
+  },
+  "turbobarcam_anchor_delete": {
+    "description": "Deletes the anchor by id",
+    "label": "Delete anchor",
+    "parameters": "anchorId"
+  },
+  "turbobarcam_anchor_toggle_visualization": {
+    "description": "Toggle anchors HUD (Shows them as points in the game)",
+    "label": "Toggle anchors HUD",
+    "parameters": "None"
+  },
+  "turbobarcam_anchor_update_all_durations": {
+    "description": "Sets all anchors to the same duration (the one you can control with duration adjustment)",
+    "label": "Sync anchors duration",
+    "parameters": "None"
   }
 }
