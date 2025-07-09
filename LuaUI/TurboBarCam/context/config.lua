@@ -54,7 +54,7 @@ if not WG.TurboBarCam.CONFIG then
 
             UNIT_FOLLOW = {
                 MOUSE_SENSITIVITY = 0.004,
-                INITIAL_TRANSITION_DURATION = 1.2,  -- Duration of the entry transition into unit_follow mode
+                INITIAL_TRANSITION_DURATION = 1.2, -- Duration of the entry transition into unit_follow mode
                 OFFSETS = {
                     -- DEFAULT mode offsets
                     DEFAULT = {
@@ -192,6 +192,7 @@ if not WG.TurboBarCam.CONFIG then
             PROJECTILE_CAMERA = {
                 DEFAULT_CAMERA_MODE = "follow",
                 COMPATIBLE_MODES_FROM = { "unit_follow", "unit_tracking", "orbit" },
+                TRACKABLE_UNIT_DEFS = { "armsilo", "corsilo", },
 
                 POSITION_SMOOTHING = 2,
                 ROTATION_SMOOTHING = 1,

@@ -228,17 +228,24 @@ if not WG.TurboBarCam.STATE then
                 },
 
                 projectile_camera = {
+                    -- State for "arming" workflow
                     isArmed = false,
                     watchedUnitID = nil,
                     continuouslyArmedUnitID = nil,
-                    currentProjectileID = nil,
-                    returnToPreviousMode = false,
                     lastArmingTime = 0,
+
+                    -- State for global "cycling" workflow
+                    trackedProjectiles = {},
+                    currentProjectileIndex = 0,
+
+                    -- Common state for both workflows
+                    currentProjectileID = nil,
+                    returnToPreviousMode = true,
                     previousMode = nil,
                     previousCameraState = nil,
                     previousModeState = nil,
                     impactPosition = nil,
-                    cameraMode = nil,
+                    cameraMode = "follow",
                     initialCamPos = nil,
                     isHighArc = false,
                     impactTime = nil,

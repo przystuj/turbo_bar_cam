@@ -29,6 +29,7 @@ local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local Actions = ModuleManager.Actions(function(m) Actions = m end)
 local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
+local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local UpdateManager = ModuleManager.UpdateManager(function(m) UpdateManager = m end)
 local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionManager = m end)
@@ -70,6 +71,12 @@ local function setupApi()
             STATE.error.message = message
             STATE.error.traceback = traceback
         end,
+        getAllTrackedProjectiles = function()
+            return ProjectileTracker.getAllTrackedProjectiles()
+        end,
+        startTrackingProjectile = function(projectileId, mode)
+            return ProjectileCamera.startTrackingProjectile(projectileId, mode)
+        end,
     }
 end
 
@@ -79,6 +86,7 @@ function widget:Initialize()
     STATE.enabled = false
     Actions.registerAllActions()
     setupApi()
+    ProjectileTracker.initialize()
     Log:info("Loaded - Enable with /turbobarcam_toggle")
 end
 

@@ -98,6 +98,13 @@ local function AdjustParam(_, mode, param_path, sign)
     Spring.SendCommands(action)
 end
 
+local function StartTrackingProjectile(_, projectileId, mode)
+    if not projectileId or not mode then
+        return
+    end
+    API.startTrackingProjectile(projectileId, mode)
+end
+
 local function ResetParams(_, mode)
     local action = string.format("turbobarcam_%s_adjust_params reset", mode)
     Spring.SendCommands(action)
@@ -105,6 +112,10 @@ end
 
 local function ToggleDebugInfo(_)
     dm_handle.isDebugFolded = not dm_handle.isDebugFolded
+end
+
+local function ToggleNukeTrackingInfo(_)
+    dm_handle.isNukeTrackingFolded = not dm_handle.isNukeTrackingFolded
 end
 
 local function ToggleAnchorsInfo(_)
@@ -215,12 +226,17 @@ local initDataModel = {
     status = "DISABLED",
     currentMode = "None",
     isEnabled = false,
+    isNukeTrackingFolded = true,
     isOptionsFolded = true,
     isDebugFolded = true,
     isAnchorsFolded = true,
     isSavedAnchorSetsFolded = true,
     playerCamSelectionActive = true,
     trackingWithoutSelectionActive = false,
+    nuke_tracking = {
+        hasProjectiles = false,
+        projectiles = {},
+    },
     anchors = {
         anchors_list = {},
         activeAnchorId = -1,
@@ -297,9 +313,11 @@ local initDataModel = {
     SetUnitFollowLookPoint = SetUnitFollowLookPoint,
     UpdateNewAnchorSetName = UpdateNewAnchorSetName,
     AdjustParam = AdjustParam,
+    StartTrackingProjectile = StartTrackingProjectile,
     AdjustAnchorDuration = AdjustAnchorDuration,
     ResetParams = ResetParams,
     ToggleDebugInfo = ToggleDebugInfo,
+    ToggleNukeTrackingInfo = ToggleNukeTrackingInfo,
     ToggleAnchorsInfo = ToggleAnchorsInfo,
     ToggleSavedAnchorSetsInfo = ToggleSavedAnchorSetsInfo,
     ToggleAnchorVisualization = ToggleAnchorVisualization,
@@ -466,6 +484,21 @@ local function updateDataModel()
         dm_handle.proj_cam_track_button_active = false
         dm_handle.proj_cam_follow_button_active = false
     end
+
+    local allProjectiles = API.getAllTrackedProjectiles() or {}
+    local projectiles_list = {}
+    for _, p in ipairs(allProjectiles) do
+        table.insert(projectiles_list, {
+            id = p.id,
+            ownerID = p.ownerID,
+            pos = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
+        })
+    end
+
+    table.sort(projectiles_list, function(a, b) return a.id < b.id end)
+
+    dm_handle.nuke_tracking.projectiles = projectiles_list
+    dm_handle.nuke_tracking.hasProjectiles = #projectiles_list > 0
 
     -- Update Anchors
     local anchors_list = {}

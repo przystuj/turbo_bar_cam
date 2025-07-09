@@ -202,6 +202,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="foldable-section">
                 <div class="foldable-header" data-event-click="ToggleAnchorsInfo">
                     <span>Anchors</span>
@@ -295,6 +296,31 @@
                         Allows the camera to continue tracking a unit even after it has been deselected. When active (green), this is enabled.
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="foldable-section" data-if="isEnabled">
+            <div class="foldable-header" data-event-click="ToggleNukeTrackingInfo">
+                <span>Nuke Tracking</span>
+                <div style="display: flex;align-items: center;">
+                    <span class="arrow" data-class-down="!isNukeTrackingFolded"></span>
+                </div>
+            </div>
+            <div class="foldable-content" data-if="!isNukeTrackingFolded">
+                <div class="item-list" data-if="nuke_tracking.hasProjectiles">
+                    <div data-for="p: nuke_tracking.projectiles" class="list-item">
+                        <div class="item-label">
+                            <span class="anchor-id">#{{p.id}}</span>
+                            <span class="anchor-type">Owner: {{p.ownerID}}</span>
+                            <span class="anchor-duration">Pos: ({{p.pos}})</span>
+                        </div>
+                        <div class="param-controls">
+                            <div class="action-button small" data-event-click="StartTrackingProjectile(p.id, 'static')">Track</div>
+                            <div class="action-button small" data-event-click="StartTrackingProjectile(p.id, 'follow')">Follow</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="placeholder-text" data-if="!nuke_tracking.hasProjectiles">No tracked projectiles.</div>
             </div>
         </div>
 
