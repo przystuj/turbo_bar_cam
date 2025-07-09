@@ -48,7 +48,7 @@ end
 --- Loads anchors from a settings file for the current map
 ---@param id string Identifier for the saved configuration
 ---@return boolean success Whether loading was successful
-function CameraAnchorPersistence.loadFromFile(id)
+function CameraAnchorPersistence.loadFromFile(id, isInit)
     if not id or id == "" then
         Log:info("No id specified - loading default")
         id = "default"
@@ -62,7 +62,9 @@ function CameraAnchorPersistence.loadFromFile(id)
 
     -- Check if we have presets for this map
     if not mapPresets or not mapPresets[id] then
-        Log:warn("No saved configuration found with ID: " .. id .. " for map: " .. mapName)
+        if not isInit then
+            Log:warn("No saved configuration found with ID: " .. id .. " for map: " .. mapName)
+        end
         return false
     end
 

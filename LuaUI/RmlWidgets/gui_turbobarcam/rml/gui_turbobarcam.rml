@@ -2,18 +2,27 @@
     <head>
         <title>TurboBarCam UI</title>
         <link type="text/rcss" href="gui_turbobarcam.rcss"/>
+        <link type="text/rcss" href="../../rml-utils.rcss"/>
     </head>
     <body id="turbobarcam-ui">
     <div data-model="turbobarcam_model">
         <handle move_target="#document">
             <div id="title_bar">
                 <span id="title">TurboBarCam</span>
-                <div class="toggle-button" data-event-click="CallAction('turbobarcam_toggle')">
+                <div class="toggle-button" data-event-click="CallAction('turbobarcam_toggle')" data-if="isTurboBarCamLoaded">
                     <span id="status-indicator" data-class-status-enabled="isEnabled"
                           data-class-status-disabled="!isEnabled">{{ status }}</span>
                 </div>
             </div>
         </handle>
+        <div class="flex flex-row content-center" data-if="!isTurboBarCamLoaded">
+            <div class="w-16 action-button" data-event-click="CallAction('togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera')">
+                Enable TurboBarCam Widget
+            </div>
+        </div>
+        <div class="placeholder-text" data-if="isTurboBarCamLoaded && !isEnabled">
+            TurboBarCam is disabled.
+        </div>
         <div data-if="isEnabled">
             <div class="info-text" data-if="!isUnitSelected">
                 Select a unit to enable camera modes.
@@ -29,13 +38,11 @@
             </div>
             <div class="mode-section" data-if="currentMode == 'unit_follow'">
                 <div class="mode-actions">
-                    <div class="action-button"
-                         data-event-click="CallAction('turbobarcam_unit_follow_toggle_combat_mode')">Combat
+                    <div class="action-button" data-class-active="isWeaponCameraActive"
+                         data-event-click="CallAction('turbobarcam_unit_follow_toggle_combat_mode')">Weapon Camera
                     </div>
-                    <div class="action-button" data-event-click="SetUnitFollowLookPoint">Set Look</div>
-                    <div class="action-button"
-                         data-event-click="CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look
-                    </div>
+                    <div class="action-button" data-event-click="SetUnitFollowLookPoint" data-class-active="inFixedTargetSelectionMode || isFixedTargetModeActive">Look At</div>
+                    <div class="action-button" data-class-disabled="!isFixedTargetModeActive" data-event-click="CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look At</div>
                 </div>
                 <div class="param-container">
                     <div class="param-row">
@@ -181,7 +188,7 @@
                                                                                           data-class-status-enabled="proj_cam_status == 'Tracking'">{{ proj_cam_status }}</span>
                     </div>
                     <div class="debug-row" data-if="proj_cam_status == 'Impact'"><span
-                            class="debug-label">Impact in:</span> <span class="debug-value">{{ proj_cam_impact_countdown }}s</span>
+                            class="debug-label">Impact camera</span> <span class="debug-value">{{ proj_cam_impact_countdown }}s</span>
                     </div>
                     <div class="debug-title" style="margin-top: 8dp;margin-bottom: 3dp;">Recent Projectiles
                     </div>
@@ -190,7 +197,7 @@
                             Pos: ({{ p.pos }})
                         </div>
                     </div>
-                    <div class="placeholder-text" data-if="!proj_cam_projectiles ||proj_cam_projectiles_size == 0">
+                    <div class="placeholder-text" data-if="!proj_cam_projectiles || proj_cam_projectiles_size == 0">
                         No active projectiles.
                     </div>
                 </div>
@@ -261,9 +268,6 @@
                 </div>
             </div>
         </div>
-        <div class="placeholder-text" data-if="!isEnabled">
-            TurboBarCam is disabled.
-        </div>
 
         <div class="foldable-section" data-if="isEnabled">
             <div class="foldable-header" data-event-click="ToggleOptionsInfo">
@@ -317,6 +321,26 @@
                 <div class="debug-row"><span class="debug-label">Ang. Velocity:</span><span class="debug-value">{{ sim_ang_velocity }}</span></div>
             </div>
         </div>
+
+        <div class="error-section" data-if="showError">
+            <div class="error-header">
+                <span>An error occurred!</span>
+                <div class="flex flex-row">
+                    <div class="action-button small" data-event-click="CopyErrorToClipboard">Copy to Clipboard</div>
+                    <div class="action-button small" style="margin-left: 5dp" data-event-click="ClearError">Clear</div>
+                </div>
+            </div>
+            <div class="error-content">
+                <p class="error-message">{{error.message}}</p>
+                <div data-if="showTraceback">
+                    <div class="m-1" ></div>
+                    <div class="error-trace">
+                        <pre>{{ error.traceback }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <handle size_target="#document"
                 style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;"></handle>
     </div>

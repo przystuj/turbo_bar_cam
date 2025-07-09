@@ -165,6 +165,7 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
 end
 
 function UnitFollowCamera.setFixedLookPoint(cmdParams)
+    Log:error("test error")
     if Utils.isTurboBarCamDisabled() then
         return
     end

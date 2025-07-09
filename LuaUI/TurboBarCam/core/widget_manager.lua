@@ -49,6 +49,7 @@ function WidgetManager.enable()
     Spring.SetConfigInt("FPSFOV", 45)
 
     STATE.enabled = true
+    STATE.error = nil
     WidgetManager.switchToFpsCamera()
     CameraQuickControls.initialize()
     Log:info("Enabled")

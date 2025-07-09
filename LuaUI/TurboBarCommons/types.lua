@@ -20,3 +20,7 @@
 ---@field rx number
 ---@field ry number
 ---@field rz number
+
+---@class Error
+---@field message string
+---@field traceback string

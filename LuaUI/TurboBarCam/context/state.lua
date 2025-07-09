@@ -6,6 +6,7 @@ if not WG.TurboBarCam.STATE then
         enabled = false,
         originalCameraState = nil,
         allowPlayerCamUnitSelection = true,
+        error = nil, ---@type Error
 
         settings = {
             initialized = false,

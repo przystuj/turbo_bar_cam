@@ -2,10 +2,8 @@ if not RmlUi then
     return
 end
 
----@type LogBuilder
-local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/logger_prototype.lua")
----@type Log
-local Log
+local LogBuilder = VFS.Include("LuaUI/TurboBarCommons/logger_prototype.lua") ---@type LogBuilder
+local Log ---@type Log
 
 local widget = widget
 
@@ -64,6 +62,14 @@ local function SetUnitFollowLookPoint(_)
             Spring.SetActiveCommand(cmdDescIndex, 1, true, false, Spring.GetModKeyState())
         end
     end
+end
+
+local function ClearError()
+    STATE.error = nil
+end
+
+local function CopyErrorToClipboard()
+    Spring.SetClipboard(STATE.error.message .. "\n" .. STATE.error.traceback)
 end
 
 local function UpdateNewAnchorSetName(event)
@@ -205,6 +211,7 @@ end
 
 ---@class UIDataModel
 local initDataModel = {
+    isTurboBarCamLoaded = false,
     status = "DISABLED",
     currentMode = "None",
     isEnabled = false,
@@ -223,6 +230,12 @@ local initDataModel = {
         newAnchorDuration = 10,
         newAnchorDurationDisplay = "10.0s",
     },
+    error = { message = "", traceback = "" },
+    showError = false,
+    showTraceback = false,
+    inFixedTargetSelectionMode = false,
+    isFixedTargetModeActive = false,
+    isWeaponCameraActive = false,
     savedAnchorSets = {},
     hasSavedAnchorSets = false,
 
@@ -301,6 +314,8 @@ local initDataModel = {
     AddNewAnchor = AddNewAnchor,
     SetNewAnchorDuration = SetNewAnchorDuration,
     UpdateAllAnchorDurations = UpdateAllAnchorDurations,
+    ClearError = ClearError,
+    CopyErrorToClipboard = CopyErrorToClipboard,
 }
 
 local function getCleanMapName()
@@ -314,9 +329,16 @@ end
 
 -- Update data model with current TurboBarCam state and keybindings
 local function updateDataModel()
-    if not initialized or not dm_handle or not WG.TurboBarCam then
+    if not initialized or not dm_handle then
         return
     end
+
+    if not WG.TurboBarCam then
+        dm_handle.isTurboBarCamLoaded = false
+        dm_handle.isEnabled = false
+        return
+    end
+    dm_handle.isTurboBarCamLoaded = true
 
     STATE = WG.TurboBarCam.STATE
     CONFIG = WG.TurboBarCam.CONFIG
@@ -481,31 +503,30 @@ local function updateDataModel()
     table.sort(sets_list)
     dm_handle.savedAnchorSets = sets_list
     dm_handle.hasSavedAnchorSets = #sets_list > 0
+    dm_handle.inFixedTargetSelectionMode = STATE.active.mode.unit_follow.inTargetSelectionMode
+    dm_handle.isFixedTargetModeActive = STATE.active.mode.unit_follow.isFixedPointActive
+    dm_handle.isWeaponCameraActive = STATE.active.mode.unit_follow.combatModeEnabled
+
+    dm_handle.showError = STATE.error ~= nil
+    if dm_handle.showError then
+        dm_handle.showTraceback = STATE.error.traceback and true
+        dm_handle.error.message = STATE.error.message or ""
+        dm_handle.error.traceback = STATE.error.traceback or ""
+    end
 end
 
 -- Widget initialization
 function widget:Initialize()
-    if not WG.TurboBarCam then
-        Log:warn("TurboBarCam is not initialized")
-        return
-    end
-
-    WG.TurboBarCam.UI = {}
-
-    -- Get RmlUi context through widget
-    widget.rmlContext = RmlUi.CreateContext("shared")
     Log = LogBuilder.createInstance("TurboBarCamUI", function()
         return "DEBUG"
     end)
+    -- Get RmlUi context through widget
+    widget.rmlContext = RmlUi.CreateContext("shared")
 
     if not widget.rmlContext then
         Log:warn("Failed to create RmlUi context")
         return false
     end
-
-    STATE = WG.TurboBarCam.STATE
-    CONFIG = WG.TurboBarCam.CONFIG
-    API = WG.TurboBarCam.API
 
     -- Open data model with all variables
     widget.rmlContext:RemoveDataModel(MODEL_NAME)
@@ -522,9 +543,6 @@ function widget:Initialize()
         dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', duration)
     end
 
-    -- Get and set initial bindings
-    updateDataModel()
-
     -- Load the document (passing the widget for events)
     document = widget.rmlContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/gui_turbobarcam.rml")
 
@@ -539,6 +557,20 @@ function widget:Initialize()
     document:Show()
     visible = true
     initialized = true
+
+    if not WG.TurboBarCam then
+        Log:warn("TurboBarCam is not initialized")
+        return
+    end
+
+    WG.TurboBarCam.UI = {}
+
+    STATE = WG.TurboBarCam.STATE
+    CONFIG = WG.TurboBarCam.CONFIG
+    API = WG.TurboBarCam.API
+
+    -- Get and set initial bindings
+    updateDataModel()
 
     --RmlUi.SetDebugContext(widget.rmlContext)
     Log:info("Initialized successfully")
@@ -558,7 +590,9 @@ function widget:Shutdown()
 
     initialized = false
     visible = false
-    WG.TurboBarCam.UI = nil
+    if WG.TurboBarCam then
+        WG.TurboBarCam.UI = nil
+    end
     Log:info("Shutdown complete")
 end
 
@@ -567,7 +601,7 @@ function widget:RestartWidget()
     widget:Initialize()
 end
 
-function widget:GameFrame()
+function widget:Update()
     if initialized and visible then
         updateDataModel()
     end

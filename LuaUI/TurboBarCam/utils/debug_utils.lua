@@ -12,9 +12,13 @@ function DebugUtils.wrapInTrace(func, name)
                     return func(unpack(args))
                 end,
                 function(err)
-                    Log:warn("Error in " .. name .. ": " .. tostring(err))
-                    Log:warn(debug.traceback("", 2))
-                    WG.TurboBarCam.API.stop()
+                    local API = WG.TurboBarCam.API ---@type TurboBarCamAPI
+                    local message = "Error in " .. name .. ": " .. tostring(err)
+                    local traceback = debug.traceback("", 2)
+                    Log:warn(message)
+                    Log:warn(traceback)
+                    API.saveErrorInfo(message, traceback)
+                    API.stop()
                     return nil
                 end
         )

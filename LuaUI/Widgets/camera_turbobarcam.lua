@@ -65,6 +65,11 @@ local function setupApi()
             end
             return SettingsManager.loadUserSetting(name, id, default)
         end,
+        saveErrorInfo = function(message, traceback)
+            STATE.error = {}
+            STATE.error.message = message
+            STATE.error.traceback = traceback
+        end,
     }
 end
 

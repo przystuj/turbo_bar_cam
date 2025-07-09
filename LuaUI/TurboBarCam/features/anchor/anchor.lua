@@ -57,8 +57,11 @@ function CameraAnchor.initialize()
     if STATE.anchor.initialized then
         return
     end
-    CameraAnchor.load("default")
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
     STATE.anchor.initialized = true
+    CameraAnchorPersistence.loadFromFile("default", true)
 end
 
 function CameraAnchor.set(id)
