@@ -309,14 +309,13 @@
             <div class="foldable-content" data-if="!isNukeTrackingFolded">
                 <div class="item-list" data-if="nuke_tracking.hasProjectiles">
                     <div data-for="p: nuke_tracking.projectiles" class="list-item">
-                        <div class="item-label">
-                            <span class="anchor-id">#{{p.id}}</span>
-                            <span class="anchor-type">Owner: {{p.ownerID}}</span>
-                            <span class="anchor-duration">Pos: ({{p.pos}})</span>
+                        <div class="item-label justify-start">
+                            <span data-style-color="p.playerColor" style="font-weight: bold">{{p.playerName}}</span>
+                            <span class="anchor-duration">Air time: {{p.timeInAir}}</span>
                         </div>
                         <div class="param-controls">
-                            <div class="action-button small" data-event-click="StartTrackingProjectile(p.id, 'static')">Track</div>
-                            <div class="action-button small" data-event-click="StartTrackingProjectile(p.id, 'follow')">Follow</div>
+                            <div class="action-button small" data-class-active="p.isTracked" data-event-click="StartTrackingProjectile(p.id, 'static')">Track</div>
+                            <div class="action-button small" data-class-active="p.isFollowed" data-event-click="StartTrackingProjectile(p.id, 'follow')">Follow</div>
                         </div>
                     </div>
                 </div>

@@ -4,6 +4,7 @@ local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "SelectionManager")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
+local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class SelectionManager
@@ -41,9 +42,8 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         -- Save settings for the old unit before switching
         SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
 
-        if STATE.active.mode.name == 'unit_follow' then
-            UnitFollowCamera.handleSelectNewUnit()
-        end
+        UnitFollowCamera.handleSelectNewUnit()
+        ProjectileCamera.handleSelectNewUnit()
 
         -- Switch tracking to the new unit
         STATE.active.mode.unitID = unitID

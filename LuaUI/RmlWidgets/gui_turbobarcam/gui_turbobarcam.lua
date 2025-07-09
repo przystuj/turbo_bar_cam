@@ -220,6 +220,29 @@ local function UpdateAllAnchorDurations(_)
     Spring.SendCommands("turbobarcam_anchor_update_all_durations")
 end
 
+local function findPlayerNameByTeamID(teamId)
+    local name
+    local aiName = Spring.GetGameRulesParam('ainame_' .. tostring(teamId))
+    if aiName then
+        name = aiName
+    else
+        local players = Spring.GetPlayerList(teamId)
+        if players and #players > 0 then
+            -- Default to first player name as a fallback
+            name = Spring.GetPlayerInfo(players[1])
+
+            for _, pID in ipairs(players) do
+                local pname, active, isspec = Spring.GetPlayerInfo(pID)
+                if active and not isspec then
+                    name = pname
+                    break -- Found active player, no need to continue
+                end
+            end
+        end
+    end
+    return name or '?'
+end
+
 ---@class UIDataModel
 local initDataModel = {
     isTurboBarCamLoaded = false,
@@ -487,15 +510,25 @@ local function updateDataModel()
 
     local allProjectiles = API.getAllTrackedProjectiles() or {}
     local projectiles_list = {}
+    local projCamState = STATE.active.mode.projectile_camera
+
     for _, p in ipairs(allProjectiles) do
+        local teamId = Spring.GetUnitTeam(p.ownerID)
+        local r, g, b = Spring.GetTeamColor(teamId)
+        local timeInAir = Spring.DiffTimers(Spring.GetTimer(), p.creationTime)
+        local isCurrentlyTracked = projCamState.currentProjectileID == p.id
+
         table.insert(projectiles_list, {
             id = p.id,
-            ownerID = p.ownerID,
-            pos = string.format("%.0f, %.0f, %.0f", p.position.x, p.position.y, p.position.z)
+            playerName = findPlayerNameByTeamID(teamId),
+            playerColor = string.format("rgb(%d, %d, %d)", r * 255, g * 255, b * 255),
+            timeInAir = string.format("%.1fs", timeInAir or 0),
+            isTracked = isCurrentlyTracked and projCamState.cameraMode == 'static',
+            isFollowed = isCurrentlyTracked and projCamState.cameraMode == 'follow',
         })
     end
 
-    table.sort(projectiles_list, function(a, b) return a.id < b.id end)
+    table.sort(projectiles_list, function(a, b) return (a.timeInAir or 0) > (b.timeInAir or 0) end)
 
     dm_handle.nuke_tracking.projectiles = projectiles_list
     dm_handle.nuke_tracking.hasProjectiles = #projectiles_list > 0

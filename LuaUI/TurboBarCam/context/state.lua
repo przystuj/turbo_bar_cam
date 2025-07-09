@@ -232,7 +232,7 @@ if not WG.TurboBarCam.STATE then
                     isArmed = false,
                     watchedUnitID = nil,
                     continuouslyArmedUnitID = nil,
-                    lastArmingTime = 0,
+                    lastArmingTime = nil,
 
                     -- State for global "cycling" workflow
                     trackedProjectiles = {},

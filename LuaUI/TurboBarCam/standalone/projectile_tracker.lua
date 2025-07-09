@@ -45,7 +45,7 @@ function ProjectileTracker.initUnitTracking(unitID)
 
     if not STATE.core.projectileTracking.unitProjectiles[unitID] then
         STATE.core.projectileTracking.unitProjectiles[unitID] = {
-            lastUpdateTime = Spring.GetGameSeconds(),
+            lastUpdateTime = Spring.GetTimer(),
             active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
         }
@@ -53,7 +53,7 @@ function ProjectileTracker.initUnitTracking(unitID)
     else
         -- Unit already being tracked, just mark as active and update time
         STATE.core.projectileTracking.unitProjectiles[unitID].active = true
-        STATE.core.projectileTracking.unitProjectiles[unitID].lastUpdateTime = Spring.GetGameSeconds()
+        STATE.core.projectileTracking.unitProjectiles[unitID].lastUpdateTime = Spring.GetTimer()
     end
 end
 
@@ -96,7 +96,7 @@ function ProjectileTracker.findNewProjectiles(unitID)
     local projectilesInBox = Spring.GetProjectilesInRectangle(ux - boxSize, uz - boxSize, ux + boxSize, uz + boxSize)
 
     local newProjectiles = {}
-    local currentTime = Spring.GetGameSeconds()
+    local currentTime = Spring.GetTimer()
     local trackedProjectiles = STATE.core.projectileTracking.unitProjectiles[unitID] and STATE.core.projectileTracking.unitProjectiles[unitID].projectiles or {}
     local knownProjectileIDs = {}
     for _, proj in ipairs(trackedProjectiles) do
@@ -123,7 +123,7 @@ function ProjectileTracker.update(frameNum)
         return
     end
 
-    local currentTime = Spring.GetGameSeconds()
+    local currentTime = Spring.GetTimer()
     local unitsToTrack = {}
 
     -- 1. Add units from the global config list (for new cycle feature)
@@ -178,7 +178,7 @@ function ProjectileTracker.update(frameNum)
 
     -- 5. Update all tracked projectiles and clean up old data
     for unitID, unitData in pairs(STATE.core.projectileTracking.unitProjectiles) do
-        if not unitData.active and (currentTime - unitData.lastUpdateTime > ProjectileTracker.config.retentionTime) then
+        if not unitData.active and (Spring.DiffTimers(currentTime, unitData.lastUpdateTime) > ProjectileTracker.config.retentionTime) then
             ProjectileTracker.removeUnitTracking(unitID)
         else
             local validProjectiles = {}
@@ -233,7 +233,7 @@ function ProjectileTracker.getAllTrackedProjectiles()
     end
     -- Sort by creation time, newest first
     table.sort(allProjectiles, function(a, b)
-        return a.creationTime > b.creationTime
+        return Spring.DiffTimers(a.creationTime, b.creationTime) > 0
     end)
     return allProjectiles
 end

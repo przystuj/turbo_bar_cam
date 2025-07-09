@@ -263,6 +263,9 @@ function UnitFollowCamera.toggleCombatMode()
 end
 
 function UnitFollowCamera.handleSelectNewUnit()
+    if STATE.active.mode.name ~= 'unit_follow' then
+        return
+    end
     UnitFollowCombatMode.clearAttackingState()
 end
 

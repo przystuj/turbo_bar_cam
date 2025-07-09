@@ -113,7 +113,14 @@ function ProjectileCamera.startTrackingProjectile(projectileID, subMode)
 
     -- Now that we are definitely in the correct mode, set the target projectile
     local currentProjCamState = STATE.active.mode.projectile_camera
-    currentProjCamState.cameraMode = subMode or 'follow' -- Default to follow
+
+    -- If toggling the same mode for the same projectile, toggle it off
+    if currentProjCamState.currentProjectileID ==  projectileID and currentProjCamState.cameraMode == subMode then
+        ProjectileCamera.stopProjectileTracking()
+        return
+    end
+
+    currentProjCamState.cameraMode = subMode or 'static'
     currentProjCamState.currentProjectileID = projectileID
     currentProjCamState.impactTime = nil -- Reset impact view
     STATE.active.mode.unitID = ownerID -- Update the mode's target unit
@@ -126,10 +133,12 @@ end
 function ProjectileCamera.stopProjectileTracking()
     if Utils.isTurboBarCamDisabled() then return end
     if STATE.active.mode.name ~= 'projectile_camera' then return end
+
+    local currentProjCamState = STATE.active.mode.projectile_camera
+    currentProjCamState.cameraMode = nil
+    currentProjCamState.currentProjectileID = nil
     ProjectileCamera.returnToPreviousMode(false) -- Explicitly don't re-arm
 end
-
-
 
 --------------------------------------------------------------------------------
 -- Core Toggling and State Management
@@ -195,7 +204,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     projCamState.cameraMode = subMode
     projCamState.isArmed = true
     projCamState.watchedUnitID = unitID
-    projCamState.lastArmingTime = Spring.GetGameSeconds()
+    projCamState.lastArmingTime = Spring.GetTimer()
     projCamState.currentProjectileID = nil
     ProjectileTracker.initUnitTracking(unitID)
     Log:debug("Projectile tracking ARMED for unit " .. unitID .. " in mode = " .. subMode)
@@ -278,8 +287,8 @@ function ProjectileCamera.checkAndActivate()
     local allProjectiles = ProjectileTracker.getUnitProjectiles(unitID)
     local latestProjectile
     for _, p in ipairs(allProjectiles) do
-        if p.creationTime > projCamState.lastArmingTime then
-            if not latestProjectile or p.creationTime > latestProjectile.creationTime then
+        if Spring.DiffTimers(p.creationTime, projCamState.lastArmingTime) > 0 then
+            if not latestProjectile or Spring.DiffTimers(p.creationTime, latestProjectile.creationTime) > 0 then
                 latestProjectile = p
             end
         end
@@ -369,6 +378,11 @@ function ProjectileCamera.updateProjectileState(projectile)
     else
         projCamState.isHighArc = false
     end
+end
+
+function ProjectileCamera.handleSelectNewUnit()
+    ProjectileCamera.disableProjectileArming()
+    ProjectileCamera.stopProjectileTracking()
 end
 
 --------------------------------------------------------------------------------
