@@ -116,6 +116,7 @@ function ProjectileCamera.startTrackingProjectile(projectileID, subMode)
 
     -- If toggling the same mode for the same projectile, toggle it off
     if currentProjCamState.currentProjectileID ==  projectileID and currentProjCamState.cameraMode == subMode then
+        CameraDriver.stop()
         ProjectileCamera.stopProjectileTracking()
         return
     end

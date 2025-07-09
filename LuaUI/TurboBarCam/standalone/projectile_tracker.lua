@@ -2,7 +2,27 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
+local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileTracker")
+
+--- Finds all units of specific definitions across multiple teams.
+---@param teamIDs number[] A list of team IDs to search within.
+---@param unitDefIDs number[] A list of unit definition IDs to search for.
+---@return number[] A list of unit IDs matching the criteria.
+local function findUnits(teamIDs, unitDefIDs)
+    local result = {}
+    if not teamIDs or not unitDefIDs or #unitDefIDs == 0 then
+        return result
+    end
+
+    for _, teamID in ipairs(teamIDs) do
+        local teamUnits = Spring.GetTeamUnitsByDefs(teamID, unitDefIDs)
+        for _, unitID in ipairs(teamUnits) do
+            table.insert(result, unitID)
+        end
+    end
+    return result
+end
 
 ---@class ProjectileTracker
 local ProjectileTracker = {}
@@ -44,7 +64,13 @@ function ProjectileTracker.initUnitTracking(unitID)
     end
 
     if not STATE.core.projectileTracking.unitProjectiles[unitID] then
+        local teamID = Spring.GetUnitTeam(unitID)
+        if not teamID then
+            Log:warn("Could not determine team for unit " .. unitID .. ". Will not track.")
+            return
+        end
         STATE.core.projectileTracking.unitProjectiles[unitID] = {
+            teamID = teamID,
             lastUpdateTime = Spring.GetTimer(),
             active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
@@ -87,6 +113,11 @@ function ProjectileTracker.findNewProjectiles(unitID)
         return {}
     end
 
+    local unitData = STATE.core.projectileTracking.unitProjectiles[unitID]
+    if not unitData then
+        return {}
+    end
+
     local ux, uy, uz = Spring.GetUnitPosition(unitID)
     if not ux then
         return {}
@@ -97,7 +128,7 @@ function ProjectileTracker.findNewProjectiles(unitID)
 
     local newProjectiles = {}
     local currentTime = Spring.GetTimer()
-    local trackedProjectiles = STATE.core.projectileTracking.unitProjectiles[unitID] and STATE.core.projectileTracking.unitProjectiles[unitID].projectiles or {}
+    local trackedProjectiles = unitData.projectiles or {}
     local knownProjectileIDs = {}
     for _, proj in ipairs(trackedProjectiles) do
         knownProjectileIDs[proj.id] = true
@@ -122,16 +153,22 @@ function ProjectileTracker.update(frameNum)
     if frameNum % ProjectileTracker.config.updateFrequency ~= 0 then
         return
     end
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
 
     local currentTime = Spring.GetTimer()
     local unitsToTrack = {}
 
     -- 1. Add units from the global config list (for new cycle feature)
-    local allUnits = Spring.GetAllUnits()
-    for i = 1, #allUnits do
-        local unitID = allUnits[i]
-        local unitDefID = Spring.GetUnitDefID(unitID)
-        if unitDefID and trackableUnitDefIDs[unitDefID] then
+    local trackableDefIDList = {}
+    for id in pairs(trackableUnitDefIDs) do
+        table.insert(trackableDefIDList, id)
+    end
+
+    if #trackableDefIDList > 0 then
+        local allTrackableUnits = findUnits(Spring.GetTeamList(), trackableDefIDList)
+        for _, unitID in ipairs(allTrackableUnits) do
             unitsToTrack[unitID] = true
         end
     end
@@ -156,21 +193,24 @@ function ProjectileTracker.update(frameNum)
             local newProjectiles = ProjectileTracker.findNewProjectiles(unitID)
             if #newProjectiles > 0 then
                 local unitProjectileData = STATE.core.projectileTracking.unitProjectiles[unitID]
-                for _, proj in ipairs(newProjectiles) do
-                    if #unitProjectileData.projectiles >= ProjectileTracker.config.maxProjectilesPerUnit then
-                        table.remove(unitProjectileData.projectiles, 1)
+                -- Only proceed if the unit data exists, as init may fail if team is not found
+                if unitProjectileData then
+                    for _, proj in ipairs(newProjectiles) do
+                        if #unitProjectileData.projectiles >= ProjectileTracker.config.maxProjectilesPerUnit then
+                            table.remove(unitProjectileData.projectiles, 1)
+                        end
+                        ---@class Projectile
+                        local projectile = {
+                            id = proj.id,
+                            ownerID = unitID,
+                            creationTime = proj.creationTime,
+                            position = { x = 0, y = 0, z = 0 },
+                            velocity = { x = 0, y = 0, z = 0, speed = 0 },
+                            previousVelocity = { x = 0, y = 0, z = 0, speed = 0 }
+                        }
+                        table.insert(unitProjectileData.projectiles, projectile)
+                        Log:trace("Added new projectile " .. proj.id .. " for unit " .. unitID)
                     end
-                    ---@class Projectile
-                    local projectile = {
-                        id = proj.id,
-                        ownerID = unitID,
-                        creationTime = proj.creationTime,
-                        position = { x = 0, y = 0, z = 0 },
-                        velocity = { x = 0, y = 0, z = 0, speed = 0 },
-                        previousVelocity = { x = 0, y = 0, z = 0, speed = 0 }
-                    }
-                    table.insert(unitProjectileData.projectiles, projectile)
-                    Log:trace("Added new projectile " .. proj.id .. " for unit " .. unitID)
                 end
             end
         end
