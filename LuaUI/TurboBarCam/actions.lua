@@ -208,6 +208,19 @@ function Actions.projectileActions()
                 return true
             end)
 
+    Actions.registerAction("turbobarcam_projectile_camera_cycle", 'tp',
+            function(_, _, params)
+                ---('forward'|'backward','follow'|'static')
+                ProjectileCamera.cycleNextProjectile(params[1], params[2])
+                return true
+            end)
+
+    Actions.registerAction("turbobarcam_projectile_camera_toggle_mode", 'tp',
+            function()
+                ProjectileCamera.toggleProjectileSubMode()
+                return true
+            end)
+
     -- Projectile camera parameter adjustments
     Actions.registerAction("turbobarcam_projectile_adjust_params", 'tR',
             function(_, params)

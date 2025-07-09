@@ -91,11 +91,6 @@ bind		PageDown 		turbobarcam_unit_follow_next_weapon
 //bind		Ctrl+Insert		turbobarcam_spec_unit_group set 1
 //bind		Insert			turbobarcam_spec_unit_group select 1
 
-// Overview
-bind		PageUp			turbobarcam_overview_toggle
-bind		numpad8			turbobarcam_overview_change_height 1
-bind		numpad5			turbobarcam_overview_change_height -1
-
 // Group Unit Tracking
 bind		numpad0  		turbobarcam_toggle_group_tracking_camera
 bind		numpad5			turbobarcam_group_tracking_adjust_params add;EXTRA_DISTANCE,15
@@ -127,6 +122,8 @@ bind		Ctrl+numpad5	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE
 bind		Ctrl+numpad8	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.INITIAL_BRAKING,100
 bind		Ctrl+numpad6	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.PATH_ADHERENCE,-0.1
 bind		Ctrl+numpad9	turbobarcam_projectile_adjust_params add;DECELERATION_PROFILE.PATH_ADHERENCE,0.1
+bind		PageUp			turbobarcam_projectile_camera_cycle forward static
+bind		Ctrl+PageUp	    turbobarcam_projectile_camera_toggle_mode
 
 // Dolly Cam
 bind			Ctrl+sc_[           turbobarcam_dollycam_toggle_editor

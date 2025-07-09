@@ -28,6 +28,56 @@ function ProjectileCamera.trackProjectile()
     return ProjectileCamera.toggle("static")
 end
 
+--- Cycles to the next or previous projectile in the global list.
+---@param direction 'forward'|'backward' The direction to cycle in.
+---@param mode 'follow'|'static' The camera sub-mode to use for the next projectile.
+function ProjectileCamera.cycleNextProjectile(direction, mode)
+    if Utils.isTurboBarCamDisabled() then return end
+    local allProjectiles = ProjectileTracker.getAllTrackedProjectiles()
+    if not allProjectiles or #allProjectiles == 0 then
+        Log:info("No active projectiles to cycle through.")
+        return
+    end
+
+    -- Sort projectiles to ensure a consistent cycling order.
+    table.sort(allProjectiles, function(a, b) return a.id < b.id end)
+
+    local currentIndex
+    local projCamState = STATE.active.mode.projectile_camera
+    if STATE.active.mode.name == 'projectile_camera' and projCamState and projCamState.currentProjectileID then
+        for i, p in ipairs(allProjectiles) do
+            if p.id == projCamState.currentProjectileID then
+                currentIndex = i
+                break
+            end
+        end
+    end
+
+    local nextIndex
+    local numProjectiles = #allProjectiles
+
+    if not currentIndex then
+        -- Not currently tracking or projectile disappeared, start from an edge.
+        nextIndex = (direction == 'backward') and numProjectiles or 1
+    else
+        if direction == 'forward' then
+            nextIndex = (currentIndex % numProjectiles) + 1
+        else -- 'backward'
+            nextIndex = currentIndex - 1
+            if nextIndex < 1 then
+                nextIndex = numProjectiles -- Wrap around to the end
+            end
+        end
+    end
+
+    local nextProjectile = allProjectiles[nextIndex]
+    if nextProjectile then
+        ProjectileCamera.startTrackingProjectile(nextProjectile.id, mode or 'follow')
+    else
+        Log:warn("Failed to find a projectile at the calculated next index.")
+    end
+end
+
 --- Starts tracking a specific projectile by its ID.
 ---@param projectileID number The ID of the projectile to track.
 ---@param subMode 'follow'|'static' The camera sub-mode to use.
@@ -79,16 +129,7 @@ function ProjectileCamera.stopProjectileTracking()
     ProjectileCamera.returnToPreviousMode(false) -- Explicitly don't re-arm
 end
 
-function ProjectileCamera.toggleProjectileSubMode()
-    if STATE.active.mode.name ~= 'projectile_camera' then return end
-    local projCamState = STATE.active.mode.projectile_camera
-    if projCamState.cameraMode == 'follow' then
-        projCamState.cameraMode = 'static'
-    else
-        projCamState.cameraMode = 'follow'
-    end
-    Log:info("Projectile camera sub-mode set to: " .. projCamState.cameraMode)
-end
+
 
 --------------------------------------------------------------------------------
 -- Core Toggling and State Management
@@ -172,6 +213,18 @@ function ProjectileCamera.switchCameraSubModes(newSubMode)
     STATE.active.mode.projectile_camera.cameraMode = newSubMode
     Log:debug("Projectile tracking switched to " .. newSubMode)
     return true
+end
+
+function ProjectileCamera.toggleProjectileSubMode()
+    Log:debug(STATE.active.mode.projectile_camera.cameraMode)
+    if STATE.active.mode.name ~= 'projectile_camera' then return end
+    local projCamState = STATE.active.mode.projectile_camera
+    if projCamState.cameraMode == 'follow' then
+        projCamState.cameraMode = 'static'
+    else
+        projCamState.cameraMode = 'follow'
+    end
+    Log:info("Projectile camera sub-mode set to: " .. projCamState.cameraMode)
 end
 
 function ProjectileCamera.returnToPreviousMode(shouldReArm)
