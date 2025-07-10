@@ -154,21 +154,6 @@
     "label": "Toggle Orbit Camera (Point)",
     "parameters": "None (uses cursor position)"
   },
-  "turbobarcam_overview_change_height": {
-    "description": "Changes the height level of the Overview Camera by a given amount (positive to zoom out, negative to zoom in) and moves the camera to maintain focus.",
-    "label": "Overview: Change Height",
-    "parameters": "`amount` (numeric, e.g., `1` to increase height level, `-1` to decrease)"
-  },
-  "turbobarcam_overview_move_camera": {
-    "description": "Moves the Overview Camera to focus on the current cursor position on the map. Typically used with mouse bindings.",
-    "label": "Overview: Move to Cursor",
-    "parameters": "None (uses cursor position)"
-  },
-  "turbobarcam_overview_toggle": {
-    "description": "Toggles the Overview Camera mode, providing a top-down strategic view. Focuses on selected unit or cursor position.",
-    "label": "Toggle Overview Camera",
-    "parameters": "None"
-  },
   "turbobarcam_projectile_adjust_params": {
     "description": "Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', or 'reset'.",
     "label": "Adjust Projectile Cam Params",
@@ -252,6 +237,21 @@
   "turbobarcam_anchor_update_all_durations": {
     "description": "Sets all anchors to the same duration (the one you can control with duration adjustment)",
     "label": "Sync anchors duration",
+    "parameters": "None"
+  },
+  "turbobarcam_projectile_camera_cycle": {
+    "description": "Cycles to the next projectile of globally tracked units. (currently, only nukes)",
+    "label": "Cycle Nukes",
+    "parameters": "`projectileId, projectileCameraMode` (e.g., `2144321 static` or `65432 follow`)"
+  },
+  "turbobarcam_projectile_camera_toggle_mode": {
+    "description": "Toggles the projectile camera mode.",
+    "label": "Toggle Mode",
+    "parameters": "None"
+  },
+  "turbobarcam_anchor_toggle_type": {
+    "description": "Toggles the anchor type.",
+    "label": "Toggle Type",
     "parameters": "None"
   }
 }

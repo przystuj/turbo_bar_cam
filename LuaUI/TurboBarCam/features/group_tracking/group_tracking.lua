@@ -17,6 +17,8 @@ local GroupTrackingCamera = {}
 
 local MODE_NAME = CONSTANTS.MODE.GROUP_TRACKING
 
+-- TODO use Spring.GetUnitArrayCentroid(units)
+
 --- Toggles group tracking camera mode
 ---@return boolean success Always returns true for widget handler
 function GroupTrackingCamera.toggle()

@@ -5,13 +5,11 @@ local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
 local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
-local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
 local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
-local CameraTestRunner = ModuleManager.CameraTestRunner(function(m) CameraTestRunner = m end)
 
 
 ---@class Actions
@@ -27,19 +25,12 @@ function Actions.registerAllActions()
     Actions.trackingCameraActions()
     Actions.specGroupsActions()
     Actions.orbitActions()
-    Actions.overviewActions()
     Actions.groupTrackingActions()
     Actions.projectileActions()
     Actions.I18N()
 end
 
 function Actions.coreActions()
-    Actions.registerAction("turbobarcam_dev_test", 'tp',
-            function(_, param)
-                CameraTestRunner.start(param)
-                return true
-            end)
-
     Actions.registerAction("turbobarcam_toggle", 'tp',
             function()
                 WidgetManager.toggle()
@@ -335,27 +326,6 @@ function Actions.orbitActions()
     Actions.registerAction("turbobarcam_orbit_load", 'tp',
             function(_, param)
                 OrbitingCamera.loadOrbit(param)
-                return true
-            end)
-end
-
-function Actions.overviewActions()
-    Actions.registerAction("turbobarcam_overview_toggle", 'tp',
-            function()
-                OverviewCamera.toggle()
-                return true
-            end)
-
-    Actions.registerAction("turbobarcam_overview_change_height", 'tp',
-            function(_, amount)
-                OverviewCamera.changeHeightAndMove(amount)
-                return false
-            end)
-
-    -- Move camera to target
-    Actions.registerAction("turbobarcam_overview_move_camera", 'pr',
-            function()
-                OverviewCamera.moveToTarget()
                 return true
             end)
 end

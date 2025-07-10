@@ -1,6 +1,6 @@
 # TurboBarCam - Tactical Ultra-Responsive Brilliant Optics for BAR Camera
 
-An advanced camera control suite for Beyond All Reason, featuring smooth transitions, unit tracking, FPS mode, orbital view, spectator controls, and more.
+An advanced camera control suite for Beyond All Reason, featuring smooth transitions, various unit tracking modes and more.
 
 ## Overview
 
@@ -9,13 +9,11 @@ TurboBarCam provides a comprehensive camera control system with multiple special
 ## Features
 
 - **Camera Anchors**: Save and recall camera positions with smooth transitions and chaining
-- **FPS Camera**: View the game from a unit's perspective with adjustable offsets, free camera control, and fixed point tracking
-- **Tracking Camera**: Follow selected units while maintaining your preferred viewing angle
+- **Follow Camera**: Follow unit maintaining its orientation
+- **Tracking Camera**: Track selected units while maintaining your preferred viewing angle
 - **Orbiting Camera**: Circle around units with adjustable speed and height
 - **Group Tracking Camera**: Track a group of units with automatic clustering
-- **Overview Camera**: Top-down strategic view with custom zoom levels and cursor tracking
 - **Projectile Camera**: Follow projectiles fired from units
-- **Spectator Tools**: Group and select units when spectating
 
 ## Installation
 
@@ -26,14 +24,16 @@ TurboBarCam provides a comprehensive camera control system with multiple special
 BAR install folder/
 └── data/
     └── LuaUI/
+        ├── RmlWidgets/
         ├── Widgets/
         └── TurboBarCam/
+        └── TurboBarCommons/
 ```
-4. Enable "Tactical Ultra-Responsive Brilliant Optics for BAR Camera" in-game
+4. Enable "Tactical Ultra-Responsive Brilliant Optics for BAR Camera" and "TurboBarCam UI" in-game
 
 ## Getting Started
 
-By default, TurboBarCam is loaded but disabled. To enable it:
+By default, TurboBarCam is loaded but disabled. To enable it use the ui or this command:
 
 ```
 /turbobarcam_toggle
@@ -56,7 +56,14 @@ turbobarcam_[mode]_adjust_params [action];[param],[value];...
 ```
 
 Where:
-- `[mode]` is the camera mode (fps, orbit, tracking_camera, etc.)
+- `[mode]` is the camera mode (unit_follow, orbit, tracking_camera, etc.)
 - `[action]` is `add`, `set`, or `reset`
 - `[param]` is the parameter name
 - `[value]` is the amount to change or the value to set
+
+## Changelog
+#### 2.1.0
+- Show widget errors in UI
+- Global nuke monitoring - you can always track nuke projectile now (turbobarcam_projectile_camera_cycle, turbobarcam_projectile_camera_toggle_mode)
+- Removed Overview mode
+- Added help button in UI
