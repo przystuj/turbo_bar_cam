@@ -9,14 +9,19 @@
         <handle move_target="#document">
             <div id="title_bar">
                 <span id="title">TurboBarCam</span>
-                <div class="toggle-button" data-event-click="CallAction('turbobarcam_toggle')" data-if="isTurboBarCamLoaded">
-                    <span id="status-indicator" data-class-status-enabled="isEnabled"
-                          data-class-status-disabled="!isEnabled">{{ status }}</span>
+                <div style="display: flex; align-items: center; gap: 5dp;">
+                    <div class="action-button small" data-event-click="ToggleHelp">?</div>
+                    <div class="toggle-button" data-event-click="CallAction('turbobarcam_toggle')"
+                         data-if="isTurboBarCamLoaded">
+                        <span id="status-indicator" data-class-status-enabled="isEnabled"
+                              data-class-status-disabled="!isEnabled">{{ status }}</span>
+                    </div>
                 </div>
             </div>
         </handle>
         <div class="flex flex-row content-center" data-if="!isTurboBarCamLoaded">
-            <div class="w-16 action-button" data-event-click="CallAction('togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera')">
+            <div class="w-16 action-button"
+                 data-event-click="CallAction('togglewidget Tactical Ultra-Responsive Brilliant Optics for BAR Camera')">
                 Enable TurboBarCam Widget
             </div>
         </div>
@@ -41,8 +46,12 @@
                     <div class="action-button" data-class-active="isWeaponCameraActive"
                          data-event-click="CallAction('turbobarcam_unit_follow_toggle_combat_mode')">Weapon Camera
                     </div>
-                    <div class="action-button" data-event-click="SetUnitFollowLookPoint" data-class-active="inFixedTargetSelectionMode || isFixedTargetModeActive">Look At</div>
-                    <div class="action-button" data-class-disabled="!isFixedTargetModeActive" data-event-click="CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look At</div>
+                    <div class="action-button" data-event-click="SetUnitFollowLookPoint"
+                         data-class-active="inFixedTargetSelectionMode || isFixedTargetModeActive">Look At
+                    </div>
+                    <div class="action-button" data-class-disabled="!isFixedTargetModeActive"
+                         data-event-click="CallAction('turbobarcam_unit_follow_clear_fixed_look_point')">Clear Look At
+                    </div>
                 </div>
                 <div class="param-container">
                     <div class="param-row">
@@ -219,12 +228,15 @@
                         </div>
                     </div>
                     <div style="padding: 5dp 8dp 0 8dp;">
-                        <div class="input-field-label">Duration of new anchors: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span></div>
-                        <input type="range" min="1" max="200" step="1" data-attr-value="anchors.newAnchorDuration" data-event-change="SetNewAnchorDuration" style="width: 100%;" />
+                        <div class="input-field-label">Duration of new anchors: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span>
+                        </div>
+                        <input type="range" min="1" max="200" step="1" data-attr-value="anchors.newAnchorDuration"
+                               data-event-change="SetNewAnchorDuration" style="width: 100%;"/>
                     </div>
                     <div class="sub-section-title">Current Anchors</div>
                     <div class="item-list" data-if="anchors.hasAnchors">
-                        <div data-for="anchor: anchors.anchors_list" class="list-item" data-class-active="anchor.id == anchors.activeAnchorId && isDriverActive">
+                        <div data-for="anchor: anchors.anchors_list" class="list-item"
+                             data-class-active="anchor.id == anchors.activeAnchorId && isDriverActive">
                             <div class="item-label" data-event-click="FocusAnchor(anchor.id)">
                                 <span class="anchor-id">#{{anchor.id}}</span>
                                 <span class="anchor-type">{{anchor.type}}</span>
@@ -232,10 +244,18 @@
                             </div>
                             <div class="param-controls">
                                 <div class="action-button small" data-event-click="SetAnchor(anchor.id)">Update</div>
-                                <div class="action-button small" data-event-click="ToggleAnchorType(anchor.id)">Toggle Type</div>
-                                <div class="action-button small" data-event-click="AdjustAnchorDuration(anchor.id, '+')">+</div>
-                                <div class="action-button small" data-event-click="AdjustAnchorDuration(anchor.id, '-')">-</div>
-                                <div class="action-button small" data-event-click="DeleteAnchor(anchor.id)" style="background-color: #B71C1C;">X</div>
+                                <div class="action-button small" data-event-click="ToggleAnchorType(anchor.id)">Toggle
+                                    Type
+                                </div>
+                                <div class="action-button small"
+                                     data-event-click="AdjustAnchorDuration(anchor.id, '+')">+
+                                </div>
+                                <div class="action-button small"
+                                     data-event-click="AdjustAnchorDuration(anchor.id, '-')">-
+                                </div>
+                                <div class="action-button small" data-event-click="DeleteAnchor(anchor.id)"
+                                     style="background-color: #B71C1C;">X
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -283,7 +303,8 @@
                         PlayerCam Unit Selection
                     </div>
                     <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
-                        Allows the camera to mimic the unit selections of a spectated player. When active (green), this behavior is enabled.
+                        Allows the camera to mimic the unit selections of a spectated player. When active (green), this
+                        behavior is enabled.
                     </div>
                 </div>
                 <div class="option-item">
@@ -293,7 +314,8 @@
                         Tracking Without Selection
                     </div>
                     <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
-                        Allows the camera to continue tracking a unit even after it has been deselected. When active (green), this is enabled.
+                        Allows the camera to continue tracking a unit even after it has been deselected. When active
+                        (green), this is enabled.
                     </div>
                 </div>
             </div>
@@ -314,8 +336,12 @@
                             <span class="anchor-duration">Air time: {{p.timeInAir}}</span>
                         </div>
                         <div class="param-controls">
-                            <div class="action-button small" data-class-active="p.isTracked" data-event-click="StartTrackingProjectile(p.id, 'static')">Track</div>
-                            <div class="action-button small" data-class-active="p.isFollowed" data-event-click="StartTrackingProjectile(p.id, 'follow')">Follow</div>
+                            <div class="action-button small" data-class-active="p.isTracked"
+                                 data-event-click="StartTrackingProjectile(p.id, 'static')">Track
+                            </div>
+                            <div class="action-button small" data-class-active="p.isFollowed"
+                                 data-event-click="StartTrackingProjectile(p.id, 'follow')">Follow
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -334,16 +360,28 @@
                     <div class="action-button small" data-event-click="CallAction('turbobarcam_debug')">Toggle</div>
                 </div>
                 <div class="debug-title">Driver Transition Info</div>
-                <div class="debug-row"><span class="debug-label">Pos Smoothing:</span><span class="debug-value">{{ debug_pos_smooth }}</span></div>
-                <div class="debug-row"><span class="debug-label">Rot Smoothing:</span><span class="debug-value">{{ debug_rot_smooth }}</span></div>
-                <div class="debug-row"><span class="debug-label">Distance:</span><span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span></div>
-                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value" data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span></div>
-                <div class="debug-row"><span class="debug-label">Ang.Velocity:</span><span class="debug-value" data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span></div>
+                <div class="debug-row"><span class="debug-label">Pos Smoothing:</span><span class="debug-value">{{ debug_pos_smooth }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Rot Smoothing:</span><span class="debug-value">{{ debug_rot_smooth }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Distance:</span><span class="debug-value"
+                                                                                       data-class-status-enabled="debug_pos_complete">{{ debug_distance }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value"
+                                                                                       data-class-status-enabled="debug_pos_complete">{{ debug_velocity }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Ang.Velocity:</span><span class="debug-value"
+                                                                                           data-class-status-enabled="debug_rot_complete">{{ debug_ang_velocity }}</span>
+                </div>
                 <div class="debug-title">Simulation State</div>
-                <div class="debug-row"><span class="debug-label">Position:</span><span class="debug-value">{{ sim_position }}</span></div>
-                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value">{{ sim_velocity }}</span></div>
-                <div class="debug-row"><span class="debug-label">Rotation (Euler):</span><span class="debug-value">{{ sim_orientation }}</span></div>
-                <div class="debug-row"><span class="debug-label">Ang. Velocity:</span><span class="debug-value">{{ sim_ang_velocity }}</span></div>
+                <div class="debug-row"><span class="debug-label">Position:</span><span class="debug-value">{{ sim_position }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Velocity:</span><span class="debug-value">{{ sim_velocity }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Rotation (Euler):</span><span class="debug-value">{{ sim_orientation }}</span>
+                </div>
+                <div class="debug-row"><span class="debug-label">Ang. Velocity:</span><span class="debug-value">{{ sim_ang_velocity }}</span>
+                </div>
             </div>
         </div>
 
@@ -358,7 +396,7 @@
             <div class="error-content">
                 <p class="error-message">{{error.message}}</p>
                 <div data-if="showTraceback">
-                    <div class="m-1" ></div>
+                    <div class="m-1"></div>
                     <div class="error-trace">
                         <pre>{{ error.traceback }}</pre>
                     </div>

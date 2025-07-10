@@ -1,0 +1,128 @@
+body {
+    font-family: Poppins;
+    font-size: 14dp;
+    color: #F5F5F5;
+}
+
+#help-container {
+    position: absolute;
+    top: 100dp;
+    left: 250dp;
+    width: 1400dp;
+    height: 850dp;
+    background-color: #11171DCC;
+    border-width: 1dp;
+    border-color: #455A64;
+    border-radius: 4dp;
+    display: flex;
+    flex-direction: column;
+}
+
+#help-title-bar {
+    background-color: #1A2530;
+    padding: 8dp 12dp;
+    border-radius: 4dp 4dp 0 0;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    font-family: "Exo 2";
+    font-size: 16dp;
+    font-weight: bold;
+    z-index: 1; /* Add this line */
+}
+
+#help-close-button {
+    width: 24dp;
+    height: 24dp;
+    line-height: 24dp;
+    text-align: center;
+    border-radius: 3dp;
+    cursor: pointer;
+    background-color: #455A64;
+    font-weight: bold;
+}
+
+#help-close-button:hover {
+    background-color: #E53935;
+    color: #FFFFFF;
+}
+
+#help-content-wrapper {
+    flex-grow: 1;
+    min-height: 0; /* Prevents flex item from growing infinitely */
+}
+
+#scroller {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    padding: 0dp 20dp;
+}
+
+h2 {
+    font-family: "Exo 2";
+    color: #90CAF9;
+    font-size: 20dp;
+    margin-top: 25dp;
+    margin-bottom: 15dp;
+    padding-bottom: 5dp;
+    border-bottom-width: 1dp;
+    border-bottom-color: #455A64;
+}
+
+.flex-table {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    /* FIXED: This prevents the table from collapsing horizontally when the content overflows vertically. */
+    min-width: 1200dp;
+}
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    border-bottom-width: 1dp;
+    border-bottom-color: #2C3B47;
+}
+
+.flex-row:last-child {
+    border-bottom-width: 0;
+}
+
+.flex-cell {
+    padding: 8dp 10dp;
+    vertical-align: top;
+}
+
+.header-row {
+    background-color: #1A2530;
+    font-weight: bold;
+    color: #CFD8DC;
+}
+
+.action-col {
+    flex: 0 0 25%;
+}
+.desc-col {
+    flex: 0 0 30%;
+}
+.key-col {
+    flex: 0 0 17.5%;
+}
+
+.flex-table .flex-row:not(.header-row):nth-child(even) {
+    background-color: #232f3855;
+}
+
+.action-col b {
+    color: #FFCC80;
+}
+
+span.code, code {
+    background-color: #263238;
+    padding: 2dp 4dp;
+    border-radius: 3dp;
+    font-size: 12dp;
+}

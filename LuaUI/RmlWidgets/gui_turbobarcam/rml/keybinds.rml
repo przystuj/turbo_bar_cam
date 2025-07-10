@@ -1,0 +1,398 @@
+<rml>
+    <head>
+        <title>TurboBarCam Keybinds</title>
+        <link type="text/rcss" href="keybinds.rcss"/>
+    </head>
+    <body id="keybinds-body">
+        <div id="help-container">
+            <handle move_target="#help-container">
+                <div id="help-title-bar">
+                    <span>TurboBarCam Keybinds</span>
+                    <div id="help-close-button">X</div>
+                </div>
+            </handle>
+            <div id="help-content-wrapper" style="margin-top: 10dp">
+                <div id="scroller">
+                   <div class="flex-table">
+                        <h2>General Controls</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Set FOV</b><br/><span class="code">turbobarcam_set_fov</span></div>
+                            <div class="flex-cell desc-col">Sets the camera's Field of View (FOV) to a specific value.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Stop Camera Tracking</b><br/><span class="code">turbobarcam_stop_tracking</span></div>
+                            <div class="flex-cell desc-col">Disables any active TurboBarCam mode and returns to default camera control.</div>
+                            <div class="flex-cell key-col"><span class="code">Esc</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Debug Log Level</b><br/><span class="code">turbobarcam_debug</span></div>
+                            <div class="flex-cell desc-col">Toggles the debug logging level for the widget, cycling through INFO, DEBUG, and TRACE levels.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Require Unit Selection for Tracking</b><br/><span class="code">turbobarcam_toggle_require_unit_selection</span></div>
+                            <div class="flex-cell desc-col">Toggles whether unit tracking modes (like Unit Follow, Orbit) can remain active even if no unit is currently selected. If this is disabled (default), tracking usually stops shortly after deselecting the unit.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle TurboBarCam</b><br/><span class="code">turbobarcam_toggle</span></div>
+                            <div class="flex-cell desc-col">Toggles the entire TurboBarCam widget on or off.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad.</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Zoom (FOV)</b><br/><span class="code">turbobarcam_toggle_zoom</span></div>
+                            <div class="flex-cell desc-col">Cycles through predefined Field of View (FOV) values, effectively zooming the camera in or out.</div>
+                            <div class="flex-cell key-col"><span class="code">Home</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Anchor Point Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Anchor Params</b><br/><span class="code">turbobarcam_anchor_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+Shift+numpad-</span><br/><span class="code">Ctrl+Shift+numpad+</span></div>
+                            <div class="flex-cell key-col"><span class="code">add;DURATION,-1</span><br/><span class="code">add;DURATION,1</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Delete anchor</b><br/><span class="code">turbobarcam_anchor_delete</span></div>
+                            <div class="flex-cell desc-col">Deletes the anchor by id</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Focus Anchor</b><br/><span class="code">turbobarcam_anchor_focus</span></div>
+                            <div class="flex-cell desc-col">Smoothly transitions the camera to a previously saved anchor point.</div>
+                            <div class="flex-cell key-col"><span class="code">Shift+F1</span><br/><span class="code">Shift+F2</span><br/><span class="code">Shift+F3</span><br/><span class="code">Shift+F4</span><br/><span class="code">Shift+F5</span><br/><span class="code">Shift+F6</span></div>
+                            <div class="flex-cell key-col"><span class="code">1</span><br/><span class="code">2</span><br/><span class="code">3</span><br/><span class="code">4</span><br/><span class="code">5</span><br/><span class="code">6</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Load Anchors</b><br/><span class="code">turbobarcam_anchor_load</span></div>
+                            <div class="flex-cell desc-col">Loads a set of camera anchor points from the storage, specific to the current map.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Save Anchors</b><br/><span class="code">turbobarcam_anchor_save</span></div>
+                            <div class="flex-cell desc-col">Saves the current set of camera anchor points to the storage, specific to the current map.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Set Anchor</b><br/><span class="code">turbobarcam_anchor_set</span></div>
+                            <div class="flex-cell desc-col">Saves the current camera position and state as a numbered anchor point.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+F1</span><br/><span class="code">Ctrl+F2</span><br/><span class="code">Ctrl+F3</span><br/><span class="code">Ctrl+F4</span><br/><span class="code">Ctrl+F5</span><br/><span class="code">Ctrl+F6</span></div>
+                            <div class="flex-cell key-col"><span class="code">1</span><br/><span class="code">2</span><br/><span class="code">3</span><br/><span class="code">4</span><br/><span class="code">5</span><br/><span class="code">6</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Sync anchors duration</b><br/><span class="code">turbobarcam_anchor_update_all_durations</span></div>
+                            <div class="flex-cell desc-col">Sets all anchors to the same duration (the one you can control with duration adjustment)</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+Shift+Alt+numpad+</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Type</b><br/><span class="code">turbobarcam_anchor_toggle_type</span></div>
+                            <div class="flex-cell desc-col">Toggles the anchor type.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle anchors HUD</b><br/><span class="code">turbobarcam_anchor_toggle_visualization</span></div>
+                            <div class="flex-cell desc-col">Toggle anchors HUD (Shows them as points in the game)</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+Shift+Alt+numpad-</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>DollyCam Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Add Waypoint</b><br/><span class="code">turbobarcam_dollycam_add</span></div>
+                            <div class="flex-cell desc-col">Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Speed</b><br/><span class="code">turbobarcam_dollycam_adjust_speed</span></div>
+                            <div class="flex-cell desc-col">Adjusts the navigation speed of the DollyCam when a route is active. Accepts values from -1.0 (full reverse) to 1.0 (full forward).</div>
+                            <div class="flex-cell key-col"><span class="code">numpad6</span><br/><span class="code">numpad4</span></div>
+                            <div class="flex-cell key-col"><span class="code">0.1</span><br/><span class="code">-0.1</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Load Route</b><br/><span class="code">turbobarcam_dollycam_load</span></div>
+                            <div class="flex-cell desc-col">Loads a DollyCam route from the storage, specific to the current map.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Move Waypoint</b><br/><span class="code">turbobarcam_dollycam_move_waypoint</span></div>
+                            <div class="flex-cell desc-col">Moves the currently selected DollyCam waypoint along a specified axis (X, Y, or Z) by a given amount when in editor mode.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad5</span><br/><span class="code">numpad8</span><br/><span class="code">Ctrl+numpad5</span><br/><span class="code">Ctrl+numpad8</span><br/><span class="code">numpad4</span><br/><span class="code">numpad6</span></div>
+                            <div class="flex-cell key-col"><span class="code">x -10</span><br/><span class="code">x 10</span><br/><span class="code">y -10</span><br/><span class="code">y 10</span><br/><span class="code">z -10</span><br/><span class="code">z 10</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Save Route</b><br/><span class="code">turbobarcam_dollycam_save</span></div>
+                            <div class="flex-cell desc-col">Saves the current DollyCam route to the storage, specific to the current map.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Set Waypoint LookAt</b><br/><span class="code">turbobarcam_dollycam_edit_lookat</span></div>
+                            <div class="flex-cell desc-col">Sets the selected DollyCam waypoint to look at the currently selected unit. If no unit is selected, it might clear the look-at target.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Set Waypoint Speed</b><br/><span class="code">turbobarcam_dollycam_edit_speed</span></div>
+                            <div class="flex-cell desc-col">Sets the target speed for the selected waypoint in the DollyCam editor. Use '1' to reset to default speed.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Test Route</b><br/><span class="code">turbobarcam_dollycam_test</span></div>
+                            <div class="flex-cell desc-col">Loads a predefined DollyCam route named 'test' for development or demonstration purposes.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+\</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Direction</b><br/><span class="code">turbobarcam_dollycam_toggle_direction</span></div>
+                            <div class="flex-cell desc-col">Toggles the playback direction (forward/reverse) of the currently active DollyCam navigation.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad5</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Editor</b><br/><span class="code">turbobarcam_dollycam_toggle_editor</span></div>
+                            <div class="flex-cell desc-col">Toggles the DollyCam waypoint editor mode on or off. Allows for creation and modification of camera paths.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+[</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Navigation</b><br/><span class="code">turbobarcam_dollycam_toggle_navigation</span></div>
+                            <div class="flex-cell desc-col">Starts or stops the DollyCam navigation along the currently defined route. Optionally can start without immediate camera control.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+]</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Unit Follow Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Params</b><br/><span class="code">turbobarcam_unit_follow_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+numpad1</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span></div>
+                            <div class="flex-cell key-col"><span class="code">reset</span><br/><span class="code">add;DEFAULT.FORWARD,5</span><br/><span class="code">add;DEFAULT.FORWARD,-5</span><br/><span class="code">add;DEFAULT.HEIGHT,5</span><br/><span class="code">add;DEFAULT.HEIGHT,-5</span><br/><span class="code">add;DEFAULT.SIDE,5</span><br/><span class="code">add;DEFAULT.SIDE,-5</span><br/><span class="code">add;DEFAULT.ROTATION,0.1</span><br/><span class="code">add;DEFAULT.ROTATION,-0.1</span><br/><span class="code">add;COMBAT.FORWARD,5</span><br/><span class="code">add;COMBAT.FORWARD,-5</span><br/><span class="code">add;COMBAT.HEIGHT,5</span><br/><span class="code">add;COMBAT.HEIGHT,-5</span><br/><span class="code">add;COMBAT.SIDE,5</span><br/><span class="code">add;COMBAT.SIDE,-5</span><br/><span class="code">add;COMBAT.ROTATION,0.1</span><br/><span class="code">add;COMBAT.ROTATION,-0.1</span><br/><span class="code">add;WEAPON.FORWARD,5</span><br/><span class="code">add;WEAPON.FORWARD,-5</span><br/><span class="code">add;WEAPON.HEIGHT,5</span><br/><span class="code">add;WEAPON.HEIGHT,-5</span><br/><span class="code">add;WEAPON.SIDE,5</span><br/><span class="code">add;WEAPON.SIDE,-5</span><br/><span class="code">add;WEAPON.ROTATION,0.1</span><br/><span class="code">add;WEAPON.ROTATION,-0.1</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Clear Look Point</b><br/><span class="code">turbobarcam_unit_follow_clear_fixed_look_point</span></div>
+                            <div class="flex-cell desc-col">Clears any fixed look point or unit target that the camera is currently focused on, returning to default forward view.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad*</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Clear Weapon</b><br/><span class="code">turbobarcam_unit_follow_clear_weapon_selection</span></div>
+                            <div class="flex-cell desc-col">Clears the currently selected weapon in combat mode, stopping any specific weapon aiming.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+PageDown</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Next Weapon</b><br/><span class="code">turbobarcam_unit_follow_next_weapon</span></div>
+                            <div class="flex-cell desc-col">Cycles to the next available weapon of the unit in combat mode for aiming.</div>
+                            <div class="flex-cell key-col"><span class="code">PageDown</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Set Look Point</b><br/><span class="code">turbobarcam_unit_follow_set_fixed_look_point</span></div>
+                            <div class="flex-cell desc-col">Activates target selection mode. Click on a point on the map or a unit to make the camera continuously look at that target while following the primary unit.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad/</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Combat Mode</b><br/><span class="code">turbobarcam_unit_follow_toggle_combat_mode</span></div>
+                            <div class="flex-cell desc-col">Toggles combat mode, which may change camera offsets and enable weapon-specific aiming.</div>
+                            <div class="flex-cell key-col"><span class="code">End</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Unit Follow</b><br/><span class="code">turbobarcam_toggle_unit_follow_camera</span></div>
+                            <div class="flex-cell desc-col">Toggles Unit Follow camera mode. Attaches the camera to the currently selected unit. If already in mode for that unit, it disables it.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad1</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Group Tracking Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Group Track Params</b><br/><span class="code">turbobarcam_group_tracking_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad5</span><br/><span class="code">numpad8</span><br/><span class="code">Ctrl+numpad8</span><br/><span class="code">Ctrl+numpad5</span><br/><span class="code">numpad4</span><br/><span class="code">numpad6</span><br/><span class="code">numpad7</span><br/><span class="code">numpad9</span><br/><span class="code">Ctrl+numpad0</span><br/><span class="code">Ctrl+numpad9</span><br/><span class="code">Ctrl+numpad7</span></div>
+                            <div class="flex-cell key-col"><span class="code">add;EXTRA_DISTANCE,15</span><br/><span class="code">add;EXTRA_DISTANCE,-15</span><br/><span class="code">add;EXTRA_HEIGHT,5</span><br/><span class="code">add;EXTRA_HEIGHT,-5</span><br/><span class="code">add;ORBIT_OFFSET,0.01</span><br/><span class="code">add;ORBIT_OFFSET,-0.01</span><br/><span class="code">add;SMOOTHING.POSITION,-1;SMOOTHING.STABLE_POSITION,-1</span><br/><span class="code">add;SMOOTHING.POSITION,1;SMOOTHING.STABLE_POSITION,1</span><br/><span class="code">reset</span><br/><span class="code">set;SMOOTHING.POSITION,1;SMOOTHING.STABLE_POSITION,1;SMOOTHING.ROTATION,1;SMOOTHING.STABLE_ROTATION,1</span><br/><span class="code">set;SMOOTHING.POSITION,20;SMOOTHING.STABLE_POSITION,20;SMOOTHING.ROTATION,20;SMOOTHING.STABLE_ROTATION,20</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Group Tracking</b><br/><span class="code">turbobarcam_toggle_group_tracking_camera</span></div>
+                            <div class="flex-cell desc-col">Toggles the Group Tracking Camera mode. Tracks the center of mass of the currently selected units. If already tracking, it disables the mode.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad0</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Orbit Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Orbit Params</b><br/><span class="code">turbobarcam_orbit_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Orbit Camera mode, such as orbit height, distance, and rotation speed. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+numpad2</span><br/><span class="code">numpad5</span><br/><span class="code">numpad8</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span></div>
+                            <div class="flex-cell key-col"><span class="code">reset</span><br/><span class="code">add;DISTANCE,20</span><br/><span class="code">add;DISTANCE,-20</span><br/><span class="code">add;HEIGHT,20</span><br/><span class="code">add;HEIGHT,-20</span><br/><span class="code">add;SPEED,0.01</span><br/><span class="code">add;SPEED,-0.01</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Load Orbit Config</b><br/><span class="code">turbobarcam_orbit_load</span></div>
+                            <div class="flex-cell desc-col">Loads a saved orbit camera configuration (including target type, ID/position, speed, distance, height, angle, and paused state) for a specific ID, map-dependent.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Save Orbit Config</b><br/><span class="code">turbobarcam_orbit_save</span></div>
+                            <div class="flex-cell desc-col">Saves the current orbit camera configuration (target, parameters, and state) to a specified ID, map-dependent.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Orbit Camera (Point)</b><br/><span class="code">turbobarcam_orbit_toggle_point</span></div>
+                            <div class="flex-cell desc-col">Toggles the Orbit Camera mode around a point on the map (cursor position).</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Orbit Camera (Unit)</b><br/><span class="code">turbobarcam_orbit_toggle</span></div>
+                            <div class="flex-cell desc-col">Toggles the Orbit Camera mode for the selected unit. If already orbiting the unit, it disables the mode.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad2</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Orbit Pause</b><br/><span class="code">turbobarcam_orbit_toggle_pause</span></div>
+                            <div class="flex-cell desc-col">Toggles pausing and resuming the camera's movement in Orbit Camera mode.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Projectile Camera Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Projectile Cam Params</b><br/><span class="code">turbobarcam_projectile_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+Delete</span><br/><span class="code">Ctrl+Insert</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad5</span><br/><span class="code">Ctrl+numpad8</span><br/><span class="code">Ctrl+numpad6</span><br/><span class="code">Ctrl+numpad9</span></div>
+                            <div class="flex-cell key-col"><span class="code">reset</span><br/><span class="code">reset</span><br/><span class="code">add;STATIC.OFFSET_HEIGHT,20;FOLLOW.DISTANCE,-20</span><br/><span class="code">add;STATIC.OFFSET_HEIGHT,-20;FOLLOW.DISTANCE,20</span><br/><span class="code">add;STATIC.LOOK_AHEAD,20;FOLLOW.LOOK_AHEAD,20</span><br/><span class="code">add;STATIC.LOOK_AHEAD,-20;FOLLOW.LOOK_AHEAD,-20</span><br/><span class="code">add;STATIC.OFFSET_SIDE,5;FOLLOW.HEIGHT,5</span><br/><span class="code">add;STATIC.OFFSET_SIDE,-5;FOLLOW.HEIGHT,-5</span><br/><span class="code">add;DECELERATION_PROFILE.DURATION,-0.1</span><br/><span class="code">add;DECELERATION_PROFILE.DURATION,0.1</span><br/><span class="code">add;DECELERATION_PROFILE.INITIAL_BRAKING,-100</span><br/><span class="code">add;DECELERATION_PROFILE.INITIAL_BRAKING,100</span><br/><span class="code">add;DECELERATION_PROFILE.PATH_ADHERENCE,-0.1</span><br/><span class="code">add;DECELERATION_PROFILE.PATH_ADHERENCE,0.1</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Cycle Nukes</b><br/><span class="code">turbobarcam_projectile_camera_cycle</span></div>
+                            <div class="flex-cell desc-col">Cycles to the next projectile of globally tracked units. (currently, only nukes)</div>
+                            <div class="flex-cell key-col"><span class="code">PageUp</span></div>
+                            <div class="flex-cell key-col"><span class="code">forward static</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Follow Projectile (Moving Cam)</b><br/><span class="code">turbobarcam_projectile_camera_follow</span></div>
+                            <div class="flex-cell desc-col">Activates Projectile Camera in 'follow' sub-mode. The camera moves with the projectile, attempting to keep it in frame.</div>
+                            <div class="flex-cell key-col"><span class="code">Delete</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Mode</b><br/><span class="code">turbobarcam_projectile_camera_toggle_mode</span></div>
+                            <div class="flex-cell desc-col">Toggles the projectile camera mode.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+PageUp</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Track Projectile (Static Cam)</b><br/><span class="code">turbobarcam_projectile_camera_track</span></div>
+                            <div class="flex-cell desc-col">Activates Projectile Camera in 'static' sub-mode. The camera stays at its initial position and rotates to track the projectile.</div>
+                            <div class="flex-cell key-col"><span class="code">Insert</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Unit Tracking Mode</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Adjust Unit Track Params</b><br/><span class="code">turbobarcam_tracking_camera_adjust_params</span></div>
+                            <div class="flex-cell desc-col">Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', or 'reset'.</div>
+                            <div class="flex-cell key-col"><span class="code">Ctrl+numpad3</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span></div>
+                            <div class="flex-cell key-col"><span class="code">reset</span><br/><span class="code">add;HEIGHT,20</span><br/><span class="code">add;HEIGHT,-20</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Unit Tracking</b><br/><span class="code">turbobarcam_toggle_tracking_camera</span></div>
+                            <div class="flex-cell desc-col">Toggles the Unit Tracking Camera mode. Follows the selected unit while attempting to maintain the current camera angle and distance, smoothly adjusting to unit movements.</div>
+                            <div class="flex-cell key-col"><span class="code">numpad3</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Spectator Actions</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Spectator Unit Group</b><br/><span class="code">turbobarcam_spec_unit_group</span></div>
+                            <div class="flex-cell desc-col">Manages spectator unit groups. Allows setting a group with selected units, selecting units from a group, or clearing a group. Requires spectator mode.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle PlayerCam Selection Lock</b><br/><span class="code">turbobarcam_toggle_playercam_selection</span></div>
+                            <div class="flex-cell desc-col">Toggles whether unit selection is locked or follows the spectated player's selection when the game's Player Camera view is active.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <h2>Development Actions</h2>
+                        <div class="flex-row header-row">
+                            <div class="flex-cell action-col"><b>Action</b></div>
+                            <div class="flex-cell desc-col"><b>Description</b></div>
+                            <div class="flex-cell key-col"><b>Keybind</b></div>
+                            <div class="flex-cell key-col"><b>Parameters</b></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Dev: Change Config</b><br/><span class="code">turbobarcam_dev_config</span></div>
+                            <div class="flex-cell desc-col">Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                   </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</rml>

@@ -330,8 +330,7 @@ div {
     margin-bottom: 2dp;
 }
 .debug-label { color: #B0BEC5; }
-.debug-value { color: #CFD8DC;
-}
+.debug-value { color: #CFD8DC; }
 .projectile-item { margin-left: 5dp; }
 
 .mode-buttons-container {

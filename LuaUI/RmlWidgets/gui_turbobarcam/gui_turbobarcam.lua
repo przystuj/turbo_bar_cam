@@ -27,6 +27,9 @@ local dm_handle ---@type UIDataModel
 local initialized = false
 local visible = false
 
+local helpContext
+local helpDocument
+
 ---@type WidgetState
 local STATE
 ---@type WidgetConfig
@@ -108,6 +111,37 @@ end
 local function ResetParams(_, mode)
     local action = string.format("turbobarcam_%s_adjust_params reset", mode)
     Spring.SendCommands(action)
+end
+
+local function ToggleHelp(_)
+    if helpDocument then
+        -- If the help document exists, close it and clean up
+        helpDocument:Close()
+        helpDocument = nil
+    else
+        -- Otherwise, create a new context and load the keybinds document
+        helpContext = RmlUi.CreateContext("shared")
+        if not helpContext then
+            Log:warn("Failed to create RmlUi context for help document.")
+            return
+        end
+
+        helpDocument = helpContext:LoadDocument("LuaUI/RmlWidgets/gui_turbobarcam/rml/keybinds.rml")
+        if not helpDocument then
+            Log:warn("Failed to load help document: LuaUI/RmlWidgets/gui_turbobarcam/rml/keybinds.rml")
+            helpContext = nil
+            return
+        end
+
+        local closeButton = helpDocument:GetElementById("help-close-button")
+        if closeButton then
+            closeButton:AddEventListener('click', ToggleHelp)
+        else
+            Log:warn("Could not find close button in keybinds.rml")
+        end
+
+        helpDocument:Show()
+    end
 end
 
 local function ToggleDebugInfo(_)
@@ -357,6 +391,7 @@ local initDataModel = {
     UpdateAllAnchorDurations = UpdateAllAnchorDurations,
     ClearError = ClearError,
     CopyErrorToClipboard = CopyErrorToClipboard,
+    ToggleHelp = ToggleHelp,
 }
 
 local function getCleanMapName()
@@ -648,6 +683,14 @@ function widget:Shutdown()
     if document then
         document:Close()
         document = nil
+    end
+
+    if helpDocument then
+        helpDocument:Close()
+        helpDocument = nil
+        if helpContext then
+            helpContext = nil
+        end
     end
 
     if widget.rmlContext then
