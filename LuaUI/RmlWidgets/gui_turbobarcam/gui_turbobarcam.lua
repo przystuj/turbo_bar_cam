@@ -561,7 +561,7 @@ local function updateDataModel()
 
     -- Saved Anchor Sets
     local mapName = getCleanMapName()
-    local mapPresets = API.loadSettings("anchors", mapName, {}) or {}
+    local mapPresets = API.loadSettings("anchors", mapName, {}, true) or {}
     local sets_list = {}
     for id, _ in pairs(mapPresets) do
         table.insert(sets_list, id)

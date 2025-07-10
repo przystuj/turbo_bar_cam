@@ -81,10 +81,13 @@ function SettingsManager.saveUserSetting(name, id, data)
     return true
 end
 
-function SettingsManager.loadUserSetting(name, id, default)
+function SettingsManager.loadUserSetting(name, id, default, direct)
     if not STATE.settings.storages[name] then
         Log:warn("Storage not initialized: " .. name)
         return nil
+    end
+    if direct then -- deepCopy has quite big performance impact
+        return STATE.settings.storages[name]:get(id) or default or nil
     end
     return TableUtils.deepCopy(STATE.settings.storages[name]:get(id) or TableUtils.deepCopy(default) or nil)
 end

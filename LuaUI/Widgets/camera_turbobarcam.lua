@@ -60,11 +60,11 @@ local function setupApi()
         stop = function()
             WidgetManager.stop()
         end,
-        loadSettings = function(name, id, default)
+        loadSettings = function(name, id, default, direct)
             if not STATE.settings.storages[name] then
                 return nil
             end
-            return SettingsManager.loadUserSetting(name, id, default)
+            return SettingsManager.loadUserSetting(name, id, default, direct)
         end,
         saveErrorInfo = function(message, traceback)
             STATE.error = {}
