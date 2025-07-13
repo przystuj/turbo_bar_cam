@@ -719,7 +719,9 @@ end
 function widget:RecvLuaMsg(msg, playerID)
     if msg:sub(1, 19) == 'LobbyOverlayActive0' then
         document:Show()
+        helpDocument:Show()
     elseif msg:sub(1, 19) == 'LobbyOverlayActive1' then
         document:Hide()
+        helpDocument:Hide()
     end
 end

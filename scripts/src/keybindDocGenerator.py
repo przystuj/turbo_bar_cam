@@ -134,7 +134,7 @@ def generate_rml(actions_by_mode):
         '    </head>',
         '    <body id="keybinds-body">',
         '        <div id="help-container">',
-        '            <handle move_target="#help-container">',
+        '            <handle move_target="help-container">',
         '                <div id="help-title-bar">',
         '                    <span>TurboBarCam Keybinds</span>',
         '                    <div id="help-close-button">X</div>',
