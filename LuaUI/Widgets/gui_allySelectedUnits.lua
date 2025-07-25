@@ -160,7 +160,7 @@ local function removeUnit(unitID)
 end
 
 local function selectPlayerSelectedUnits(playerID)
-	if WG.TurboBarCam and not WG.TurboBarCam.API.isUnitSelectionAllowed() then
+	if WG.TurboBarCam and WG.TurboBarCam.API and not WG.TurboBarCam.API.isUnitSelectionAllowed() then
 		return
 	end
 

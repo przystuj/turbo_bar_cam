@@ -102,8 +102,8 @@ local function LockCamera(playerID)
 end
 
 function CameraBroadcastEvent(playerID, cameraState)
-    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.API.isInControl() -- TurboBarCam is controlling the camera now
-    local forceFpsCamera = WG.TurboBarCam and WG.TurboBarCam.API.forceFpsCamera() -- TurboBarCam is enabled
+    local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.isInControl() -- TurboBarCam is controlling the camera now
+    local forceFpsCamera = WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.forceFpsCamera() -- TurboBarCam is enabled
 
     -- if cameraState is empty then transmission has stopped
     if not cameraState then
