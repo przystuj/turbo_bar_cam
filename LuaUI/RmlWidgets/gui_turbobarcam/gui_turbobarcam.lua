@@ -209,13 +209,9 @@ local function LoadAnchorSet(_, setId)
 end
 
 local function SaveNewAnchorSet(_)
-    local newAnchorSetName = dm_handle.anchors.newAnchorSetName
-    if newAnchorSetName and newAnchorSetName ~= "" then
-        Spring.SendCommands("turbobarcam_anchor_save " .. newAnchorSetName)
-        dm_handle.anchors.newAnchorSetName = ""
-    else
-        Log:warn("Cannot save anchor set with an empty name.")
-    end
+    local newAnchorSetName = dm_handle.anchors.newAnchorSetName or "default"
+    Spring.SendCommands("turbobarcam_anchor_save " .. newAnchorSetName)
+    dm_handle.anchors.newAnchorSetName = ""
 end
 
 local function SaveExistingAnchorSet(_, setId)
