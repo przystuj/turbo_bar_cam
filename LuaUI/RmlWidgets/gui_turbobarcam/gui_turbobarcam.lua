@@ -25,7 +25,8 @@ local MODEL_NAME = "turbobarcam_model"
 local document
 local dm_handle ---@type UIDataModel
 local initialized = false
-local visible = false
+local visible = true
+local isLobbyVisible = false
 
 local helpContext
 local helpDocument
@@ -706,18 +707,48 @@ function widget:RestartWidget()
     widget:Initialize()
 end
 
+local function hideUI()
+    if not visible then
+        return
+    end
+    visible = false
+    if document then
+        document:Hide()
+    end
+    if helpDocument then
+        helpDocument:Hide()
+    end
+end
+
+local function showUI()
+    if visible then
+        return
+    end
+    visible = true
+    if document then
+        document:Show()
+    end
+    if helpDocument then
+        helpDocument:Show()
+    end
+end
+
 function widget:Update()
-    if initialized and visible then
+    if Spring.IsGUIHidden() or isLobbyVisible then
+        hideUI()
+        return
+    end
+
+    if initialized then
+        showUI()
         updateDataModel()
     end
 end
 
-function widget:RecvLuaMsg(msg, playerID)
+function widget:RecvLuaMsg(msg)
     if msg:sub(1, 19) == 'LobbyOverlayActive0' then
-        document:Show()
-        helpDocument:Show()
+        isLobbyVisible = false
     elseif msg:sub(1, 19) == 'LobbyOverlayActive1' then
-        document:Hide()
-        helpDocument:Hide()
+        isLobbyVisible = true
     end
 end
