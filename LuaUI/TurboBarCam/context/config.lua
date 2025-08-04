@@ -50,6 +50,7 @@ if not WG.TurboBarCam.CONFIG then
             ANCHOR = {
                 -- Transition settings
                 DURATION = 5.0, -- Default transition duration (seconds)
+                SINGLE_DURATION_MODE = true, -- If true all anchors have the same duration
             },
 
             UNIT_FOLLOW = {

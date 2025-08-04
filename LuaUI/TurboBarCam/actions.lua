@@ -268,6 +268,11 @@ function Actions.anchorActions()
             function(_, params)
                 return CameraAnchor.delete(params)
             end)
+
+    Actions.registerAction("turbobarcam_anchor_toggle_single_duration_mode", 't',
+            function(_, params)
+                return CameraAnchor.toggleSingleDuration(params)
+            end)
 end
 
 function Actions.trackingCameraActions()

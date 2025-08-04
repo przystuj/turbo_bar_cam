@@ -36,7 +36,6 @@ function UpdateManager.processCycle(dt)
     CameraStateTracker.update(dt)
     CameraDriver.update(dt)
 
-
     SettingsManager.update()
     Scheduler.handleSchedules()
     MouseManager.update()

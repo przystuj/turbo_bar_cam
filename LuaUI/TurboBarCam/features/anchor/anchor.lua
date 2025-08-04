@@ -110,6 +110,10 @@ function CameraAnchor.focus(id)
 
     local duration = anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
+    if CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE then
+        duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    end
+
     local cameraDriverJob = CameraDriver.prepare()
     cameraDriverJob.position = { x = anchorData.position.px, y = anchorData.position.py, z = anchorData.position.pz }
     cameraDriverJob.targetEuler = anchorData.rotation
@@ -176,6 +180,10 @@ end
 
 function CameraAnchor.draw()
     CameraAnchorVisualization.draw()
+end
+
+function CameraAnchor.toggleSingleDuration()
+    CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE = not CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE
 end
 
 function CameraAnchor.adjustParams(params)

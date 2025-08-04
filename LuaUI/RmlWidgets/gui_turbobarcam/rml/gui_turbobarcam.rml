@@ -222,16 +222,16 @@
                 <div class="foldable-content" data-if="!isAnchorsFolded">
                     <div class="mode-actions">
                         <div class="action-button" data-event-click="AddNewAnchor">Add New</div>
-                        <div class="action-button" data-event-click="UpdateAllAnchorDurations">Sync Durations</div>
+                        <div class="action-button" data-class-hidden="anchors.singleDurationMode" data-event-click="UpdateAllAnchorDurations">Sync Durations</div>
                         <div class="action-button" data-event-click="ToggleAnchorVisualization"
                              data-class-active="anchors.visualizationEnabled">Toggle HUD
                         </div>
                     </div>
                     <div style="padding: 5dp 8dp 0 8dp;">
-                        <div class="input-field-label">Duration of new anchors: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span>
+                        <div class="input-field-label" data-if="!anchors.singleDurationMode">Duration of new anchors: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span>
                         </div>
-                        <input type="range" min="1" max="200" step="1" data-attr-value="anchors.newAnchorDuration"
-                               data-event-change="SetNewAnchorDuration" style="width: 100%;"/>
+                        <div class="input-field-label" data-if="anchors.singleDurationMode">Duration: <span class="param-value">{{ anchors.newAnchorDurationDisplay }}</span>
+                        </div>
                     </div>
                     <div class="sub-section-title">Current Anchors</div>
                     <div class="item-list" data-if="anchors.hasAnchors">
@@ -240,7 +240,7 @@
                             <div class="item-label" data-event-click="FocusAnchor(anchor.id)">
                                 <span class="anchor-id">#{{anchor.id}}</span>
                                 <span class="anchor-type">{{anchor.type}}</span>
-                                <span class="anchor-duration">({{anchor.duration}})</span>
+                                <span class="anchor-duration" data-if="!anchors.singleDurationMode">({{anchor.duration}})</span>
                             </div>
                             <div class="param-controls">
                                 <div class="action-button small" data-event-click="SetAnchor(anchor.id)">Update</div>
@@ -303,8 +303,7 @@
                         PlayerCam Unit Selection
                     </div>
                     <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
-                        Allows the camera to mimic the unit selections of a spectated player. When active (green), this
-                        behavior is enabled.
+                        Allows the camera to mimic the unit selections of a spectated player.
                     </div>
                 </div>
                 <div class="option-item">
@@ -314,8 +313,18 @@
                         Tracking Without Selection
                     </div>
                     <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
-                        Allows the camera to continue tracking a unit even after it has been deselected. When active
-                        (green), this is enabled.
+                        Allows the camera to continue tracking a unit even after it has been deselected.
+                    </div>
+                </div>
+                <div class="option-item">
+                    <div class="action-button"
+                         data-class-active="anchors.singleDurationMode"
+                         data-event-click="CallAction('turbobarcam_anchor_toggle_single_duration_mode')">
+                        Single Duration Anchors
+                    </div>
+                    <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
+                        When active, all anchors have the same duration which automatically updates. If disabled,
+                        changing duration affects only new anchors
                     </div>
                 </div>
             </div>

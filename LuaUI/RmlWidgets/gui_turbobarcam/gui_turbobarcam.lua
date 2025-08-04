@@ -299,6 +299,7 @@ local initDataModel = {
         newAnchorSetName = "",
         newAnchorDuration = 10,
         newAnchorDurationDisplay = "10.0s",
+        singleDurationMode = false,
     },
     error = { message = "", traceback = "" },
     showError = false,
@@ -591,6 +592,10 @@ local function updateDataModel()
     dm_handle.anchors.activeAnchorId = STATE.active.anchor.lastUsedAnchor or -1
     dm_handle.anchors.visualizationEnabled = STATE.active.anchor.visualizationEnabled or false
 
+    dm_handle.anchors.singleDurationMode = CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE or false
+    dm_handle.anchors.newAnchorDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+    dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', CONFIG.CAMERA_MODES.ANCHOR.DURATION)
+
     -- Saved Anchor Sets
     local mapName = getCleanMapName()
     local mapPresets = API.loadSettings("anchors", mapName, {}, true) or {}
@@ -633,12 +638,6 @@ function widget:Initialize()
     if not dm_handle then
         Log:warn("Failed to open data model")
         return false
-    end
-
-    if CONFIG and CONFIG.CAMERA_MODES and CONFIG.CAMERA_MODES.ANCHOR then
-        local duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION or 10
-        dm_handle.anchors.newAnchorDuration = duration
-        dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', duration)
     end
 
     -- Load the document (passing the widget for events)
