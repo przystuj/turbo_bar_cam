@@ -38,18 +38,37 @@ local function toggleAnchorTarget(anchor, anchorId)
     if anchor.target then
         anchor.target = nil
         anchor.rotation = { rx = camState.rx, ry = camState.ry }
-        Log:info("Anchor '" .. anchorId .. "': Switched to Simple (free look).")
+        Log:info("Anchor " .. anchorId .. ": Switched to Simple (free look).")
     else
         anchor.rotation = nil
         local selectedUnits = Spring.GetSelectedUnits()
         if #selectedUnits > 0 then
             anchor.target = { type = CONSTANTS.TARGET_TYPE.UNIT, data = selectedUnits[1] }
-            Log:info("Anchor '" .. anchorId .. "': Switched to LookAt Unit (" .. selectedUnits[1] .. ").")
+            Log:info("Anchor " .. anchorId .. ": Switched to LookAt Unit (" .. selectedUnits[1] .. ").")
         else
             anchor.target = { type = CONSTANTS.TARGET_TYPE.POINT, data = getLookAtTargetFromRaycast(camState) }
-            Log:info("Anchor '" .. anchorId .. "': Switched to LookAt Point.")
+            Log:info("Anchor " .. anchorId .. ": Switched to LookAt Point.")
         end
     end
+end
+
+---@param step number +1 for next, -1 for previous
+local function cycleAnchor(step)
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    local currentIndex = STATE.active.anchor.lastUsedAnchor or 0
+
+    local newIndex = currentIndex + step
+    if newIndex > #STATE.anchor.points then
+        newIndex = 1
+    elseif newIndex < 1 then
+        newIndex = #STATE.anchor.points
+    end
+
+    CameraAnchor.focus(newIndex)
+    return true
 end
 
 --- Loads default anchors for current map when first launching widget
@@ -66,10 +85,13 @@ end
 
 function CameraAnchor.set(id)
     if Utils.isTurboBarCamDisabled() then return end
-    if not id or id == "" then
-        Log:warn("CameraAnchor.set: Invalid anchor ID.");
+
+    local numId = tonumber(id)
+    if not numId then
+        Log:warn("Invalid anchor ID: '" .. tostring(id) .. "'. ID must be a number.");
         return
     end
+    id = numId
 
     local camState = Spring.GetCameraState()
     local camPos = { x = camState.px, y = camState.py, z = camState.pz }
@@ -91,12 +113,17 @@ function CameraAnchor.set(id)
         rotation = { rx = camState.rx, ry = camState.ry },
         duration = currentDuration,
     }
-    Log:info("Anchor '" .. id .. "': Simple anchor created/updated.")
+    Log:info("Anchor " .. id .. ": Simple anchor created/updated.")
 end
 
 function CameraAnchor.focus(id)
     if Utils.isTurboBarCamDisabled() then return true end
-    if not id or id == "" then return true end
+
+    if id == "next" then
+        return cycleAnchor(1)
+    elseif id == "prev" then
+        return cycleAnchor(-1)
+    end
 
     local anchorData = STATE.anchor.points[id]
     if not (anchorData and anchorData.position) then
@@ -135,13 +162,13 @@ end
 
 function CameraAnchor.delete(id)
     if Utils.isTurboBarCamDisabled() then return false end
-    if not id or not STATE.anchor.points[id] then
+    if not STATE.anchor.points[id] then
         Log:warn("Invalid anchor ID: " .. tostring(id));
         return false
     end
 
     STATE.anchor.points[id] = nil
-    Log:info("Anchor '" .. id .. "' deleted.")
+    Log:info("Anchor " .. id .. " deleted.")
 
     if STATE.active.anchor.lastUsedAnchor == id then
         STATE.active.anchor.lastUsedAnchor = nil

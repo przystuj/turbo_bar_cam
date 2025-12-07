@@ -592,7 +592,7 @@ local function updateDataModel()
         })
     end
 
-    table.sort(anchors_list, function(a, b) return a.id < b.id end)
+    table.sort(anchors_list, function(a, b) return tonumber(a.id) < tonumber(b.id) end)
     dm_handle.anchors.anchors_list = anchors_list
     dm_handle.anchors.hasAnchors = #anchors_list > 0
     dm_handle.anchors.activeAnchorId = STATE.active.anchor.lastUsedAnchor or -1

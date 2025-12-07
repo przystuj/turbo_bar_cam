@@ -68,7 +68,16 @@ function CameraAnchorPersistence.loadFromFile(id, isInit)
         return false
     end
 
-    STATE.anchor.points = mapPresets[id]
+    local loadedPoints = mapPresets[id]
+    local cleanPoints = {}
+    for k, v in pairs(loadedPoints) do
+        local numKey = tonumber(k)
+        if numKey then
+            cleanPoints[numKey] = v
+        end
+    end
+
+    STATE.anchor.points = cleanPoints
 
     Log:info("Loaded ID: " .. id .. " for map: " .. mapName)
     return true
