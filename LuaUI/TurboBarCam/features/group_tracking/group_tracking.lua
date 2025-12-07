@@ -50,38 +50,36 @@ function GroupTrackingCamera.toggle()
     -- We use unitID = 0 as a placeholder since we're tracking multiple units
     if ModeManager.initializeMode(MODE_NAME, selectedUnits[1]) then
         -- Store the group of units we're tracking
-        STATE.active.mode.group_tracking.unitIDs = {}
+        local groupTrackingSTATE = STATE.active.mode.group_tracking
+        groupTrackingSTATE.unitIDs = {}
         for _, unitID in ipairs(selectedUnits) do
-            table.insert(STATE.active.mode.group_tracking.unitIDs, unitID)
+            table.insert(groupTrackingSTATE.unitIDs, unitID)
         end
 
         -- Initialize group tracking state
-        STATE.active.mode.group_tracking = {
-            unitIDs = STATE.active.mode.group_tracking.unitIDs,
-            centerOfMass = { x = 0, y = 0, z = 0 },
-            lastCenterOfMass = { x = 0, y = 0, z = 0 },
-            targetDistance = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_DISTANCE,
-            radius = 0,
-            outliers = {},
-            currentCluster = {},
-            totalWeight = 0,
+        groupTrackingSTATE.centerOfMass = { x = 0, y = 0, z = 0 }
+        groupTrackingSTATE.lastCenterOfMass = { x = 0, y = 0, z = 0 }
+        groupTrackingSTATE.targetDistance = CONFIG.CAMERA_MODES.GROUP_TRACKING.DEFAULT_DISTANCE
+        groupTrackingSTATE.radius = 0
+        groupTrackingSTATE.outliers = {}
+        groupTrackingSTATE.currentCluster = {}
+        groupTrackingSTATE.totalWeight = 0
 
-            -- Tracking state
-            lastClusterCheck = Spring.GetGameSeconds(),
-            lastCenterUpdateTime = Spring.GetTimer(),
-            lastDirectionChangeTime = Spring.GetGameSeconds(),
+        -- Tracking state
+        groupTrackingSTATE.lastClusterCheck = Spring.GetGameSeconds()
+        groupTrackingSTATE.lastCenterUpdateTime = Spring.GetTimer()
+        groupTrackingSTATE.lastDirectionChangeTime = Spring.GetGameSeconds()
 
-            -- Movement tracking
-            velocity = { x = 0, y = 0, z = 0 },
-            smoothedVelocity = { x = 0, y = 0, z = 0 },
-            directionHistory = {},
-            stabilityCounter = 0,
+        -- Movement tracking
+        groupTrackingSTATE.velocity = { x = 0, y = 0, z = 0 }
+        groupTrackingSTATE.smoothedVelocity = { x = 0, y = 0, z = 0 }
+        groupTrackingSTATE.directionHistory = {}
+        groupTrackingSTATE.stabilityCounter = 0
 
-            -- Camera control
-            lastCameraDir = { x = 0, z = 0 },
-            inStableMode = false,
-            stableModeStartTime = 0
-        }
+        -- Camera control
+        groupTrackingSTATE.lastCameraDir = { x = 0, z = 0 }
+        groupTrackingSTATE.inStableMode = false
+        groupTrackingSTATE.stableModeStartTime = 0
 
         -- Calculate the initial center of mass and radius
         GroupTrackingCamera.calculateCenterOfMass()
@@ -205,6 +203,9 @@ function GroupTrackingCamera.update()
             newCameraDir = STATE.active.mode.group_tracking.lastCameraDir
         end
     end
+
+    -- Update last camera direction
+    STATE.active.mode.group_tracking.lastCameraDir = newCameraDir
 
     -- Apply orbit-style camera adjustments
     local totalDistance = targetDistance + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_DISTANCE

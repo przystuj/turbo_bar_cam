@@ -259,6 +259,7 @@ if not WG.TurboBarCam.STATE then
                     radius = 0,
                     outliers = {},
                     lastCenterOfMass = { x = 0, y = 0, z = 0 },
+                    lastCameraDir = nil,
                 },
 
                 orbit = {
