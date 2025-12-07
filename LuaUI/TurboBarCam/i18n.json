@@ -5,9 +5,9 @@
     "parameters": "`action;param,value;...` (e.g., `add;DURATION,0.5` or `set;DURATION,3` or `reset`). Available param: `DURATION`."
   },
   "turbobarcam_anchor_focus": {
-    "description": "Smoothly transitions the camera to a previously saved anchor point.",
+    "description": "Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter",
     "label": "Focus Anchor",
-    "parameters": "`index` (numeric, e.g., 1)"
+    "parameters": "`index` (numeric, e.g., 1 or `next`/`prev`)"
   },
   "turbobarcam_anchor_load": {
     "description": "Loads a set of camera anchor points from the storage, specific to the current map.",
