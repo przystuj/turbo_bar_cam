@@ -24,6 +24,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | **Save Anchors**<br>`turbobarcam_anchor_save` | Saves the current set of camera anchor points to the storage, specific to the current map. | N/A | N/A |
 | **Set Anchor**<br>`turbobarcam_anchor_set` | Saves the current camera position and state as a numbered anchor point. | `Ctrl+F1`<br/>`Ctrl+F2`<br/>`Ctrl+F3`<br/>`Ctrl+F4`<br/>`Ctrl+F5`<br/>`Ctrl+F6` | `1`<br/>`2`<br/>`3`<br/>`4`<br/>`5`<br/>`6` |
 | **Sync anchors duration**<br>`turbobarcam_anchor_update_all_durations` | Sets all anchors to the same duration (the one you can control with duration adjustment) | `Ctrl+Shift+Alt+numpad+` | N/A |
+| **Toggle Single Duration Mode**<br>`turbobarcam_anchor_toggle_single_duration_mode` | Toggles the single anchor duration mode. When enabled all anchors will have the same duration. | N/A | N/A |
 | **Toggle Type**<br>`turbobarcam_anchor_toggle_type` | Toggles the anchor type. | N/A | N/A |
 | **Toggle anchors HUD**<br>`turbobarcam_anchor_toggle_visualization` | Toggle anchors HUD (Shows them as points in the game) | `Ctrl+Shift+Alt+numpad-` | N/A |
 

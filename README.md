@@ -67,3 +67,12 @@ Where:
 - Global nuke monitoring - you can always track nuke projectile now (turbobarcam_projectile_camera_cycle, turbobarcam_projectile_camera_toggle_mode)
 - Removed Overview mode
 - Added help button in UI
+#### 2.2.0
+- Fixed group tracking camera
+- Anchor sets saved without a name will be saved as default. Default sets are loaded automatically.
+- Hide TurboBarCam UI when the game UI is disabled
+- Added options to have single-duration anchors
+- Added option in UI to disable unit indicators (selection highlight, command lines, etc)
+- Added option to move to the next/previous anchor. 
+  - turbobarcam_anchor_focus prev
+  - turbobarcam_anchor_focus next

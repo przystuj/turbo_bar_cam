@@ -107,6 +107,12 @@
                             <div class="flex-cell key-col">N/A</div>
                         </div>
                         <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Toggle Single Duration Mode</b><br/><span class="code">turbobarcam_anchor_toggle_single_duration_mode</span></div>
+                            <div class="flex-cell desc-col">Toggles the single anchor duration mode. When enabled all anchors will have the same duration.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Toggle Type</b><br/><span class="code">turbobarcam_anchor_toggle_type</span></div>
                             <div class="flex-cell desc-col">Toggles the anchor type.</div>
                             <div class="flex-cell key-col">N/A</div>

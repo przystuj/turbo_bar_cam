@@ -253,5 +253,10 @@
     "description": "Toggles the anchor type.",
     "label": "Toggle Type",
     "parameters": "None"
+  },
+  "turbobarcam_anchor_toggle_single_duration_mode": {
+    "description": "Toggles the single anchor duration mode. When enabled all anchors will have the same duration.",
+    "label": "Toggle Single Duration Mode",
+    "parameters": "None"
   }
 }
