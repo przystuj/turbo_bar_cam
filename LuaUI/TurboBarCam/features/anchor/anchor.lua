@@ -125,6 +125,8 @@ function CameraAnchor.focus(id)
         return cycleAnchor(-1)
     end
 
+    id = tonumber(id)
+
     local anchorData = STATE.anchor.points[id]
     if not (anchorData and anchorData.position) then
         Log:warn("No anchor data found for ID: " .. tostring(id))
@@ -162,6 +164,7 @@ end
 
 function CameraAnchor.delete(id)
     if Utils.isTurboBarCamDisabled() then return false end
+    id = tonumber(id)
     if not STATE.anchor.points[id] then
         Log:warn("Invalid anchor ID: " .. tostring(id));
         return false
@@ -179,6 +182,7 @@ end
 
 function CameraAnchor.toggleLookAt(id)
     if Utils.isTurboBarCamDisabled() then return false end
+    id = tonumber(id)
     local anchor = STATE.anchor.points[id]
     if not anchor then
         Log:warn("Invalid anchor ID: " .. tostring(id));
@@ -190,11 +194,13 @@ end
 
 function CameraAnchor.save(id)
     if Utils.isTurboBarCamDisabled() then return false end
+    id = tonumber(id)
     return CameraAnchorPersistence.saveToFile(id)
 end
 
 function CameraAnchor.load(id)
     if Utils.isTurboBarCamDisabled() then return false end
+    id = tonumber(id)
     return CameraAnchorPersistence.loadFromFile(id)
 end
 
