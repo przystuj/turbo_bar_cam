@@ -57,11 +57,16 @@ div {
     margin-left: 5dp;
     padding: 2dp;
     font-size: 12dp;
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
 }
 
 .toggle-button:hover {
     background-color: #2C3B47;
     color: #F5F5F5;
+}
+.toggle-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1dp rgba(0,0,0,0.2) inset;
 }
 
 .section-title {
@@ -106,6 +111,9 @@ div {
 .mode-header:hover {
     background-color: #2C3B47;
 }
+.mode-header:active {
+    background-color: #32414B;
+}
 
 .mode-actions {
     display: flex;
@@ -126,6 +134,7 @@ div {
     text-align: center;
     cursor: pointer;
     font-size: 12dp;
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
 }
 .action-button.full-width {
     flex-basis: 100%;
@@ -178,9 +187,14 @@ div {
     cursor: pointer;
     font-size: 16dp;
     font-weight: bold;
+    transition: background-color 0.12s ease, transform 0.06s ease;
 }
 .param-button:hover {
     background-color: #455A64;
+}
+.param-button:active {
+    background-color: #546E7A;
+    transform: scale(0.98);
 }
 .param-button:first-child {
     border-radius: 3dp 0 0 3dp;
@@ -214,6 +228,9 @@ div {
 }
 .foldable-header:hover {
     background-color: #2C3B47;
+}
+.foldable-header:active {
+    background-color: #32414B;
 }
 
 .arrow {
@@ -350,6 +367,7 @@ div {
     cursor: pointer;
     font-size: 12dp;
     padding: 5dp;
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.06s ease;
 }
 .mode-button:hover {
     background-color: #2C3B47;
@@ -361,6 +379,19 @@ div {
     color: #FFFFFF;
     border-color: #9CCC65;
     font-weight: bold;
+}
+.mode-button.active:hover {
+    background-color: #7CB342;
+    border-color: #AED581;
+    color: #FFFFFF;
+}
+.mode-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1dp rgba(0,0,0,0.2) inset;
+}
+.mode-button.active:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1dp rgba(0,0,0,0.25) inset;
 }
 
 .mode-button.stop-button {
@@ -395,6 +426,26 @@ div {
     color: #FFFFFF;
     border-color: #9CCC65;
     font-weight: bold;
+}
+.action-button.active:hover {
+    background-color: #7CB342;
+    border-color: #AED581;
+    color: #FFFFFF;
+}
+.action-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1dp rgba(0,0,0,0.2) inset;
+}
+.action-button.active:active {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 1dp rgba(0,0,0,0.25) inset;
+}
+.mode-button.disabled:active, .action-button.disabled:active {
+    background-color: #424242;
+    color: #9E9E9E;
+    border-color: #616161;
+    transform: none;
+    box-shadow: none;
 }
 
 .save-set-row {

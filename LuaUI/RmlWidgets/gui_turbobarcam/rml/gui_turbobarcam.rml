@@ -327,6 +327,16 @@
                         changing duration affects only new anchors
                     </div>
                 </div>
+                <div class="option-item">
+                    <div class="action-button"
+                         data-class-active="unitIndicatorsActive"
+                         data-event-click="CallAction('togglewidget Commands FX'); CallAction('togglewidget Selected Units GL4')">
+                        Toggle Selected Unit Indicators
+                    </div>
+                    <div class="placeholder-text" style="text-align: left; margin-top: 5dp;">
+                        Use to toggle unit selection and command indicators on/off
+                    </div>
+                </div>
             </div>
         </div>
 

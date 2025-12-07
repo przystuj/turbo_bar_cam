@@ -9,7 +9,7 @@ function widget:GetInfo()
         author  = "SuperKitowiec",
         date    = "Mar 2025",
         license = "GNU GPL, v2 or later",
-        layer   = 1,
+        layer   = -1,
         enabled = true,
         version = "2.1.0",
         handler = true,

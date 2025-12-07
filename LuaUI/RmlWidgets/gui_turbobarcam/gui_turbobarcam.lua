@@ -17,7 +17,8 @@ function widget:GetInfo()
         license = "GNU GPL, v2 or later",
         layer = 0,
         enabled = true,
-        version = 2
+        version = 2,
+        handler = true,
     }
 end
 
@@ -287,6 +288,7 @@ local initDataModel = {
     isSavedAnchorSetsFolded = true,
     playerCamSelectionActive = true,
     trackingWithoutSelectionActive = false,
+    unitIndicatorsActive = false,
     nuke_tracking = {
         hasProjectiles = false,
         projectiles = {},
@@ -426,6 +428,10 @@ local function updateDataModel()
 
     dm_handle.playerCamSelectionActive = STATE.allowPlayerCamUnitSelection or false
     dm_handle.trackingWithoutSelectionActive = CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION or false
+
+    local w_cmdfx = widgetHandler.knownWidgets['Commands FX']
+    local w_selgl4 = widgetHandler.knownWidgets['Selected Units GL4']
+    dm_handle.unitIndicatorsActive = (w_cmdfx and w_cmdfx.active) and (w_selgl4 and w_selgl4.active) or false
 
     -- Update current mode
     local currentMode = STATE.active.mode.name or "None"
