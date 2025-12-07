@@ -19,7 +19,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 |---|---|---|---|
 | **Adjust Anchor Params**<br>`turbobarcam_anchor_adjust_params` | Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'. | `Ctrl+Shift+numpad-`<br/>`Ctrl+Shift+numpad+` | `add;DURATION,-1`<br/>`add;DURATION,1` |
 | **Delete anchor**<br>`turbobarcam_anchor_delete` | Deletes the anchor by id | N/A | N/A |
-| **Focus Anchor**<br>`turbobarcam_anchor_focus` | Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter | `Shift+F1`<br/>`Shift+F2`<br/>`Shift+F3`<br/>`Shift+F4`<br/>`Shift+F5`<br/>`Shift+F6` | `1`<br/>`2`<br/>`3`<br/>`4`<br/>`5`<br/>`6` |
+| **Focus Anchor**<br>`turbobarcam_anchor_focus` | Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter | `Shift+F1`<br/>`Shift+F2`<br/>`Shift+F3`<br/>`Shift+F4` | `prev`<br/>`next`<br/>`1`<br/>`2` |
 | **Load Anchors**<br>`turbobarcam_anchor_load` | Loads a set of camera anchor points from the storage, specific to the current map. | N/A | N/A |
 | **Save Anchors**<br>`turbobarcam_anchor_save` | Saves the current set of camera anchor points to the storage, specific to the current map. | N/A | N/A |
 | **Set Anchor**<br>`turbobarcam_anchor_set` | Saves the current camera position and state as a numbered anchor point. | `Ctrl+F1`<br/>`Ctrl+F2`<br/>`Ctrl+F3`<br/>`Ctrl+F4`<br/>`Ctrl+F5`<br/>`Ctrl+F6` | `1`<br/>`2`<br/>`3`<br/>`4`<br/>`5`<br/>`6` |

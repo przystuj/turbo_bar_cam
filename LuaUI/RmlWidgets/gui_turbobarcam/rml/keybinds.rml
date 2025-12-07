@@ -79,8 +79,8 @@
                         <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Focus Anchor</b><br/><span class="code">turbobarcam_anchor_focus</span></div>
                             <div class="flex-cell desc-col">Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter</div>
-                            <div class="flex-cell key-col"><span class="code">Shift+F1</span><br/><span class="code">Shift+F2</span><br/><span class="code">Shift+F3</span><br/><span class="code">Shift+F4</span><br/><span class="code">Shift+F5</span><br/><span class="code">Shift+F6</span></div>
-                            <div class="flex-cell key-col"><span class="code">1</span><br/><span class="code">2</span><br/><span class="code">3</span><br/><span class="code">4</span><br/><span class="code">5</span><br/><span class="code">6</span></div>
+                            <div class="flex-cell key-col"><span class="code">Shift+F1</span><br/><span class="code">Shift+F2</span><br/><span class="code">Shift+F3</span><br/><span class="code">Shift+F4</span></div>
+                            <div class="flex-cell key-col"><span class="code">prev</span><br/><span class="code">next</span><br/><span class="code">1</span><br/><span class="code">2</span></div>
                         </div>
                         <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Load Anchors</b><br/><span class="code">turbobarcam_anchor_load</span></div>
