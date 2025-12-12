@@ -17,6 +17,15 @@ local CameraDriver = {}
 local DEFAULT_SMOOTHING = 2
 local TARGET_TYPE = CONSTANTS.TARGET_TYPE
 
+-- Scratch/reusable tables to avoid per-frame allocations
+local scratchLookAt = { x = 0, y = 0, z = 0 }
+local eulerOut = { rx = 0, ry = 0 }
+local cameraStateOut = { px = 0, py = 0, pz = 0, rx = 0, ry = 0 }
+local isLookAtTargetType = {
+    [TARGET_TYPE.POINT] = true,
+    [TARGET_TYPE.UNIT] = true,
+}
+
 function CameraDriver.prepare(targetType, target)
     ---@class DriverJob : DriverTargetConfig
     local config = {}
@@ -41,10 +50,15 @@ end
 local function getLookAtPoint(target)
     if not target then return nil end
     if target.targetType == TARGET_TYPE.POINT then
-        return target.targetPoint
+        local targetPoint = target.targetPoint
+        scratchLookAt.x, scratchLookAt.y, scratchLookAt.z = targetPoint.x, targetPoint.y, targetPoint.z
+        return scratchLookAt
     elseif target.targetType == TARGET_TYPE.UNIT and target.targetUnitId and Spring.ValidUnitID(target.targetUnitId) then
         local x, y, z = Spring.GetUnitPosition(target.targetUnitId)
-        if x then return { x = x, y = y, z = z } end
+        if x then
+            scratchLookAt.x, scratchLookAt.y, scratchLookAt.z = x, y, z
+            return scratchLookAt
+        end
     end
     return nil
 end
@@ -53,18 +67,20 @@ end
 local function applySimulationToCamera()
     local simState = STATE.core.driver.simulation
     local rx, ry = QuaternionUtils.toEuler(simState.orientation)
-    simState.euler = { rx = rx, ry = ry }
-    Spring.SetCameraState({
-        px = simState.position.x, py = simState.position.y, pz = simState.position.z,
-        rx = rx, ry = ry,
-    })
+    eulerOut.rx, eulerOut.ry = rx, ry
+    simState.euler = eulerOut
+    local pos = simState.position
+    cameraStateOut.px, cameraStateOut.py, cameraStateOut.pz = pos.x, pos.y, pos.z
+    cameraStateOut.rx, cameraStateOut.ry = rx, ry
+    Spring.SetCameraState(cameraStateOut)
 end
 
 --- Move camera instantly, bypassing simulation
 local function handleCameraSnap(targetConfig)
     local simulationSTATE = STATE.core.driver.simulation
     if targetConfig.position then
-        simulationSTATE.position = TableUtils.deepCopy(targetConfig.position)
+        local position = targetConfig.position
+        simulationSTATE.position.x, simulationSTATE.position.y, simulationSTATE.position.z = position.x or 0, position.y or 0, position.z or 0
     end
 
     local finalTargetOrientation
@@ -81,8 +97,8 @@ local function handleCameraSnap(targetConfig)
         simulationSTATE.orientation = finalTargetOrientation
     end
 
-    simulationSTATE.velocity = { x = 0, y = 0, z = 0 }
-    simulationSTATE.angularVelocity = { x = 0, y = 0, z = 0 }
+    simulationSTATE.velocity.x, simulationSTATE.velocity.y, simulationSTATE.velocity.z = 0, 0, 0
+    simulationSTATE.angularVelocity.x, simulationSTATE.angularVelocity.y, simulationSTATE.angularVelocity.z = 0, 0, 0
     applySimulationToCamera()
 end
 
@@ -217,7 +233,7 @@ local function checkAndCompleteTask()
     jobSTATE.isPositionComplete = false
     jobSTATE.isRotationComplete = false
 
-    local hasLookAtTarget = TableUtils.tableContains({ TARGET_TYPE.POINT, TARGET_TYPE.UNIT }, targetSTATE.targetType)
+    local hasLookAtTarget = isLookAtTargetType[targetSTATE.targetType] or false
     local hasRotationTask = hasLookAtTarget or targetSTATE.targetEuler
     local hasPositionTask = targetSTATE.position ~= nil
 
