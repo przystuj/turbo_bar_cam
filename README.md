@@ -77,4 +77,5 @@ Where:
   - turbobarcam_anchor_focus prev
   - turbobarcam_anchor_focus next
 #### 2.3.0
-- Add option to reset camera to current anchor
+- Add an option to reset camera to current anchor
+- UI – Add an option to hide minimap and chat

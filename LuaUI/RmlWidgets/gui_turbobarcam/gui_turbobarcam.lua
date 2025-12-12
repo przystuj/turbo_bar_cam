@@ -289,6 +289,7 @@ local initDataModel = {
     playerCamSelectionActive = true,
     trackingWithoutSelectionActive = false,
     unitIndicatorsActive = false,
+    chatAndMinimapHidden = false,
     nuke_tracking = {
         hasProjectiles = false,
         projectiles = {},
@@ -429,9 +430,11 @@ local function updateDataModel()
     dm_handle.playerCamSelectionActive = STATE.allowPlayerCamUnitSelection or false
     dm_handle.trackingWithoutSelectionActive = CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION or false
 
-    local w_cmdfx = widgetHandler.knownWidgets['Commands FX']
-    local w_selgl4 = widgetHandler.knownWidgets['Selected Units GL4']
-    dm_handle.unitIndicatorsActive = (w_cmdfx and w_cmdfx.active) and (w_selgl4 and w_selgl4.active) or false
+    local commandFXWidget = widgetHandler.knownWidgets['Commands FX']
+    local selectedUnitsWidget = widgetHandler.knownWidgets['Selected Units GL4']
+    local chatWidget = widgetHandler.knownWidgets['Chat']
+    dm_handle.unitIndicatorsActive = (commandFXWidget and commandFXWidget.active) and (selectedUnitsWidget and selectedUnitsWidget.active) or false
+    dm_handle.chatAndMinimapHidden = (chatWidget and not chatWidget.active) or false
 
     -- Update current mode
     local currentMode = STATE.active.mode.name or "None"
