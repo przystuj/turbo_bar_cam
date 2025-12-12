@@ -197,13 +197,11 @@ end
 
 function CameraAnchor.save(id)
     if Utils.isTurboBarCamDisabled() then return false end
-    id = tonumber(id)
     return CameraAnchorPersistence.saveToFile(id)
 end
 
 function CameraAnchor.load(id)
     if Utils.isTurboBarCamDisabled() then return false end
-    id = tonumber(id)
     return CameraAnchorPersistence.loadFromFile(id)
 end
 

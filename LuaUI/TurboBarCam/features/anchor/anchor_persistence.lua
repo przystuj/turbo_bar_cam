@@ -31,6 +31,10 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     -- Load existing camera presets for all maps
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
 
+    if not mapPresets[anchorSetId] then
+        mapPresets[anchorSetId] = {}
+    end
+
     -- Save preset for current map
     mapPresets[anchorSetId].points = STATE.anchor.points
     mapPresets[anchorSetId].duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
