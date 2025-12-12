@@ -76,3 +76,5 @@ Where:
 - Added option to move to the next/previous anchor. 
   - turbobarcam_anchor_focus prev
   - turbobarcam_anchor_focus next
+#### 2.3.0
+- Add option to reset camera to current anchor

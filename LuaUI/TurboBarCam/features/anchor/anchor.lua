@@ -118,11 +118,14 @@ end
 
 function CameraAnchor.focus(id)
     if Utils.isTurboBarCamDisabled() then return true end
+    local isReset = id == "reset"
 
     if id == "next" then
         return cycleAnchor(1)
     elseif id == "prev" then
         return cycleAnchor(-1)
+    elseif isReset then
+        id = STATE.active.anchor.lastUsedAnchor
     end
 
     id = tonumber(id)
@@ -153,7 +156,7 @@ function CameraAnchor.focus(id)
         cameraDriverJob.rotationSmoothing = cameraDriverJob.rotationSmoothing / 10
     end
     -- If we're already moving to this anchor, the second press should snap instantly.
-    if STATE.active.anchor.lastUsedAnchor == id and STATE.core.driver.target.position then
+    if STATE.active.anchor.lastUsedAnchor == id or isReset and STATE.core.driver.target.position then
         cameraDriverJob.isSnap = true
     end
 

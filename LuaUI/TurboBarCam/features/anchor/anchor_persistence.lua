@@ -1,6 +1,7 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "CameraAnchorPersistence")
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
@@ -31,7 +32,8 @@ function CameraAnchorPersistence.saveToFile(anchorSetId)
     local mapPresets = SettingsManager.loadUserSetting("anchors", mapName) or {}
 
     -- Save preset for current map
-    mapPresets[anchorSetId] = STATE.anchor.points
+    mapPresets[anchorSetId].points = STATE.anchor.points
+    mapPresets[anchorSetId].duration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
 
     -- Save the entire structure back to storage
     local success = SettingsManager.saveUserSetting("anchors", mapName, mapPresets)
@@ -68,7 +70,10 @@ function CameraAnchorPersistence.loadFromFile(id, isInit)
         return false
     end
 
-    STATE.anchor.points = mapPresets[id]
+    local mapPreset = mapPresets[id]
+
+    STATE.anchor.points = mapPreset.points
+    CONFIG.CAMERA_MODES.ANCHOR.DURATION = mapPreset.duration
 
     Log:info("Loaded ID: " .. id .. " for map: " .. mapName)
     return true
