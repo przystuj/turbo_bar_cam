@@ -102,6 +102,10 @@ if not WG.TurboBarCam.STATE then
             projectileTracking = {
                 unitProjectiles = {}
             },
+
+            anchor = {
+                lastUsedAnchor = nil,
+            },
         },
 
         -- all of these are reset when changing camera mode
@@ -110,7 +114,6 @@ if not WG.TurboBarCam.STATE then
             anchor = {
                 visualizationEnabled = false,
                 activeAnchorId = nil,
-                lastUsedAnchor = nil,
             },
 
             scheduler = { schedules = {} },

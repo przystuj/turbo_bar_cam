@@ -88,7 +88,7 @@ function CameraAnchorVisualization.draw()
     -- Get camera position once for distance calculations
     local camX, camY, camZ = Spring.GetCameraPosition()
     local camPos = { x = camX, y = camY, z = camZ }
-    local activeAnchorId = STATE.active.anchor.lastUsedAnchor
+    local activeAnchorId = STATE.core.anchor.lastUsedAnchor
 
     for id, anchor in pairs(STATE.anchor.points) do
         if anchor and anchor.position then

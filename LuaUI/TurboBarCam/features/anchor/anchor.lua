@@ -58,7 +58,7 @@ local function cycleAnchor(step)
         return false
     end
 
-    local currentIndex = STATE.active.anchor.lastUsedAnchor or 0
+    local currentIndex = STATE.core.anchor.lastUsedAnchor or 0
 
     local newIndex = currentIndex + step
     if newIndex > #STATE.anchor.points then
@@ -125,7 +125,7 @@ function CameraAnchor.focus(id)
     elseif id == "prev" then
         return cycleAnchor(-1)
     elseif isReset then
-        id = STATE.active.anchor.lastUsedAnchor
+        id = STATE.core.anchor.lastUsedAnchor
     end
 
     id = tonumber(id)
@@ -136,8 +136,10 @@ function CameraAnchor.focus(id)
         return true
     end
 
+    local wasInDifferentMode = false
     if STATE.active.mode.name then
         ModeManager.disableMode()
+        wasInDifferentMode = true
     end
 
     local duration = anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION
@@ -156,12 +158,12 @@ function CameraAnchor.focus(id)
         cameraDriverJob.rotationSmoothing = cameraDriverJob.rotationSmoothing / 10
     end
     -- If we're already moving to this anchor, the second press should snap instantly.
-    if STATE.active.anchor.lastUsedAnchor == id or isReset and STATE.core.driver.target.position then
+    if not wasInDifferentMode and (isReset or (STATE.core.anchor.lastUsedAnchor == id and STATE.core.driver.target.position)) then
         cameraDriverJob.isSnap = true
     end
 
     cameraDriverJob.run()
-    STATE.active.anchor.lastUsedAnchor = id
+    STATE.core.anchor.lastUsedAnchor = id
     return true
 end
 
@@ -176,8 +178,8 @@ function CameraAnchor.delete(id)
     STATE.anchor.points[id] = nil
     Log:info("Anchor " .. id .. " deleted.")
 
-    if STATE.active.anchor.lastUsedAnchor == id then
-        STATE.active.anchor.lastUsedAnchor = nil
+    if STATE.core.anchor.lastUsedAnchor == id then
+        STATE.core.anchor.lastUsedAnchor = nil
     end
 
     return true

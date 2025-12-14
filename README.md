@@ -77,5 +77,5 @@ Where:
   - turbobarcam_anchor_focus prev
   - turbobarcam_anchor_focus next
 #### 2.3.0
-- Add an option to reset camera to current anchor
+- Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise snap to the anchor.
 - UI – Add an option to hide minimap and chat

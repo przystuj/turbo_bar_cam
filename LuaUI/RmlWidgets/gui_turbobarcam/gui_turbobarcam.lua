@@ -598,7 +598,7 @@ local function updateDataModel()
     table.sort(anchors_list, function(a, b) return tonumber(a.id) < tonumber(b.id) end)
     dm_handle.anchors.anchors_list = anchors_list
     dm_handle.anchors.hasAnchors = #anchors_list > 0
-    dm_handle.anchors.activeAnchorId = STATE.active.anchor.lastUsedAnchor or -1
+    dm_handle.anchors.activeAnchorId = STATE.core.anchor.lastUsedAnchor or -1
     dm_handle.anchors.visualizationEnabled = STATE.active.anchor.visualizationEnabled or false
 
     dm_handle.anchors.singleDurationMode = CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE or false
