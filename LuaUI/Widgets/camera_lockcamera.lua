@@ -1,3 +1,5 @@
+local widget = widget ---@type Widget
+
 function widget:GetInfo()
     return {
         name = "Lockcamera",
@@ -10,6 +12,7 @@ function widget:GetInfo()
         enabled = true,
     }
 end
+
 
 local lockcameraHideEnemies = true            -- specfullview
 local lockcameraLos = true                    -- togglelos
@@ -24,6 +27,7 @@ local newBroadcaster = false
 
 local desiredLosmodeChanged = 0
 local desiredLosmode, myLastCameraState
+
 
 local function UpdateRecentBroadcasters()
     recentBroadcasters = {}
@@ -41,7 +45,7 @@ end
 local function LockCamera(playerID)
     local isSpec, teamID
     if playerID then
-        _, _, isSpec, teamID = Spring.GetPlayerInfo(playerID)
+        _, _, isSpec, teamID = Spring.GetPlayerInfo(playerID, false)
     end
     if playerID and playerID ~= myPlayerID and playerID ~= lockPlayerID and teamID then
         if lockcameraHideEnemies and not isSpec then
@@ -100,6 +104,7 @@ local function LockCamera(playerID)
 
     return lockPlayerID
 end
+
 
 function CameraBroadcastEvent(playerID, cameraState)
     local skipCameraUpdate = WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.isInControl() -- TurboBarCam is controlling the camera now
@@ -256,8 +261,7 @@ function widget:GameOver()
     end
 end
 
-function widget:GetConfigData()
-    -- save
+function widget:GetConfigData()    -- save
     local settings = {
         transitionTime = transitionTime,
         lockcameraHideEnemies = lockcameraHideEnemies,
