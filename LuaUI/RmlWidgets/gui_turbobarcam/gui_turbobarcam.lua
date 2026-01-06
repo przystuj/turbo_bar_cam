@@ -32,6 +32,76 @@ local isLobbyVisible = false
 local helpContext
 local helpDocument
 
+local function createWidgetEntry(name)
+    return {
+        name = name,
+        isActive = function()
+            local w = widgetHandler.knownWidgets[name];
+            return (w and w.active) or false
+        end,
+        toggle = function() widgetHandler:ToggleWidget(name) end
+    }
+end
+
+local function createOptionEntry(name, label, activeValue)
+    activeValue = activeValue or 1
+    return {
+        name = name,
+        label = label,
+        isActive = function()
+            return Spring.GetConfigInt(name, 0) == activeValue
+        end,
+        toggle = function()
+            local newValue = (Spring.GetConfigInt(name, 0) == 0) and 1 or 0
+            Spring.SetConfigInt(name, newValue)
+            Spring.SendCommands("option " .. name .. " " .. newValue)
+        end
+    }
+end
+
+local function createValueOptionEntry(name, label, offValue, onValue)
+    return {
+        name = name,
+        label = label,
+        isActive = function() return Spring.GetConfigInt(name, offValue) == onValue end,
+        toggle = function()
+            local currentValue = Spring.GetConfigInt(name, offValue)
+            local newValue = (currentValue == onValue) and offValue or onValue
+            Spring.SetConfigInt(name, newValue)
+            Spring.SendCommands("option " .. name .. " " .. newValue)
+        end
+    }
+end
+
+local recordingModeWidgets = {
+    createWidgetEntry("Commands FX"),
+    createWidgetEntry("Selected Units GL4"),
+    createWidgetEntry("Health Bars GL4"),
+    createWidgetEntry("Commander Name Tags"),
+    createWidgetEntry("Spectator HUD"),
+    createWidgetEntry("Metal Tracker"),
+    createWidgetEntry("Order menu"),
+    createWidgetEntry("Flanking Icons GL4"),
+    createWidgetEntry("Unit Energy Icons"),
+    createWidgetEntry("Self-Destruct Icons"),
+    createWidgetEntry("Metalspots"),
+    createWidgetEntry("Chat"),
+    createWidgetEntry("Attack Range GL4"),
+    createWidgetEntry("Defense Range GL4"),
+    createWidgetEntry("Sensor Ranges Radar"),
+    createWidgetEntry("Sensor Ranges LOS"),
+    createWidgetEntry("Sensor Ranges Jammer"),
+    createWidgetEntry("Sensor Ranges Sonar"),
+    createWidgetEntry("Anti Ranges"),
+}
+
+local recordingModeOptions = {
+    createOptionEntry("minimap_minimized", "Minimap", 0),
+    createOptionEntry("notifications_spoken", "Voice Notifications"),
+    createOptionEntry("displaydps", "Show DPS"),
+    createValueOptionEntry("uniticon_distance", "Unit Icons", 13000, 1750),
+}
+
 ---@type WidgetState
 local STATE
 ---@type WidgetConfig
@@ -162,8 +232,79 @@ local function ToggleSavedAnchorSetsInfo(_)
     dm_handle.isSavedAnchorSetsFolded = not dm_handle.isSavedAnchorSetsFolded
 end
 
+local function ToggleRecordingModeInfo(_)
+    dm_handle.isRecordingModeFolded = not dm_handle.isRecordingModeFolded
+end
+
+local function ToggleRecordingWidget(_, widgetName)
+    for i = 1, #recordingModeWidgets do
+        if recordingModeWidgets[i].name == widgetName then
+            recordingModeWidgets[i].toggle()
+            break
+        end
+    end
+end
+
+local function ToggleRecordingOption(_, optionName)
+    for i = 1, #recordingModeOptions do
+        if recordingModeOptions[i].name == optionName then
+            recordingModeOptions[i].toggle()
+            break
+        end
+    end
+end
+
 local function ToggleOptionsInfo(_)
     dm_handle.isOptionsFolded = not dm_handle.isOptionsFolded
+end
+
+local function ToggleRecordingModeAll(_)
+    -- Determine if we should enable or disable all
+    -- If any widget or option is active, we disable all.
+    -- Otherwise we enable all.
+    local anyActive = false
+    for i = 1, #recordingModeWidgets do
+        if recordingModeWidgets[i].isActive() then
+            anyActive = true
+            break
+        end
+    end
+    if not anyActive then
+        for i = 1, #recordingModeOptions do
+            if recordingModeOptions[i].isActive() then
+                anyActive = true
+                break
+            end
+        end
+    end
+
+    local targetActive = not anyActive
+
+    for i = 1, #recordingModeWidgets do
+        if recordingModeWidgets[i].isActive() ~= targetActive then
+            recordingModeWidgets[i].toggle()
+        end
+    end
+    for i = 1, #recordingModeOptions do
+        if recordingModeOptions[i].isActive() ~= targetActive then
+            recordingModeOptions[i].toggle()
+        end
+    end
+end
+
+-- fixme doesnt see the functions from WG
+local function LockUnitInfo(_)
+    if WG['info'] and WG['info'].setCustomHover then
+        Log:info("Lock unit info for ", STATE.active.mode.unitID)
+        WG['info'].setCustomHover("unit", STATE.active.mode.unitID)
+    end
+end
+
+local function UnlockUnitInfo(_)
+    if WG['info'] and WG['info'].clearCustomHover then
+        Log:info("Unlock unit info")
+        WG['info'].clearCustomHover()
+    end
 end
 
 local function FocusAnchor(_, anchorId)
@@ -286,6 +427,7 @@ local initDataModel = {
     isDebugFolded = true,
     isAnchorsFolded = true,
     isSavedAnchorSetsFolded = true,
+    isRecordingModeFolded = true,
     playerCamSelectionActive = true,
     trackingWithoutSelectionActive = false,
     unitIndicatorsActive = false,
@@ -312,6 +454,11 @@ local initDataModel = {
     isWeaponCameraActive = false,
     savedAnchorSets = {},
     hasSavedAnchorSets = false,
+
+    recording_mode = {
+        widgets = {},
+        options = {},
+    },
 
     availableModes = {
         { id = "unit_follow", name = "Unit Follow", action = "turbobarcam_toggle_unit_follow_camera" },
@@ -378,6 +525,10 @@ local initDataModel = {
     ToggleNukeTrackingInfo = ToggleNukeTrackingInfo,
     ToggleAnchorsInfo = ToggleAnchorsInfo,
     ToggleSavedAnchorSetsInfo = ToggleSavedAnchorSetsInfo,
+    ToggleRecordingModeInfo = ToggleRecordingModeInfo,
+    ToggleRecordingModeAll = ToggleRecordingModeAll,
+    ToggleRecordingWidget = ToggleRecordingWidget,
+    ToggleRecordingOption = ToggleRecordingOption,
     ToggleAnchorVisualization = ToggleAnchorVisualization,
     ToggleOptionsInfo = ToggleOptionsInfo,
     ToggleAnchorType = ToggleAnchorType,
@@ -393,6 +544,8 @@ local initDataModel = {
     ClearError = ClearError,
     CopyErrorToClipboard = CopyErrorToClipboard,
     ToggleHelp = ToggleHelp,
+    LockUnitInfo = LockUnitInfo,
+    UnlockUnitInfo = UnlockUnitInfo,
 }
 
 local function getCleanMapName()
@@ -435,6 +588,27 @@ local function updateDataModel()
     local chatWidget = widgetHandler.knownWidgets['Chat']
     dm_handle.unitIndicatorsActive = (commandFXWidget and commandFXWidget.active) and (selectedUnitsWidget and selectedUnitsWidget.active) or false
     dm_handle.chatAndMinimapHidden = (chatWidget and not chatWidget.active) or false
+
+    local widgets = {}
+    for i = 1, #recordingModeWidgets do
+        local widget = recordingModeWidgets[i]
+        widgets[i] = {
+            name = widget.name,
+            isActive = widget.isActive()
+        }
+    end
+    dm_handle.recording_mode.widgets = widgets
+
+    local options = {}
+    for i = 1, #recordingModeOptions do
+        local option = recordingModeOptions[i]
+        options[i] = {
+            name = option.name,
+            label = option.label,
+            isActive = option.isActive()
+        }
+    end
+    dm_handle.recording_mode.options = options
 
     -- Update current mode
     local currentMode = STATE.active.mode.name or "None"
@@ -685,6 +859,10 @@ end
 
 -- Widget shutdown
 function widget:Shutdown()
+    if WG['info'] and WG['info'].clearCustomHover then
+        WG['info'].clearCustomHover()
+    end
+
     if document then
         document:Close()
         document = nil

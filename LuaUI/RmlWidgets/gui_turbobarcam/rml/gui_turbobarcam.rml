@@ -379,6 +379,46 @@
         </div>
 
         <div class="foldable-section" data-if="isEnabled">
+            <div class="foldable-header" data-event-click="ToggleRecordingModeInfo">
+                <span>Recording</span>
+                <span class="arrow" data-class-down="!isRecordingModeFolded"></span>
+            </div>
+            <div class="foldable-content" data-if="!isRecordingModeFolded">
+                <div class="placeholder-text" style="text-align: left; margin-bottom: 10dp;">
+                    List of widgets and options which can interfere with recording. Click to toggle ON/OFF
+                </div>
+                <div class="action-button" style="margin-bottom: 10dp;"
+                     data-event-click="ToggleRecordingModeAll">
+                    Toggle All
+                </div>
+                <div class="action-button" style="margin-bottom: 10dp;"
+                     data-event-click="LockUnitInfo">
+                    Lock Unit Info
+                </div>
+                <div class="action-button" style="margin-bottom: 10dp;"
+                     data-event-click="UnlockUnitInfo">
+                    Unlock Unit Info
+                </div>
+                <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 5dp;">
+                    <div style="width: 48%;" data-for="w : recording_mode.widgets">
+                        <div class="action-button" style="width: 100%; margin-bottom: 5dp;"
+                             data-class-active="w.isActive"
+                             data-event-click="ToggleRecordingWidget(w.name)">
+                            {{ w.name }}
+                        </div>
+                    </div>
+                    <div style="width: 48%;" data-for="o : recording_mode.options">
+                        <div class="action-button" style="width: 100%; margin-bottom: 5dp;"
+                             data-class-active="o.isActive"
+                             data-event-click="ToggleRecordingOption(o.name)">
+                            {{ o.label }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="foldable-section" data-if="isEnabled">
             <div class="foldable-header" data-event-click="ToggleDebugInfo">
                 <span>Debug Info</span>
                 <span class="arrow" data-class-down="!isDebugFolded"></span>
