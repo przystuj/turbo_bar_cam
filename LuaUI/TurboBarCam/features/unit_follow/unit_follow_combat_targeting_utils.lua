@@ -75,7 +75,6 @@ local function ensureTargetTracking(targetKey)
 
             -- If we're switching targets rapidly, this is a good indicator to use cloud targeting
             if globalState.targetSwitchCount >= 3 and not globalState.highActivityDetected then
-                Log:info("Rapid target switching detected - enabling cloud targeting")
                 globalState.highActivityDetected = true
                 globalState.cloudStartTime = currentTime
             end
@@ -230,14 +229,6 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
 
                     targetData.isMovingFast = targetData.speed > speedThreshold
                     targetData.isMovingUpFast = targetData.ySpeed > upSpeedThreshold
-
-                    -- Log when movement state changes
-                    if targetData.isMovingUpFast and not prevIsMovingUpFast then
-                        Log:info(string.format("Fast upward movement detected: %.1f units/s (threshold: %.1f)",
-                                targetData.ySpeed, upSpeedThreshold))
-                    elseif not targetData.isMovingUpFast and prevIsMovingUpFast then
-                        Log:info("Target no longer moving fast upward")
-                    end
                 end
             end
         end
@@ -292,11 +283,9 @@ local function updateTargetHistory(targetPos, targetKey)
     -- Update high activity flag
     if globalState.activityLevel >= 0.8 and not globalState.highActivityDetected then
         globalState.highActivityDetected = true
-        Log:info("High targeting activity detected - enabling cloud targeting")
         globalState.cloudStartTime = currentTime
     elseif globalState.activityLevel < 0.4 and globalState.highActivityDetected then
         globalState.highActivityDetected = false
-        Log:info("Targeting activity normalized - disabling cloud targeting")
         globalState.cloudStartTime = nil
     end
 
@@ -417,7 +406,6 @@ function UnitFollowTargetingUtils.handleAirTargetRepositioning(position, targetP
         -- Log this modified behavior
         if not targetData.lastStabilizedAdjustmentLog or
                 Spring.DiffTimers(currentTime, targetData.lastStabilizedAdjustmentLog) > 2.0 then
-            Log:debug("Using higher air adjustment threshold during stabilization")
             targetData.lastStabilizedAdjustmentLog = currentTime
         end
     end
@@ -434,8 +422,6 @@ function UnitFollowTargetingUtils.handleAirTargetRepositioning(position, targetP
         if not targetData.airAdjustmentActive then
             -- Only log the activation message once per second at most
             if Spring.DiffTimers(currentTime, targetData.lastAdjustmentStateTime) > 1.0 then
-                Log:info(string.format("Activating air target adjustment mode (angle: %.2f, threshold: %.2f)",
-                        verticalAngle, activationAngle))
                 targetData.lastAdjustmentStateTime = currentTime
             end
         end
@@ -547,8 +533,6 @@ function UnitFollowTargetingUtils.handleAirTargetRepositioning(position, targetP
         if targetData.airAdjustmentActive then
             -- Only log the deactivation message once per second at most
             if Spring.DiffTimers(currentTime, targetData.lastAdjustmentStateTime) > 1.0 then
-                Log:info(string.format("Deactivating air target adjustment (angle: %.2f, threshold: %.2f)",
-                        verticalAngle, activationAngle))
                 targetData.lastAdjustmentStateTime = currentTime
             end
         end

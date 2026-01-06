@@ -140,7 +140,6 @@ function UnitFollowCombatMode.clearAttackingState()
         return
     end
 
-    Log:debug("clear attack state")
     STATE.active.mode.unit_follow.isAttacking = false
     STATE.active.mode.unit_follow.weaponPos = nil
     STATE.active.mode.unit_follow.weaponDir = nil
@@ -299,7 +298,6 @@ function UnitFollowCombatMode.getCurrentAttackTarget(unitID)
 
     -- If no target was found, but we have a last target position and we're in attacking state
     if not targetPos and STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
-        Log:debug("Using last target position")
         UnitFollowCombatMode.scheduleAttackStateDisable()
         -- Return the last known target position and the active weapon number
         return STATE.active.mode.unit_follow.lastTargetPos, STATE.active.mode.unit_follow.activeWeaponNum
@@ -429,7 +427,6 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
                 Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
             else
                 -- Unit is not attacking - start with attacking false
-                Log:debug("unit not attacking")
                 STATE.active.mode.unit_follow.isAttacking = false
             end
 

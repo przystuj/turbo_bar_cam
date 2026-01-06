@@ -280,7 +280,6 @@ function UnitFollowUtils.handleNewTarget()
     -- Signal rotation constraints to reset
     if STATE.active.mode.unit_follow.targetSmoothing and STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint then
         STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.resetForSwitch = true
-        Log:debug("Signaling rotation constraint reset.")
     end
 
     -- Store this target position for future comparisons
@@ -619,7 +618,6 @@ function UnitFollowUtils.handleTransition(targetCamPosWorld)
         -- Transition finished this frame
         STATE.active.mode.unit_follow.isTargetSwitchTransition = false
         STATE.active.mode.unit_follow.previousCamPosWorld = nil
-        Log:info("Target switch transition finished.")
     end
 
     return nil
@@ -693,8 +691,6 @@ function UnitFollowUtils.logStabilizationInfo(factor, targetSmoothing)
     local currentTime = Spring.GetTimer()
     if not STATE.active.mode.unit_follow.lastStabilizationLog or
             Spring.DiffTimers(currentTime, STATE.active.mode.unit_follow.lastStabilizationLog) > 1.0 then
-        Log:debug(string.format("Camera stabilization active: factor=%.3f, activity=%.2f, switches=%d",
-                factor, targetSmoothing.activityLevel, targetSmoothing.targetSwitchCount or 0))
         STATE.active.mode.unit_follow.lastStabilizationLog = currentTime
     end
 end

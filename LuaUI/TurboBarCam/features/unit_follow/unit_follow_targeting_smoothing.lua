@@ -64,7 +64,6 @@ function UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
 
             -- If we're switching targets rapidly, enable cloud targeting
             if state.targetSwitchCount >= 3 and not state.highActivityDetected then
-                Log:info("Rapid target switching detected - enabling cloud targeting")
                 state.highActivityDetected = true
                 state.cloudStartTime = currentTime
             end
@@ -121,7 +120,6 @@ function UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
     -- Update high activity flag
     if state.activityLevel >= 0.7 and not state.highActivityDetected then
         state.highActivityDetected = true
-        Log:info("High targeting activity detected - enabling cloud targeting")
         state.cloudStartTime = currentTime
 
         -- Add a minimum duration for cloud targeting (3 seconds)
@@ -133,7 +131,6 @@ function UnitFollowTargetingSmoothing.updateTargetHistory(targetPos)
 
         if hasMinDurationPassed then
             state.highActivityDetected = false
-            Log:info("Targeting activity normalized - disabling cloud targeting")
             state.cloudStartTime = nil
         end
     end
@@ -322,8 +319,6 @@ function UnitFollowTargetingSmoothing.configure(settings)
     if settings.rotationDamping then
         STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.damping = settings.rotationDamping
     end
-
-    Log:info("Target smoothing settings updated")
 end
 
 function UnitFollowTargetingSmoothing.processAerialTarget(targetPos, unitPos, targetData)
