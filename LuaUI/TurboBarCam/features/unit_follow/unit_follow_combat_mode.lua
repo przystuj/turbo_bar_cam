@@ -43,7 +43,6 @@ function UnitFollowCombatMode.nextWeapon()
         end
     end
 
-    -- Sort them (since pairs() iteration order is not guaranteed)
     table.sort(weaponNumbers)
 
     if #weaponNumbers == 0 then
@@ -53,7 +52,6 @@ function UnitFollowCombatMode.nextWeapon()
 
     local currentWeapon = STATE.active.mode.unit_follow.forcedWeaponNumber or weaponNumbers[1]
 
-    -- Find the index of the current weapon in our ordered list
     local currentIndex = 1
     for i, num in ipairs(weaponNumbers) do
         if num == currentWeapon then

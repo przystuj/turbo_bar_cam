@@ -15,7 +15,6 @@ local DEACTIVATION_ANGLE = 0.4       -- Angle to deactivate adjustment (hysteres
 local TARGET_HISTORY_SIZE = 20       -- How many recent targets to track
 local TARGET_HISTORY_DURATION = 3.0  -- How long targets remain in history (seconds)
 local MIN_TARGETS_FOR_CLOUD = 3      -- Minimum targets needed to form a "cloud"
-local CLOUD_RADIUS = 300             -- Maximum radius for targets to be considered in the same cloud
 local CLOUD_BLEND_FACTOR = 0.7       -- How much to blend between actual target and cloud center (0-1)
 local TARGET_SWITCH_THRESHOLD = 0.3  -- Time threshold (seconds) to detect rapid target switching
 
@@ -223,9 +222,6 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
                     -- Flag for fast-moving targets
                     local speedThreshold = 200  -- Units per second
                     local upSpeedThreshold = 150  -- Upward units per second
-
-                    local prevIsMovingFast = targetData.isMovingFast
-                    local prevIsMovingUpFast = targetData.isMovingUpFast
 
                     targetData.isMovingFast = targetData.speed > speedThreshold
                     targetData.isMovingUpFast = targetData.ySpeed > upSpeedThreshold

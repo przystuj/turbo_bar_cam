@@ -2,7 +2,6 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowTargetingSmoothing")
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
 local UnitFollowTargetingUtils = ModuleManager.UnitFollowTargetingUtils(function(m) UnitFollowTargetingUtils = m end)
 
 ---@class UnitFollowTargetingSmoothing
@@ -156,7 +155,7 @@ function UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
     local state = STATE.active.mode.unit_follow.targetSmoothing
 
     -- Get unit position
-    local unitPos = nil
+    local unitPos
     if STATE.active.mode.unitID and Spring.ValidUnitID(STATE.active.mode.unitID) then
         local x, y, z = Spring.GetUnitPosition(STATE.active.mode.unitID)
         unitPos = { x = x, y = y, z = z }
@@ -164,7 +163,7 @@ function UnitFollowTargetingSmoothing.getEffectiveTargetPosition(targetPos)
 
     -- For aerial targets, check if we have tracking data from UnitFollowTargetingUtils
     local isAerialTarget = unitPos and targetPos.y > (unitPos.y + 80)
-    local targetData = nil
+    local targetData
 
     if isAerialTarget then
         -- Get the target tracking data from your existing system

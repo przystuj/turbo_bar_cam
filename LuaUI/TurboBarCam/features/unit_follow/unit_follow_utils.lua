@@ -658,9 +658,6 @@ function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     -- Update stable camera position for next frame
     STATE.active.mode.unit_follow.stableCamPos = smoothedCamPos
 
-    -- Log stabilization info periodically
-    UnitFollowUtils.logStabilizationInfo(factor, targetSmoothing)
-
     return smoothedCamPos
 end
 
@@ -684,15 +681,6 @@ function UnitFollowUtils.calculateStabilityFactor(targetSmoothing)
     STATE.active.mode.unit_follow.cameraStabilityFactor = factor
 
     return factor
-end
-
--- Log stabilization info periodically to avoid spam
-function UnitFollowUtils.logStabilizationInfo(factor, targetSmoothing)
-    local currentTime = Spring.GetTimer()
-    if not STATE.active.mode.unit_follow.lastStabilizationLog or
-            Spring.DiffTimers(currentTime, STATE.active.mode.unit_follow.lastStabilizationLog) > 1.0 then
-        STATE.active.mode.unit_follow.lastStabilizationLog = currentTime
-    end
 end
 
 --- Ensures camera doesn't go below minimum height
