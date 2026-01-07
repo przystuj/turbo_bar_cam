@@ -141,36 +141,6 @@ if not WG.TurboBarCam.CONFIG then
                 SMOOTHING_FACTOR = 3,
             },
 
-            -- Overview camera settings
-            OVERVIEW = {
-                -- Height and Distance Settings
-                HEIGHT_FACTOR = 0.2, -- Default height as a factor of map diagonal
-
-                -- Movement Behavior Settings
-                MIN_DISTANCE = 150, -- Minimum distance to target
-                MOUSE_MOVE_SENSITIVITY = 0.15, -- Mouse sensitivity for camera rotation
-
-                HEIGHT_CONTROL_GRANULARITY = 6, -- Number of height steps
-                DEFAULT_HEIGHT_LEVEL = 2, -- Default level (1 = highest, granularity = lowest)
-                DISTANCE_LEVELS = { 1.0, 0.5, 2.0 }, -- Base (1.0), Close (0.5), Far (2.0)
-                DEFAULT_DISTANCE_LEVEL = 1,
-
-                -- Smoothing and Transition Settings
-                ZOOM_TRANSITION_FACTOR = 0.04, -- How fast height transitions occur
-
-                -- Adjusted for smoother movement - reduced from original value
-                TRANSITION_FACTOR = 0.03, -- Base smoothing factor for movement transitions
-
-                SMOOTHING = {
-                    FREE_CAMERA_FACTOR = 0.05, -- Smoothing factor for rotation when using middle mouse
-                    MOVEMENT = 0.05, -- Default smoothing factor for camera movement
-                },
-                DEFAULT_SMOOTHING = {
-                    FREE_CAMERA_FACTOR = 0.05,
-                    MOVEMENT = 0.05,
-                },
-            },
-
             UNIT_TRACKING = {
                 INITIAL_TRANSITION_DURATION = 2,
                 INITIAL_TRANSITION_FACTOR = 0.01,

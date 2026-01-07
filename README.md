@@ -65,7 +65,6 @@ Where:
 #### 2.1.0
 - Show widget errors in UI
 - Global nuke monitoring - you can always track nuke projectile now (turbobarcam_projectile_camera_cycle, turbobarcam_projectile_camera_toggle_mode)
-- Removed Overview mode
 - Added help button in UI
 #### 2.2.0
 - Fixed group tracking camera
@@ -79,3 +78,5 @@ Where:
 #### 2.3.0
 - Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise snap to the anchor.
 - UI – Add an option to hide minimap and chat
+#### 2.4.0
+- Removed Overview mode

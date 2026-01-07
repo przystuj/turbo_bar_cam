@@ -5,7 +5,6 @@ local modes = {
     DOLLYCAM = "dollycam",
     GROUP_TRACKING = "group_tracking",
     ORBIT = "orbit",
-    OVERVIEW = "overview",
     PROJECTILE_CAMERA = "projectile_camera",
     SPEC_GROUPS = "spec_groups",
     UNIT_FOLLOW = "unit_follow",

@@ -472,7 +472,6 @@ local initDataModel = {
         unit_tracking = { HEIGHT = 20 },
         orbit = { DISTANCE = 20, HEIGHT = 20, SPEED = 0.01 },
         group_tracking = { EXTRA_DISTANCE = 15, EXTRA_HEIGHT = 5, ORBIT_OFFSET = 0.01 },
-        overview = { HEIGHT = 1 },
         anchor = { DURATION = 1 },
     },
     -- Pre-formatted strings for display

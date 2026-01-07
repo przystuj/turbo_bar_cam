@@ -16,7 +16,7 @@ function Utils.isTurboBarCamDisabled()
     end
 end
 
----@param mode 'unit_follow'|'unit_tracking'|'orbit'|'overview'
+---@param mode 'unit_follow'|'unit_tracking'|'orbit'
 function Utils.isModeDisabled(mode)
     if mode == "global" and STATE.active.mode.name then
         return true

@@ -14,7 +14,6 @@ local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local UnitTrackingCamera = ModuleManager.UnitTrackingCamera(function(m) UnitTrackingCamera = m end)
 local OrbitingCamera = ModuleManager.OrbitingCamera(function(m) OrbitingCamera = m end)
-local OverviewCamera = ModuleManager.OverviewCamera(function(m) OverviewCamera = m end)
 local GroupTrackingCamera = ModuleManager.GroupTrackingCamera(function(m) GroupTrackingCamera = m end)
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
@@ -55,7 +54,7 @@ function UpdateManager.handleTrackingGracePeriod()
         STATE.active.mode.graceTimer = Spring.GetTimer()
         return
     end
-    if STATE.active.mode.graceTimer and STATE.active.mode.name and STATE.active.mode.name ~= "overview" and STATE.active.mode.name ~= "waypointEditor" then
+    if STATE.active.mode.graceTimer and STATE.active.mode.name and STATE.active.mode.name ~= "waypointEditor" then
         local now = Spring.GetTimer()
         local elapsed = Spring.DiffTimers(now, STATE.active.mode.graceTimer)
 
@@ -94,8 +93,6 @@ function UpdateManager.updateCameraMode(dt)
         UnitTrackingCamera.update(dt)
     elseif STATE.active.mode.name == 'orbit' then
         OrbitingCamera.update(dt)
-    elseif STATE.active.mode.name == 'overview' then
-        OverviewCamera.update(dt)
     elseif STATE.active.mode.name == 'group_tracking' then
         GroupTrackingCamera.update(dt)
     elseif STATE.active.mode.name == 'projectile_camera' then

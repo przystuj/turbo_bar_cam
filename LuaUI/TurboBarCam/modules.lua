@@ -30,8 +30,6 @@
 ---@field OrbitCameraUtils fun(hook: fun(module: OrbitCameraUtils)):OrbitCameraUtils
 ---@field OrbitingCamera fun(hook: fun(module: OrbitingCamera)):OrbitingCamera
 ---@field OrbitPersistence fun(hook: fun(module: OrbitPersistence)):OrbitPersistence
----@field OverviewCamera fun(hook: fun(module: OverviewCamera)):OverviewCamera
----@field OverviewCameraUtils fun(hook: fun(module: OverviewCameraUtils)):OverviewCameraUtils
 ---@field PersistentStorage fun(hook: fun(module: PersistentStorage)):PersistentStorage
 ---@field ProjectileCamera fun(hook: fun(module: ProjectileCamera)):ProjectileCamera
 ---@field ProjectileCameraPersistence fun(hook: fun(module: ProjectileCameraPersistence)):ProjectileCameraPersistence
@@ -101,16 +99,12 @@ local SimpleModules = {
     UnitFollowTargetingUtils = "features/unit_follow/unit_follow_combat_targeting_utils.lua",
     UnitFollowPersistence = "features/unit_follow/unit_follow_persistence.lua",
     GroupTrackingCamera = "features/group_tracking/group_tracking.lua",
-    MovementUtils = "features/overview/movement_utils.lua",
     OrbitCameraUtils = "features/orbit/orbit_utils.lua",
     OrbitingCamera = "features/orbit/orbit.lua",
     OrbitPersistence = "features/orbit/orbit_persistence.lua",
-    OverviewCamera = "features/overview/overview.lua",
-    OverviewCameraUtils = "features/overview/overview_utils.lua",
     ProjectileCamera = "features/projectile_camera/projectile_camera.lua",
     ProjectileCameraPersistence = "features/projectile_camera/projectile_camera_persistence.lua",
     ProjectileCameraUtils = "features/projectile_camera/projectile_camera_utils.lua",
-    RotationUtils = "features/overview/rotation_utils.lua",
     SpecGroups = "features/spec_groups/spec_groups.lua",
     GroupTrackingUtils = "features/group_tracking/group_tracking_utils.lua",
     UnitTrackingCamera = "features/unit_tracking/unit_tracking.lua",

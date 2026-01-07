@@ -12,15 +12,15 @@ RESULT_PATH2 = "../../LuaUI/RmlWidgets/gui_turbobarcam/rml/keybinds.rml"
 
 MODE_ORDER = [
     "General Controls", "Anchor Point Mode", "DollyCam Mode", "Unit Follow Mode",
-    "Group Tracking Mode", "Orbit Mode", "Overview Mode", "Projectile Camera Mode",
+    "Group Tracking Mode", "Orbit Mode", "Projectile Camera Mode",
     "Unit Tracking Mode", "Spectator Actions", "Development Actions", "Other Actions"
 ]
 
 MODE_PREFIX_MAP = {
     "turbobarcam_anchor_": "Anchor Point Mode", "turbobarcam_dollycam_": "DollyCam Mode",
     "turbobarcam_unit_follow_": "Unit Follow Mode", "turbobarcam_group_tracking_": "Group Tracking Mode",
-    "turbobarcam_orbit_": "Orbit Mode", "turbobarcam_overview_": "Overview Mode",
-    "turbobarcam_projectile_": "Projectile Camera Mode", "turbobarcam_tracking_camera_": "Unit Tracking Mode",
+    "turbobarcam_orbit_": "Orbit Mode", "turbobarcam_projectile_": "Projectile Camera Mode",
+    "turbobarcam_tracking_camera_": "Unit Tracking Mode",
     "turbobarcam_dev_": "Development Actions", "turbobarcam_spec_": "Spectator Actions",
 }
 

@@ -15,7 +15,7 @@ local ModeManager = {}
 
 --- Resets the isModeInitialized flag for a given feature's state.
 --- Assumes feature state is under STATE.active.mode.<modeNameKey>
----@param modeNameKey string The key for the mode (e.g., "unit_follow", "unit_tracking", "overview")
+---@param modeNameKey string The key for the mode (e.g., "unit_follow", "unit_tracking")
 local function resetFeatureInitializationFlag(modeNameKey)
     if modeNameKey and STATE.active.mode[modeNameKey] then
         local featureState = STATE.active.mode[modeNameKey]
