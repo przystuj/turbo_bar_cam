@@ -98,8 +98,14 @@ end
 --- @param offsets table Offsets to use
 --- @return table directionState Camera direction state
 function UnitFollowUtils.createHullDirectionState(unitID, offsets)
+    local dx, dy, dz = Spring.GetUnitDirection(unitID)
+
+    local horizontalLength = math.sqrt(dx*dx + dz*dz)
+    local unitPitch = -math.atan2(dy, horizontalLength)
+
+    local targetRx = 1.8 + unitPitch
+
     local targetRy = -(Spring.GetUnitHeading(unitID, true) + math.pi) + offsets.ROTATION
-    local targetRx = 1.8
 
     return { rx = targetRx, ry = targetRy, }, CONSTANTS.TARGET_TYPE.EULER
 end
