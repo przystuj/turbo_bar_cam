@@ -35,6 +35,8 @@ function UnitFollowPersistence.saveUnitSettings(_, unitId)
     saveOffsets("DEFAULT", unitName)
     saveOffsets("COMBAT", unitName)
     saveOffsets("WEAPON", unitName)
+
+    SettingsManager.saveUserSetting("unit_follow_attack_state_cooldown", unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN)
 end
 
 ---@param unitId number Unit ID
@@ -50,6 +52,9 @@ function UnitFollowPersistence.loadUnitSettings(_, unitId)
     loadOffsets("DEFAULT", unitName)
     loadOffsets("COMBAT", unitName)
     loadOffsets("WEAPON", unitName)
+
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = SettingsManager.loadUserSetting(
+            "unit_follow_attack_state_cooldown", unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN)
 end
 
 STATE.settings.loadModeSettingsFn.unit_follow = UnitFollowPersistence.loadUnitSettings

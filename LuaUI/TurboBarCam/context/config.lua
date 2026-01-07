@@ -79,7 +79,9 @@ if not WG.TurboBarCam.CONFIG then
                         FORWARD = -75,
                         SIDE = 0,
                         ROTATION = 0 -- Rotation offset (radians)
-                    }
+                    },
+
+                    ATTACK_STATE_COOLDOWN = 4,
                 },
                 DEFAULT_OFFSETS = {
                     DEFAULT = {
@@ -101,7 +103,9 @@ if not WG.TurboBarCam.CONFIG then
                         FORWARD = 0,
                         SIDE = 0,
                         ROTATION = 0
-                    }
+                    },
+
+                    ATTACK_STATE_COOLDOWN = 4,
                 },
                 SMOOTHING = {
                     -- DEFAULT mode smoothing
@@ -315,6 +319,8 @@ CONFIG.MODIFIABLE_PARAMS = {
             ["WEAPON.FORWARD"] = { nil, nil },
             ["WEAPON.SIDE"] = { nil, nil },
             ["WEAPON.ROTATION"] = { nil, nil, "rad" },
+
+            ATTACK_STATE_COOLDOWN = { 0, nil },
 
             -- Other params
             MOUSE_SENSITIVITY = { 0.0001, 0.01 },

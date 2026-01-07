@@ -80,3 +80,5 @@ Where:
 - UI – Add an option to hide minimap and chat
 #### 2.4.0
 - Removed Overview mode
+- Attack state cooldown per unit type (how long the camera keeps looking at the last target)
+  - turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5

@@ -4,10 +4,10 @@ local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowCombatMode")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
+local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "unit_follow_attack_state_debounce"
-local ATTACK_STATE_COOLDOWN = 1.5
 
 ---@class UnitFollowCombatMode
 local UnitFollowCombatMode = {}
@@ -125,7 +125,7 @@ function UnitFollowCombatMode.scheduleAttackStateDisable()
                 UnitFollowCombatMode.clearAttackingState()
                 Log:trace("Attack state disabled after cooldown")
             end
-        end, ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
+        end, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
     end
 end
 

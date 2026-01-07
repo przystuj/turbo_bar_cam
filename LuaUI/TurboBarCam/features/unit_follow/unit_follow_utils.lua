@@ -457,6 +457,8 @@ function UnitFollowUtils.resetOffsets()
     reset("COMBAT")
     reset("WEAPON")
 
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN
+
     UnitFollowUtils.ensureHeightIsSet()
     Log:trace("Restored unit_follow camera settings to defaults")
     return true
