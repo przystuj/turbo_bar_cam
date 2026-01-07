@@ -81,6 +81,7 @@ bind		numpad4			turbobarcam_unit_follow_adjust_params add;WEAPON.SIDE,-5
 bind		Ctrl+numpad7	turbobarcam_unit_follow_adjust_params add;WEAPON.ROTATION,0.1
 bind		Ctrl+numpad9	turbobarcam_unit_follow_adjust_params add;WEAPON.ROTATION,-0.1
 bind        End             turbobarcam_unit_follow_toggle_combat_mode
+bind        Ctrl+End        turbobarcam_unit_follow_reset_attack_state
 bind		Ctrl+PageDown   turbobarcam_unit_follow_clear_weapon_selection
 bind		PageDown 		turbobarcam_unit_follow_next_weapon
 

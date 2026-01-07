@@ -128,7 +128,6 @@ function CameraDriver.runJob(targetConfig)
 
     TableUtils.syncTable(targetSTATE, targetConfig)
 
-    -- Use new smoothing parameter names with fallback to deprecated names
     targetSTATE.positionSmoothing = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
     targetSTATE.rotationSmoothing = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
 

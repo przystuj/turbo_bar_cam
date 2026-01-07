@@ -12,7 +12,7 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         DRIVER = {
-            TRANSITION_TIME = 0.3,
+            TRANSITION_TIME = 10,
             ANGULAR_VELOCITY_TARGET = 0.0001,
             VELOCITY_TARGET = 1,
             DISTANCE_TARGET = 1,
@@ -116,7 +116,7 @@ if not WG.TurboBarCam.CONFIG then
 
                     -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
                     COMBAT = {
-                        POSITION_FACTOR = 2,
+                        POSITION_FACTOR = 1,
                         ROTATION_FACTOR = 1,
                     },
 
@@ -303,7 +303,7 @@ CONFIG.MODIFIABLE_PARAMS = {
         PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS,
         PARAM_NAMES = {
             -- Peace mode offsets
-            ["DEFAULT.HEIGHT"] = { 0, nil },
+            ["DEFAULT.HEIGHT"] = { nil, nil },
             ["DEFAULT.FORWARD"] = { nil, nil },
             ["DEFAULT.SIDE"] = { nil, nil },
             ["DEFAULT.ROTATION"] = { nil, nil, "rad" },

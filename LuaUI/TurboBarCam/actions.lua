@@ -179,6 +179,12 @@ function Actions.unitFollowActions()
                 return false
             end)
 
+    Actions.registerAction("turbobarcam_unit_follow_reset_attack_state", 'tp',
+            function()
+                UnitFollowCamera.resetAttackState()
+                return false
+            end)
+
     Actions.registerAction("turbobarcam_unit_follow_next_weapon", 'tp',
             function()
                 UnitFollowCamera.nextWeapon()

@@ -73,13 +73,14 @@ Where:
 - Added options to have single-duration anchors
 - Added option in UI to disable unit indicators (selection highlight, command lines, etc)
 - Added option to move to the next/previous anchor. 
-  - turbobarcam_anchor_focus prev
-  - turbobarcam_anchor_focus next
+  - `turbobarcam_anchor_focus prev`
+  - `turbobarcam_anchor_focus next`
 #### 2.3.0
-- Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise snap to the anchor.
+- Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise, snap to the anchor.
 - UI – Add an option to hide minimap and chat
 #### 2.4.0
 - Removed Overview mode
 - UI - added a section with a list of the options and widgets which can interfere with recording. Click to toggle them off
 - Attack state cooldown per unit type (how long the camera keeps looking at the last target)
-  - turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5
+  - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
+- Added `turbobarcam_unit_follow_reset_attack_state` - stop looking at the target in combat mode for 1s.

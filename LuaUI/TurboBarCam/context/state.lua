@@ -183,6 +183,7 @@ if not WG.TurboBarCam.STATE then
                     fixedPoint = nil,
                     isFixedPointActive = false,
                     isAttacking = false,
+                    freezeAttackState = false,
                     weaponPos = nil,
                     weaponDir = nil,
                     activeWeaponNum = nil,

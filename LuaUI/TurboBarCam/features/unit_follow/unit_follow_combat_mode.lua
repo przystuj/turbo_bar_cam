@@ -8,6 +8,7 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "unit_follow_attack_state_debounce"
+local ATTACK_STATE_FREEZE_ID = "attack_state_freeze_id"
 
 ---@class UnitFollowCombatMode
 local UnitFollowCombatMode = {}
@@ -97,10 +98,24 @@ function UnitFollowCombatMode.clearWeaponSelection()
     Log:info("Cleared weapon selection.")
 end
 
+function UnitFollowCombatMode.resetAttackState()
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+    if Utils.isModeDisabled('unit_follow') then
+        return
+    end
+    STATE.active.mode.unit_follow.freezeAttackState = true
+    UnitFollowCombatMode.clearAttackingState()
+    Scheduler.debounce(function()
+        STATE.active.mode.unit_follow.freezeAttackState = false
+    end, 1, ATTACK_STATE_FREEZE_ID)
+end
+
 --- Sets the attacking state with debounce handling
 --- @param isAttacking boolean Whether the unit is attacking
 function UnitFollowCombatMode.setAttackingState(isAttacking)
-    if isAttacking then
+    if isAttacking and not STATE.active.mode.unit_follow.freezeAttackState then
         -- If we're now attacking, cancel any scheduled disable
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
 
@@ -307,7 +322,7 @@ function UnitFollowCombatMode.getCurrentAttackTarget(unitID)
     else
         -- We found a target, cancel any pending disable and ensure attacking state is on
         Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
-        STATE.active.mode.unit_follow.isAttacking = true
+        STATE.active.mode.unit_follow.isAttacking = true and not STATE.active.mode.unit_follow.freezeAttackState
 
         -- Store the active weapon number for later use
         STATE.active.mode.unit_follow.activeWeaponNum = weaponNum
@@ -421,7 +436,7 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
             -- Set attacking state with proper debounce handling
             if targetPos then
                 -- Unit is attacking - enable immediately
-                STATE.active.mode.unit_follow.isAttacking = true
+                STATE.active.mode.unit_follow.isAttacking = true and not STATE.active.mode.unit_follow.freezeAttackState
                 Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
             else
                 -- Unit is not attacking - start with attacking false
