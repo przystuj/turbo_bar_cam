@@ -79,8 +79,9 @@ Where:
 - Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise, snap to the anchor.
 - UI – Add an option to hide minimap and chat
 #### 2.4.0
-- Removed Overview mode
+- Removed Overview mode (now for real)
 - UI - added a section with a list of the options and widgets which can interfere with recording. Click to toggle them off
 - Attack state cooldown per unit type (how long the camera keeps looking at the last target)
   - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
-- Added `turbobarcam_unit_follow_reset_attack_state` - stop looking at the target in combat mode for 1s.
+- Added `turbobarcam_unit_follow_reset_attack_state` - stop looking at the target in combat mode for 1s
+- Use `turbobarcam_toggle_unit_follow_camera <unitId>` to follow specific unit without selecting it

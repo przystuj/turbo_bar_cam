@@ -12,7 +12,7 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         DRIVER = {
-            TRANSITION_TIME = 10,
+            TRANSITION_TIME = 0.2,
             ANGULAR_VELOCITY_TARGET = 0.0001,
             VELOCITY_TARGET = 1,
             DISTANCE_TARGET = 1,

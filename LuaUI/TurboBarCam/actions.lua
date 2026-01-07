@@ -149,8 +149,8 @@ end
 
 function Actions.unitFollowActions()
     Actions.registerAction("turbobarcam_toggle_unit_follow_camera", 'tp',
-            function()
-                UnitFollowCamera.toggle()
+            function(_, _, args)
+                UnitFollowCamera.toggle(args[1])
                 return true
             end, nil)
 

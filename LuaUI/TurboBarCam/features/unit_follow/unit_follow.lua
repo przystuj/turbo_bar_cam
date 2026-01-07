@@ -35,19 +35,20 @@ local function disableMode()
 end
 
 --- Toggles Unit Follow camera attached to a unit
-function UnitFollowCamera.toggle()
-    local unitID
+function UnitFollowCamera.toggle(unitID)
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
-    local selectedUnits = Spring.GetSelectedUnits()
-    if #selectedUnits > 0 then
-        unitID = selectedUnits[1]
-    else
-        Log:debug("No unit selected for unit_follow view")
-        disableMode()
-        return
+    if not unitID then
+        local selectedUnits = Spring.GetSelectedUnits()
+        if #selectedUnits > 0 then
+            unitID = selectedUnits[1]
+        else
+            Log:debug("No unit selected for unit_follow view")
+            disableMode()
+            return
+        end
     end
 
     if not Spring.ValidUnitID(unitID) then
@@ -61,7 +62,7 @@ function UnitFollowCamera.toggle()
         return
     end
 
-    if ModeManager.initializeMode('unit_follow', unitID) then
+    if ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
         UnitFollowTargetingSmoothing.configure({
             rotationConstraint = true,
             targetPrediction = true,

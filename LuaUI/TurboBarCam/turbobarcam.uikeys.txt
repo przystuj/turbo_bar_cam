@@ -26,10 +26,10 @@ bind			Ctrl+F3				    turbobarcam_anchor_set 3
 bind			Ctrl+F4				    turbobarcam_anchor_set 4
 bind			Ctrl+F5				    turbobarcam_anchor_set 5
 bind			Ctrl+F6				    turbobarcam_anchor_set 6
-bind			Shift+F1			    turbobarcam_anchor_focus prev
-bind			Shift+F2			    turbobarcam_anchor_focus next
-bind			Shift+F3			    turbobarcam_anchor_focus reset
-bind			Shift+F4			    turbobarcam_anchor_focus 1
+bind			Shift+F1			    turbobarcam_anchor_focus 1
+bind			Shift+F2			    turbobarcam_anchor_focus 2
+bind			Shift+F3			    turbobarcam_anchor_focus prev
+bind			Shift+F4			    turbobarcam_anchor_focus next
 bind			Ctrl+Shift+numpad-	    turbobarcam_anchor_adjust_params add;DURATION,-1
 bind			Ctrl+Shift+numpad+	    turbobarcam_anchor_adjust_params add;DURATION,1
 bind			Ctrl+Shift+Alt+numpad-	turbobarcam_anchor_toggle_visualization
