@@ -2,15 +2,11 @@
 
 An advanced camera control suite for Beyond All Reason, featuring smooth transitions, various unit tracking modes and more.
 
-## Overview
-
-TurboBarCam provides a comprehensive camera control system with multiple specialized modes for both players and spectators. It enables fluid camera movements, unit-centered views, and cinematic transitions between saved camera positions.
-
 ## Features
 
 - **Camera Anchors**: Save and recall camera positions with smooth transitions and chaining
-- **Follow Camera**: Follow unit maintaining its orientation
-- **Tracking Camera**: Track selected units while maintaining your preferred viewing angle
+- **Follow Camera**: Follow unit maintaining its orientation or target
+- **Tracking Camera**: Track selected units while maintaining your position
 - **Orbiting Camera**: Circle around units with adjustable speed and height
 - **Group Tracking Camera**: Track a group of units with automatic clustering
 - **Projectile Camera**: Follow projectiles fired from units
