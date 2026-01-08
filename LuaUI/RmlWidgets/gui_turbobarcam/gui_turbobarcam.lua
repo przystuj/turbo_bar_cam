@@ -93,6 +93,7 @@ local recordingModeWidgets = {
     createWidgetEntry("Sensor Ranges Jammer"),
     createWidgetEntry("Sensor Ranges Sonar"),
     createWidgetEntry("Anti Ranges"),
+    createWidgetEntry("AllyCursors"),
 }
 
 local recordingModeOptions = {
