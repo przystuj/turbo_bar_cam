@@ -85,3 +85,4 @@ Where:
   - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
 - Added `turbobarcam_unit_follow_reset_attack_state` - stop looking at the target in combat mode for 1s
 - Use `turbobarcam_toggle_unit_follow_camera <unitId>` to follow specific unit without selecting it
+- Attach camera to hull instead of weapon in combat mode

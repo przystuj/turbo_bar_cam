@@ -120,14 +120,30 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
         return nil
     end
 
-    -- Get the weapon position if available
-    local posX, posY, posZ, destX = Spring.GetUnitWeaponVectors(unitID, weaponNum)
-    if not posX or not destX then
-        return nil
+    local attachToWeapon = CONFIG.CAMERA_MODES.UNIT_FOLLOW.ATTACH_TO_WEAPON
+    local originX, originY, originZ
+
+    if attachToWeapon then
+        local posX, posY, posZ, destX = Spring.GetUnitWeaponVectors(unitID, weaponNum)
+        if not posX or not destX then
+            return nil
+        end
+        originX, originY, originZ = posX, posY, posZ
+    else
+        local hullX, hullY, hullZ = Spring.GetUnitPosition(unitID)
+        if not hullX then
+            return nil
+        end
+
+        originX = hullX
+        originY = hullY
+        originZ = hullZ
     end
 
-    -- We have valid weapon vectors
-    local weaponPos = { x = posX, y = posY, z = posZ }
+    local weaponPos
+    if attachToWeapon then
+        weaponPos = { x = originX, y = originY, z = originZ }
+    end
 
     -- Apply target smoothing here - this is the key addition!
     -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
@@ -138,9 +154,9 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
     end
 
     -- Calculate direction to target (not weapon direction)
-    local dx = targetPos.x - posX
-    local dy = targetPos.y - posY
-    local dz = targetPos.z - posZ
+    local dx = targetPos.x - originX
+    local dy = targetPos.y - originY
+    local dz = targetPos.z - originZ
     local magnitude = math.sqrt(dx * dx + dy * dy + dz * dz)
 
     if magnitude < 0.001 then
