@@ -137,7 +137,17 @@ function CameraDriver.runJob(targetConfig)
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
-        jobSTATE.isRotationOnly = (distSq < CONFIG.DRIVER.DISTANCE_TARGET)
+
+        if distSq < CONFIG.DRIVER.DISTANCE_TARGET then
+            simulationSTATE.position.x = targetConfig.position.x
+            simulationSTATE.position.y = targetConfig.position.y
+            simulationSTATE.position.z = targetConfig.position.z
+
+            simulationSTATE.velocity.x = 0
+            simulationSTATE.velocity.y = 0
+            simulationSTATE.velocity.z = 0
+        end
+        jobSTATE.isRotationOnly = false
     else
         jobSTATE.isRotationOnly = not targetConfig.position
     end
@@ -204,9 +214,27 @@ local function updateOrientation(dt, liveSmoothTimeRot)
     end
 
     if finalTargetOrientation then
-        local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(simulationSTATE.orientation, finalTargetOrientation, simulationSTATE.angularVelocity, liveSmoothTimeRot, dt)
-        simulationSTATE.orientation = newOrientation
-        simulationSTATE.angularVelocity = newAngularVelocity
+        -- 2. Check how close we are to the target
+        local dot = QuaternionUtils.dot(simulationSTATE.orientation, finalTargetOrientation)
+        local absDot = math.abs(dot)
+
+        -- 3. Snap if "barely any turn" remaining AND moving slowly
+        local isMovingSlowly = MathUtils.vector.magnitudeSq(simulationSTATE.angularVelocity) < 0.000001
+
+        if absDot > 0.999999 and isMovingSlowly then
+            simulationSTATE.orientation = finalTargetOrientation
+            simulationSTATE.angularVelocity = { x = 0, y = 0, z = 0 }
+        else
+            local newOrientation, newAngularVelocity = QuaternionUtils.quaternionSmoothDamp(
+                    simulationSTATE.orientation,
+                    finalTargetOrientation,
+                    simulationSTATE.angularVelocity,
+                    liveSmoothTimeRot,
+                    dt
+            )
+            simulationSTATE.orientation = newOrientation
+            simulationSTATE.angularVelocity = newAngularVelocity
+        end
     end
 end
 
