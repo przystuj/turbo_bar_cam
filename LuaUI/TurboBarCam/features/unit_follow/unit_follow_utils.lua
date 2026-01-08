@@ -7,8 +7,7 @@ local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowUtils")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
-local UnitFollowTargetingUtils = ModuleManager.UnitFollowTargetingUtils(function(m) UnitFollowTargetingUtils = m end)
-local UnitFollowTargetingSmoothing = ModuleManager.UnitFollowTargetingSmoothing(function(m) UnitFollowTargetingSmoothing = m end)
+local UnitFollowTargeting = ModuleManager.UnitFollowTargeting(function(m) UnitFollowTargeting = m end)
 local UnitFollowPersistence = ModuleManager.UnitFollowPersistence(function(m) UnitFollowPersistence = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
@@ -132,7 +131,7 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
 
     -- Apply target smoothing here - this is the key addition!
     -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
-    local processedTarget = UnitFollowTargetingSmoothing.processTarget(targetPos, STATE.active.mode.unit_follow.lastTargetUnitID)
+    local processedTarget = UnitFollowTargeting.processTarget(targetPos, STATE.active.mode.unit_follow.lastTargetUnitID)
 
     if processedTarget then
         targetPos = processedTarget
@@ -284,8 +283,8 @@ function UnitFollowUtils.handleNewTarget()
     STATE.active.mode.unit_follow.transitionCounter = (STATE.active.mode.unit_follow.transitionCounter or 0) + 1
 
     -- Signal rotation constraints to reset
-    if STATE.active.mode.unit_follow.targetSmoothing and STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint then
-        STATE.active.mode.unit_follow.targetSmoothing.rotationConstraint.resetForSwitch = true
+    if STATE.active.mode.unit_follow.targeting and STATE.active.mode.unit_follow.targeting.rotationConstraint then
+        STATE.active.mode.unit_follow.targeting.rotationConstraint.resetForSwitch = true
     end
 
     -- Store this target position for future comparisons
@@ -574,7 +573,7 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     -- IMPORTANT: Apply air target repositioning AFTER stabilization
     -- This ensures the air adjustment respects the stabilized camera state
     if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
-        finalCamPosWorld = UnitFollowTargetingUtils.handleAirTargetRepositioning(
+        finalCamPosWorld = UnitFollowTargeting.handleAirTargetRepositioning(
                 finalCamPosWorld,
                 STATE.active.mode.unit_follow.lastTargetPos,
                 unitPos  -- Pass original unit position for reference
@@ -635,11 +634,11 @@ end
 -- This follows the guideline to split large conditionals into functions
 function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     -- Get targeting information from smoothing system
-    local targetSmoothing = STATE.active.mode.unit_follow.targetSmoothing
+    local targetState = STATE.active.mode.unit_follow.targeting
 
     -- Only apply stabilization during active targeting with high target switching activity
-    if not STATE.active.mode.unit_follow.isAttacking or not targetSmoothing or
-            not targetSmoothing.activityLevel or targetSmoothing.activityLevel <= 0.5 then
+    if not STATE.active.mode.unit_follow.isAttacking or not targetState or
+            not targetState.activityLevel or targetState.activityLevel <= 0.5 then
         -- Reset stabilization when not in a high-activity targeting situation
         STATE.active.mode.unit_follow.stableCamPos = nil
         return nil
@@ -652,7 +651,7 @@ function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     end
 
     -- Calculate stabilization factors
-    local factor = UnitFollowUtils.calculateStabilityFactor(targetSmoothing)
+    local factor = UnitFollowUtils.calculateStabilityFactor(targetState)
 
     -- Apply very gradual interpolation towards the target position
     local stableCamPos = STATE.active.mode.unit_follow.stableCamPos
@@ -671,16 +670,16 @@ end
 
 -- Calculate stability factor based on activity level
 -- Following the guideline to avoid code duplication
-function UnitFollowUtils.calculateStabilityFactor(targetSmoothing)
+function UnitFollowUtils.calculateStabilityFactor(targetState)
     local stabilityBase = 0.05 -- Base smoothing factor for minimal stabilization
     local maxStability = 0.02 -- Maximum smoothing factor (smaller = more stable)
 
     -- Scale stability factor inversely with activity level
-    local activityScaling = math.min(targetSmoothing.activityLevel * 1.5, 1.0)
+    local activityScaling = math.min(targetState.activityLevel * 1.5, 1.0)
     local factor = stabilityBase - (activityScaling * (stabilityBase - maxStability))
 
     -- Add rapid switch counter to increase stabilization for very rapid switching
-    if targetSmoothing.targetSwitchCount > 100 then
+    if targetState.targetSwitchCount > 100 then
         -- Further decrease factor for extremely high switching rates
         factor = factor * 0.8
     end

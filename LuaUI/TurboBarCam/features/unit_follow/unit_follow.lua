@@ -10,7 +10,7 @@ local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local UnitFollowUtils = ModuleManager.UnitFollowUtils(function(m) UnitFollowUtils = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
-local UnitFollowTargetingSmoothing = ModuleManager.UnitFollowTargetingSmoothing(function(m) UnitFollowTargetingSmoothing = m end)
+local UnitFollowTargeting = ModuleManager.UnitFollowTargeting(function(m) UnitFollowTargeting = m end)
 
 local prevActiveCmd
 
@@ -63,7 +63,7 @@ function UnitFollowCamera.toggle(unitID)
     end
 
     if ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
-        UnitFollowTargetingSmoothing.configure({
+        UnitFollowTargeting.configure({
             rotationConstraint = true,
             targetPrediction = true,
             cloudBlendFactor = 0.9,

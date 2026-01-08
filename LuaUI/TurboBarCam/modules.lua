@@ -19,14 +19,12 @@
 ---@field UnitFollowCamera fun(hook: fun(module: UnitFollowCamera)):UnitFollowCamera
 ---@field UnitFollowUtils fun(hook: fun(module: UnitFollowUtils)):UnitFollowUtils
 ---@field UnitFollowCombatMode fun(hook: fun(module: UnitFollowCombatMode)):UnitFollowCombatMode
----@field UnitFollowTargetingSmoothing fun(hook: fun(module: UnitFollowTargetingSmoothing)):UnitFollowTargetingSmoothing
----@field UnitFollowTargetingUtils fun(hook: fun(module: UnitFollowTargetingUtils)):UnitFollowTargetingUtils
 ---@field UnitFollowPersistence fun(hook: fun(module: UnitFollowPersistence)):UnitFollowPersistence
+---@field UnitFollowTargeting fun(hook: fun(module: UnitFollowTargeting)):UnitFollowTargeting
 ---@field GroupTrackingCamera fun(hook: fun(module: GroupTrackingCamera)):GroupTrackingCamera
 ---@field GroupTrackingUtils fun(hook: fun(module: GroupTrackingUtils)):GroupTrackingUtils
 ---@field ModeManager fun(hook: fun(module: ModeManager)):ModeManager
 ---@field MouseManager fun(hook: fun(module: MouseManager)):MouseManager
----@field MovementUtils fun(hook: fun(module: MovementUtils)):MovementUtils
 ---@field OrbitCameraUtils fun(hook: fun(module: OrbitCameraUtils)):OrbitCameraUtils
 ---@field OrbitingCamera fun(hook: fun(module: OrbitingCamera)):OrbitingCamera
 ---@field OrbitPersistence fun(hook: fun(module: OrbitPersistence)):OrbitPersistence
@@ -35,7 +33,6 @@
 ---@field ProjectileCameraPersistence fun(hook: fun(module: ProjectileCameraPersistence)):ProjectileCameraPersistence
 ---@field ProjectileCameraUtils fun(hook: fun(module: ProjectileCameraUtils)):ProjectileCameraUtils
 ---@field ProjectileTracker fun(hook: fun(module: ProjectileTracker)):ProjectileTracker
----@field RotationUtils fun(hook: fun(module: RotationUtils)):RotationUtils
 ---@field SelectionManager fun(hook: fun(module: SelectionManager)):SelectionManager
 ---@field Scheduler fun(hook: fun(module: Scheduler)):Scheduler
 ---@field SettingsManager fun(hook: fun(module: SettingsManager)):SettingsManager
@@ -95,8 +92,7 @@ local SimpleModules = {
     UnitFollowCamera = "features/unit_follow/unit_follow.lua",
     UnitFollowUtils = "features/unit_follow/unit_follow_utils.lua",
     UnitFollowCombatMode = "features/unit_follow/unit_follow_combat_mode.lua",
-    UnitFollowTargetingSmoothing = "features/unit_follow/unit_follow_targeting_smoothing.lua",
-    UnitFollowTargetingUtils = "features/unit_follow/unit_follow_combat_targeting_utils.lua",
+    UnitFollowTargeting = "features/unit_follow/unit_follow_targeting.lua",
     UnitFollowPersistence = "features/unit_follow/unit_follow_persistence.lua",
     GroupTrackingCamera = "features/group_tracking/group_tracking.lua",
     OrbitCameraUtils = "features/orbit/orbit_utils.lua",

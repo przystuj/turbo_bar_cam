@@ -203,31 +203,47 @@ if not WG.TurboBarCam.STATE then
                         lastUnitHeading = nil
                     },
 
-                    targetSmoothing = {
+                    targeting = {
+                        -- Cloud / History State
                         targetHistory = {},
                         cloudCenter = nil,
                         cloudRadius = 0,
                         useCloudTargeting = false,
-                        cloudStartTime = nil,
-                        highActivityDetected = false,
+
+                        -- Activity Tracking
                         activityLevel = 0,
+                        highActivityDetected = false,
+                        cloudStartTime = nil,
+                        minCloudDuration = nil,
+
+                        -- Switching logic
+                        currentTargetKey = nil,
                         lastTargetSwitchTime = nil,
                         targetSwitchCount = 0,
-                        currentTargetKey = nil,
-                        targetPrediction = {
-                            enabled = false,
+                        lastHistoryUpdateFrame = nil,
+
+                        -- Tracking Data
+                        targetTracking = {},
+
+                        -- Prediction
+                        prediction = {
+                            enabled = true,
                             velocityX = 0,
                             velocityY = 0,
                             velocityZ = 0,
                             lastUpdateTime = nil
                         },
+
+                        -- Rotation Constraints
                         rotationConstraint = {
                             enabled = true,
-                            maxRotationRate = 0.07,
-                            lastYaw = nil,
-                            lastPitch = nil,
-                            damping = 0.8
-                        }
+                            maxRotationRate = 0.05,
+                            damping = 0.9,
+                            resetForSwitch = false
+                        },
+
+                        -- Aerial specific
+                        aerialTracking = nil,
                     },
                 },
 
