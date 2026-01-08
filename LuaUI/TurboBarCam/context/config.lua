@@ -15,7 +15,7 @@ if not WG.TurboBarCam.CONFIG then
             TRANSITION_TIME = 0.2,
             ANGULAR_VELOCITY_TARGET = 0.0001,
             VELOCITY_TARGET = 1,
-            DISTANCE_TARGET = 1,
+            DISTANCE_TARGET = 0.001,
         },
 
         -- Performance settings
