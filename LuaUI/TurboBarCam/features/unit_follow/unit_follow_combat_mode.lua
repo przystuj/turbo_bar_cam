@@ -342,8 +342,9 @@ function UnitFollowCombatMode.getCameraPositionForActiveWeapon(unitID, applyOffs
     local front, up, right = Spring.GetUnitVectors(unitID)
     local unitPos = { x = x, y = y, z = z }
     local weaponNum = STATE.active.mode.unit_follow.activeWeaponNum
+    local attachToWeapon = CONFIG.CAMERA_MODES.UNIT_FOLLOW.ATTACH_TO_WEAPON
 
-    if weaponNum then
+    if weaponNum and attachToWeapon then
         local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
 
         if posX and destX then
@@ -407,6 +408,7 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
 
     -- Set the combat mode flag
     STATE.active.mode.unit_follow.combatModeEnabled = enable
+    local attachToWeapon = CONFIG.CAMERA_MODES.UNIT_FOLLOW.ATTACH_TO_WEAPON
 
     if enable then
         -- Enable combat mode
@@ -446,16 +448,31 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
             -- Get weapon position and direction
             local posX, posY, posZ, destX, destY, destZ = Spring.GetUnitWeaponVectors(unitID, weaponNum)
             if posX and destX then
-                -- Use weapon position
-                STATE.active.mode.unit_follow.weaponPos = { x = posX, y = posY, z = posZ }
+                local originX, originY, originZ = posX, posY, posZ
 
-                -- Create normalized vector
-                local magnitude = math.sqrt(destX * destX + destY * destY + destZ * destZ)
+                if attachToWeapon then
+                    STATE.active.mode.unit_follow.weaponPos = { x = posX, y = posY, z = posZ }
+                else
+                    STATE.active.mode.unit_follow.weaponPos = nil
+                    originX, originY, originZ = Spring.GetUnitPosition(unitID)
+                    originY = originY
+                end
+
+                local dx, dy, dz
+                if targetPos then
+                    dx = targetPos.x - originX
+                    dy = targetPos.y - originY
+                    dz = targetPos.z - originZ
+                else
+                    dx, dy, dz = destX, destY, destZ
+                end
+
+                local magnitude = math.sqrt(dx * dx + dy * dy + dz * dz)
                 if magnitude > 0 then
                     STATE.active.mode.unit_follow.weaponDir = {
-                        destX / magnitude,
-                        destY / magnitude,
-                        destZ / magnitude
+                        dx / magnitude,
+                        dy / magnitude,
+                        dz / magnitude
                     }
                 else
                     STATE.active.mode.unit_follow.weaponDir = { destX, destY, destZ }

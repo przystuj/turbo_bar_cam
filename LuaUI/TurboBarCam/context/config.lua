@@ -54,6 +54,7 @@ if not WG.TurboBarCam.CONFIG then
             },
 
             UNIT_FOLLOW = {
+                ATTACH_TO_WEAPON = false, -- If true, combat mode camera attaches to the active weapon instead of the hull
                 MOUSE_SENSITIVITY = 0.004,
                 INITIAL_TRANSITION_DURATION = 1.2, -- Duration of the entry transition into unit_follow mode
                 OFFSETS = {
@@ -320,7 +321,7 @@ CONFIG.MODIFIABLE_PARAMS = {
             ["WEAPON.SIDE"] = { nil, nil },
             ["WEAPON.ROTATION"] = { nil, nil, "rad" },
 
-            ATTACK_STATE_COOLDOWN = { 0, nil },
+            ATTACK_STATE_COOLDOWN = 0,
 
             -- Other params
             MOUSE_SENSITIVITY = { 0.0001, 0.01 },
