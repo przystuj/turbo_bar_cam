@@ -472,9 +472,6 @@
                 </div>
             </div>
         </div>
-
-        <handle size_target="#document"
-                style="position: absolute; width: 16dp; height: 16dp; bottom: 0; right: 0; cursor: se-resize; background-color: #455A6466; border-radius: 0 0 4dp 0;"></handle>
     </div>
     </body>
 </rml>

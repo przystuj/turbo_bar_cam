@@ -1,0 +1,170 @@
+body {
+    font-family: "Exo 2";
+    font-weight: normal;
+    font-size: 13dp;
+    color: white;
+    height: 100%;
+}
+
+div {
+    display: block;
+}
+
+#hud-box {
+    width: 420dp;
+    height: 100dp;
+    background-color: #1a1a1a;
+
+    /* Borders */
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c; /* Industrial yellow stripe */
+
+    /* Positioning */
+    position: absolute;
+    top: 20dp;
+    left: 20dp;
+
+    /* Flex Layout */
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+    box-sizing: border-box;
+    padding: 0px;
+}
+
+/* --- Left Side: Icon --- */
+.icon-box {
+    width: 120dp; /* Fixed width for the portrait */
+    height: 100%;
+    position: relative;
+    background-color: #000;
+    border-right: 1dp #333;
+    box-sizing: border-box;
+}
+
+.unit-icon {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- Right Side: Info --- */
+.info-box {
+    flex-grow: 1;
+    width: auto;
+
+    height: 100%;
+    padding: 6dp 10dp;
+
+    display: flex;
+    flex-direction: column; /* Stacks Name, Stats, Bar vertically */
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+
+.header-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.unit-name {
+    font-size: 22dp;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.rank-overlay {
+    position: absolute;
+    bottom: 0dp;
+    right: 0dp;
+    width: 40dp;
+    height: 40dp;
+    z-index: 2;
+}
+
+.unit-desc {
+    font-size: 14dp;
+    color: #888;
+    margin-top: -2dp;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Stats: Kills and Bonuses */
+.stats-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 14dp;
+    margin-bottom: 2dp;
+    font-weight: bold;
+    width: 100%;
+}
+
+.stat-item {
+    color: #ccc;
+}
+
+.stat-bonuses {
+    display: flex;
+    flex-direction: row;
+    gap: 8dp;
+}
+
+.bonus-val {
+    color: #4CAF50; /* Green for bonuses */
+}
+
+/* Bars */
+.bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    width: 100%;
+}
+
+.hp-bar-bg {
+    width: 100%;
+    height: 22dp; /* Big and readable */
+    background-color: #333;
+    position: relative;
+    border: 1dp #444;
+    box-sizing: border-box;
+}
+
+.hp-bar-fill {
+    height: 100%;
+    background-color: #39ff14; /* Neon Green */
+}
+
+.hp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    line-height: 22dp;
+    text-align: center;
+    font-size: 14dp;
+    font-weight: bold;
+    color: #000;
+    text-shadow: none;
+
+    /* Ensure text doesn't block clicks if needed */
+    pointer-events: none;
+}
+
+.xp-bar-bg {
+    width: 100%;
+    height: 4dp;
+    background-color: #222;
+    margin-top: 0px;
+}
+
+.xp-bar-fill {
+    height: 100%;
+    background-color: #00bcd4; /* Cyan/Blue */
+}
