@@ -194,6 +194,7 @@ if not WG.TurboBarCam.STATE then
                     isTargetSwitchTransition = false,
                     targetSwitchStartTime = nil,
                     targetSwitchDuration = 0.4,
+                    lastCombatTargetSwitchTime = nil,
 
                     freeCam = {
                         lastMouseX = nil,

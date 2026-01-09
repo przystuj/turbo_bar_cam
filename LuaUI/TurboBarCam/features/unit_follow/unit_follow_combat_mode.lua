@@ -204,6 +204,39 @@ function UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
 
     local isNewTarget = UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
 
+    --  prevent rapid switching unless weapon is almost ready or time has passed
+    if isNewTarget and STATE.active.mode.unit_follow.lastTargetPos then
+        local now = Spring.GetTimer()
+        local lastSwitchTime = STATE.active.mode.unit_follow.lastCombatTargetSwitchTime or now
+        local timeSinceSwitch = Spring.DiffTimers(now, lastSwitchTime)
+
+        local readyToFire = false
+        local reloadFrame = Spring.GetUnitWeaponState(unitID, weaponNum, "reloadFrame")
+        local reloadTime = Spring.GetUnitWeaponState(unitID, weaponNum, "reloadTime")
+
+        if reloadFrame and reloadTime and reloadTime > 0 then
+            local currentFrame = Spring.GetGameFrame()
+            if currentFrame >= reloadFrame then
+                readyToFire = true
+            else
+                local progress = 1.0 - ((reloadFrame - currentFrame) / reloadTime)
+                if progress >= 0.9 then
+                    readyToFire = true
+                end
+            end
+        else
+            readyToFire = true
+        end
+
+        if timeSinceSwitch < CONFIG.CAMERA_MODES.UNIT_FOLLOW.TARGET_SWITCH_TIMER and not readyToFire then
+            return STATE.active.mode.unit_follow.lastTargetPos, false, STATE.active.mode.unit_follow.lastTargetUnitID, targetType
+        end
+
+        STATE.active.mode.unit_follow.lastCombatTargetSwitchTime = now
+    elseif isNewTarget then
+        STATE.active.mode.unit_follow.lastCombatTargetSwitchTime = Spring.GetTimer()
+    end
+
     -- Update the globally tracked last target info *after* comparison and potential transition trigger
     STATE.active.mode.unit_follow.lastTargetPos = newTargetPos
     STATE.active.mode.unit_follow.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
