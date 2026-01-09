@@ -615,7 +615,7 @@ end
 function UnitFollowUtils.handleTransition(targetCamPosWorld)
     local now = Spring.GetTimer()
     local elapsed = Spring.DiffTimers(now, STATE.active.mode.unit_follow.targetSwitchStartTime or now)
-    local transitionDuration = STATE.active.mode.unit_follow.targetSwitchDuration or 0.4
+    local transitionDuration = STATE.active.mode.unit_follow.targetSwitchDuration
 
     -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
     local rawProgress = math.min(1.0, elapsed / transitionDuration)
