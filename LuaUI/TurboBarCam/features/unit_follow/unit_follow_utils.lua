@@ -569,24 +569,22 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     -- Apply minimum height constraint to target position
     targetCamPosWorld = UnitFollowUtils.enforceMinimumHeight(targetCamPosWorld, STATE.active.mode.unitID)
 
-    -- IMPORTANT: First apply the stabilization for jittery camera
     local finalCamPosWorld = targetCamPosWorld
 
-    -- Handle transition if active
-    if STATE.active.mode.unit_follow.isTargetSwitchTransition then
-        local transitionPos = UnitFollowUtils.handleTransition(targetCamPosWorld)
-        if transitionPos then
-            finalCamPosWorld = transitionPos
-        end
-    else
+    -- Handle transition if active FIXME: is this required?
+    --if STATE.active.mode.unit_follow.isTargetSwitchTransition then
+    --    local transitionPos = UnitFollowUtils.handleTransition(targetCamPosWorld)
+    --    if transitionPos then
+    --        finalCamPosWorld = transitionPos
+    --    end
+    --else
         -- Apply stabilization when not in transition
         local stabilizedPos = UnitFollowUtils.applyStabilization(targetCamPosWorld)
         if stabilizedPos then
             finalCamPosWorld = stabilizedPos
         end
-    end
+    --end
 
-    -- IMPORTANT: Apply air target repositioning AFTER stabilization
     -- This ensures the air adjustment respects the stabilized camera state
     if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
         finalCamPosWorld = UnitFollowTargeting.handleAirTargetRepositioning(
@@ -599,52 +597,39 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     return finalCamPosWorld
 end
 
--- New separated function to handle either transition or stabilization
--- This follows the guideline to avoid large conditional blocks
-function UnitFollowUtils.applyStabilizationOrTransition(targetCamPosWorld)
-    -- Check if we are in a target switch transition
-    if STATE.active.mode.unit_follow.isTargetSwitchTransition then
-        return UnitFollowUtils.handleTransition(targetCamPosWorld)
-    end
-
-    -- Not in transition, check if we need stabilization
-    return UnitFollowUtils.applyStabilization(targetCamPosWorld)
-end
-
--- Separate function to handle camera transition
-function UnitFollowUtils.handleTransition(targetCamPosWorld)
-    local now = Spring.GetTimer()
-    local elapsed = Spring.DiffTimers(now, STATE.active.mode.unit_follow.targetSwitchStartTime or now)
-    local transitionDuration = STATE.active.mode.unit_follow.targetSwitchDuration
-
-    -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
-    local rawProgress = math.min(1.0, elapsed / transitionDuration)
-    local progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
-
-    if progress < 1.0 then
-        -- Use current actual camera position for transition
-        if STATE.active.mode.unit_follow.previousCamPosWorld then
-            local startPos = STATE.active.mode.unit_follow.previousCamPosWorld
-            local endPos = targetCamPosWorld
-
-            -- Simple direct linear interpolation between current and target position
-            local finalCamPosWorld = {
-                x = startPos.x + (endPos.x - startPos.x) * progress,
-                y = startPos.y + (endPos.y - startPos.y) * progress,
-                z = startPos.z + (endPos.z - startPos.z) * progress
-            }
-
-            -- Return the interpolated position
-            return finalCamPosWorld
-        end
-    else
-        -- Transition finished this frame
-        STATE.active.mode.unit_follow.isTargetSwitchTransition = false
-        STATE.active.mode.unit_follow.previousCamPosWorld = nil
-    end
-
-    return nil
-end
+-- Separate function to handle camera transition FIXME: is it required?
+--function UnitFollowUtils.handleTransition(targetCamPosWorld)
+--    local now = Spring.GetTimer()
+--    local elapsed = Spring.DiffTimers(now, STATE.active.mode.unit_follow.targetSwitchStartTime or now)
+--    local transitionDuration = CONFIG.CAMERA_MODES.UNIT_FOLLOW.TARGET_SWITCH_DURATION
+--
+--    -- Calculate the progress with ease-in-out curve for smoother acceleration/deceleration
+--    local rawProgress = math.min(1.0, elapsed / transitionDuration)
+--    local progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
+--
+--    if progress < 1.0 then
+--        -- Use current actual camera position for transition
+--        if STATE.active.mode.unit_follow.previousCamPosWorld then
+--            local startPos = STATE.active.mode.unit_follow.previousCamPosWorld
+--            local endPos = targetCamPosWorld
+--
+--            local finalCamPosWorld = {
+--                x = startPos.x + (endPos.x - startPos.x) * progress,
+--                y = startPos.y + (endPos.y - startPos.y) * progress,
+--                z = startPos.z + (endPos.z - startPos.z) * progress
+--            }
+--
+--            -- Return the interpolated position
+--            return finalCamPosWorld
+--        end
+--    else
+--        -- Transition finished this frame
+--        STATE.active.mode.unit_follow.isTargetSwitchTransition = false
+--        STATE.active.mode.unit_follow.previousCamPosWorld = nil
+--    end
+--
+--    return nil
+--end
 
 -- Separate function to handle camera stabilization for jittery situations
 -- This follows the guideline to split large conditionals into functions
@@ -687,8 +672,8 @@ end
 -- Calculate stability factor based on activity level
 -- Following the guideline to avoid code duplication
 function UnitFollowUtils.calculateStabilityFactor(targetState)
-    local stabilityBase = 0.05 -- Base smoothing factor for minimal stabilization
-    local maxStability = 0.02 -- Maximum smoothing factor (smaller = more stable)
+    local stabilityBase = CONFIG.CAMERA_MODES.UNIT_FOLLOW.STABILIZATION.BASE_FACTOR
+    local maxStability = CONFIG.CAMERA_MODES.UNIT_FOLLOW.STABILIZATION.MAX_FACTOR
 
     -- Scale stability factor inversely with activity level
     local activityScaling = math.min(targetState.activityLevel * 1.5, 1.0)
