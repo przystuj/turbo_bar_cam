@@ -111,7 +111,13 @@ function UnitFollowCamera.getCameraPosition()
 end
 
 function UnitFollowCamera.getCameraDirection()
-    if STATE.active.mode.unit_follow.isFixedPointActive then
+    if STATE.active.mode.unit_follow.inTargetSelectionMode then
+        local mx, my = Spring.GetMouseState()
+        local xxxx, pos = Spring.TraceScreenRay(mx, my, true)
+        if pos then
+            return { x = pos[1], y = pos[2], z = pos[3] }, CONSTANTS.TARGET_TYPE.POINT
+        end
+    elseif STATE.active.mode.unit_follow.isFixedPointActive then
         return UnitFollowUtils.updateFixedPointTarget()
     else
         return UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID)
@@ -204,6 +210,7 @@ function UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
 
     local fixedPoint = { x = x, y = y, z = z }
+    Log:debug("fixedPoint", fixedPoint)
     return UnitFollowUtils.setFixedLookPoint(fixedPoint, STATE.active.mode.unit_follow.targetUnitID)
 end
 

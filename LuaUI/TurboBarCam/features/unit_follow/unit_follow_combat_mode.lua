@@ -10,6 +10,13 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local ATTACK_STATE_DEBOUNCE_ID = "unit_follow_attack_state_debounce"
 local ATTACK_STATE_FREEZE_ID = "attack_state_freeze_id"
 
+local isAir = {}
+for unitDefID, unitDef in pairs(UnitDefs) do
+    if unitDef.isAirUnit then
+        isAir[unitDefID] = true
+    end
+end
+
 ---@class UnitFollowCombatMode
 local UnitFollowCombatMode = {}
 
@@ -182,6 +189,10 @@ function UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
         -- Unit target
         targetUnitID = target -- The 'target' is the unitID itself
         if Spring.ValidUnitID(targetUnitID) then
+            if CONFIG.CAMERA_MODES.UNIT_FOLLOW.IGNORE_AIR_TARGETS and isAir[Spring.GetUnitDefID(targetUnitID)] then
+                return nil, nil, nil
+            end
+
             local x, y, z = Spring.GetUnitPosition(targetUnitID)
             newTargetPos = { x = x, y = y, z = z }
         else
@@ -249,7 +260,7 @@ function UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType
     return isNewTarget
 end
 
-function UnitFollowCombatMode.chooseWeapon(unitID, unitDef)
+function UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
     -- If we have a forced weapon number, only check that specific weapon
     if STATE.active.mode.unit_follow.forcedWeaponNumber then
         local weaponNum = STATE.active.mode.unit_follow.forcedWeaponNumber
@@ -301,7 +312,7 @@ function UnitFollowCombatMode.getCurrentAttackTarget(unitID)
         return nil, nil
     end
 
-    local targetPos, weaponNum, isNewTarget = UnitFollowCombatMode.chooseWeapon(unitID, unitDef)
+    local targetPos, weaponNum, isNewTarget = UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
 
     -- If no target was found, but we have a last target position and we're in attacking state
     if not targetPos and STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
