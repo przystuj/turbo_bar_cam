@@ -11,32 +11,26 @@ div {
 }
 
 #hud-box {
-    width: 420dp;
-    height: 100dp;
+    width: 500dp;
+    height: 120dp;
     background-color: #1a1a1a;
-
-    /* Borders */
     border: 1dp #2c2c2c;
-    border-top: 3dp #fdc04c; /* Industrial yellow stripe */
+    border-top: 3dp #fdc04c;
 
-    /* Positioning */
     position: absolute;
     top: 20dp;
     left: 20dp;
 
-    /* Flex Layout */
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-
     box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
     box-sizing: border-box;
     padding: 0px;
 }
 
-/* --- Left Side: Icon --- */
 .icon-box {
-    width: 120dp; /* Fixed width for the portrait */
+    width: 160dp;
     height: 100%;
     position: relative;
     background-color: #000;
@@ -49,7 +43,15 @@ div {
     height: 100%;
 }
 
-/* --- Right Side: Info --- */
+.rank-overlay {
+    position: absolute;
+    top: 0dp;
+    right: 0dp;
+    width: 40dp;
+    height: 40dp;
+    z-index: 2;
+}
+
 .info-box {
     flex-grow: 1;
     width: auto;
@@ -58,9 +60,10 @@ div {
     padding: 6dp 10dp;
 
     display: flex;
-    flex-direction: column; /* Stacks Name, Stats, Bar vertically */
+    flex-direction: column;
     justify-content: space-between;
     box-sizing: border-box;
+    position: relative;
 }
 
 .header-row {
@@ -77,32 +80,21 @@ div {
     overflow: hidden;
 }
 
-.rank-overlay {
-    position: absolute;
-    bottom: 0dp;
-    right: 0dp;
-    width: 40dp;
-    height: 40dp;
-    z-index: 2;
-}
-
 .unit-desc {
     font-size: 14dp;
-    color: #888;
+    color: #d1d1d1;
     margin-top: -2dp;
-    white-space: nowrap;
     overflow: hidden;
 }
 
-/* Stats: Kills and Bonuses */
 .stats-row {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
     font-size: 14dp;
     margin-bottom: 2dp;
     font-weight: bold;
     width: 100%;
+    gap: 8dp;
 }
 
 .stat-item {
@@ -112,14 +104,19 @@ div {
 .stat-bonuses {
     display: flex;
     flex-direction: row;
-    gap: 8dp;
+}
+
+.emp-timer {
+    display: flex;
+    flex-direction: row;
+    color: #aaddff;
+    margin-left: auto;
 }
 
 .bonus-val {
-    color: #4CAF50; /* Green for bonuses */
+    color: #4CAF50;
 }
 
-/* Bars */
 .bar-container {
     display: flex;
     flex-direction: column;
@@ -129,7 +126,7 @@ div {
 
 .hp-bar-bg {
     width: 100%;
-    height: 22dp; /* Big and readable */
+    height: 22dp;
     background-color: #333;
     position: relative;
     border: 1dp #444;
@@ -138,7 +135,15 @@ div {
 
 .hp-bar-fill {
     height: 100%;
-    background-color: #39ff14; /* Neon Green */
+    background-color: #1D9D17;
+}
+
+.emp-bar-fill {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
 }
 
 .hp-text {
@@ -150,21 +155,74 @@ div {
     text-align: center;
     font-size: 14dp;
     font-weight: bold;
-    color: #000;
-    text-shadow: none;
+    color: white;
 
-    /* Ensure text doesn't block clicks if needed */
     pointer-events: none;
+    z-index: 2;
 }
 
 .xp-bar-bg {
     width: 100%;
     height: 4dp;
     background-color: #222;
-    margin-top: 0px;
+    position: relative;
+    border: 1dp #2f2f2f;
+    box-sizing: border-box;
 }
 
 .xp-bar-fill {
     height: 100%;
-    background-color: #00bcd4; /* Cyan/Blue */
+    background-color: #00bcd4;
+}
+
+#status-bar {
+    width: 1000dp;
+    height: 20dp;
+    font-size: 12dp;
+    font-family: "Exo 2";
+    background-color: black;
+
+    position: absolute;
+    bottom: 0dp;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    box-sizing: border-box;
+    padding: 0dp 10dp;
+}
+
+.status-left {
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: left;
+}
+
+.status-label {
+    color: #888;
+    margin-right: 5dp;
+}
+
+.time {
+    color: #fff;
+    font-weight: bold;
+}
+
+.status-info {
+    color: #fff;
+    margin: 10dp;
+}
+
+.status-right {
+    color: #fff;
+    display: flex;
+    flex-direction: row;
+    gap: 15dp;
+}
+
+.console-value {
+    font-size: 12dp;
+    color: #fff;
 }

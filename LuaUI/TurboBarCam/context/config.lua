@@ -58,6 +58,7 @@ if not WG.TurboBarCam.CONFIG then
                 MOUSE_SENSITIVITY = 0.004,
                 INITIAL_TRANSITION_DURATION = 1.2, -- Duration of the entry transition into unit_follow mode
                 TARGET_SWITCH_DURATION = 5, -- Transition between targets
+                IGNORE_AIR_TARGETS = true,
                 STABILIZATION = {
                     BASE_FACTOR = 0.03,
                     MAX_FACTOR = 0.01,
@@ -335,9 +336,15 @@ CONFIG.MODIFIABLE_PARAMS = {
     ORBIT = {
         PARAMS_ROOT = CONFIG.CAMERA_MODES.ORBIT.OFFSETS,
         PARAM_NAMES = {
-            HEIGHT = { 100, nil },
-            DISTANCE = { 100, nil },
+            HEIGHT = { nil, nil },
+            DISTANCE = { nil, nil },
             SPEED = { -0.5, 0.5 },
+        }
+    },
+    UNIT_TRACKING = {
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_TRACKING,
+        PARAM_NAMES = {
+            HEIGHT = { nil, nil },
         }
     },
     ANCHOR = {

@@ -158,11 +158,17 @@ function WidgetManager.changeConfig(path, value)
         currentTable = currentTable[segment]
     end
 
-    -- Set the value at the final level using the last segment
     if segmentCount > 0 then
         local lastSegment = segments[segmentCount]
         value = tonumber(value) or value
-        Log:debug(string.format("Changing %s=%s to %s", path, currentTable[lastSegment], value))
+        if value == "true" then value = true end
+        if value == "false" then value = false end
+
+        if type(currentTable[lastSegment]) == "boolean" and value == nil then
+            value = not currentTable[lastSegment]
+        end
+
+        Log:debug(string.format("Changing %s=%s to %s", path, tostring(currentTable[lastSegment]), tostring(value)))
         currentTable[lastSegment] = value
     else
         -- Handle cases where the path might be empty, though this usually indicates an error.

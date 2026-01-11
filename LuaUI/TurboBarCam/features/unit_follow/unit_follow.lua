@@ -85,18 +85,6 @@ function UnitFollowCamera.update()
     local cameraPosition = UnitFollowCamera.getCameraPosition()
     local target, targetType = UnitFollowCamera.getCameraDirection(cameraPosition)
 
-    local camTarget = {
-        position = cameraPosition,
-        smoothTimePos = UnitFollowUtils.getSmoothingFactor('position'),
-        smoothTimeRot = UnitFollowUtils.getSmoothingFactor('rotation')
-    }
-
-    if targetType ~= CONSTANTS.TARGET_TYPE.NONE then
-        camTarget.lookAt = { type = targetType, data = target }
-    else
-        camTarget.euler = { rx = target.rx, ry = target.ry }
-    end
-
     local cameraDriverJob = CameraDriver.prepare(targetType, target)
     cameraDriverJob.position = cameraPosition
     cameraDriverJob.positionSmoothing = UnitFollowUtils.getSmoothingFactor('position')
@@ -166,7 +154,6 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
 end
 
 function UnitFollowCamera.setFixedLookPoint(cmdParams)
-    Log:error("test error")
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -239,7 +226,7 @@ function UnitFollowCamera.nextWeapon()
     UnitFollowCombatMode.nextWeapon()
 end
 
-function UnitFollowCamera.resetAttackState()
+function UnitFollowCamera.resetAttackState(delay)
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -250,7 +237,7 @@ function UnitFollowCamera.resetAttackState()
         Log:debug("No unit selected.")
         return
     end
-    UnitFollowCombatMode.resetAttackState()
+    UnitFollowCombatMode.resetAttackState(delay)
 end
 
 function UnitFollowCamera.clearWeaponSelection()
