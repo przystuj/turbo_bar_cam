@@ -335,9 +335,15 @@ CONFIG.MODIFIABLE_PARAMS = {
     ORBIT = {
         PARAMS_ROOT = CONFIG.CAMERA_MODES.ORBIT.OFFSETS,
         PARAM_NAMES = {
-            HEIGHT = { 100, nil },
-            DISTANCE = { 100, nil },
+            HEIGHT = { nil, nil },
+            DISTANCE = { nil, nil },
             SPEED = { -0.5, 0.5 },
+        }
+    },
+    UNIT_TRACKING = {
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_TRACKING,
+        PARAM_NAMES = {
+            HEIGHT = { nil, nil },
         }
     },
     ANCHOR = {
