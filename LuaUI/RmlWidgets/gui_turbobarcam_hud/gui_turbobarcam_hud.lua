@@ -174,7 +174,8 @@ local function UpdateModel()
     -- Health
     local hp, maxHp = spGetUnitHealth(targetUnitID)
     if hp then
-        dm.currHp = math.floor(hp)
+        hp = math.max(0, hp)
+        dm.currHp = math.max(0, math.floor(hp))
         dm.maxHp = math.floor(maxHp)
         dm.hpPct = math.floor((hp / maxHp) * 100)
 
