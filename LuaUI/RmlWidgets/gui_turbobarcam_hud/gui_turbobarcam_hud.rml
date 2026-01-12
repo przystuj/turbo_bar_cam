@@ -1,6 +1,6 @@
 <rml>
     <head>
-        <title>TurboBarCam HUD2</title>
+        <title>TurboBarCam HUD</title>
         <style>
             body, div, span, p, img {
                 font-family: "Exo 2";
@@ -16,46 +16,50 @@
         <link type="text/rcss" href="gui_turbobarcam_hud.rcss"/>
     </head>
     <body id="turbobarcam-hud-body">
-    <div id="hud-box" data-model="turbobarcam_hud_model" data-if="isVisible">
+    <div id="hud-box" data-model="turbobarcam_hud_model" data-if="unitVisible">
 
         <div class="icon-box">
             <img class="unit-icon" data-attr-src="icon"/>
             <img class="rank-overlay" data-if="hasRank" data-attr-src="rankIcon"/>
         </div>
 
-        <handle move_target="#document">
-            <div class="info-box">
-
-                <div class="header-row">
-                        <div class="unit-name">{{ name }}</div>
-                    <div class="unit-desc">{{ desc }}</div>
-                </div>
-
-                <div class="bar-container">
-                    <div class="stats-row">
-                        <span class="stat-item" data-if="kills > 0">Kills: {{ kills }}</span>
-                        <span class="stat-item" data-if="kills == 0"></span>
-
-                        <div class="stat-bonuses" data-if="hasRank">
-                            <span class="bonus-val" data-if="hpBonus > 0">HP +{{ hpBonus }}%</span>
-                            <span class="bonus-val" data-if="reloadBonus > 0">Dps +{{ reloadBonus }}%</span>
-                        </div>
-                    </div>
-
-                    <div class="hp-bar-bg">
-                        <div class="hp-bar-fill" data-style-width="hpPct + '%'"></div>
-                        <div class="hp-text">{{ currHp }} / {{ maxHp }}</div>
-                    </div>
-
-                    <div class="xp-bar-bg">
-                        <div class="xp-bar-fill" data-style-width="xpPct + '%'"></div>
-                    </div>
-                </div>
-
+        <div class="info-box">
+            <div class="header-row">
+                <div class="unit-name">{{ name }}</div>
+                <div class="unit-desc">{{ desc }}</div>
             </div>
 
-        </handle>
+            <div class="bar-container">
+                <div class="stats-row">
+                    <span class="stat-item" data-if="kills > 0">Kills: {{ kills }}</span>
+                    <span class="stat-item" data-if="kills == 0"></span>
 
+                    <div class="stat-bonuses" data-if="hasRank">
+                        <span class="bonus-val" data-if="hpBonus > 0">HP +{{ hpBonus }}%</span>
+                        <span class="bonus-val" data-if="reloadBonus > 0">Dps +{{ reloadBonus }}%</span>
+                    </div>
+                </div>
+
+                <div class="hp-bar-bg">
+                    <div class="hp-bar-fill" data-style-width="hpPct + '%'"></div>
+                    <div class="hp-text">{{ currHp }} / {{ maxHp }}</div>
+                </div>
+
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" data-style-width="xpPct + '%'"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div id="status-bar" data-model="turbobarcam_hud_model">
+        <div class="status-left">
+            <span class="console-value">{{ lastConsoleMsg }}</span>
+        </div>
+        <div class="status-right">
+            <span class="status-value">{{ statusInfo }}</span>
+            <span class="time">{{ gameTime }} (x{{ targetSpeed }})</span>
+        </div>
     </div>
     </body>
 </rml>

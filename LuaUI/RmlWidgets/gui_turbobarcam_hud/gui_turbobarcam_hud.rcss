@@ -14,7 +14,6 @@ div {
     width: 420dp;
     height: 100dp;
     background-color: #1a1a1a;
-
     border: 1dp #2c2c2c;
     border-top: 3dp #fdc04c;
 
@@ -25,7 +24,6 @@ div {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-
     box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
     box-sizing: border-box;
     padding: 0px;
@@ -132,7 +130,6 @@ div {
 .hp-bar-fill {
     height: 100%;
     background-color: #1D9D17;
-    transition: width 0.2s linear;
 }
 
 .hp-text {
@@ -161,5 +158,57 @@ div {
 .xp-bar-fill {
     height: 100%;
     background-color: #00bcd4;
-    transition: width 0.2s linear;
+}
+
+#status-bar {
+    width: 1000dp;
+    height: 20dp;
+    font-size: 12dp;
+    font-family: "Exo 2";
+    background-color: black;
+
+    position: absolute;
+    bottom: 0dp;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    box-sizing: border-box;
+    padding: 0dp 10dp;
+}
+
+.status-left {
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: left;
+}
+
+.status-label {
+    color: #888;
+    margin-right: 5dp;
+}
+
+.time {
+    color: #fff;
+    font-weight: bold;
+}
+
+.status-info {
+    color: #fff;
+    margin: 10dp;
+}
+
+.status-right {
+    color: #fff;
+    display: flex;
+    flex-direction: row;
+    gap: 15dp;
+}
+
+.console-value {
+    font-size: 12dp;
+    color: #fff;
 }

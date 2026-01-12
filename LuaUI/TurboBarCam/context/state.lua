@@ -110,7 +110,8 @@ if not WG.TurboBarCam.STATE then
 
         -- all of these are reset when changing camera mode
         active = {
-            -- Camera anchors
+            unitsToTrack = {}, -- list of unitIds which are tracked by hud status bar
+
             anchor = {
                 visualizationEnabled = false,
                 activeAnchorId = nil,

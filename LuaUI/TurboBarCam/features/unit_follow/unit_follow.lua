@@ -85,18 +85,6 @@ function UnitFollowCamera.update()
     local cameraPosition = UnitFollowCamera.getCameraPosition()
     local target, targetType = UnitFollowCamera.getCameraDirection(cameraPosition)
 
-    local camTarget = {
-        position = cameraPosition,
-        smoothTimePos = UnitFollowUtils.getSmoothingFactor('position'),
-        smoothTimeRot = UnitFollowUtils.getSmoothingFactor('rotation')
-    }
-
-    if targetType ~= CONSTANTS.TARGET_TYPE.NONE then
-        camTarget.lookAt = { type = targetType, data = target }
-    else
-        camTarget.euler = { rx = target.rx, ry = target.ry }
-    end
-
     local cameraDriverJob = CameraDriver.prepare(targetType, target)
     cameraDriverJob.position = cameraPosition
     cameraDriverJob.positionSmoothing = UnitFollowUtils.getSmoothingFactor('position')
@@ -111,13 +99,7 @@ function UnitFollowCamera.getCameraPosition()
 end
 
 function UnitFollowCamera.getCameraDirection()
-    if STATE.active.mode.unit_follow.inTargetSelectionMode then
-        local mx, my = Spring.GetMouseState()
-        local xxxx, pos = Spring.TraceScreenRay(mx, my, true)
-        if pos then
-            return { x = pos[1], y = pos[2], z = pos[3] }, CONSTANTS.TARGET_TYPE.POINT
-        end
-    elseif STATE.active.mode.unit_follow.isFixedPointActive then
+    if STATE.active.mode.unit_follow.isFixedPointActive then
         return UnitFollowUtils.updateFixedPointTarget()
     else
         return UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID)
@@ -210,7 +192,6 @@ function UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
 
     local fixedPoint = { x = x, y = y, z = z }
-    Log:debug("fixedPoint", fixedPoint)
     return UnitFollowUtils.setFixedLookPoint(fixedPoint, STATE.active.mode.unit_follow.targetUnitID)
 end
 
@@ -245,7 +226,7 @@ function UnitFollowCamera.nextWeapon()
     UnitFollowCombatMode.nextWeapon()
 end
 
-function UnitFollowCamera.resetAttackState()
+function UnitFollowCamera.resetAttackState(delay)
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -256,7 +237,7 @@ function UnitFollowCamera.resetAttackState()
         Log:debug("No unit selected.")
         return
     end
-    UnitFollowCombatMode.resetAttackState()
+    UnitFollowCombatMode.resetAttackState(delay)
 end
 
 function UnitFollowCamera.clearWeaponSelection()

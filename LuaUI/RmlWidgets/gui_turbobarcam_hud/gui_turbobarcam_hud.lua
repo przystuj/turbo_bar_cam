@@ -27,6 +27,8 @@ local spGetUnitExperience = Spring.GetUnitExperience
 local spGetUnitRulesParam = Spring.GetUnitRulesParam
 local spGetUnitWeaponState = Spring.GetUnitWeaponState
 local spValidUnitID = Spring.ValidUnitID
+local spGetGameFrame = Spring.GetGameFrame
+local spGetGameSpeed = Spring.GetGameSpeed
 
 local MODEL_NAME = "turbobarcam_hud_model"
 local document
@@ -34,6 +36,12 @@ local dm -- Data Model Handle
 
 ---@type WidgetState
 local STATE
+---@type WidgetConfig
+local CONFIG
+---@type TurboBarCamAPI
+local API
+
+local lastConsoleLine = ""
 
 --------------------------------------------------------------------------------
 -- Data Processing
@@ -66,12 +74,10 @@ local function refreshUnitInfo()
         info.description = unitDef.translatedTooltip
         info.icon = getUnitIconPath(unitDef)
 
-        -- Pre-calculate base reload time for bonus calculation
         info.baseReload = nil
         info.mainWeaponIdx = nil
 
         if unitDef.weapons and #unitDef.weapons > 0 then
-            -- Try to find the first non-shield, real weapon
             for i, w in ipairs(unitDef.weapons) do
                 local wDef = WeaponDefs[w.weaponDef]
                 if wDef and not wDef.isShield and not wDef.damageAreaOfEffect then
@@ -80,7 +86,6 @@ local function refreshUnitInfo()
                     break
                 end
             end
-            -- Fallback
             if not info.baseReload and unitDef.weapons[1] then
                 local wDef = WeaponDefs[unitDef.weapons[1].weaponDef]
                 if wDef then
@@ -98,23 +103,26 @@ end
 -- RmlUi Data Model Setup
 --------------------------------------------------------------------------------
 local modelData = {
-    isVisible = false,
+    unitVisible = false,
     name = "",
     desc = "",
     icon = "/icons/inverted/blank.png",
 
-    -- Health
     currHp = 0,
     maxHp = 1,
     hpPct = 0,
 
-    -- Stats
     kills = 0,
     xpPct = 0,
     hasRank = false,
     rankIcon = "",
     hpBonus = 0,
-    reloadBonus = 0
+    reloadBonus = 0,
+
+    gameTime = "00:00",
+    targetSpeed = "1.0",
+    lastConsoleMsg = "",
+    statusInfo = "",
 }
 
 local function InitializeRml()
@@ -146,15 +154,55 @@ local function InitializeRml()
     end
 end
 
+local trackUnits = {
+    29679,
+    1241,
+    20872,
+    17492,
+}
+local delimiter = " | "
+local function UpdateStatusInfo()
+    local status = delimiter
+    if STATE.active.mode.unitID then
+        status = status .. STATE.active.mode.name .. ":" .. STATE.active.mode.unitID .. delimiter
+    end
+    if CONFIG.CAMERA_MODES.UNIT_FOLLOW.IGNORE_AIR_TARGETS then
+        status = status .. "noAir" .. delimiter
+    end
+    if #API.getAllTrackedProjectiles() > 0 then
+        status = status .. "nuke" .. delimiter
+    end
+    if STATE.active.mode.unit_follow.freezeAttackState then
+        status = status .. "hold" .. delimiter
+    end
+    for idx,unitId in ipairs(STATE.active.unitsToTrack) do
+        if Spring.ValidUnitID(unitId) then
+            status = status .. "F" .. tostring(idx) .. delimiter
+        end
+    end
+    return status
+end
+
 local function UpdateModel()
     if not dm then
         return
     end
 
+    local frame = spGetGameFrame()
+    local totalSeconds = math.floor(frame / 30)
+    local minutes = math.floor(totalSeconds / 60)
+    local seconds = totalSeconds % 60
+    dm.gameTime = string.format("%02d:%02d", minutes, seconds)
+
+    local speed = spGetGameSpeed()
+    dm.targetSpeed = string.format("%.1f", speed)
+    dm.lastConsoleMsg = lastConsoleLine
+    dm.statusInfo = UpdateStatusInfo()
+
     local targetUnitID = STATE.active.mode.unitID
     if not targetUnitID or not spValidUnitID(targetUnitID) then
-        if dm.isVisible then
-            dm.isVisible = false
+        if dm.unitVisible then
+            dm.unitVisible = false
         end
         return
     end
@@ -166,12 +214,11 @@ local function UpdateModel()
         return
     end
 
-    dm.isVisible = true
+    dm.unitVisible = true
     dm.name = unitDef.humanName
     dm.desc = unitDef.description
     dm.icon = unitDef.icon
 
-    -- Health
     local hp, maxHp = spGetUnitHealth(targetUnitID)
     if hp then
         hp = math.max(0, hp)
@@ -179,7 +226,6 @@ local function UpdateModel()
         dm.maxHp = math.floor(maxHp)
         dm.hpPct = math.floor((hp / maxHp) * 100)
 
-        -- Health Bonus Calculation
         if rawDef.health and maxHp > rawDef.health then
             dm.hpBonus = math.floor(((maxHp / rawDef.health) - 1) * 100)
         else
@@ -187,11 +233,9 @@ local function UpdateModel()
         end
     end
 
-    -- Kills
     local kills = spGetUnitRulesParam(targetUnitID, "kills")
     dm.kills = kills and math.floor(kills) or 0
 
-    -- Rank & XP
     local exp = spGetUnitExperience(targetUnitID)
     if exp then
         if WG['rankicons'] then
@@ -199,14 +243,12 @@ local function UpdateModel()
                 rankTextures = WG['rankicons'].getRankTextures()
             end
 
-            -- Logic sourced from gui_rank_icons_gl4.lua
             local maximumRankXP = 0.8
             local numRanks = rankTextures and #rankTextures or 1
             local xpPerLevel = maximumRankXP / math.max(1, numRanks - 1)
 
             local currentRank = WG['rankicons'].getRank(targetUnitDefID, exp)
 
-            -- 1. Update Rank Icon
             if currentRank and rankTextures and rankTextures[currentRank] and exp > 0 then
                 dm.hasRank = true
                 dm.rankIcon = "/" .. rankTextures[currentRank]
@@ -214,15 +256,10 @@ local function UpdateModel()
                 dm.hasRank = false
             end
 
-            -- 2. Update XP Bar (Relative Progress)
             if currentRank and numRanks > 1 then
                 if currentRank >= numRanks then
-                    -- Max rank reached
                     dm.xpPct = 100
                 else
-                    -- Calculate progress within the current rank level bucket
-                    -- Rank 1 covers 0 XP to 1*xpPerLevel
-                    -- Rank 2 covers 1*xpPerLevel to 2*xpPerLevel
                     local prevRankThreshold = (currentRank - 1) * xpPerLevel
                     local progress = (exp - prevRankThreshold) / xpPerLevel
                     dm.xpPct = math.clamp(math.floor(progress * 100), 0, 100)
@@ -232,7 +269,6 @@ local function UpdateModel()
             end
         end
 
-        -- Reload Bonus (DPS)
         if unitDef.mainWeaponIdx and unitDef.baseReload then
             local currentReload = spGetUnitWeaponState(targetUnitID, unitDef.mainWeaponIdx, 'reloadTimeXP')
             if currentReload and currentReload < unitDef.baseReload then
@@ -259,6 +295,14 @@ function widget:Initialize()
     InitializeRml()
 
     STATE = WG.TurboBarCam.STATE
+    CONFIG = WG.TurboBarCam.CONFIG
+    API = WG.TurboBarCam.API
+end
+
+function widget:AddConsoleLine(lines)
+    for line in lines:gmatch("[^\r\n]+") do
+        lastConsoleLine = line
+    end
 end
 
 function widget:Shutdown()

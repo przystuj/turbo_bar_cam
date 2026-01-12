@@ -180,8 +180,8 @@ function Actions.unitFollowActions()
             end)
 
     Actions.registerAction("turbobarcam_unit_follow_reset_attack_state", 'tp',
-            function()
-                UnitFollowCamera.resetAttackState()
+            function(_, params)
+                UnitFollowCamera.resetAttackState(params)
                 return false
             end)
 

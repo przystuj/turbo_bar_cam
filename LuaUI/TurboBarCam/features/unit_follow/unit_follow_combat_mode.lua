@@ -105,7 +105,7 @@ function UnitFollowCombatMode.clearWeaponSelection()
     Log:info("Cleared weapon selection.")
 end
 
-function UnitFollowCombatMode.resetAttackState()
+function UnitFollowCombatMode.resetAttackState(delay)
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -116,7 +116,7 @@ function UnitFollowCombatMode.resetAttackState()
     UnitFollowCombatMode.clearAttackingState()
     Scheduler.debounce(function()
         STATE.active.mode.unit_follow.freezeAttackState = false
-    end, 1, ATTACK_STATE_FREEZE_ID)
+    end, tonumber(delay), ATTACK_STATE_FREEZE_ID)
 end
 
 --- Sets the attacking state with debounce handling
