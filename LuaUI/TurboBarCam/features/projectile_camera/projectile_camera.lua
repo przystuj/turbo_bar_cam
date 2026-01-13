@@ -99,7 +99,13 @@ function ProjectileCamera.startTrackingProjectile(projectileID, subMode)
         local previousCameraState = Spring.GetCameraState()
         local previousModeState = (previousMode and STATE.active.mode[previousMode]) and TableUtils.deepCopy(STATE.active.mode[previousMode]) or nil
 
-        if not ModeManager.initializeMode('projectile_camera', ownerID, CONSTANTS.TARGET_TYPE.UNIT) then
+        -- Determine the anchor unit. Use the currently tracked unit if available to preserve context.
+        local anchorUnitID = ownerID
+        if STATE.active.mode.unitID and Spring.ValidUnitID(STATE.active.mode.unitID) then
+            anchorUnitID = STATE.active.mode.unitID
+        end
+
+        if not ModeManager.initializeMode('projectile_camera', anchorUnitID, CONSTANTS.TARGET_TYPE.UNIT) then
             Log:error("Failed to initialize projectile camera mode.")
             return
         end
@@ -123,8 +129,8 @@ function ProjectileCamera.startTrackingProjectile(projectileID, subMode)
 
     currentProjCamState.cameraMode = subMode or 'static'
     currentProjCamState.currentProjectileID = projectileID
+    currentProjCamState.currentProjectileOwnerID = ownerID -- Track owner explicitly for settings
     currentProjCamState.impactTime = nil -- Reset impact view
-    STATE.active.mode.unitID = ownerID -- Update the mode's target unit
 
     ProjectileCameraUtils.loadSettings(ownerID)
     Log:debug("Started tracking projectile " .. projectileID .. " in mode " .. currentProjCamState.cameraMode)
@@ -160,7 +166,8 @@ function ProjectileCamera.toggle(requestedSubMode)
 
     if isFollowingProjectileMode or isImpactDecelerating then
         if projCamState.cameraMode == requestedSubMode and not isImpactDecelerating then
-            ProjectileCameraUtils.saveSettings(unitToWatchForToggle)
+            local unitToSave = projCamState.currentProjectileOwnerID or unitToWatchForToggle
+            ProjectileCameraUtils.saveSettings(unitToSave)
             projCamState.continuouslyArmedUnitID = nil
             ProjectileCamera.returnToPreviousMode(false)
             return true
@@ -303,6 +310,7 @@ function ProjectileCamera.checkAndActivate()
         STATE.active.mode.projectile_camera = modeState
         STATE.active.mode.projectile_camera.isArmed = false -- Consume armed state
         STATE.active.mode.projectile_camera.currentProjectileID = latestProjectile.id
+        STATE.active.mode.projectile_camera.currentProjectileOwnerID = unitID
         Log:debug("Activated projectile camera via arm, tracking projectile " .. latestProjectile.id)
         return true
     else
@@ -398,7 +406,12 @@ function ProjectileCamera.resetToDefaults()
 end
 
 function ProjectileCamera.saveSettings(_, unitID)
-    return ProjectileCameraUtils.saveSettings(unitID)
+    local projCamState = STATE.active.mode.projectile_camera
+    local targetID = unitID
+    if projCamState.currentProjectileOwnerID then
+        targetID = projCamState.currentProjectileOwnerID
+    end
+    return ProjectileCameraUtils.saveSettings(targetID)
 end
 
 function ProjectileCamera.loadSettings(_, unitID)
