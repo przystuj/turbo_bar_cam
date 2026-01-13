@@ -16,7 +16,8 @@
         <link type="text/rcss" href="gui_turbobarcam_hud.rcss"/>
     </head>
     <body id="turbobarcam-hud-body">
-    <div id="hud-box" data-model="turbobarcam_hud_model" data-if="unitVisible">
+
+    <div id="hud-box" data-model="turbobarcam_hud_model" data-if="visible">
 
         <div class="icon-box">
             <img class="unit-icon" data-attr-src="icon"/>
@@ -24,6 +25,8 @@
         </div>
 
         <div class="info-box">
+            <div class="emp-timer" data-if="showEmpTimer">EMP: {{ empTime }}s</div>
+
             <div class="header-row">
                 <div class="unit-name">{{ name }}</div>
                 <div class="unit-desc">{{ desc }}</div>
@@ -31,6 +34,7 @@
 
             <div class="bar-container">
                 <div class="stats-row">
+
                     <span class="stat-item" data-if="kills > 0">Kills: {{ kills }}</span>
                     <span class="stat-item" data-if="kills == 0"></span>
 
@@ -42,12 +46,21 @@
 
                 <div class="hp-bar-bg">
                     <div class="hp-bar-fill" data-style-width="hpPct + '%'"></div>
-                    <div class="hp-text">{{ currHp }} / {{ maxHp }}</div>
+
+                    <div class="emp-bar-fill"
+                         data-style-width="empPct + '%'"
+                         data-style-background-color="empColor">
+                    </div>
+
+                    <div class="hp-text">
+                        {{ currHp }} / {{ maxHp }}
+                    </div>
                 </div>
 
                 <div class="xp-bar-bg">
                     <div class="xp-bar-fill" data-style-width="xpPct + '%'"></div>
                 </div>
+
             </div>
 
         </div>

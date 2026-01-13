@@ -54,6 +54,18 @@ div {
     flex-direction: column;
     justify-content: space-between;
     box-sizing: border-box;
+    position: relative;
+}
+
+
+.emp-timer {
+    position: absolute;
+    top: 5dp;
+    right: 10dp;
+    font-size: 15dp;
+    font-weight: bold;
+    color: #aaddff;
+    z-index: 10;
 }
 
 .header-row {
@@ -68,6 +80,7 @@ div {
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
+    width: 200dp;
 }
 
 .rank-overlay {
@@ -132,6 +145,14 @@ div {
     background-color: #1D9D17;
 }
 
+.emp-bar-fill {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
 .hp-text {
     position: absolute;
     top: 0;
@@ -144,6 +165,7 @@ div {
     color: white;
 
     pointer-events: none;
+    z-index: 2;
 }
 
 .xp-bar-bg {
@@ -169,7 +191,6 @@ div {
 
     position: absolute;
     bottom: 0dp;
-
     display: flex;
     flex-direction: row;
     justify-content: space-between;
