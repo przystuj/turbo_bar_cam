@@ -84,6 +84,7 @@ local function refreshUnitInfo()
         info.icon = getUnitIconPath(unitDef)
 
         info.baseReload = nil
+        info.baseRange = nil
         info.mainWeaponIdx = nil
 
         if unitDef.weapons and #unitDef.weapons > 0 then
@@ -91,6 +92,7 @@ local function refreshUnitInfo()
                 local wDef = WeaponDefs[w.weaponDef]
                 if wDef and not wDef.isShield and not wDef.damageAreaOfEffect then
                     info.baseReload = wDef.reload
+                    info.baseRange = wDef.range
                     info.mainWeaponIdx = i
                     break
                 end
@@ -99,6 +101,7 @@ local function refreshUnitInfo()
                 local wDef = WeaponDefs[unitDef.weapons[1].weaponDef]
                 if wDef then
                     info.baseReload = wDef.reload
+                    info.baseRange = wDef.range
                     info.mainWeaponIdx = 1
                 end
             end
@@ -133,6 +136,7 @@ local modelData = {
     rankIcon = "",
     hpBonus = 0,
     reloadBonus = 0,
+    rangeBonus = 0,
 
     gameTime = "00:00",
     targetSpeed = "1.0",
@@ -310,20 +314,37 @@ local function UpdateModel(dt)
             end
         end
 
-        if unitDef.mainWeaponIdx and unitDef.baseReload then
-            local currentReload = spGetUnitWeaponState(targetUnitID, unitDef.mainWeaponIdx, 'reloadTimeXP')
-            if currentReload and currentReload < unitDef.baseReload then
-                dm.reloadBonus = math.floor((1 - (currentReload / unitDef.baseReload)) * 100)
+        if unitDef.mainWeaponIdx then
+            if unitDef.baseReload then
+                local currentReload = spGetUnitWeaponState(targetUnitID, unitDef.mainWeaponIdx, 'reloadTimeXP')
+                if currentReload and currentReload < unitDef.baseReload then
+                    dm.reloadBonus = math.floor((1 - (currentReload / unitDef.baseReload)) * 100)
+                else
+                    dm.reloadBonus = 0
+                end
             else
                 dm.reloadBonus = 0
             end
+
+            if unitDef.baseRange then
+                local currentRange = spGetUnitWeaponState(targetUnitID, unitDef.mainWeaponIdx, 'range')
+                if currentRange and currentRange > unitDef.baseRange then
+                    dm.rangeBonus = math.floor(currentRange)
+                else
+                    dm.rangeBonus = 0
+                end
+            else
+                dm.rangeBonus = 0
+            end
         else
             dm.reloadBonus = 0
+            dm.rangeBonus = 0
         end
     else
         targetXpPct = 0
         dm.hasRank = false
         dm.reloadBonus = 0
+        dm.rangeBonus = 0
     end
 
     if math.abs(dm.hpPct - targetHpPct) > 0.1 then
