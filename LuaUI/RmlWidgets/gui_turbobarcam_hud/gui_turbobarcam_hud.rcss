@@ -11,7 +11,7 @@ div {
 }
 
 #hud-box {
-    width: 420dp;
+    width: 500dp;
     height: 120dp;
     background-color: #1a1a1a;
     border: 1dp #2c2c2c;
@@ -30,7 +30,7 @@ div {
 }
 
 .icon-box {
-    width: 140dp;
+    width: 160dp;
     height: 100%;
     position: relative;
     background-color: #000;
@@ -45,7 +45,7 @@ div {
 
 .rank-overlay {
     position: absolute;
-    bottom: 0dp;
+    top: 0dp;
     right: 0dp;
     width: 40dp;
     height: 40dp;

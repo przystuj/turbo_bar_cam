@@ -21,10 +21,10 @@
 
         <div class="icon-box">
             <img class="unit-icon" data-attr-src="icon"/>
-            <img class="rank-overlay" data-if="hasRank" data-attr-src="rankIcon"/>
         </div>
 
         <div class="info-box">
+            <img class="rank-overlay" data-if="hasRank" data-attr-src="rankIcon"/>
 
             <div class="header-row">
                 <div class="unit-name">{{ name }}</div>
