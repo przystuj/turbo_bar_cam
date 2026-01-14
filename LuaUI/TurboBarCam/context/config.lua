@@ -59,6 +59,7 @@ if not WG.TurboBarCam.CONFIG then
                 INITIAL_TRANSITION_DURATION = 1.2, -- Duration of the entry transition into unit_follow mode
                 TARGET_SWITCH_DURATION = 5, -- Transition between targets
                 IGNORE_AIR_TARGETS = true,
+                TARGET_ACQUISITION_DELAY = 0.2,
                 STABILIZATION = {
                     BASE_FACTOR = 0.03,
                     MAX_FACTOR = 0.01,

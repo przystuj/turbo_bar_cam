@@ -9,6 +9,7 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 -- Constants for attack state management
 local ATTACK_STATE_DEBOUNCE_ID = "unit_follow_attack_state_debounce"
 local ATTACK_STATE_FREEZE_ID = "attack_state_freeze_id"
+local ACQUISITION_DEBOUNCE_ID = "unit_follow_target_acquisition"
 
 local isAir = {}
 for unitDefID, unitDef in pairs(UnitDefs) do
@@ -155,6 +156,7 @@ end
 function UnitFollowCombatMode.clearAttackingState()
     -- Cancel any pending attack state changes
     Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+    Scheduler.cancel(ACQUISITION_DEBOUNCE_ID)
 
     if not STATE.active.mode.unit_follow.isAttacking then
         return
@@ -166,6 +168,7 @@ function UnitFollowCombatMode.clearAttackingState()
     STATE.active.mode.unit_follow.activeWeaponNum = nil
     STATE.active.mode.unit_follow.lastTargetPos = nil -- Clear the last target position
     STATE.active.mode.unit_follow.lastTargetUnitID = nil -- Clear the last target unit ID
+    STATE.active.mode.unit_follow.pendingTarget = nil
 end
 
 --- Extracts target position from a weapon target and detects target switches.
@@ -213,14 +216,8 @@ function UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
         return nil, nil, nil
     end
 
-    local isNewTarget = UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
-
-    -- Update the globally tracked last target info *after* comparison and potential transition trigger
-    STATE.active.mode.unit_follow.lastTargetPos = newTargetPos
-    STATE.active.mode.unit_follow.lastTargetUnitID = targetUnitID -- Can be nil for ground targets
-
     -- Return the determined target position for the specific weapon
-    return newTargetPos, isNewTarget, targetUnitID, targetType
+    return newTargetPos, targetUnitID, targetType
 end
 
 function UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
@@ -268,10 +265,10 @@ function UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
         -- Verify that this weapon exists for the unit
         if unitDef.weapons[weaponNum] then
             -- Get target for forced weapon
-            local targetPos, isNewTarget = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+            local targetPos, targetUnitID, targetType = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
 
             if targetPos then
-                return targetPos, weaponNum, isNewTarget
+                return targetPos, weaponNum, targetUnitID, targetType
             end
 
             -- If we get here with a forced weapon but no target, we still return the forced weapon number
@@ -284,12 +281,23 @@ function UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
     for weaponNum, weaponData in pairs(unitDef.weapons) do
         -- ignoring low range weapons because they probably aren't real weapons
         if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
-            local targetPos, isNewTarget = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+            local targetPos, targetUnitID, targetType = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
             if targetPos then
-                return targetPos, weaponNum, isNewTarget
+                return targetPos, weaponNum, targetUnitID, targetType
             end
         end
     end
+end
+
+--- Helper to check if two targets are effectively the same
+local function areTargetsEqual(pos1, id1, pos2, id2)
+    if not pos1 or not pos2 then return false end
+    if id1 and id2 then return id1 == id2 end
+    if (id1 and not id2) or (not id1 and id2) then return false end
+    local dx = pos1.x - pos2.x
+    local dy = pos1.y - pos2.y
+    local dz = pos1.z - pos2.z
+    return (dx*dx + dy*dy + dz*dz) < 100
 end
 
 --- Checks if unit is currently attacking a target (even without explicit command)
@@ -312,31 +320,60 @@ function UnitFollowCombatMode.getCurrentAttackTarget(unitID)
         return nil, nil
     end
 
-    local targetPos, weaponNum, isNewTarget = UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
+    local rawTargetPos, weaponNum, rawUnitID, rawType = UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
 
-    -- If no target was found, but we have a last target position and we're in attacking state
-    if not targetPos and STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
-        UnitFollowCombatMode.scheduleAttackStateDisable()
-        -- Return the last known target position and the active weapon number
-        return STATE.active.mode.unit_follow.lastTargetPos, STATE.active.mode.unit_follow.activeWeaponNum
-    end
+    local state = STATE.active.mode.unit_follow
+    local confirmedPos = state.lastTargetPos
+    local confirmedUnitID = state.lastTargetUnitID
+    local pending = state.pendingTarget
 
-    -- If no target was found at all, schedule disabling attack state
-    if not targetPos then
-        UnitFollowCombatMode.scheduleAttackStateDisable()
+    if rawTargetPos then
+        if areTargetsEqual(rawTargetPos, rawUnitID, confirmedPos, confirmedUnitID) then
+            if pending then
+                Scheduler.cancel(ACQUISITION_DEBOUNCE_ID)
+                state.pendingTarget = nil
+            end
+            Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
+            state.isAttacking = true and not state.freezeAttackState
+            state.activeWeaponNum = weaponNum
+        else
+            if not (pending and areTargetsEqual(rawTargetPos, rawUnitID, pending.pos, pending.unitID)) then
+                state.pendingTarget = {
+                    pos = rawTargetPos,
+                    unitID = rawUnitID,
+                    type = rawType,
+                    weaponNum = weaponNum
+                }
+
+                Scheduler.debounce(function()
+                    local s = STATE.active.mode.unit_follow
+                    if s.pendingTarget then
+                        s.lastTargetPos = s.pendingTarget.pos
+                        s.lastTargetUnitID = s.pendingTarget.unitID
+                        s.activeWeaponNum = s.pendingTarget.weaponNum
+                        s.isAttacking = true
+                        s.justConfirmedNewTarget = true
+
+                        s.pendingTarget = nil
+                        Log:trace("Target confirmed via debounce")
+                    end
+                end, CONFIG.CAMERA_MODES.UNIT_FOLLOW.TARGET_ACQUISITION_DELAY, ACQUISITION_DEBOUNCE_ID)
+            end
+        end
     else
-        -- We found a target, cancel any pending disable and ensure attacking state is on
-        Scheduler.cancel(ATTACK_STATE_DEBOUNCE_ID)
-        STATE.active.mode.unit_follow.isAttacking = true and not STATE.active.mode.unit_follow.freezeAttackState
-
-        -- Store the active weapon number for later use
-        STATE.active.mode.unit_follow.activeWeaponNum = weaponNum
-
-        -- Save the current target position for later use
-        STATE.active.mode.unit_follow.lastTargetPos = targetPos
+        Scheduler.cancel(ACQUISITION_DEBOUNCE_ID)
+        state.pendingTarget = nil
+        UnitFollowCombatMode.scheduleAttackStateDisable()
     end
 
-    return targetPos, weaponNum, isNewTarget
+    local isNewTarget = state.justConfirmedNewTarget or false
+    state.justConfirmedNewTarget = false -- Consume the flag
+
+    if state.lastTargetPos and state.isAttacking then
+        return state.lastTargetPos, state.activeWeaponNum, isNewTarget
+    end
+
+    return nil, nil
 end
 
 --- Gets camera position for a unit, optionally using weapon position
