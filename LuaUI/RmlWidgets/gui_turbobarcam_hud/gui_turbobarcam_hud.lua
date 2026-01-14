@@ -138,6 +138,7 @@ local modelData = {
     reloadBonus = 0,
     rangeBonus = 0,
 
+    gameFrame = "000000",
     gameTime = "00:00",
     targetSpeed = "1.0",
     lastConsoleMsg = "",
@@ -173,12 +174,6 @@ local function InitializeRml()
     end
 end
 
-local trackUnits = {
-    29679,
-    1241,
-    20872,
-    17492,
-}
 local delimiter = " | "
 local function UpdateStatusInfo()
     local status = delimiter
@@ -186,18 +181,26 @@ local function UpdateStatusInfo()
         status = status .. STATE.active.mode.name .. ":" .. STATE.active.mode.unitID .. delimiter
     end
     if CONFIG.CAMERA_MODES.UNIT_FOLLOW.IGNORE_AIR_TARGETS then
-        status = status .. "noAir" .. delimiter
+        status = status .. "NOAIR" .. delimiter
+    end
+    if STATE.active.mode.unit_follow.combatModeEnabled then
+        status = status .. "CMBT" .. delimiter
     end
     if #API.getAllTrackedProjectiles() > 0 then
-        status = status .. "nuke" .. delimiter
+        status = status .. "NUKE" .. delimiter
     end
     if STATE.active.mode.unit_follow.freezeAttackState then
-        status = status .. "hold" .. delimiter
+        status = status .. "HOLD" .. delimiter
     end
-    for idx, unitId in ipairs(STATE.active.unitsToTrack) do
+    for idx, unitId in ipairs(STATE.core.scriptRunner.unitsToTrack) do
         if Spring.ValidUnitID(unitId) then
             status = status .. "F" .. tostring(idx) .. delimiter
         end
+    end
+    ---@type ScriptStep[]
+    local script = STATE.core.scriptRunner.script
+    if STATE.core.scriptRunner.enabled then
+        status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@".. script[STATE.core.scriptRunner.currentStep].frame
     end
     return status
 end
@@ -212,6 +215,7 @@ local function UpdateModel(dt)
     local minutes = math.floor(totalSeconds / 60)
     local seconds = totalSeconds % 60
     dm.gameTime = string.format("%02d:%02d", minutes, seconds)
+    dm.gameFrame = string.format("%06d", frame)
 
     local speed = spGetGameSpeed()
     dm.targetSpeed = string.format("%.1f", speed)

@@ -106,12 +106,18 @@ if not WG.TurboBarCam.STATE then
             anchor = {
                 lastUsedAnchor = nil,
             },
+
+            scriptRunner = {
+                currentStep = 0,
+                stepsCount = 0,
+                enabled = false,
+                script = {},
+                unitsToTrack = {},
+            }
         },
 
         -- all of these are reset when changing camera mode
         active = {
-            unitsToTrack = {}, -- list of unitIds which are tracked by hud status bar
-
             anchor = {
                 visualizationEnabled = false,
                 activeAnchorId = nil,

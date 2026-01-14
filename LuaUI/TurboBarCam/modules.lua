@@ -52,6 +52,7 @@
 ---@field Utils fun(hook: fun(module: Utils)):Utils
 ---@field WorldUtils fun(hook: fun(module: WorldUtils)):WorldUtils
 ---@field CameraTestRunner fun(hook: fun(module: CameraTestRunner)):CameraTestRunner
+---@field ScriptRunner fun(hook: fun(module: ScriptRunner)):ScriptRunner
 
 ---@class ModuleAliases : SimpleModuleAliases
 ---@field Log fun(hook: fun(module: LoggerInstance), prefix: string|nil):Log
@@ -112,6 +113,7 @@ local SimpleModules = {
     MouseManager = "standalone/mouse_manager.lua",
     ProjectileTracker = "standalone/projectile_tracker.lua",
     Scheduler = "standalone/scheduler.lua",
+    ScriptRunner = "standalone/script_runner.lua",
 
     DebugUtils = "utils/debug_utils.lua",
     ParamUtils = "utils/param_utils.lua",
