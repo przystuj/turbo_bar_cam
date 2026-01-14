@@ -79,8 +79,8 @@ function Actions.coreActions()
             end)
 
     Actions.registerAction("turbobarcam_toggle_script", 'tp',
-            function()
-                ScriptRunner.toggle()
+            function(_, params)
+                ScriptRunner.toggle(params)
                 return false
             end)
 

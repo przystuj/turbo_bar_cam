@@ -26,16 +26,24 @@ return {
         commands="turbobarcam_script_show_players_list"
     },
     {
-        frame="12000",
-        commands="turbobarcam_script_show_players_list"
+        frame="12010",
+        commands="turbobarcam_toggle_unit_follow_camera 215"
     },
     {
-        frame="12040",
-        commands="turbobarcam_toggle_unit_follow_camera 215"
+        frame="12015",
+        commands="turbobarcam_unit_follow_toggle_combat_mode"
+    },
+    {
+        frame="12020",
+        commands="turbobarcam_script_show_players_list"
     },
     {
         frame="12120",
         commands="togglelos"
+    },
+    {
+        timestamp="6:50",
+        commands="turbobarcam_unit_follow_toggle_combat_mode"
     },
     {
         timestamp="7:13",
@@ -110,12 +118,16 @@ return {
         commands="turbobarcam_unit_follow_reset_attack_state 1"
     },
     {
-        frame="39700",
+        frame="39573",
         commands="turbobarcam_projectile_camera_cycle forward static"
     },
     {
-        frame="39840",
+        frame="39768",
         commands="turbobarcam_toggle_unit_follow_camera 215"
+    },
+    {
+        frame="39770",
+        commands="turbobarcam_unit_follow_toggle_combat_mode"
     },
     {
         frame="39841",
@@ -124,5 +136,9 @@ return {
     {
         frame="39900",
         commands="turbobarcam_anchor_focus 3"
+    },
+    {
+        frame="60000",
+        commands="dummy"
     },
 }

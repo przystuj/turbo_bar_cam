@@ -160,6 +160,8 @@ local modelData = {
     playerListOpacity = 0.0,
     teamA_players = {},
     teamB_players = {},
+
+    statusVisible = true,
 }
 
 local function InitializeRml()
@@ -251,7 +253,12 @@ local function UpdateModel(dt)
     local speed = spGetGameSpeed()
     dm.targetSpeed = string.format("%.1f", speed)
     dm.lastConsoleMsg = lastConsoleLine
-    dm.statusInfo = UpdateStatusInfo()
+    if STATE.core.scriptRunner.enabled and STATE.core.scriptRunner.isFinal then
+        dm.statusVisible = false
+    else
+        dm.statusInfo = UpdateStatusInfo()
+        dm.statusVisible = true
+    end
 
     -- PLAYER LIST LOGIC
     local showPlayers = false

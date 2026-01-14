@@ -18,8 +18,8 @@ div {
     border-top: 3dp #fdc04c;
 
     position: absolute;
-    top: 20dp;
-    left: 20dp;
+    top: 40dp;
+    left: 56dp;
 
     display: flex;
     flex-direction: row;
@@ -36,8 +36,8 @@ div {
     border-top: 3dp #fdc04c;
 
     position: absolute;
-    top: 20dp;
-    left: 1880dp;
+    top: 40dp;
+    left: 1844dp;
 
     display: flex;
     flex-direction: column;
