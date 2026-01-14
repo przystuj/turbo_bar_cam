@@ -2,6 +2,7 @@
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ScriptRunner")
 
 ---@class ScriptRunner
@@ -77,6 +78,11 @@ local function start()
     STATE.core.scriptRunner.stepsCount = #script
     STATE.core.scriptRunner.currentStep = currentStep
     Log:info("Script enabled\n" .. message)
+    if currentFrame < 1 then
+        Spring.SendCommands("forcestart")
+        Spring.SendCommands("skip 1")
+    end
+    Spring.SendCommands("HideInterface")
 end
 
 local function stop()
@@ -88,7 +94,7 @@ end
 
 function ScriptRunner.toggle()
     if Utils.isTurboBarCamDisabled() then
-        return false
+        WidgetManager.enable()
     end
 
     if STATE.core.scriptRunner.enabled then
@@ -96,6 +102,15 @@ function ScriptRunner.toggle()
     else
         start()
     end
+end
+
+function ScriptRunner.togglePlayersList()
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    STATE.core.scriptRunner.showPlayers = not STATE.core.scriptRunner.showPlayers
+    Log:debug("Show player list: ", STATE.core.scriptRunner.showPlayers)
 end
 
 function ScriptRunner.update(frame)

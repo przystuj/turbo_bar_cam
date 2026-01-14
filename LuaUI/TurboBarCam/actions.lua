@@ -83,6 +83,12 @@ function Actions.coreActions()
                 ScriptRunner.toggle()
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_script_show_players_list", 'tp',
+            function()
+                ScriptRunner.togglePlayersList()
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()
