@@ -97,7 +97,7 @@
         </div>
     </div>
 
-    <div id="status-bar" data-model="turbobarcam_hud_model">
+    <div id="status-bar" data-model="turbobarcam_hud_model" data-if="statusVisible">
         <div class="status-left">
             <span class="console-value">{{ lastConsoleMsg }}</span>
         </div>

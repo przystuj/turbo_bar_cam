@@ -36,7 +36,7 @@ local function timestampToSeconds(timestamp)
     return total
 end
 
-local function start()
+local function start(isFinal)
     ---@type ScriptStep[]
     local script = VFS.Include("LuaUI/TurboBarCam/script.lua")
     local currentFrame = Spring.GetGameFrame()
@@ -60,7 +60,7 @@ local function start()
 
         message = message .. step.frame .. ": " .. step.commands
         step.frame = tonumber(step.frame)
-        if step.frame < currentFrame then
+        if step.frame < currentFrame and not step.commands:match("^skip ") then
             step.isDone = true
             currentStep = currentStep + 1
             message = message .. " (skipped)"
@@ -83,6 +83,10 @@ local function start()
         Spring.SendCommands("skip 1")
     end
     Spring.SendCommands("HideInterface")
+    if isFinal == "true" then
+        STATE.core.scriptRunner.isFinal = true
+        Spring.SendCommands("togglewidget Hide Cursor")
+    end
 end
 
 local function stop()
@@ -92,7 +96,7 @@ local function stop()
     STATE.core.scriptRunner.currentStep = 0
 end
 
-function ScriptRunner.toggle()
+function ScriptRunner.toggle(isFinal)
     if Utils.isTurboBarCamDisabled() then
         WidgetManager.enable()
     end
@@ -100,7 +104,7 @@ function ScriptRunner.toggle()
     if STATE.core.scriptRunner.enabled then
         stop()
     else
-        start()
+        start(isFinal)
     end
 end
 
