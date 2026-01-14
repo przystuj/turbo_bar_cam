@@ -99,7 +99,7 @@ end
 function UnitFollowUtils.createHullDirectionState(unitID, offsets)
     local dx, dy, dz = Spring.GetUnitDirection(unitID)
 
-    local horizontalLength = math.sqrt(dx*dx + dz*dz)
+    local horizontalLength = math.sqrt(dx * dx + dz * dz)
     local unitPitch = -math.atan2(dy, horizontalLength)
 
     local targetRx = 1.8 + unitPitch
@@ -238,12 +238,18 @@ function UnitFollowUtils.handleNewTarget()
 
     -- First acquisition just store it
     if not previousTargetPos then
-        STATE.active.mode.unit_follow.previousTargetPos = {
-            x = newTargetPos.x,
-            y = newTargetPos.y,
-            z = newTargetPos.z
-        }
-        return
+        if trackedUnitID then
+            local ux, uy, uz = Spring.GetUnitPosition(trackedUnitID)
+            STATE.active.mode.unit_follow.previousTargetPos = { x = ux, y = uy, z = uz }
+            previousTargetPos = STATE.active.mode.unit_follow.previousTargetPos
+        else
+            STATE.active.mode.unit_follow.previousTargetPos = {
+                x = newTargetPos.x,
+                y = newTargetPos.y,
+                z = newTargetPos.z
+            }
+            return
+        end
     end
 
     -- Get current time
@@ -490,7 +496,7 @@ end
 ---@param front table Unit Front vector
 ---@param up table Unit Up vector
 ---@param right table Unit Right vector
----@return table camPos Final Camera position with offsets and transitions applied
+---@return table camPos Final Camera position with offsets applied
 function UnitFollowUtils.applyOffsets(position, front, up, right)
     UnitFollowUtils.ensureHeightIsSet()
     local offsets = UnitFollowUtils.getAppropriateOffsets()
@@ -578,11 +584,11 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     --        finalCamPosWorld = transitionPos
     --    end
     --else
-        -- Apply stabilization when not in transition
-        local stabilizedPos = UnitFollowUtils.applyStabilization(targetCamPosWorld)
-        if stabilizedPos then
-            finalCamPosWorld = stabilizedPos
-        end
+    -- Apply stabilization when not in transition
+    local stabilizedPos = UnitFollowUtils.applyStabilization(targetCamPosWorld)
+    if stabilizedPos then
+        finalCamPosWorld = stabilizedPos
+    end
     --end
 
     -- This ensures the air adjustment respects the stabilized camera state
