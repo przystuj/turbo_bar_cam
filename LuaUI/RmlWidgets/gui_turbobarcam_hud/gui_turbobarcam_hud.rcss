@@ -28,6 +28,54 @@ div {
     box-sizing: border-box;
     padding: 0px;
 }
+#ff-box {
+    width: 150dp;
+    height: 120dp;
+    background-color: #1a1a1a;
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c;
+
+    position: absolute;
+    top: 20dp;
+    left: 1880dp;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+    box-sizing: border-box;
+    padding: 10dp;
+}
+
+.ff-icon {
+    font-size: 40dp;
+    font-weight: bold;
+    color: #fdc04c;
+    margin-bottom: -5dp;
+}
+
+.ff-speed-text {
+    font-size: 24dp;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 10dp;
+}
+
+.ff-progress-bg {
+    width: 100%;
+    height: 8dp;
+    background-color: #333;
+    border: 1dp #444;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.ff-progress-fill {
+    height: 100%;
+    background-color: #fdc04c;
+    width: 0%;
+}
 
 .icon-box {
     width: 160dp;
