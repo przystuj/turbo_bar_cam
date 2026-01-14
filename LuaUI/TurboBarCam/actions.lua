@@ -10,6 +10,7 @@ local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCa
 local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
+local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end)
 
 
 ---@class Actions
@@ -74,6 +75,12 @@ function Actions.coreActions()
     Actions.registerAction("turbobarcam_dev_config", 't',
             function(_, params, args)
                 WidgetManager.changeConfig(args[1], args[2])
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_toggle_script", 'tp',
+            function()
+                ScriptRunner.toggle()
                 return false
             end)
 end

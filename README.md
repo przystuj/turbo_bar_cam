@@ -79,6 +79,7 @@ Where:
 - UI - added a section with a list of the options and widgets which can interfere with recording. Click to toggle them off
 - Attack state cooldown per unit type (how long the camera keeps looking at the last target)
   - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
-- Added `turbobarcam_unit_follow_reset_attack_state` - stop looking at the target in combat mode for 1s
+- Added `turbobarcam_unit_follow_reset_attack_state n` - stop looking at the targets in combat mode for n seconds
 - Use `turbobarcam_toggle_unit_follow_camera <unitId>` to follow specific unit without selecting it
 - Attach camera to hull instead of weapon in combat mode
+- Added script runner which allows you to run a list of Spring commands at specific timestamps/frames

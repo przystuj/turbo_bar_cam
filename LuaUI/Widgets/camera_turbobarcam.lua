@@ -37,6 +37,7 @@ local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCa
 local DollyCam = ModuleManager.DollyCam(function(m) DollyCam = m end)
 local CameraAnchor = ModuleManager.CameraAnchor(function(m) CameraAnchor = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end)
 
 --------------------------------------------------------------------------------
 -- SPRING ENGINE CALLINS
@@ -101,6 +102,7 @@ end
 
 function widget:GameFrame(frame)
     ProjectileTracker.update(frame)
+    ScriptRunner.update(frame)
 end
 
 function widget:DrawWorld()

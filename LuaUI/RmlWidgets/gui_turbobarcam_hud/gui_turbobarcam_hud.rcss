@@ -176,7 +176,7 @@ div {
 }
 
 #status-bar {
-    width: 1000dp;
+    width: 1300dp;
     height: 20dp;
     font-size: 12dp;
     font-family: "Exo 2";
@@ -191,9 +191,12 @@ div {
 
     box-sizing: border-box;
     padding: 0dp 10dp;
+
+    overflow: hidden;
 }
 
 .status-left {
+    width: 800dp;
     color: #ccc;
     white-space: nowrap;
     overflow: hidden;
@@ -208,6 +211,12 @@ div {
 .time {
     color: #fff;
     font-weight: bold;
+    width: 80dp;
+}
+
+.frame {
+    color: #fff;
+    width: 40dp;
 }
 
 .status-info {
