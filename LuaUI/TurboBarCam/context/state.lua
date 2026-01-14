@@ -111,6 +111,7 @@ if not WG.TurboBarCam.STATE then
                 currentStep = 0,
                 stepsCount = 0,
                 enabled = false,
+                showPlayers = false,
                 script = {},
                 unitsToTrack = {},
             }

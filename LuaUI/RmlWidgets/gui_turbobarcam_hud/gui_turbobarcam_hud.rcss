@@ -283,3 +283,85 @@ div {
     font-size: 12dp;
     color: #fff;
 }
+
+#player-list-container {
+    width: 650dp;
+    height: auto;
+
+    /* Centering logic */
+    position: absolute;
+    top: 375dp;
+    left: 725dp;
+
+    background-color: #1a1a1a;
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+
+    padding: 40dp;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+
+    z-index: 10;
+}
+
+.team-column {
+    display: flex;
+    flex-direction: column;
+    width: 45%;
+}
+
+.vs-text {
+    font-size: 30dp;
+    font-weight: bold;
+    color: #fdc04c;
+    margin-left: 20dp;
+    margin-right: 20dp;
+    text-align: center;
+}
+
+.player-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10dp;
+    height: 20dp;
+}
+
+.player-row.left {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    margin-bottom: 10dp;
+    height: 20dp;
+}
+
+.player-color-box {
+    width: 18dp;
+    height: 18dp;
+    margin-right: 8dp;
+    margin-left: 8dp;
+}
+
+.player-name {
+    font-size: 20dp;
+    color: white;
+    white-space: nowrap;
+}
+
+.player-rank {
+    width: 20dp;
+    height: 20dp;
+    margin-right: 5dp;
+    margin-left: 5dp;
+}
+
+.player-skill {
+    font-size: 18dp;
+    color: #aaa;
+    margin-left: 10dp;
+    margin-right: 10dp;
+    font-weight: bold;
+}

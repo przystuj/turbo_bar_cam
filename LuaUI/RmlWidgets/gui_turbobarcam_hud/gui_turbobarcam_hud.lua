@@ -77,6 +77,11 @@ local function getUnitIconPath(unitDef)
     return "/icons/inverted/blank.png"
 end
 
+local function GetTeamColorCss(teamID)
+    local r, g, b = Spring.GetTeamColor(teamID)
+    return string.format("rgb(%d,%d,%d)", r * 255, g * 255, b * 255)
+end
+
 local function refreshUnitInfo()
     for unitDefID, unitDef in pairs(UnitDefs) do
         local info = {}
@@ -151,6 +156,10 @@ local modelData = {
     ffShowProgress = false,
     ffProgress = 0,
     ffOpacity = 1.0,
+
+    playerListOpacity = 0.0,
+    teamA_players = {},
+    teamB_players = {},
 }
 
 local function InitializeRml()
@@ -208,7 +217,7 @@ local function UpdateStatusInfo()
     ---@type ScriptStep[]
     local script = STATE.core.scriptRunner.script
     if STATE.core.scriptRunner.enabled then
-        status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@".. script[STATE.core.scriptRunner.currentStep].frame
+        status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@" .. script[STATE.core.scriptRunner.currentStep].frame
     end
     return status
 end
@@ -243,6 +252,93 @@ local function UpdateModel(dt)
     dm.targetSpeed = string.format("%.1f", speed)
     dm.lastConsoleMsg = lastConsoleLine
     dm.statusInfo = UpdateStatusInfo()
+
+    -- PLAYER LIST LOGIC
+    local showPlayers = false
+    if STATE and STATE.core and STATE.core.scriptRunner then
+        showPlayers = STATE.core.scriptRunner.showPlayers
+    end
+
+    -- 1. Handle Fading
+    local FADE_SPEED = 1
+    local targetOpacity = showPlayers and 1.0 or 0.0
+
+    if dm.playerListOpacity ~= targetOpacity then
+        if dm.playerListOpacity < targetOpacity then
+            dm.playerListOpacity = math.min(1.0, dm.playerListOpacity + (FADE_SPEED * dt))
+        else
+            dm.playerListOpacity = math.max(0.0, dm.playerListOpacity - (FADE_SPEED * dt))
+        end
+    end
+
+    -- 2. Populate List
+    if dm.playerListOpacity > 0.01 then
+        local allyTeamList = Spring.GetAllyTeamList()
+        local allyA = allyTeamList[1]
+        local allyB = allyTeamList[2]
+
+        local function BuildTeamTable(allyTeamID)
+            local result = {}
+            if not allyTeamID then return result end
+
+            local teamList = Spring.GetTeamList(allyTeamID)
+            for _, teamID in ipairs(teamList) do
+                if teamID ~= Spring.GetGaiaTeamID() then
+                    local playerList = Spring.GetPlayerList(teamID)
+
+                    -- Add Human Players
+                    for _, playerID in ipairs(playerList) do
+                        local name, active, spec, _, _, _, _, _, rank, _, customtable = Spring.GetPlayerInfo(playerID, true)
+                        if active and not spec then
+                            local skillVal = "??"
+                            local playerSkill, playerSigma = 0, 8.33
+
+                            if type(customtable) == 'table' then
+                                local tsMu = customtable.skill
+                                local tsSigma = customtable.skilluncertainty
+
+                                local ts = tsMu and tonumber(tsMu:match("%d+%.?%d*"))
+                                if (ts ~= nil) then
+                                    playerSkill = math.round(ts, 0)
+                                end
+                                if tsSigma then
+                                    playerSigma = tonumber(tsSigma)
+                                end
+                                if playerSigma <= 6.65 then
+                                    skillVal = playerSkill
+                                end
+                            end
+
+                            local rankPath = "ranks/" .. math.floor(rank + 1 or 1) .. ".png"
+                            table.insert(result, {
+                                name = name,
+                                color = GetTeamColorCss(teamID),
+                                skill = skillVal,
+                                rankIcon = rankPath
+                            })
+                        end
+                    end
+
+                    -- Add AI
+                    local _, _, _, isAI = Spring.GetTeamInfo(teamID, false)
+                    if isAI then
+                        local _, _, _, aiName = Spring.GetAIInfo(teamID)
+                        table.insert(result, {
+                            name = aiName or "AI",
+                            color = GetTeamColorCss(teamID),
+                            skill = "AI",
+                            rankIcon = "ranks/0.png"
+                        })
+                    end
+                end
+            end
+            return result
+        end
+
+        dm.teamA_players = BuildTeamTable(allyA)
+        dm.teamB_players = BuildTeamTable(allyB)
+    end
+
 
     -- Fast Forward Logic
     local scriptRunning = STATE.core.scriptRunner.enabled
