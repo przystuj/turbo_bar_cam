@@ -46,11 +46,13 @@ local lastConsoleLine = ""
 -- Animation Globals
 local BAR_SPEED = 10.0
 local blinkTimer = 0.0
+local ffTimer = 0.0
 
 -- Internal targets for smoothing
 local targetHpPct = 0
 local targetEmpPct = 0
 local targetXpPct = 0
+local targetFFProgress = 0
 
 --------------------------------------------------------------------------------
 -- Data Processing
@@ -143,6 +145,12 @@ local modelData = {
     targetSpeed = "1.0",
     lastConsoleMsg = "",
     statusInfo = "",
+
+    ffVisible = false,
+    ffSpeed = "1.0",
+    ffShowProgress = false,
+    ffProgress = 0,
+    ffOpacity = 1.0,
 }
 
 local function InitializeRml()
@@ -205,6 +213,20 @@ local function UpdateStatusInfo()
     return status
 end
 
+local function FindNextSpeedReset(script, currentStepIndex)
+    if not script then return nil, nil end
+
+    for i = currentStepIndex, #script do
+        local step = script[i]
+        local cmd = step.commands:lower()
+        local speedVal = cmd:match("setspeed%s+(%d+)")
+        if speedVal and tonumber(speedVal) == 1 then
+            return step.frame, i
+        end
+    end
+    return nil, nil
+end
+
 local function UpdateModel(dt)
     if not dm then
         return
@@ -221,6 +243,55 @@ local function UpdateModel(dt)
     dm.targetSpeed = string.format("%.1f", speed)
     dm.lastConsoleMsg = lastConsoleLine
     dm.statusInfo = UpdateStatusInfo()
+
+    -- Fast Forward Logic
+    local scriptRunning = STATE.core.scriptRunner.enabled
+
+    if scriptRunning and speed > 1.0 then
+        dm.ffVisible = true
+        dm.ffSpeed = string.format("%.1f", speed)
+
+        ffTimer = ffTimer + dt
+        dm.ffOpacity = 0.5 + 0.5 * math.abs(math.sin(ffTimer * 5))
+
+        local currentScriptStep = STATE.core.scriptRunner.currentStep
+        local script = STATE.core.scriptRunner.script
+
+        local endFrame, endStepIdx = FindNextSpeedReset(script, currentScriptStep)
+
+        if endFrame and endFrame > frame then
+            dm.ffShowProgress = true
+
+            local startFrame = frame
+            if endStepIdx and endStepIdx > 1 then
+                local prevStep = script[currentScriptStep - 1]
+                if prevStep then
+                    startFrame = prevStep.frame
+                end
+            end
+
+            if startFrame >= endFrame then startFrame = frame end
+            if startFrame >= endFrame then
+                targetFFProgress = 100
+            else
+                local duration = endFrame - startFrame
+                local elapsed = frame - startFrame
+                targetFFProgress = math.min(100, math.max(0, (elapsed / duration) * 100))
+            end
+        else
+            dm.ffShowProgress = false
+            targetFFProgress = 0
+        end
+    else
+        dm.ffVisible = false
+        targetFFProgress = 0
+    end
+
+    if math.abs(dm.ffProgress - targetFFProgress) > 0.5 then
+        dm.ffProgress = dm.ffProgress + (targetFFProgress - dm.ffProgress) * 5.0 * dt
+    else
+        dm.ffProgress = targetFFProgress
+    end
 
     local targetUnitID = STATE.active.mode.unitID
     if not targetUnitID or not spValidUnitID(targetUnitID) then
