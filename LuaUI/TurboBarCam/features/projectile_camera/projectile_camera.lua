@@ -320,10 +320,9 @@ function ProjectileCamera.checkAndActivate()
     end
 end
 
-function ProjectileCamera.update(dt)
-    if STATE.active.mode.name ~= 'projectile_camera' or Utils.isTurboBarCamDisabled() then return end
-
+function ProjectileCamera.getCameraDriverJob()
     local projCamState = STATE.active.mode.projectile_camera
+    local cameraDriverJob
 
     if projCamState.impactTime then
         if Spring.DiffTimers(Spring.GetTimer(), projCamState.impactTime) >= CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.IMPACT_VIEW_DURATION then
@@ -340,18 +339,30 @@ function ProjectileCamera.update(dt)
 
     if currentProjectile then
         projCamState.impactPosition = { pos = TableUtils.deepCopy(currentProjectile.position), vel = TableUtils.deepCopy(currentProjectile.velocity) }
-        ProjectileCamera.handleProjectileTracking(currentProjectile)
+        cameraDriverJob = ProjectileCamera.handleProjectileTracking(currentProjectile)
     else
         projCamState.currentProjectileID = nil
         if projCamState.impactPosition then
             projCamState.impactTime = Spring.GetTimer()
-            local cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, projCamState.impactPosition.pos)
+            cameraDriverJob = CameraDriver.prepare(CONSTANTS.TARGET_TYPE.POINT, projCamState.impactPosition.pos)
             cameraDriverJob.decelerationProfile = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.DECELERATION_PROFILE
-            cameraDriverJob.run()
+            -- fixme impact deceleration is bugged
         else
             local reArm = projCamState.continuouslyArmedUnitID and Spring.ValidUnitID(projCamState.continuouslyArmedUnitID)
             ProjectileCamera.returnToPreviousMode(reArm)
         end
+    end
+
+    return cameraDriverJob
+end
+
+function ProjectileCamera.update(dt)
+    if STATE.active.mode.name ~= 'projectile_camera' or Utils.isTurboBarCamDisabled() then return end
+
+    local cameraDriverJob = ProjectileCamera.getCameraDriverJob()
+
+    if cameraDriverJob then
+        cameraDriverJob.run()
     end
 end
 
@@ -362,7 +373,7 @@ end
 function ProjectileCamera.handleProjectileTracking(currentProjectile)
     if currentProjectile and currentProjectile.position then
         ProjectileCamera.updateProjectileState(currentProjectile)
-        ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
+        return ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     end
 end
 
@@ -376,7 +387,7 @@ function ProjectileCamera.updateCameraStateForProjectile(currentProjectile)
     cameraDriverJob.position = camPos
     cameraDriverJob.positionSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.POSITION_SMOOTHING
     cameraDriverJob.rotationSmoothing = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA.ROTATION_SMOOTHING
-    cameraDriverJob.run()
+    return cameraDriverJob
 end
 
 function ProjectileCamera.updateProjectileState(projectile)

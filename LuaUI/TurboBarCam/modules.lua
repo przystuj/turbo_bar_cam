@@ -33,6 +33,7 @@
 ---@field ProjectileCameraPersistence fun(hook: fun(module: ProjectileCameraPersistence)):ProjectileCameraPersistence
 ---@field ProjectileCameraUtils fun(hook: fun(module: ProjectileCameraUtils)):ProjectileCameraUtils
 ---@field ProjectileTracker fun(hook: fun(module: ProjectileTracker)):ProjectileTracker
+---@field CombinedCamera fun(hook: fun(module: CombinedCamera)):CombinedCamera
 ---@field SelectionManager fun(hook: fun(module: SelectionManager)):SelectionManager
 ---@field Scheduler fun(hook: fun(module: Scheduler)):Scheduler
 ---@field SettingsManager fun(hook: fun(module: SettingsManager)):SettingsManager
@@ -105,6 +106,7 @@ local SimpleModules = {
     SpecGroups = "features/spec_groups/spec_groups.lua",
     GroupTrackingUtils = "features/group_tracking/group_tracking_utils.lua",
     UnitTrackingCamera = "features/unit_tracking/unit_tracking.lua",
+    CombinedCamera = "features/combined/combined.lua",
 
     PersistentStorage = "settings/persistent_storage.lua",
 

@@ -183,6 +183,12 @@ if not WG.TurboBarCam.STATE then
                 initialCameraStateForModeEntry = nil,
                 optionalTargetCameraStateForModeEntry = nil,
 
+                combined = {
+                    positionMode = nil,
+                    orientationMode = nil,
+                    nextMode = nil,
+                },
+
                 unit_follow = {
                     inTargetSelectionMode = false,
                     prevFreeCamState = false,

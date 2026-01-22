@@ -11,7 +11,7 @@ local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end)
-
+local CombinedCamera = ModuleManager.CombinedCamera(function(m) CombinedCamera = m end)
 
 ---@class Actions
 local Actions = {}
@@ -87,6 +87,12 @@ function Actions.coreActions()
     Actions.registerAction("turbobarcam_script_show_players_list", 'tp',
             function()
                 ScriptRunner.togglePlayersList()
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_toggle_combined_camera", 'tp',
+            function(_, _, args)
+                CombinedCamera.toggle(args[1], args[2], args[3])
                 return false
             end)
 end
@@ -371,7 +377,7 @@ end
 function Actions.I18N()
     Spring.I18N.load({
         en = {
-            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point"]         = "Look point",
+            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point"] = "Look point",
             ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point_tooltip"] = "Click on a point/unit to focus camera on",
         }
     })

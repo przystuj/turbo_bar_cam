@@ -4,11 +4,11 @@ local modes = {
     ANCHOR = "anchor",
     DOLLYCAM = "dollycam",
     GROUP_TRACKING = "group_tracking",
-    ORBIT = "orbit",
     PROJECTILE_CAMERA = "projectile_camera",
     SPEC_GROUPS = "spec_groups",
     UNIT_FOLLOW = "unit_follow",
     UNIT_TRACKING = "unit_tracking",
+    COMBINED_CAMERA = "combined",
 }
 
 ---@class TargetType

@@ -82,6 +82,11 @@ function UnitFollowCamera.update()
         return
     end
 
+    local cameraDriverJob = UnitFollowCamera.getCameraDriverJob()
+    cameraDriverJob.run()
+end
+
+function UnitFollowCamera.getCameraDriverJob()
     local cameraPosition = UnitFollowCamera.getCameraPosition()
     local target, targetType = UnitFollowCamera.getCameraDirection(cameraPosition)
 
@@ -89,7 +94,8 @@ function UnitFollowCamera.update()
     cameraDriverJob.position = cameraPosition
     cameraDriverJob.positionSmoothing = UnitFollowUtils.getSmoothingFactor('position')
     cameraDriverJob.rotationSmoothing = UnitFollowUtils.getSmoothingFactor('rotation')
-    cameraDriverJob.run()
+
+    return cameraDriverJob
 end
 
 function UnitFollowCamera.getCameraPosition()

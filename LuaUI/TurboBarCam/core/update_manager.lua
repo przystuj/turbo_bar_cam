@@ -19,6 +19,7 @@ local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCa
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local CameraTestRunner = ModuleManager.CameraTestRunner(function(m) CameraTestRunner = m end)
+local CombinedCamera = ModuleManager.CombinedCamera(function(m) CombinedCamera = m end)
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -82,12 +83,37 @@ function UpdateManager.isSpectating()
     return spec
 end
 
+local function handleCombinedMode()
+    local positionMode = STATE.active.mode.combined.positionMode
+    local orientationMode = STATE.active.mode.combined.orientationMode
+    local positionJob, orientationJob
+
+    if positionMode == "unit_follow" then
+        positionJob = UnitFollowCamera.getCameraDriverJob()
+    end
+
+    if orientationMode == "projectile_camera" then
+        orientationJob = ProjectileCamera.getCameraDriverJob()
+    end
+
+    Log:debug(positionJob, orientationJob)
+
+    CombinedCamera.update(positionJob, orientationJob)
+end
+
 --- Updates the camera based on current mode
 function UpdateManager.updateCameraMode(dt)
-
     if STATE.active.dollyCam.isNavigating then
         DollyCam.update(dt)
-    elseif STATE.active.mode.name == 'unit_follow' then
+        return
+    end
+
+    if STATE.active.mode.name == "combined" then
+        handleCombinedMode()
+        return
+    end
+
+    if STATE.active.mode.name == 'unit_follow' then
         UnitFollowCamera.update(dt)
     elseif STATE.active.mode.name == 'unit_tracking' then
         UnitTrackingCamera.update(dt)

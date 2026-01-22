@@ -8,8 +8,6 @@
 ---@field rotationSmoothing number
 ---@field isSnap boolean If true camera will instantly snap to the target, skipping the simulation
 ---@field euler table DEPRECATED
----@field smoothTimePos number DEPRECATED
----@field smoothTimeRot number DEPRECATED
 
 ---@class Vector
 ---@field x number
