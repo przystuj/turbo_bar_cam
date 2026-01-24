@@ -116,38 +116,6 @@ function CameraCommons.getAngleDiff(a1, a2)
     return diff
 end
 
-
---============================================================================--
---=                                Legacy Code Stubs                         =--
---============================================================================--
--- These functions are kept for now to avoid breaking older camera modes,
--- but they are based on a deprecated interpolation model.
-
-function CameraCommons.interpolateToPoint(camPos, smoothingFactor)
-    local lastPos = STATE.active.mode.lastCamPos
-    return CameraCommons.lerpVector(lastPos, camPos, smoothingFactor)
-end
-
-function CameraCommons.focusOnPoint(camPos, targetPos, posFactor, rotFactor)
-    local currentFrameActualPosition = CameraCommons.interpolateToPoint(camPos, posFactor)
-    local lookDirFromActualPos = CameraCommons.calculateCameraDirectionToThePoint(currentFrameActualPosition, targetPos)
-
-    local lastDir = STATE.active.mode.lastCamDir
-    local lastRot = STATE.active.mode.lastRotation
-
-    return {
-        px = currentFrameActualPosition.x,
-        py = currentFrameActualPosition.y,
-        pz = currentFrameActualPosition.z,
-        dx = CameraCommons.lerp(lastDir.x, lookDirFromActualPos.dx, rotFactor),
-        dy = CameraCommons.lerp(lastDir.y, lookDirFromActualPos.dy, rotFactor),
-        dz = CameraCommons.lerp(lastDir.z, lookDirFromActualPos.dz, rotFactor),
-        rx = CameraCommons.lerp(lastRot.rx, lookDirFromActualPos.rx, rotFactor),
-        ry = CameraCommons.lerpAngle(lastRot.ry, lookDirFromActualPos.ry, rotFactor),
-        rz = 0
-    }
-end
-
 function CameraCommons.getDefaultUnitView(x, z)
     local camState = {
         mode = 0, -- FPS camera mode

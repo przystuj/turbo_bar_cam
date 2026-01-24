@@ -186,6 +186,12 @@ function Actions.unitFollowActions()
                 return false
             end)
 
+    Actions.registerAction("turbobarcam_unit_follow_set_fixed_look_target", 'tp',
+            function(_, _, args)
+                UnitFollowCamera.setFixedLookTarget(args)
+                return false
+            end)
+
     Actions.registerAction("turbobarcam_unit_follow_clear_weapon_selection", 'tp',
             function()
                 UnitFollowCamera.clearWeaponSelection()

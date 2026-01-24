@@ -4,12 +4,12 @@ widget = widget
 ---@class Main just for navigation in IDE
 function widget:GetInfo()
     return {
-        name    = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
-        desc    = "Smooths the view, so you don’t have to.",
-        author  = "SuperKitowiec",
-        date    = "Mar 2025",
+        name = "Tactical Ultra-Responsive Brilliant Optics for BAR Camera",
+        desc = "Smooths the view, so you don’t have to.",
+        author = "SuperKitowiec",
+        date = "Mar 2025",
         license = "GNU GPL, v2 or later",
-        layer   = -1,
+        layer = -1,
         enabled = true,
         version = "2.1.0",
         handler = true,
@@ -81,7 +81,6 @@ local function setupApi()
     }
 end
 
-
 function widget:Initialize()
     -- Widget starts in disabled state, user must enable it manually
     STATE.enabled = false
@@ -133,7 +132,8 @@ end
 ---@return boolean handled Whether the command was handled
 function widget:CommandNotify(cmdID, cmdParams, _)
     if cmdID == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
-        return UnitFollowCamera.setFixedLookPoint(cmdParams)
+        local targetType = #cmdParams == 1 and CONSTANTS.TARGET_TYPE.UNIT or CONSTANTS.TARGET_TYPE.POINT
+        return UnitFollowCamera.setFixedLookPoint(targetType, cmdParams)
     end
     return false
 end

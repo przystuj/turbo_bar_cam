@@ -81,7 +81,6 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
     STATE.active.mode.name = newModeName
     STATE.active.mode.targetType = finalValidType
 
-    STATE.active.mode.initialCameraStateForModeEntry = Spring.GetCameraState()
     STATE.active.mode.optionalTargetCameraStateForModeEntry = optionalTargetCameraState
 
     if finalValidType == CONSTANTS.TARGET_TYPE.UNIT then
@@ -100,7 +99,6 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
 
     resetFeatureInitializationFlag(newModeName)
 
-    CameraTracker.updateLastKnownCameraState(Spring.GetCameraState())
     Spring.SelectUnitArray(Spring.GetSelectedUnits())
     return true
 end

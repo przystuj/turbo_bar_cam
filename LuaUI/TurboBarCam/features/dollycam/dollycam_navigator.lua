@@ -188,7 +188,8 @@ function DollyCamNavigator.update(deltaTime)
         end
 
         if lookAtPos then
-            directionState = CameraCommons.focusOnPoint(camState, lookAtPos, CONFIG.MODE_TRANSITION_SMOOTHING, CONFIG.MODE_TRANSITION_SMOOTHING)
+            -- fixme
+            --directionState = CameraCommons.focusOnPoint(camState, lookAtPos, CONFIG.MODE_TRANSITION_SMOOTHING, CONFIG.MODE_TRANSITION_SMOOTHING)
             directionState.px, directionState.py, directionState.pz = nil, nil, nil
         end
     end
@@ -198,7 +199,8 @@ function DollyCamNavigator.update(deltaTime)
     end
 
     camState = createCameraState(camState, directionState)
-    CameraTracker.updateLastKnownCameraState(camState)
+    -- fixme
+    --CameraTracker.updateLastKnownCameraState(camState)
     Spring.SetCameraState(camState, 0)
 end
 

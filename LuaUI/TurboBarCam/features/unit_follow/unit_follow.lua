@@ -11,6 +11,7 @@ local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end
 local UnitFollowUtils = ModuleManager.UnitFollowUtils(function(m) UnitFollowUtils = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
 local UnitFollowTargeting = ModuleManager.UnitFollowTargeting(function(m) UnitFollowTargeting = m end)
+local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
 
 local prevActiveCmd
 
@@ -62,17 +63,7 @@ function UnitFollowCamera.toggle(unitID)
         return
     end
 
-    if ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
-        UnitFollowTargeting.configure({
-            rotationConstraint = true,
-            targetPrediction = true,
-            cloudBlendFactor = 0.9,
-            maxRotationRate = 0.05,
-            rotationDamping = 0.9
-        })
-
-        Log:trace("Unit Follow camera attached to unit " .. unitID)
-    end
+    ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT)
 end
 
 --- Updates the unit_follow camera position and orientation
@@ -126,14 +117,6 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
                     STATE.active.mode.unit_follow.fixedPoint = nil
                 end
 
-                local camState = Spring.GetCameraState()
-                STATE.active.mode.unit_follow.freeCam.targetRx = camState.rx
-                STATE.active.mode.unit_follow.freeCam.targetRy = camState.ry
-                STATE.active.mode.unit_follow.freeCam.lastMouseX, STATE.active.mode.unit_follow.freeCam.lastMouseY = Spring.GetMouseState()
-
-                if Spring.ValidUnitID(STATE.active.mode.unitID) then
-                    STATE.active.mode.unit_follow.freeCam.lastUnitHeading = Spring.GetUnitHeading(STATE.active.mode.unitID, true)
-                end
                 STATE.active.mode.unit_follow.isFreeCameraActive = true
                 Log:trace("Target selection mode activated - select a target to look at")
             end
@@ -153,7 +136,7 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
     prevActiveCmd = activeCmd
 end
 
-function UnitFollowCamera.setFixedLookPoint(cmdParams)
+function UnitFollowCamera.setFixedLookPoint(targetType, cmdParams)
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -166,33 +149,29 @@ function UnitFollowCamera.setFixedLookPoint(cmdParams)
     end
 
     local x, y, z
-    STATE.active.mode.unit_follow.targetUnitID = nil
+    STATE.active.mode.unit_follow.fixedTargetID = nil
 
-    if cmdParams then
-        if #cmdParams == 1 then
-            local unitID = cmdParams[1]
-            if Spring.ValidUnitID(unitID) then
-                STATE.active.mode.unit_follow.targetUnitID = unitID
-                x, y, z = Spring.GetUnitPosition(unitID)
-                Log:trace("Camera will follow current unit but look at unit " .. unitID)
-            end
-        elseif #cmdParams == 3 then
-            x, y, z = cmdParams[1], cmdParams[2], cmdParams[3]
+    if targetType == CONSTANTS.TARGET_TYPE.UNIT then
+        local unitID = cmdParams[1]
+        if Spring.ValidUnitID(unitID) then
+            STATE.active.mode.unit_follow.fixedTargetID = unitID
+            x, y, z = Spring.GetUnitPosition(unitID)
         end
-    else
-        local _, pos = Spring.TraceScreenRay(Spring.GetMouseState(), true)
-        if pos then
-            x, y, z = pos[1], pos[2], pos[3]
+    elseif targetType == CONSTANTS.TARGET_TYPE.PROJECTILE then
+        local projectileID = cmdParams[1]
+        local projectile = ProjectileTracker.getProjectileByID(projectileID)
+        if projectile then
+            x, y, z = projectile.position.x, projectile.position.y, projectile.position.z
         end
+    elseif targetType == CONSTANTS.TARGET_TYPE.POINT then
+        x, y, z = cmdParams[1], cmdParams[2], cmdParams[3]
     end
 
     if not x or not y or not z then
-        Log:trace("Could not find a valid position")
         return false
     end
 
-    local fixedPoint = { x = x, y = y, z = z }
-    return UnitFollowUtils.setFixedLookPoint(fixedPoint, STATE.active.mode.unit_follow.targetUnitID)
+    return UnitFollowUtils.setFixedLookPoint({ x = x, y = y, z = z }, STATE.active.mode.unit_follow.fixedTargetID)
 end
 
 function UnitFollowCamera.clearFixedLookPoint()
@@ -265,10 +244,24 @@ function UnitFollowCamera.toggleCombatMode()
 end
 
 function UnitFollowCamera.handleSelectNewUnit()
-    if STATE.active.mode.name ~= 'unit_follow' then
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+    if Utils.isModeDisabled('unit_follow') then
         return
     end
     UnitFollowCombatMode.clearAttackingState()
+end
+
+function UnitFollowCamera.setFixedLookTarget(args)
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+    if Utils.isModeDisabled('unit_follow') then
+        return
+    end
+    local params = { args[2], args[3], args[4] }
+    UnitFollowCamera.setFixedLookPoint(args[1], params)
 end
 
 return UnitFollowCamera

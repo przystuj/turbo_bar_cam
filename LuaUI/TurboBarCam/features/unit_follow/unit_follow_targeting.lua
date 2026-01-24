@@ -23,81 +23,6 @@ local ACTIVATION_ANGLE = 0.5         -- Minimum angle to activate air target adj
 local DEACTIVATION_ANGLE = 0.4       -- Angle to deactivate adjustment (hysteresis)
 
 -- ============================================================================
--- STATE MANAGEMENT
--- ============================================================================
-
---- Ensures the Unified Targeting State exists
-local function ensureState()
-    if not STATE.active.mode.unit_follow.targeting then
-        STATE.active.mode.unit_follow.targeting = {
-            -- Cloud / History State
-            targetHistory = {},          -- Recent target positions
-            cloudCenter = nil,           -- Center of the target cloud
-            cloudRadius = 0,             -- Radius of the target cloud
-            useCloudTargeting = false,   -- Whether to use cloud targeting
-
-            -- Activity Tracking
-            activityLevel = 0,           -- Measure of targeting activity (0-1)
-            highActivityDetected = false,
-            cloudStartTime = nil,
-            minCloudDuration = nil,      -- Timestamp for minimum duration
-
-            -- Switching logic
-            currentTargetKey = nil,
-            lastTargetSwitchTime = Spring.GetTimer(),
-            targetSwitchCount = 0,
-
-            -- Tracking Data (Per specific target keys)
-            targetTracking = {},
-
-            -- Prediction Configuration
-            prediction = {
-                enabled = true,
-                velocityX = 0, velocityY = 0, velocityZ = 0,
-                lastUpdateTime = nil
-            },
-
-            -- Rotation Constraints
-            rotationConstraint = {
-                enabled = true,
-                maxRotationRate = 0.05,
-                damping = 0.9,
-                resetForSwitch = false
-            },
-
-            -- Aerial specific
-            aerialTracking = nil,
-
-            -- Logging
-            lastStatusLogTime = Spring.GetTimer()
-        }
-    end
-    return STATE.active.mode.unit_follow.targeting
-end
-
---- Gets or creates tracking data for a specific target key
-local function ensureTargetTracking(state, targetKey)
-    if not state.targetTracking[targetKey] then
-        state.targetTracking[targetKey] = {
-            lastUpdateTime = Spring.GetTimer(),
-            lastRealPos = nil,
-            positionHistory = {},
-            isCachedTarget = false,
-            cachedTargetDuration = 0,
-            velocityX = 0, velocityY = 0, velocityZ = 0,
-            speed = 0, ySpeed = 0,
-            isMovingFast = false,
-            isMovingUpFast = false,
-            frameCounter = 0,
-            airAdjustmentActive = false,
-            lastAdjustmentStateTime = Spring.GetTimer(),
-            lastLogTime = Spring.GetTimer()
-        }
-    end
-    return state.targetTracking[targetKey]
-end
-
--- ============================================================================
 -- UTILITIES
 -- ============================================================================
 
@@ -149,7 +74,8 @@ end
 -- ============================================================================
 
 --- Calculates the center of the target cloud
-local function calculateCloudCenter(state)
+local function calculateCloudCenter()
+    local state = STATE.active.mode.unit_follow.targeting
     if #state.targetHistory < MIN_TARGETS_FOR_CLOUD then return end
 
     local sumX, sumY, sumZ, count = 0, 0, 0, 0
@@ -177,7 +103,6 @@ local function calculateCloudCenter(state)
             if distSq > maxDistSq then maxDistSq = distSq end
         end
 
-        state.cloudRadius = math.min(math.sqrt(maxDistSq), 150) -- Clamp to 150
         state.cloudCenter = center
     end
 end
@@ -186,7 +111,7 @@ end
 local function updateTargetHistory(targetPos)
     if not targetPos then return end
 
-    local state = ensureState()
+    local state = STATE.active.mode.unit_follow.targeting
     local currentTime = Spring.GetTimer()
 
     -- Prevent double updates in same frame
@@ -249,6 +174,9 @@ local function updateTargetHistory(targetPos)
         state.highActivityDetected = true
         state.cloudStartTime = currentTime
         state.minCloudDuration = currentTime
+
+
+        -- fixme state.cloudStartTime is not used
     elseif state.activityLevel < 0.3 and state.highActivityDetected then
         local hasMinDurationPassed = not state.minCloudDuration or
                 Spring.DiffTimers(currentTime, state.minCloudDuration) > 3.0
@@ -262,7 +190,9 @@ local function updateTargetHistory(targetPos)
     state.useCloudTargeting = (state.highActivityDetected and
             (uniqueTargetCount >= MIN_TARGETS_FOR_CLOUD or state.targetSwitchCount >= 3))
 
-    if state.useCloudTargeting then calculateCloudCenter(state) end
+    if state.useCloudTargeting then
+        calculateCloudCenter()
+    end
 end
 
 -- ============================================================================
@@ -272,7 +202,7 @@ end
 --- Predicts target position based on velocity
 local function predictTargetPosition(targetPos, targetUnitID)
     if not targetPos then return nil end
-    local state = ensureState()
+    local state = STATE.active.mode.unit_follow.targeting
 
     if not state.prediction.enabled then return targetPos end
 
@@ -301,12 +231,12 @@ local function predictTargetPosition(targetPos, targetUnitID)
 end
 
 local function processAerialTarget(targetPos, unitPos, targetData)
-    local state = ensureState()
+    local state = STATE.active.mode.unit_follow.targeting
 
     -- Initialize aerial tracking in main state if needed
     if not state.aerialTracking then
         state.aerialTracking = {
-            smoothedPosition = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
+            smoothedPosition = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
             lastUpdateTime = Spring.GetTimer(),
             trajectoryPredictionEnabled = true,
             positionHistory = {}
@@ -316,7 +246,7 @@ local function processAerialTarget(targetPos, unitPos, targetData)
 
     -- Update History
     table.insert(aerial.positionHistory, {
-        pos = {x = targetPos.x, y = targetPos.y, z = targetPos.z},
+        pos = { x = targetPos.x, y = targetPos.y, z = targetPos.z },
         time = Spring.GetTimer()
     })
     while #aerial.positionHistory > 30 do table.remove(aerial.positionHistory, 1) end
@@ -325,7 +255,7 @@ local function processAerialTarget(targetPos, unitPos, targetData)
     local speed = targetData.speed or 0
     local heightDiff = targetPos.y - unitPos.y
     local dx, dz = targetPos.x - unitPos.x, targetPos.z - unitPos.z
-    local horizontalDist = math.sqrt(dx*dx + dz*dz)
+    local horizontalDist = math.sqrt(dx * dx + dz * dz)
     local verticalAngle = math.atan2(heightDiff, horizontalDist)
     local isCircular = #aerial.positionHistory >= 10 and detectCircularMotion(aerial.positionHistory)
 
@@ -361,7 +291,7 @@ end
 --- Gets the effective target position (actual target or cloud center)
 local function getEffectiveTargetPosition(targetPos)
     if not targetPos then return nil end
-    local state = ensureState()
+    local state = STATE.active.mode.unit_follow.targeting
 
     -- Get unit position for aerial checks
     local unitPos
@@ -438,7 +368,7 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
         targetData.velocityZ = dirZ * estimated_speed * randomFactor
         targetData.velocityY = (math.random() * 20) - 10
 
-        targetData.speed = math.sqrt(targetData.velocityX^2 + targetData.velocityY^2 + targetData.velocityZ^2)
+        targetData.speed = math.sqrt(targetData.velocityX ^ 2 + targetData.velocityY ^ 2 + targetData.velocityZ ^ 2)
         targetData.ySpeed = targetData.velocityY
         targetData.isMovingFast = targetData.speed > 150
         targetData.isMovingUpFast = false
@@ -460,7 +390,7 @@ local function updateTargetVelocity(targetPos, unitPos, horizontalDist, targetDa
                     targetData.velocityX = (newest.pos.x - oldest.pos.x) / timeDiff
                     targetData.velocityY = (newest.pos.y - oldest.pos.y) / timeDiff
                     targetData.velocityZ = (newest.pos.z - oldest.pos.z) / timeDiff
-                    targetData.speed = math.sqrt(targetData.velocityX^2 + targetData.velocityY^2 + targetData.velocityZ^2)
+                    targetData.speed = math.sqrt(targetData.velocityX ^ 2 + targetData.velocityY ^ 2 + targetData.velocityZ ^ 2)
                     targetData.ySpeed = targetData.velocityY
                     targetData.isMovingFast = targetData.speed > 200
                     targetData.isMovingUpFast = targetData.ySpeed > 150
@@ -493,9 +423,27 @@ end
 --- @return table adjustedPos Adjusted camera position {x, y, z}
 function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, unitPos)
     if not position or not targetPos then return position end
-    local state = ensureState()
+    local state = STATE.active.mode.unit_follow.targeting
     local targetKey = createTargetKey(targetPos)
-    local targetData = ensureTargetTracking(state, targetKey)
+
+    ---@type UnitFollowCombatModeTarget
+    local targetData = {
+        lastUpdateTime = Spring.GetTimer(),
+        lastRealPos = nil,
+        positionHistory = {},
+        isCachedTarget = false,
+        cachedTargetDuration = 0,
+        velocityX = 0, velocityY = 0, velocityZ = 0,
+        speed = 0, ySpeed = 0,
+        isMovingFast = false,
+        isMovingUpFast = false,
+        frameCounter = 0,
+        airAdjustmentActive = false,
+        lastAdjustmentStateTime = Spring.GetTimer(),
+        lastLogTime = Spring.GetTimer()
+    }
+
+    state.targetTracking[targetKey] = targetData
     local currentTime = Spring.GetTimer()
 
     -- Ensure History is updated (in case processTarget wasn't called this frame)
@@ -591,8 +539,8 @@ function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, u
                 z = lastPos.z + (newZ - lastPos.z) * blendFactor
                 y = y + moveUp
             end
-            targetData.lastAdjustedPosition = {x = x, y = y, z = z}
-            return {x = x, y = y, z = z}
+            targetData.lastAdjustedPosition = { x = x, y = y, z = z }
+            return { x = x, y = y, z = z }
         end
 
         -- Standard application
@@ -603,33 +551,12 @@ function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, u
             z = z - horNormZ * moveBack
         end
 
-        targetData.lastAdjustedPosition = {x = x, y = y, z = z}
+        targetData.lastAdjustedPosition = { x = x, y = y, z = z }
         return targetData.lastAdjustedPosition
     else
         targetData.airAdjustmentActive = false
         targetData.lastAdjustedPosition = nil
         return position
-    end
-end
-
---- Configures target smoothing settings
-function UnitFollowTargeting.configure(settings)
-    local state = ensureState()
-
-    if settings.cloudBlendFactor then
-        CLOUD_BLEND_FACTOR = math.max(0, math.min(1, settings.cloudBlendFactor))
-    end
-    if settings.targetPrediction ~= nil then
-        state.prediction.enabled = settings.targetPrediction
-    end
-    if settings.rotationConstraint ~= nil then
-        state.rotationConstraint.enabled = settings.rotationConstraint
-    end
-    if settings.maxRotationRate then
-        state.rotationConstraint.maxRotationRate = settings.maxRotationRate
-    end
-    if settings.rotationDamping then
-        state.rotationConstraint.damping = settings.rotationDamping
     end
 end
 

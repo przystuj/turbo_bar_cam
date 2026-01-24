@@ -86,10 +86,6 @@ function UnitFollowCombatMode.nextWeapon()
         UnitFollowCombatMode.setAttackingState(false)
     end
 
-    -- Use a smooth transition
-    STATE.active.mode.isModeTransitionInProgress = true
-    STATE.active.mode.transitionStartTime = Spring.GetTimer()
-
     Log:info("Current weapon: " .. tostring(STATE.active.mode.unit_follow.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.active.mode.unit_follow.forcedWeaponNumber].name .. ")")
 end
 

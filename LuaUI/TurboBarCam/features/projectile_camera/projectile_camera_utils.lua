@@ -38,9 +38,9 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
 
     if STATE.active.mode.projectile_camera.isHighArc then
         local awayDirXZ
-        if STATE.active.mode.lastCamDir and (STATE.active.mode.lastCamDir.x ~= 0 or STATE.active.mode.lastCamDir.z ~= 0) then
+        if STATE.core.camera.euler.rx ~= 0 or STATE.core.camera.euler.rz ~= 0 then
             -- Use inverted XZ component of camera's forward vector.
-            awayDirXZ = MathUtils.vector.normalize({ x = -STATE.active.mode.lastCamDir.x, y = 0, z = -STATE.active.mode.lastCamDir.z })
+            awayDirXZ = MathUtils.vector.normalize({ x = -STATE.core.camera.euler.rx, y = 0, z = -STATE.core.camera.euler.rz })
         else
             awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
         end

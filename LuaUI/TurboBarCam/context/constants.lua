@@ -13,6 +13,7 @@ local modes = {
 
 ---@class TargetType
 local targetTypes = {
+    PROJECTILE = "PROJECTILE",
     UNIT = "UNIT",
     POINT = "POINT",
     EULER = "EULER",

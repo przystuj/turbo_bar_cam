@@ -5,7 +5,6 @@
 ---@field CameraAnchorVisualization fun(hook: fun(module: CameraAnchorVisualization)):CameraAnchorVisualization
 ---@field CameraCommons fun(hook: fun(module: CameraCommons)):CameraCommons
 ---@field CameraQuickControls fun(hook: fun(module: CameraQuickControls)):CameraQuickControls
----@field CameraTracker fun(hook: fun(module: CameraTracker)):CameraTracker
 ---@field CONFIG fun(hook: fun(module: WidgetConfig)):WidgetConfig
 ---@field DBSCAN fun(hook: fun(module: DBSCAN)):DBSCAN
 ---@field DollyCam fun(hook: fun(module: DollyCam)):DollyCam
@@ -109,7 +108,6 @@ local SimpleModules = {
     PersistentStorage = "settings/persistent_storage.lua",
 
     CameraQuickControls = "standalone/camera_quick_controls.lua",
-    CameraTracker = "standalone/camera_tracker.lua",
     MouseManager = "standalone/mouse_manager.lua",
     ProjectileTracker = "standalone/projectile_tracker.lua",
     Scheduler = "standalone/scheduler.lua",

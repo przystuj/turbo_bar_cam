@@ -122,7 +122,6 @@ if not WG.TurboBarCam.STATE then
         active = {
             anchor = {
                 visualizationEnabled = false,
-                activeAnchorId = nil,
             },
 
             scheduler = { schedules = {} },
@@ -165,22 +164,10 @@ if not WG.TurboBarCam.STATE then
                 unitID = nil,
                 targetPoint = nil,
                 lastTargetPoint = nil,
-                transitionTarget = nil,
 
                 graceTimer = nil,
                 lastUnitID = nil,
 
-                ---@deprecated Will be replaced by STATE.core.cameraState
-                lastCamPos = { x = 0, y = 0, z = 0 },
-                ---@deprecated Will be replaced by STATE.core.cameraState
-                lastCamDir = { x = 0, y = 0, z = 0 },
-                ---@deprecated Will be replaced by STATE.core.cameraState
-                lastRotation = { rx = 0, ry = 0, rz = 0 },
-
-                isModeTransitionInProgress = false,
-                transitionProgress = nil,
-
-                initialCameraStateForModeEntry = nil,
                 optionalTargetCameraStateForModeEntry = nil,
 
                 unit_follow = {
@@ -188,7 +175,7 @@ if not WG.TurboBarCam.STATE then
                     prevFreeCamState = false,
                     prevFixedPoint = nil,
                     isFreeCameraActive = false,
-                    targetUnitID = nil,
+                    fixedTargetID = nil,
                     fixedPoint = nil,
                     isFixedPointActive = false,
                     isAttacking = false,
@@ -199,24 +186,15 @@ if not WG.TurboBarCam.STATE then
                     forcedWeaponNumber = nil,
                     combatModeEnabled = false,
                     lastTargetPos = nil,
+                    previousTargetPos = nil,
                     lastTargetUnitID = nil,
                     isTargetSwitchTransition = false,
-                    targetSwitchStartTime = nil,
-                    lastCombatTargetSwitchTime = nil,
-
-                    freeCam = {
-                        lastMouseX = nil,
-                        lastMouseY = nil,
-                        targetRx = nil,
-                        targetRy = nil,
-                        lastUnitHeading = nil
-                    },
+                    lastTargetSwitchTime = false,
 
                     targeting = {
                         -- Cloud / History State
                         targetHistory = {},
                         cloudCenter = nil,
-                        cloudRadius = 0,
                         useCloudTargeting = false,
 
                         -- Activity Tracking
@@ -232,6 +210,7 @@ if not WG.TurboBarCam.STATE then
                         lastHistoryUpdateFrame = nil,
 
                         -- Tracking Data
+                        ---@type UnitFollowCombatModeTarget[]
                         targetTracking = {},
 
                         -- Prediction
@@ -253,6 +232,8 @@ if not WG.TurboBarCam.STATE then
 
                         -- Aerial specific
                         aerialTracking = nil,
+
+                        targetTracking = {},
                     },
                 },
 
@@ -263,25 +244,18 @@ if not WG.TurboBarCam.STATE then
                     continuouslyArmedUnitID = nil,
                     lastArmingTime = nil,
 
-                    -- State for global "cycling" workflow
-                    trackedProjectiles = {},
-                    currentProjectileIndex = 0,
-
                     -- Common state for both workflows
                     currentProjectileID = nil,
-                    returnToPreviousMode = true,
                     previousMode = nil,
                     previousCameraState = nil,
                     previousModeState = nil,
                     impactPosition = nil,
                     cameraMode = "follow",
-                    initialCamPos = nil,
                     isHighArc = false,
                     impactTime = nil,
                 },
 
                 group_tracking = {
-                    isModeInitialized = false,
                     unitIDs = {},
                     centerOfMass = { x = 0, y = 0, z = 0 },
                     targetDistance = nil,
@@ -294,9 +268,6 @@ if not WG.TurboBarCam.STATE then
                 orbit = {
                     isModeInitialized = false,
                     angle = nil,
-                    lastPosition = nil,
-                    lastCamPos = nil,
-                    lastCamRot = nil,
                     isPaused = false,
                     loadedAngleForEntry = nil,
                 },
