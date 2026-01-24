@@ -166,8 +166,8 @@ local function getLiveSmoothTimes()
     local transitionSTATE = STATE.core.driver.smoothingTransition
     local target = STATE.core.driver.target
 
-    local targetSmoothPos = target.positionSmoothing
-    local targetSmoothRot = target.rotationSmoothing
+    local targetSmoothPos = STATE.core.driver.smoothingOverride.position or target.positionSmoothing
+    local targetSmoothRot = STATE.core.driver.smoothingOverride.rotation or target.rotationSmoothing
 
     if not transitionSTATE.smoothingTransitionStart then
         -- No transition active, just use the target values.

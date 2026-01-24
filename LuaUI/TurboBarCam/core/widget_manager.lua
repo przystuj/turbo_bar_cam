@@ -119,7 +119,6 @@ function WidgetManager.toggleDebug()
     return true
 end
 
-
 --- When spectating with Player Camera it mimics unit selection of the player
 --- When this is set to true then that behaviour is disabled
 function WidgetManager.toggleLockUnitSelection()
@@ -183,7 +182,7 @@ function WidgetManager.toggleZoom()
     local cycle = { [45] = 24, [24] = 45 }
     local camState = Spring.GetCameraState()
     local fov = cycle[camState.fov] or 45
-    Spring.SetCameraState({fov = fov}, 1)
+    Spring.SetCameraState({ fov = fov }, 1)
 end
 
 function WidgetManager.setFov(fov)
@@ -194,7 +193,7 @@ function WidgetManager.setFov(fov)
     if camState.fov == fov then
         return
     end
-    Spring.SetCameraState({fov = fov}, 1)
+    Spring.SetCameraState({ fov = fov }, 1)
 end
 
 function WidgetManager.stop()
@@ -204,6 +203,30 @@ function WidgetManager.stop()
     Log:debug("Stop")
     ModeManager.disableMode()
     CameraDriver.stop()
+end
+
+function WidgetManager.smoothingOverride(type, value)
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+
+    if type == 'reset' then
+        STATE.core.driver.smoothingOverride.position = nil
+        STATE.core.driver.smoothingOverride.rotation = nil
+        return
+    end
+
+    if type ~= "position" and type ~= "rotation" then
+        Log:debug("Invalid type. Use 'position', 'rotation' or 'reset'")
+        return
+    end
+
+    if type == "position" then
+        STATE.core.driver.smoothingOverride.position = tonumber(value)
+    else
+        STATE.core.driver.smoothingOverride.rotation = tonumber(value)
+    end
+    Log:debug("Smoothing override", type, value)
 end
 
 return WidgetManager

@@ -106,6 +106,12 @@ function Actions.scriptActions()
                 SettingsManager.loadModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_smoothing", 'tp',
+            function(_, _, args)
+                WidgetManager.smoothingOverride(args[1], args[2])
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()

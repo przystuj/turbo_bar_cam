@@ -11,6 +11,7 @@ An advanced camera control suite for Beyond All Reason, featuring smooth transit
 - **Group Tracking Camera**: Track a group of units with automatic clustering
 - **Projectile Camera**: Follow projectiles fired from units
 
+
 ## Installation
 
 1. Download `turbobarcam_vX.zip`
@@ -61,6 +62,9 @@ Where:
 - `temp` sets the parameter value to the given value but resets back after changing camera mode
 - `reset` resets the parameter to its default value
 
+#### Buy me a coffee ;) https://ko-fi.com/superkitowiec
+
+
 ## Changelog
 #### 2.1.0
 - Show widget errors in UI
@@ -91,4 +95,5 @@ Where:
 - Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
 - Added TurboBarCam HUD widget which displays debug information about the camera and can display alternative game ui
 - Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future
-- Added option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
+- Added an option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
+- Added an option to override current camera smoothing. `turbobarcam_smoothing <position|rotation|reset> <value>`

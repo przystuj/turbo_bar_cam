@@ -56,6 +56,10 @@ if not WG.TurboBarCam.STATE then
             driver = {
                 ---@type DriverTargetConfig
                 target = {},
+                smoothingOverride = {
+                    position = nil,
+                    rotation = nil,
+                },
                 simulation = {
                     position = { x = 0, y = 0, z = 0 },
                     orientation = { w = 1, x = 0, y = 0, z = 0 },
@@ -191,6 +195,7 @@ if not WG.TurboBarCam.STATE then
                     lastTargetUnitID = nil,
                     isTargetSwitchTransition = false,
                     lastTargetSwitchTime = false,
+                    lastFixedTargetPosition = { x = nil, y = nil, z = nil },
 
                     targeting = {
                         -- Cloud / History State

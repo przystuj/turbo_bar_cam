@@ -89,9 +89,39 @@ function UnitFollowCamera.getCameraPosition()
     return camPos
 end
 
+local function getFixedTargetPosition()
+    local fixedTarget = STATE.active.mode.unit_follow.fixedTarget
+    local fixedTargetType = STATE.active.mode.unit_follow.fixedTargetType
+
+    if fixedTargetType == CONSTANTS.TARGET_TYPE.POINT then
+        return fixedTarget, fixedTargetType
+    end
+
+    local lastFixedTargetPosition = STATE.active.mode.unit_follow.lastFixedTargetPosition
+    local x, y, z
+
+    if fixedTargetType == CONSTANTS.TARGET_TYPE.UNIT then
+        x, y, z = Spring.GetUnitPosition(fixedTarget)
+    elseif fixedTargetType == CONSTANTS.TARGET_TYPE.PROJECTILE then
+        x, y, z = Spring.GetProjectilePosition(fixedTarget)
+    end
+
+    if x then
+        lastFixedTargetPosition.x = x
+        lastFixedTargetPosition.y = y
+        lastFixedTargetPosition.z = z
+    else
+        -- look at the last known position if unit/projectile is gone
+        STATE.active.mode.unit_follow.fixedTarget = lastFixedTargetPosition
+        STATE.active.mode.unit_follow.fixedTargetType = CONSTANTS.TARGET_TYPE.POINT
+    end
+
+    return fixedTarget, fixedTargetType
+end
+
 function UnitFollowCamera.getCameraDirection()
     if STATE.active.mode.unit_follow.isFixedPointActive then
-        return STATE.active.mode.unit_follow.fixedTarget, STATE.active.mode.unit_follow.fixedTargetType
+        return getFixedTargetPosition()
     else
         return UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID)
     end
