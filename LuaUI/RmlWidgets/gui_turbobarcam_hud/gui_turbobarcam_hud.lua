@@ -209,7 +209,11 @@ local function UpdateStatusInfo()
         status = status .. "NOAIR" .. delimiter
     end
     if STATE.active.mode.unit_follow.combatModeEnabled then
-        status = status .. "CMBT" .. delimiter
+        if STATE.active.mode.unit_follow.lastTargetUnitID then
+            status = status .. "CMBT: " .. tostring(STATE.active.mode.unit_follow.lastTargetUnitID) .. delimiter
+        else
+            status = status .. "CMBT" .. delimiter
+        end
     end
     if #API.getAllTrackedProjectiles() > 0 then
         status = status .. "NUKE" .. delimiter

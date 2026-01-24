@@ -39,6 +39,11 @@ end
 local function start(isFinal)
     ---@type ScriptStep[]
     local script = VFS.Include("LuaUI/TurboBarCam/script.lua")
+
+    if not script then
+        Log:error("LuaUI/TurboBarCam/script.lua not found")
+    end
+
     local currentFrame = Spring.GetGameFrame()
     local currentStep = 1
     local message = ""

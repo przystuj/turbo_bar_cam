@@ -216,43 +216,6 @@ function UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
     return newTargetPos, targetUnitID, targetType
 end
 
-function UnitFollowCombatMode.isNewTarget(targetUnitID, newTargetPos, targetType)
-    local isNewTarget = false
-    local oldTargetUnitID = STATE.active.mode.unit_follow.lastTargetUnitID
-    local oldTargetPos = STATE.active.mode.unit_follow.lastTargetPos
-
-    -- If no old target data, this is definitely a new target
-    if not oldTargetPos then
-        return true
-    end
-
-    if targetUnitID then
-        if targetUnitID ~= oldTargetUnitID then
-            isNewTarget = true
-        end
-    elseif newTargetPos and oldTargetPos then
-        -- Compare position for non-unit or changed targets
-        local distanceSquared = MathUtils.vector.distanceSq(newTargetPos, oldTargetPos)
-
-        if distanceSquared > (400 * 400) then
-            isNewTarget = true
-            -- If switching to a ground target, clear the last unit ID state
-            if oldTargetUnitID and targetType == 2 then
-                STATE.active.mode.unit_follow.lastTargetUnitID = nil
-            end
-        end
-    elseif newTargetPos and not oldTargetPos then
-        isNewTarget = true
-    end
-
-    -- If this is a new target, make sure we store it in previousTargetPos for the transition system
-    if isNewTarget and not STATE.active.mode.unit_follow.previousTargetPos then
-        STATE.active.mode.unit_follow.previousTargetPos = oldTargetPos
-    end
-
-    return isNewTarget
-end
-
 function UnitFollowCombatMode.getCurrentTarget(unitID, unitDef)
     -- If we have a forced weapon number, only check that specific weapon
     if STATE.active.mode.unit_follow.forcedWeaponNumber then
