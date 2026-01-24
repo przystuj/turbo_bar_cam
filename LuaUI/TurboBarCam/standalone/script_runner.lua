@@ -47,6 +47,7 @@ local function start(isFinal)
     local currentFrame = Spring.GetGameFrame()
     local currentStep = 1
     local message = ""
+    local lastStepFrame = -1
 
     for _, step in ipairs(script) do
         if step.timestamp and step.timestamp:match("[^%d:]") then
@@ -62,9 +63,14 @@ local function start(isFinal)
         if step.timestamp then
             step.frame = timestampToSeconds(step.timestamp) * gameFps
         end
+        step.frame = tonumber(step.frame)
+
+        if step.frame < lastStepFrame then
+            Log:error("Inconsistent timeline detected", step)
+        end
+        lastStepFrame = step.frame
 
         message = message .. step.frame .. ": " .. step.commands
-        step.frame = tonumber(step.frame)
         if step.frame < currentFrame and not step.commands:match("^skip ") then
             step.isDone = true
             currentStep = currentStep + 1

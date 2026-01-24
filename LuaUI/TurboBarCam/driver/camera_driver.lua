@@ -133,6 +133,7 @@ function CameraDriver.runJob(targetConfig)
     end
 
     jobSTATE.isActive = true
+    jobSTATE.startTime = Spring.GetTimer()
 
     TableUtils.syncTable(targetSTATE, targetConfig)
 

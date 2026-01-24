@@ -82,6 +82,7 @@ if not WG.TurboBarCam.STATE then
                     isRotationComplete = false,
                     isRotationOnly = nil,
                     isActive = false,
+                    startTime = nil,
                 },
             },
 

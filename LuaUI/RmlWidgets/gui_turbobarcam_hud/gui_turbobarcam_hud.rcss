@@ -264,7 +264,7 @@ div {
 
 .mouseTarget {
     color: #fff;
-    width: 50dp;
+    width: 70dp;
 }
 
 .frame {

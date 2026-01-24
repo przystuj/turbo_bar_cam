@@ -221,6 +221,10 @@ local function UpdateStatusInfo()
     if STATE.active.mode.unit_follow.freezeAttackState then
         status = status .. "HOLD" .. delimiter
     end
+    if STATE.core.driver.job.startTime then
+        local jobDuration = Spring.DiffTimers(Spring.GetTimer(), STATE.core.driver.job.startTime)
+        status = status .. "JOB: " .. string.format("%.2f", jobDuration) .. delimiter
+    end
     for idx, unitId in ipairs(STATE.core.scriptRunner.unitsToTrack) do
         if Spring.ValidUnitID(unitId) then
             status = status .. "F" .. tostring(idx) .. delimiter
