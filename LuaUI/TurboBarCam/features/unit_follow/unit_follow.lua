@@ -91,7 +91,7 @@ end
 
 function UnitFollowCamera.getCameraDirection()
     if STATE.active.mode.unit_follow.isFixedPointActive then
-        return UnitFollowUtils.updateFixedPointTarget()
+        return STATE.active.mode.unit_follow.fixedTarget, STATE.active.mode.unit_follow.fixedTargetType
     else
         return UnitFollowUtils.handleNormalFollowMode(STATE.active.mode.unitID)
     end
@@ -108,28 +108,18 @@ function UnitFollowCamera.checkFixedPointCommandActivation()
         if activeCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT then
             if STATE.active.mode.name == 'unit_follow' and STATE.active.mode.unitID then
                 STATE.active.mode.unit_follow.inTargetSelectionMode = true
-                STATE.active.mode.unit_follow.prevFreeCamState = STATE.active.mode.unit_follow.isFreeCameraActive
-                STATE.active.mode.unit_follow.prevFixedPoint = STATE.active.mode.unit_follow.fixedPoint
+                STATE.active.mode.unit_follow.prevFixedTarget = STATE.active.mode.unit_follow.fixedTarget
                 STATE.active.mode.unit_follow.prevFixedPointActive = STATE.active.mode.unit_follow.isFixedPointActive
 
                 if STATE.active.mode.unit_follow.isFixedPointActive then
                     STATE.active.mode.unit_follow.isFixedPointActive = false
-                    STATE.active.mode.unit_follow.fixedPoint = nil
                 end
-
-                STATE.active.mode.unit_follow.isFreeCameraActive = true
-                Log:trace("Target selection mode activated - select a target to look at")
             end
         elseif prevActiveCmd == CONFIG.COMMANDS.SET_FIXED_LOOK_POINT and STATE.active.mode.unit_follow.inTargetSelectionMode then
             STATE.active.mode.unit_follow.inTargetSelectionMode = false
-            if STATE.active.mode.unit_follow.prevFixedPointActive and STATE.active.mode.unit_follow.prevFixedPoint then
+            if STATE.active.mode.unit_follow.prevFixedPointActive and STATE.active.mode.unit_follow.prevFixedTarget then
                 STATE.active.mode.unit_follow.isFixedPointActive = true
-                STATE.active.mode.unit_follow.fixedPoint = STATE.active.mode.unit_follow.prevFixedPoint
-                Log:trace("Target selection canceled, returning to fixed point view")
-            end
-            STATE.active.mode.unit_follow.isFreeCameraActive = STATE.active.mode.unit_follow.prevFreeCamState
-            if not STATE.active.mode.unit_follow.prevFixedPointActive then
-                Log:trace("Target selection canceled, returning to unit view")
+                STATE.active.mode.unit_follow.fixedTarget = STATE.active.mode.unit_follow.prevFixedTarget
             end
         end
     end
@@ -149,46 +139,40 @@ function UnitFollowCamera.setFixedLookPoint(targetType, cmdParams)
     end
 
     local x, y, z
-    STATE.active.mode.unit_follow.fixedTargetID = nil
+    STATE.active.mode.unit_follow.fixedTarget = nil
+    STATE.active.mode.unit_follow.fixedTargetType = targetType
 
     if targetType == CONSTANTS.TARGET_TYPE.UNIT then
         local unitID = cmdParams[1]
         if Spring.ValidUnitID(unitID) then
-            STATE.active.mode.unit_follow.fixedTargetID = unitID
+            STATE.active.mode.unit_follow.fixedTarget = unitID
             x, y, z = Spring.GetUnitPosition(unitID)
         end
     elseif targetType == CONSTANTS.TARGET_TYPE.PROJECTILE then
+
         local projectileID = cmdParams[1]
         local projectile = ProjectileTracker.getProjectileByID(projectileID)
+
         if projectile then
             x, y, z = projectile.position.x, projectile.position.y, projectile.position.z
+            STATE.active.mode.unit_follow.fixedTarget = projectileID
         end
     elseif targetType == CONSTANTS.TARGET_TYPE.POINT then
         x, y, z = cmdParams[1], cmdParams[2], cmdParams[3]
+        STATE.active.mode.unit_follow.fixedTarget = { x = x, y = y, z = z }
     end
 
     if not x or not y or not z then
         return false
     end
 
-    return UnitFollowUtils.setFixedLookPoint({ x = x, y = y, z = z }, STATE.active.mode.unit_follow.fixedTargetID)
+    STATE.active.mode.unit_follow.isFixedPointActive = true
+    STATE.active.mode.unit_follow.inTargetSelectionMode = false
+    STATE.active.mode.unit_follow.prevFixedTarget = nil
 end
 
 function UnitFollowCamera.clearFixedLookPoint()
     UnitFollowUtils.clearFixedLookPoint()
-end
-
-function UnitFollowCamera.toggleFreeCam()
-    if Utils.isTurboBarCamDisabled() then
-        return
-    end
-    if STATE.active.mode.name ~= 'unit_follow' or not STATE.active.mode.unitID then
-        Log:debug("Free camera only works when tracking a unit in unit_follow mode")
-        return
-    end
-    if not STATE.active.mode.unit_follow.isFreeCameraActive and STATE.active.mode.unit_follow.isFixedPointActive then
-        UnitFollowUtils.clearFixedLookPoint()
-    end
 end
 
 function UnitFollowCamera.nextWeapon()
@@ -261,6 +245,7 @@ function UnitFollowCamera.setFixedLookTarget(args)
         return
     end
     local params = { args[2], args[3], args[4] }
+    Log:debug("Looking at", args[1], args[2], args[3], args[4])
     UnitFollowCamera.setFixedLookPoint(args[1], params)
 end
 

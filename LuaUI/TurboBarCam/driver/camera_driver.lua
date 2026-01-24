@@ -24,6 +24,7 @@ local cameraStateOut = { px = 0, py = 0, pz = 0, rx = 0, ry = 0 }
 local isLookAtTargetType = {
     [TARGET_TYPE.POINT] = true,
     [TARGET_TYPE.UNIT] = true,
+    [TARGET_TYPE.PROJECTILE] = true,
 }
 
 function CameraDriver.prepare(targetType, target)
@@ -39,6 +40,7 @@ function CameraDriver.prepare(targetType, target)
             config.targetEuler = type == TARGET_TYPE.EULER and data
             config.targetUnitId = type == TARGET_TYPE.UNIT and data
             config.targetPoint = type == TARGET_TYPE.POINT and data
+            config.targetProjectileId = type == TARGET_TYPE.PROJECTILE and data
             config.targetType = type
         end
     end
@@ -55,6 +57,12 @@ local function getLookAtPoint(target)
         return scratchLookAt
     elseif target.targetType == TARGET_TYPE.UNIT and target.targetUnitId and Spring.ValidUnitID(target.targetUnitId) then
         local x, y, z = Spring.GetUnitPosition(target.targetUnitId)
+        if x then
+            scratchLookAt.x, scratchLookAt.y, scratchLookAt.z = x, y, z
+            return scratchLookAt
+        end
+    elseif target.targetType == TARGET_TYPE.PROJECTILE and target.targetProjectileId then
+        local x, y, z = Spring.GetProjectilePosition(target.targetProjectileId)
         if x then
             scratchLookAt.x, scratchLookAt.y, scratchLookAt.z = x, y, z
             return scratchLookAt

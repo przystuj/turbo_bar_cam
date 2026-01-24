@@ -163,6 +163,9 @@ local modelData = {
     teamA_players = {},
     teamB_players = {},
 
+    trackedProjectiles = {},
+    projectilesVisible = false,
+
     statusVisible = true,
     currentMouseTarget = "",
 }
@@ -246,6 +249,10 @@ local function UpdateModel(dt)
         return
     end
 
+    if not WG.TurboBarCam then
+        Log:error('TurboBarCam is disabled')
+    end
+
     local frame = spGetGameFrame()
     local totalSeconds = math.floor(frame / 30)
     local minutes = math.floor(totalSeconds / 60)
@@ -266,11 +273,29 @@ local function UpdateModel(dt)
     local mx, my = Spring.GetMouseState()
     local mouseTargetType, mouseTarget = Spring.TraceScreenRay(mx, my)
 
-    if type(mouseTarget) ~= "table" then
-        dm.currentMouseTarget =  string.format("%s: %s", mouseTargetType:sub(1,1), mouseTarget)
+    if mouseTargetType and type(mouseTarget) ~= "table" then
+        dm.currentMouseTarget = string.format("%s: %s", mouseTargetType:sub(1, 1), mouseTarget)
     else
         dm.currentMouseTarget = ""
     end
+
+    ---@type Projectile[]
+    local projectiles = API.getAllTrackedProjectiles()
+    table.sort(projectiles, function(a, b)
+        return a.id > b.id
+    end)
+
+    local projectileData = {}
+    for _, projectile in pairs(projectiles) do
+        table.insert(projectileData, {
+            id = projectile.id,
+            ownerId = projectile.ownerID,
+            time = Spring.DiffTimers(Spring.GetTimer(), projectile.creationTime),
+        })
+    end
+
+    dm.projectilesVisible = dm.statusVisible and #projectileData > 0
+    dm.trackedProjectiles = projectileData
 
 
     -- PLAYER LIST LOGIC
@@ -568,6 +593,8 @@ function widget:Initialize()
     STATE = WG.TurboBarCam.STATE
     CONFIG = WG.TurboBarCam.CONFIG
     API = WG.TurboBarCam.API
+
+    UpdateModel(0)
 end
 
 function widget:AddConsoleLine(lines)

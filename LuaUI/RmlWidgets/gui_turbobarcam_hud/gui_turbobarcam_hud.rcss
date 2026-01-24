@@ -24,7 +24,7 @@ div {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
     box-sizing: border-box;
     padding: 0px;
 }
@@ -43,7 +43,7 @@ div {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
     box-sizing: border-box;
     padding: 10dp;
 }
@@ -301,7 +301,7 @@ div {
     background-color: #1a1a1a;
     border: 1dp #2c2c2c;
     border-top: 3dp #fdc04c;
-    box-shadow: 2dp 2dp 6dp rgba(0,0,0,0.6);
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
 
     padding: 40dp;
     display: flex;
@@ -369,4 +369,62 @@ div {
     margin-left: 10dp;
     margin-right: 10dp;
     font-weight: bold;
+}
+
+#projectile-info-container {
+    width: 300dp;
+    height: auto;
+
+    position: absolute;
+    top: 100dp;
+    left: 1700dp;
+
+    background-color: rgba(0,0,0,30);
+    border: 1dp #2c2c2c;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,30);
+
+    padding: 20dp;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    z-index: 10;
+
+    color: #ffffff;
+}
+
+.projectile-table {
+    display: table;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.projectile-table tr {
+    display: table-row;
+}
+
+.projectile-table th,
+.projectile-table td {
+    display: table-cell;
+    padding: 10dp;
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Header Styling */
+.projectile-table th {
+    color: #fdc04c;
+    border-bottom: 2dp #fdc04c; /* Slightly thicker border for header */
+    font-weight: bold;
+}
+
+/* Cell Styling */
+.projectile-table td {
+    border-bottom: 1dp #2c2c2c;
+}
+
+/* Zebra Striping (Optional) */
+.projectile-table tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 30);
 }

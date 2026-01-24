@@ -214,7 +214,7 @@ function ProjectileCamera.armProjectileTracking(subMode, unitID)
     projCamState.watchedUnitID = unitID
     projCamState.lastArmingTime = Spring.GetTimer()
     projCamState.currentProjectileID = nil
-    ProjectileTracker.initUnitTracking(unitID)
+    ProjectileTracker.initTemporaryUnitTracking(unitID)
     Log:debug("Projectile tracking ARMED for unit " .. unitID .. " in mode = " .. subMode)
     return true
 end

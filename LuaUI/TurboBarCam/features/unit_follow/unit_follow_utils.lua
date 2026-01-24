@@ -290,66 +290,16 @@ function UnitFollowUtils.handleNewTarget()
     }
 end
 
---- Sets a fixed look point for the camera
----@param fixedPoint table Point to look at {x, y, z}
----@param targetID number|nil Optional unit or projectile ID to track
----@return boolean success Whether fixed point was set successfully
-function UnitFollowUtils.setFixedLookPoint(fixedPoint, targetID)
-    if Utils.isTurboBarCamDisabled() then
-        return false
-    end
-    if Utils.isModeDisabled("unit_follow") then
-        return false
-    end
-    if not STATE.active.mode.unitID then
-        Log:trace("No unit being tracked for fixed point camera")
-        return false
-    end
-
-    -- Set the fixed point
-    STATE.active.mode.unit_follow.fixedPoint = fixedPoint
-    STATE.active.mode.unit_follow.fixedTargetID = targetID
-    STATE.active.mode.unit_follow.isFixedPointActive = true
-
-    -- We're no longer in target selection mode
-    STATE.active.mode.unit_follow.inTargetSelectionMode = false
-    STATE.active.mode.unit_follow.prevFixedPoint = nil
-
-    -- Use the previous free camera state for normal operation
-    STATE.active.mode.unit_follow.isFreeCameraActive = STATE.active.mode.unit_follow.prevFreeCamState or false
-
-    return true
-end
-
 --- Clears fixed point tracking
 function UnitFollowUtils.clearFixedLookPoint()
     if Utils.isTurboBarCamDisabled() then
         return
     end
 
-    if STATE.active.mode.unit_follow.isFixedPointActive and STATE.active.mode.unitID then
-        -- Disable fixed point tracking
-        STATE.active.mode.unit_follow.isFixedPointActive = false
-        STATE.active.mode.unit_follow.fixedPoint = nil
-        STATE.active.mode.unit_follow.fixedTargetID = nil
-        STATE.active.mode.unit_follow.inTargetSelectionMode = false
-        STATE.active.mode.unit_follow.prevFixedPoint = nil
-
-        if STATE.active.mode.unit_follow.isFreeCameraActive then
-            Log:trace("Fixed point tracking disabled, maintaining free camera mode")
-        else
-            Log:trace("Fixed point tracking disabled, returning to unit_follow mode")
-        end
-    end
-end
-
---- Updates the fixed point if tracking a unit
----@return table|nil fixedPoint The updated fixed point or nil if not tracking a unit
-function UnitFollowUtils.updateFixedPointTarget()
-    if not STATE.active.mode.unit_follow.fixedTargetID or not Spring.ValidUnitID(STATE.active.mode.unit_follow.fixedTargetID) then
-        return STATE.active.mode.unit_follow.fixedPoint, CONSTANTS.TARGET_TYPE.POINT
-    end
-    return STATE.active.mode.unit_follow.fixedTargetID, CONSTANTS.TARGET_TYPE.UNIT
+    STATE.active.mode.unit_follow.isFixedPointActive = false
+    STATE.active.mode.unit_follow.fixedTarget = nil
+    STATE.active.mode.unit_follow.inTargetSelectionMode = false
+    STATE.active.mode.unit_follow.prevFixedTarget = nil
 end
 
 --- Determines appropriate smoothing factors based on current state

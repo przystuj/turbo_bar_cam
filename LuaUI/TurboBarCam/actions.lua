@@ -11,6 +11,7 @@ local SpecGroups = ModuleManager.SpecGroups(function(m) SpecGroups = m end)
 local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m end)
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end)
+local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
 
 
 ---@class Actions
@@ -20,6 +21,7 @@ local w = widget
 --- Register all camera action handlers
 function Actions.registerAllActions()
     Actions.coreActions()
+    Actions.scriptActions()
     Actions.dollyCamActions()
     Actions.unitFollowActions()
     Actions.anchorActions()
@@ -71,7 +73,9 @@ function Actions.coreActions()
                 WidgetManager.stop()
                 return false
             end)
+end
 
+function Actions.scriptActions()
     Actions.registerAction("turbobarcam_dev_config", 't',
             function(_, params, args)
                 WidgetManager.changeConfig(args[1], args[2])
@@ -87,6 +91,12 @@ function Actions.coreActions()
     Actions.registerAction("turbobarcam_script_show_players_list", 'tp',
             function()
                 ScriptRunner.togglePlayersList()
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_track_projectiles", 'tp',
+            function(_, _, args)
+                ProjectileTracker.registerUnitIds(args)
                 return false
             end)
 end

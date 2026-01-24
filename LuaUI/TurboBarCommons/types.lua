@@ -3,6 +3,7 @@
 ---@field targetType TargetType
 ---@field targetPoint Vector?
 ---@field targetUnitId number?
+---@field targetProjectileId number?
 ---@field targetEuler Euler?
 ---@field positionSmoothing number
 ---@field rotationSmoothing number

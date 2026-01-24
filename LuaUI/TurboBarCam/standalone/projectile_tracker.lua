@@ -5,6 +5,8 @@ local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "ProjectileTracker")
 
+local initialized = false
+
 --- Finds all units of specific definitions across multiple teams.
 ---@param teamIDs number[] A list of team IDs to search within.
 ---@param unitDefIDs number[] A list of unit definition IDs to search for.
@@ -50,7 +52,7 @@ function ProjectileTracker.initialize()
     for unitDefID, unitDef in pairs(UnitDefs) do
         for _, unitDefName in ipairs(trackableUnitDefs) do
             if unitDef.name == unitDefName then
-                trackableUnitDefIDs[unitDefID] = true
+                table.insert(trackableUnitDefIDs, unitDefID)
             end
         end
     end
@@ -58,19 +60,20 @@ end
 
 -- Initialize unit projectile tracking storage
 ---@param unitID number Unit ID to initialize tracking for
-function ProjectileTracker.initUnitTracking(unitID)
+function ProjectileTracker.initTemporaryUnitTracking(unitID)
     if not unitID or not Spring.ValidUnitID(unitID) then
         return
     end
 
     if not STATE.core.projectileTracking.unitProjectiles[unitID] then
-        local teamID = Spring.GetUnitTeam(unitID)
-        if not teamID then
-            Log:warn("Could not determine team for unit " .. unitID .. ". Will not track.")
-            return
-        end
+        -- todo not needed?
+        --local teamID = Spring.GetUnitTeam(unitID)
+        --if not teamID then
+        --    Log:warn("Could not determine team for unit " .. unitID .. ". Will not track.")
+        --    return
+        --end
         STATE.core.projectileTracking.unitProjectiles[unitID] = {
-            teamID = teamID,
+            --teamID = teamID,
             lastUpdateTime = Spring.GetTimer(),
             active = true, -- Whether this unit is actively being tracked
             projectiles = {}  -- Will contain projectile data
@@ -80,6 +83,14 @@ function ProjectileTracker.initUnitTracking(unitID)
         -- Unit already being tracked, just mark as active and update time
         STATE.core.projectileTracking.unitProjectiles[unitID].active = true
         STATE.core.projectileTracking.unitProjectiles[unitID].lastUpdateTime = Spring.GetTimer()
+    end
+end
+
+---@param unitIds number[] Track projectiles for these units in the future
+function ProjectileTracker.registerUnitIds(unitIds)
+    for _, unitId in ipairs(unitIds) do
+        STATE.core.projectileTracking.registeredUnitIds[unitId] = true
+        Log:debug("Tracking projectiles for", unitId)
     end
 end
 
@@ -107,8 +118,9 @@ end
 
 -- Find new projectiles for a tracked unit
 ---@param unitID number Unit ID to find projectiles for
+---@param existingProjectiles number[] All existing projectile ids. Provided only after widget initialization
 ---@return table newProjectiles Array of newly discovered projectile IDs
-function ProjectileTracker.findNewProjectiles(unitID)
+function ProjectileTracker.findNewProjectiles(unitID, existingProjectiles)
     if not unitID or not Spring.ValidUnitID(unitID) then
         return {}
     end
@@ -123,24 +135,35 @@ function ProjectileTracker.findNewProjectiles(unitID)
         return {}
     end
 
-    local boxSize = 200
-    local projectilesInBox = Spring.GetProjectilesInRectangle(ux - boxSize, uz - boxSize, ux + boxSize, uz + boxSize)
-
-    local newProjectiles = {}
-    local currentTime = Spring.GetTimer()
     local trackedProjectiles = unitData.projectiles or {}
     local knownProjectileIDs = {}
     for _, proj in ipairs(trackedProjectiles) do
         knownProjectileIDs[proj.id] = true
     end
+    local newProjectiles = {}
+    local currentTime = Spring.GetTimer()
 
-    for i = 1, #projectilesInBox do
-        local projectileID = projectilesInBox[i]
-        if Spring.GetProjectileOwnerID(projectileID) == unitID and not knownProjectileIDs[projectileID] then
-            table.insert(newProjectiles, {
-                id = projectileID,
-                creationTime = currentTime
-            })
+    if existingProjectiles then
+        for _, projectileID in ipairs(existingProjectiles) do
+            if Spring.GetProjectileOwnerID(projectileID) == unitID and not knownProjectileIDs[projectileID] then
+                table.insert(newProjectiles, {
+                    id = projectileID,
+                    creationTime = currentTime
+                })
+            end
+        end
+    else
+        local boxSize = 200
+        local projectilesInBox = Spring.GetProjectilesInRectangle(ux - boxSize, uz - boxSize, ux + boxSize, uz + boxSize)
+
+        for i = 1, #projectilesInBox do
+            local projectileID = projectilesInBox[i]
+            if Spring.GetProjectileOwnerID(projectileID) == unitID and not knownProjectileIDs[projectileID] then
+                table.insert(newProjectiles, {
+                    id = projectileID,
+                    creationTime = currentTime
+                })
+            end
         end
     end
 
@@ -160,20 +183,19 @@ function ProjectileTracker.update(frameNum)
     local currentTime = Spring.GetTimer()
     local unitsToTrack = {}
 
-    -- 1. Add units from the global config list (for new cycle feature)
-    local trackableDefIDList = {}
-    for id in pairs(trackableUnitDefIDs) do
-        table.insert(trackableDefIDList, id)
-    end
-
-    if #trackableDefIDList > 0 then
-        local allTrackableUnits = findUnits(Spring.GetTeamList(), trackableDefIDList)
+    -- 1. Add persistently tracked units
+    if #trackableUnitDefIDs > 0 then
+        local allTrackableUnits = findUnits(Spring.GetTeamList(), trackableUnitDefIDs)
         for _, unitID in ipairs(allTrackableUnits) do
             unitsToTrack[unitID] = true
         end
     end
 
-    -- 2. Add the unit that is "armed" for tracking (for old functionality)
+    for _, unitId in ipairs(STATE.core.projectileTracking.registeredUnitIds) do
+        unitsToTrack[unitId] = true
+    end
+
+    -- 2. Add the unit that is "armed" for tracking
     local projCamState = STATE.active.mode.projectile_camera
     if projCamState and projCamState.isArmed and projCamState.watchedUnitID then
         unitsToTrack[projCamState.watchedUnitID] = true
@@ -186,11 +208,17 @@ function ProjectileTracker.update(frameNum)
         end
     end
 
+    local existingProjectiles
+    if not initialized then
+        initialized = true
+        existingProjectiles = Spring.GetAllProjectiles()
+    end
+
     -- 4. Find new projectiles for all currently tracked units
     for unitID, _ in pairs(unitsToTrack) do
         if Spring.ValidUnitID(unitID) then
-            ProjectileTracker.initUnitTracking(unitID) -- This will also mark them as active
-            local newProjectiles = ProjectileTracker.findNewProjectiles(unitID)
+            ProjectileTracker.initTemporaryUnitTracking(unitID) -- This will also mark them as active
+            local newProjectiles = ProjectileTracker.findNewProjectiles(unitID, existingProjectiles)
             if #newProjectiles > 0 then
                 local unitProjectileData = STATE.core.projectileTracking.unitProjectiles[unitID]
                 -- Only proceed if the unit data exists, as init may fail if team is not found
@@ -251,7 +279,8 @@ end
 ---@return Projectile|nil The projectile data, or nil if not found.
 function ProjectileTracker.getProjectileByID(projectileID)
     if not projectileID then return nil end
-    for unitID, unitData in pairs(STATE.core.projectileTracking.unitProjectiles) do
+    projectileID = tonumber(projectileID)
+    for _, unitData in pairs(STATE.core.projectileTracking.unitProjectiles) do
         for _, projectile in ipairs(unitData.projectiles) do
             if projectile.id == projectileID then
                 return projectile
@@ -260,7 +289,6 @@ function ProjectileTracker.getProjectileByID(projectileID)
     end
     return nil
 end
-
 
 --- Gets a flattened list of all projectiles currently being tracked.
 ---@return Projectile[] allProjectiles A list of all projectiles, sorted newest first.

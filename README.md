@@ -86,3 +86,4 @@ Where:
 - Added script runner which allows you to run a list of Spring commands at specific timestamps/frames
 - Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
 - Added TurboBarCam HUD widget which displays debug information about the camera and can display alternative game ui
+- Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future

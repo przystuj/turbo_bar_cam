@@ -79,7 +79,7 @@
         <div class="team-column">
             <div class="player-row left" data-for="player : teamA_players">
                 <div class="player-color-box" data-style-background-color="player.color"></div>
-                <img class="player-rank" data-attr-src="player.rankIcon" />
+                <img class="player-rank" data-attr-src="player.rankIcon"/>
                 <span class="player-skill">{{ player.skill }}</span>
                 <span class="player-name">{{ player.name }}</span>
             </div>
@@ -90,11 +90,26 @@
         <div class="team-column">
             <div class="player-row" data-for="player : teamB_players">
                 <div class="player-color-box" data-style-background-color="player.color"></div>
-                <img class="player-rank" data-attr-src="player.rankIcon" />
+                <img class="player-rank" data-attr-src="player.rankIcon"/>
                 <span class="player-skill">{{ player.skill }}</span>
                 <span class="player-name">{{ player.name }}</span>
             </div>
         </div>
+    </div>
+
+    <div id="projectile-info-container" data-model="turbobarcam_hud_model" data-if="projectilesVisible">
+        <table class="projectile-table">
+            <tr>
+                <th>Id</th>
+                <th>OwnerId</th>
+                <th>Time</th>
+            </tr>
+            <tr data-for="projectile : trackedProjectiles">
+                <td>{{ projectile.id }}</td>
+                <td>{{ projectile.ownerId }}</td>
+                <td>{{ projectile.time }}</td>
+            </tr>
+        </table>
     </div>
 
     <div id="status-bar" data-model="turbobarcam_hud_model" data-if="statusVisible">

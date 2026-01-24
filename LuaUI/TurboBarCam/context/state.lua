@@ -100,7 +100,8 @@ if not WG.TurboBarCam.STATE then
             },
 
             projectileTracking = {
-                unitProjectiles = {}
+                unitProjectiles = {},
+                registeredUnitIds = {},
             },
 
             anchor = {
@@ -173,9 +174,9 @@ if not WG.TurboBarCam.STATE then
                 unit_follow = {
                     inTargetSelectionMode = false,
                     prevFreeCamState = false,
-                    prevFixedPoint = nil,
-                    isFreeCameraActive = false,
-                    fixedTargetID = nil,
+                    prevFixedTarget = nil,
+                    fixedTarget = nil,
+                    fixedTargetType = nil,
                     fixedPoint = nil,
                     isFixedPointActive = false,
                     isAttacking = false,
