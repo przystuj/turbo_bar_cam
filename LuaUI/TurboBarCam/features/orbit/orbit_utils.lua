@@ -56,10 +56,10 @@ function OrbitCameraUtils.adjustParams(params)
         return
     end
 
-    ParamUtils.adjustParams(params, "ORBIT", function()
+    local isTemporary = ParamUtils.adjustParams(params, "ORBIT", function()
         OrbitCameraUtils.resetSettings()
     end)
-    SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
+    SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID, isTemporary)
 end
 
 --- Resets orbit settings to defaults

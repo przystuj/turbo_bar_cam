@@ -11,6 +11,7 @@ local UnitFollowTargeting = ModuleManager.UnitFollowTargeting(function(m) UnitFo
 local UnitFollowPersistence = ModuleManager.UnitFollowPersistence(function(m) UnitFollowPersistence = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 ---@class UnitFollowUtils
 local UnitFollowUtils = {}
@@ -352,7 +353,7 @@ function UnitFollowUtils.adjustParams(params)
     -- Handle reset directly
     if params == "reset" then
         UnitFollowUtils.resetOffsets()
-        UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.active.mode.unitID)
+        SettingsManager.saveModeSettings("unit_follow", STATE.active.mode.unitID)
         return
     end
 
@@ -370,11 +371,11 @@ function UnitFollowUtils.adjustParams(params)
 
     Log:trace("Adjusting unit_follow parameters for submode: " .. currentSubMode)
 
-    ParamUtils.adjustParams(params, "UNIT_FOLLOW", function()
+    local isTemporary = ParamUtils.adjustParams(params, "UNIT_FOLLOW", function()
         UnitFollowUtils.resetOffsets()
     end, currentSubMode, getParamPrefixes)
 
-    UnitFollowPersistence.saveUnitSettings("unit_follow", STATE.active.mode.unitID)
+    SettingsManager.saveModeSettings("unit_follow", STATE.active.mode.unitID, isTemporary)
 end
 
 --- Resets camera offsets to default values

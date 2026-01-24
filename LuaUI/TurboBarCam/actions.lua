@@ -12,6 +12,7 @@ local WidgetManager = ModuleManager.WidgetManager(function(m) WidgetManager = m 
 local DebugUtils = ModuleManager.DebugUtils(function(m) DebugUtils = m end)
 local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end)
 local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
+local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
 
 ---@class Actions
@@ -99,6 +100,12 @@ function Actions.scriptActions()
                 ProjectileTracker.registerUnitIds(args)
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_reload_settings", 'tp',
+            function(_, _, args)
+                SettingsManager.loadModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()
@@ -184,8 +191,8 @@ function Actions.unitFollowActions()
             end, nil)
 
     Actions.registerAction("turbobarcam_unit_follow_adjust_params", 'tR',
-            function(_, params)
-                UnitFollowCamera.adjustParams(params)
+            function(_, _, args)
+                UnitFollowCamera.adjustParams(args[1], args[2] == "temp")
                 return false
             end)
 

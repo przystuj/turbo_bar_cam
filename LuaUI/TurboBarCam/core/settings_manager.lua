@@ -65,8 +65,12 @@ end
 
 -----@param modeName string
 -----@param modeTargetId number
-function SettingsManager.saveModeSettings(modeName, modeTargetId)
+function SettingsManager.saveModeSettings(modeName, modeTargetId, isTemporary)
     if not modeName or not STATE.settings.saveModeSettingsFn[modeName] then
+        return
+    end
+    if isTemporary then
+        Log:debug("Temporary change, not saving")
         return
     end
     STATE.settings.saveModeSettingsFn[modeName](modeName, modeTargetId)

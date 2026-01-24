@@ -43,8 +43,8 @@ local function parseParams(params, moduleName)
     end
 
     -- Check if command is valid
-    if command ~= "set" and command ~= "add" then
-        Log:error("Invalid command '" .. command .. "', must be 'set', 'add', or 'reset'")
+    if command ~= "set" and command ~= "add" and command ~= "temp" then
+        Log:error("Invalid command '" .. command .. "', must be 'set', 'add', 'temp', or 'reset'")
         return nil -- Return nil on error
     end
 
@@ -188,13 +188,17 @@ local function adjustParam(command, module)
     end
 
     Log:debug(string.format("%s.%s = %s", module, command.param, displayValue))
+    if command.name == "temp" then
+        return true
+    end
 end
 
----@param params string Params to adjust in following format: [set|add|reset];[paramName],[value];[paramName2],[value2];...
+---@param params string Params to adjust in following format: [set|add|reset|temp];[paramName],[value];[paramName2],[value2];...
 ---@param module string module name as in ModifiableParams class (UNIT_FOLLOW, ORBIT, TRANSITION)
 ---@param resetFunction function function which will be called when 'reset' is used
 ---@param currentSubmode string|nil Optional current submode name (e.g., "DEFAULT", "FOLLOW")
 ---@param getSubmodeParamPrefixes function|nil Optional function that returns a table of submode_name -> prefix_string (e.g., {DEFAULT = "DEFAULT.", FOLLOW = "FOLLOW."})
+---mode 'temp' sets the values like 'set' but result isn't persisted - it will reset to previous state after disabling the mode
 function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, getSubmodeParamPrefixes)
     Log:trace("Adjusting module: " .. module .. (currentSubmode and (" (Submode: " .. currentSubmode .. ")") or ""))
     local adjustments = parseParams(params, module)
@@ -251,7 +255,7 @@ function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, 
 
             -- Only adjust if the flag is true
             if shouldProcess then
-                adjustParam(adjustment, module)
+                return adjustParam(adjustment, module)
             end
         end
     end

@@ -62,7 +62,7 @@ function ModeManager.initializeMode(newModeName, target, targetTypeString, autom
     if STATE.active.mode.name == newModeName and finalValidType == CONSTANTS.TARGET_TYPE.UNIT and
             finalValidType == STATE.active.mode.targetType and validTarget == STATE.active.mode.unitID and
             not allowReinit then
-        SettingsManager.saveModeSettings(newModeName, STATE.active.mode.unitID)
+        --SettingsManager.saveModeSettings(newModeName, STATE.active.mode.unitID) -- fixme not needed?
         ModeManager.disableMode()
         Log:trace("Toggled off mode " .. newModeName .. " for unit " .. validTarget)
         return false
@@ -108,13 +108,13 @@ function ModeManager.disableMode()
         Log:debug("Disabling mode: " .. STATE.active.mode.name)
     end
 
-    if STATE.active.mode.name then
-        if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
-            SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
-        elseif STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT then
-            SettingsManager.saveModeSettings(STATE.active.mode.name, "point")
-        end
-    end
+    --if STATE.active.mode.name then  -- fixme not needed?
+    --    if STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.UNIT then
+    --        SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
+    --    elseif STATE.active.mode.targetType == CONSTANTS.TARGET_TYPE.POINT then
+    --        SettingsManager.saveModeSettings(STATE.active.mode.name, "point")  -
+    --    end
+    --end
 
     -- Reset modes to default state
     TableUtils.syncTable(STATE.active, STATE.DEFAULT.active)

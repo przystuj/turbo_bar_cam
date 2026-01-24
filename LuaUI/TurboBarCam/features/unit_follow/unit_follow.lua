@@ -213,8 +213,8 @@ function UnitFollowCamera.clearWeaponSelection()
     UnitFollowCombatMode.clearWeaponSelection()
 end
 
-function UnitFollowCamera.adjustParams(params)
-    UnitFollowUtils.adjustParams(params)
+function UnitFollowCamera.adjustParams(params, isTemporary)
+    UnitFollowUtils.adjustParams(params, isTemporary)
 end
 
 function UnitFollowCamera.toggleCombatMode()

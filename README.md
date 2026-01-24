@@ -53,9 +53,13 @@ turbobarcam_[mode]_adjust_params [action];[param],[value];...
 
 Where:
 - `[mode]` is the camera mode (unit_follow, orbit, tracking_camera, etc.)
-- `[action]` is `add`, `set`, or `reset`
+- `[action]` is `add`, `set`, `temp` or `reset`
 - `[param]` is the parameter name
 - `[value]` is the amount to change or the value to set
+- `add` adds the value to the current parameter value
+- `set` sets the parameter value to the given value
+- `temp` sets the parameter value to the given value but resets back after changing camera mode
+- `reset` resets the parameter to its default value
 
 ## Changelog
 #### 2.1.0
@@ -87,3 +91,4 @@ Where:
 - Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
 - Added TurboBarCam HUD widget which displays debug information about the camera and can display alternative game ui
 - Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future
+- Added option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode

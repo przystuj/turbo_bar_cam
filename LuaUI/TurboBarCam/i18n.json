@@ -1,6 +1,6 @@
 {
   "turbobarcam_anchor_adjust_params": {
-    "description": "Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Camera Anchor mode, such as transition duration. Actions can be 'add', 'set', 'temp', or 'reset'.",
     "label": "Adjust Anchor Params",
     "parameters": "`action;param,value;...` (e.g., `add;DURATION,0.5` or `set;DURATION,3` or `reset`). Available param: `DURATION`."
   },
@@ -90,7 +90,7 @@
     "parameters": "`noCam` (optional boolean string: `true` to start without taking camera control, `false` or absent for normal start)"
   },
   "turbobarcam_unit_follow_adjust_params": {
-    "description": "Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', 'temp' or 'reset'.",
     "label": "Adjust Params",
     "parameters": "`action;param,value;...` (e.g., `add;DEFAULT.HEIGHT,10` or `set;MOUSE_SENSITIVITY,0.5` or `reset`). Params: `DEFAULT.HEIGHT/FORWARD/SIDE/ROTATION`, `COMBAT.HEIGHT/FORWARD/SIDE/ROTATION`, `WEAPON.HEIGHT/FORWARD/SIDE/ROTATION`, `MOUSE_SENSITIVITY`."
   },
@@ -120,12 +120,12 @@
     "parameters": "None"
   },
   "turbobarcam_group_tracking_adjust_params": {
-    "description": "Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Group Tracking Camera mode, such as camera distance, height, orbit offset, and smoothing factors. Actions can be 'add', 'set', 'temp' or 'reset'.",
     "label": "Adjust Group Track Params",
     "parameters": "`action;param,value;...` (e.g., `add;EXTRA_DISTANCE,100` or `reset`). Params: `EXTRA_DISTANCE`, `EXTRA_HEIGHT`, `ORBIT_OFFSET`, `SMOOTHING.POSITION/ROTATION`, `SMOOTHING.STABLE_POSITION/ROTATION`."
   },
   "turbobarcam_orbit_adjust_params": {
-    "description": "Adjusts parameters for the Orbit Camera mode, such as orbit height, distance, and rotation speed. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Orbit Camera mode, such as orbit height, distance, and rotation speed. Actions can be 'add', 'set', 'temp' or 'reset'.",
     "label": "Adjust Orbit Params",
     "parameters": "`action;param,value;...` (e.g., `add;SPEED,0.0002` or `reset`). Params: `HEIGHT`, `DISTANCE`, `SPEED`."
   },
@@ -155,7 +155,7 @@
     "parameters": "None (uses cursor position)"
   },
   "turbobarcam_projectile_adjust_params": {
-    "description": "Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Projectile Camera mode, such as camera distance, height, and look-ahead factor. Actions can be 'add', 'set', 'temp' or 'reset'.",
     "label": "Adjust Projectile Cam Params",
     "parameters": "`action;param,value;...` (e.g., `add;DISTANCE,50` or `reset`). Params: `DISTANCE`, `HEIGHT`, `LOOK_AHEAD`."
   },
@@ -220,7 +220,7 @@
     "parameters": "None"
   },
   "turbobarcam_tracking_camera_adjust_params": {
-    "description": "Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', or 'reset'.",
+    "description": "Adjusts parameters for the Unit Tracking Camera, primarily the vertical height offset at which the camera looks towards the unit. Actions can be 'add', 'set', 'temp' or 'reset'.",
     "label": "Adjust Unit Track Params",
     "parameters": "`action;param,value;...` (e.g., `add;HEIGHT,50` or `reset`). Available param: `HEIGHT`."
   },

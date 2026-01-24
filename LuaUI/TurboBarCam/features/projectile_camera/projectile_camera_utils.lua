@@ -219,8 +219,8 @@ function ProjectileCameraUtils.adjustParams(params)
     local currentSubmode = STATE.active.mode.projectile_camera.cameraMode
     local currentSubmodeUpper = string.upper(currentSubmode)
     Log:trace("Adjusting Projectile Camera params for submode: " .. currentSubmodeUpper)
-    ParamUtils.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
-    if STATE.active.mode.unitID then
+    local isTemporary = ParamUtils.adjustParams(params, "PROJECTILE_CAMERA", resetAndSave, currentSubmodeUpper, getProjectileParamPrefixes)
+    if STATE.active.mode.unitID and not isTemporary then
         ProjectileCameraUtils.saveSettings(STATE.active.mode.unitID)
     end
 end
