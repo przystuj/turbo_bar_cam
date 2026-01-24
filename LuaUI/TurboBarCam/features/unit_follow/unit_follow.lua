@@ -36,7 +36,7 @@ local function disableMode()
 end
 
 --- Toggles Unit Follow camera attached to a unit
-function UnitFollowCamera.toggle(unitID)
+function UnitFollowCamera.toggle(unitID, mode)
     if Utils.isTurboBarCamDisabled() then
         return
     end
@@ -63,7 +63,11 @@ function UnitFollowCamera.toggle(unitID)
         return
     end
 
-    ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT)
+    if ModeManager.initializeMode('unit_follow', unitID, CONSTANTS.TARGET_TYPE.UNIT) then
+        if mode == "combat" then
+            UnitFollowCombatMode.setCombatMode(true)
+        end
+    end
 end
 
 --- Updates the unit_follow camera position and orientation
@@ -173,16 +177,14 @@ function UnitFollowCamera.setFixedLookPoint(targetType, cmdParams)
     STATE.active.mode.unit_follow.fixedTargetType = targetType
 
     if targetType == CONSTANTS.TARGET_TYPE.UNIT then
-        local unitID = cmdParams[1]
+        local unitID = tonumber(cmdParams[1])
         if Spring.ValidUnitID(unitID) then
             STATE.active.mode.unit_follow.fixedTarget = unitID
             x, y, z = Spring.GetUnitPosition(unitID)
         end
     elseif targetType == CONSTANTS.TARGET_TYPE.PROJECTILE then
-
         local projectileID = cmdParams[1]
         local projectile = ProjectileTracker.getProjectileByID(projectileID)
-
         if projectile then
             x, y, z = projectile.position.x, projectile.position.y, projectile.position.z
             STATE.active.mode.unit_follow.fixedTarget = projectileID

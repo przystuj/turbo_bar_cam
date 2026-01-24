@@ -128,6 +128,20 @@ function ScriptRunner.togglePlayersList()
     Log:debug("Show player list: ", STATE.core.scriptRunner.showPlayers)
 end
 
+--- skip to the next step
+---@param delay number How many frames before next step it should stop
+function ScriptRunner.fastForward(delay)
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    delay = tonumber(delay) or 60
+
+    local nextStepFrame = STATE.core.scriptRunner.script[STATE.core.scriptRunner.currentStep].frame
+
+    Spring.SendCommands("skip f" .. nextStepFrame - delay)
+end
+
 function ScriptRunner.update(frame)
     if not STATE.core.scriptRunner.enabled then
         return

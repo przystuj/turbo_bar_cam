@@ -89,7 +89,7 @@ Where:
   - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
 - Added `turbobarcam_unit_follow_reset_attack_state n` - stop looking at the targets in combat mode for n seconds
 - Unit follow uses actual unit orientation instead of the fixed one
-- Use `turbobarcam_toggle_unit_follow_camera <unitId>` to follow specific unit without selecting it
+- Use `turbobarcam_toggle_unit_follow_camera <unitId> [<mode>]` to follow specific unit without selecting it
 - Attach camera to hull instead of a weapon in combat mode
 - Added script runner which allows you to run a list of Spring commands at specific timestamps/frames
 - Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
@@ -98,3 +98,4 @@ Where:
 - Added an option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
 - Added an option to override current camera smoothing. `turbobarcam_smoothing <position|rotation|reset> <value>`
 - You can now use `turbobarcam_anchor_focus <index> snap` to instantly snap to the anchor
+- Added `turbobarcam_script_ff <delay>` fast-forward to the next step in the current scrip. Delay = how many frames before the step it should skip to 

@@ -102,7 +102,7 @@ function Actions.scriptActions()
             end)
 
     Actions.registerAction("turbobarcam_reload_settings", 'tp',
-            function(_, _, args)
+            function()
                 SettingsManager.loadModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
                 return false
             end)
@@ -110,6 +110,12 @@ function Actions.scriptActions()
     Actions.registerAction("turbobarcam_smoothing", 'tp',
             function(_, _, args)
                 WidgetManager.smoothingOverride(args[1], args[2])
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_script_ff", 'tp',
+            function(_, params)
+                ScriptRunner.fastForward(params)
                 return false
             end)
 end
@@ -186,7 +192,7 @@ end
 function Actions.unitFollowActions()
     Actions.registerAction("turbobarcam_toggle_unit_follow_camera", 'tp',
             function(_, _, args)
-                UnitFollowCamera.toggle(args[1])
+                UnitFollowCamera.toggle(args[1], args[2])
                 return true
             end, nil)
 

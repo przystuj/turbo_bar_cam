@@ -92,6 +92,7 @@ function ProjectileTracker.registerUnitIds(unitIds)
         STATE.core.projectileTracking.registeredUnitIds[unitId] = true
         Log:debug("Tracking projectiles for", unitId)
     end
+    initialized = false
 end
 
 -- Mark unit tracking as inactive but retain projectile data
