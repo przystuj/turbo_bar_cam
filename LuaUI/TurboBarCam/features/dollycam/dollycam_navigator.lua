@@ -1,11 +1,8 @@
 ---@type ModuleManager
 local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
-local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "DollyCamNavigator")
 local DollyCamPathPlanner = ModuleManager.DollyCamPathPlanner(function(m) DollyCamPathPlanner = m end)
-local CameraCommons = ModuleManager.CameraCommons(function(m) CameraCommons = m end)
-local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 
 ---@class DollyCamNavigator
 local DollyCamNavigator = {}

@@ -7,7 +7,6 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
-local CameraTracker = ModuleManager.CameraTracker(function(m) CameraTracker = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 
 ---@class ModeManager

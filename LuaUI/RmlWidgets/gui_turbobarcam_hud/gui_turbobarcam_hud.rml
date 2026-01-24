@@ -103,6 +103,7 @@
         </div>
         <div class="status-right">
             <span class="status-value">{{ statusInfo }}</span>
+            <span class="mouseTarget">{{ currentMouseTarget }}</span>
             <span class="time">{{ gameTime }} (x{{ targetSpeed }})</span>
             <span class="frame">{{ gameFrame }}</span>
         </div>

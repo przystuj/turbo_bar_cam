@@ -32,7 +32,8 @@ local spGetGameSpeed = Spring.GetGameSpeed
 
 local MODEL_NAME = "turbobarcam_hud_model"
 local document
-local dm -- Data Model Handle
+---@type TurboBarCamHudModelData
+local dm
 
 ---@type WidgetState
 local STATE
@@ -121,6 +122,7 @@ end
 --------------------------------------------------------------------------------
 -- RmlUi Data Model Setup
 --------------------------------------------------------------------------------
+---@class TurboBarCamHudModelData
 local modelData = {
     visible = false,
 
@@ -162,6 +164,7 @@ local modelData = {
     teamB_players = {},
 
     statusVisible = true,
+    currentMouseTarget = "",
 }
 
 local function InitializeRml()
@@ -259,6 +262,16 @@ local function UpdateModel(dt)
         dm.statusInfo = UpdateStatusInfo()
         dm.statusVisible = true
     end
+
+    local mx, my = Spring.GetMouseState()
+    local mouseTargetType, mouseTarget = Spring.TraceScreenRay(mx, my)
+
+    if type(mouseTarget) ~= "table" then
+        dm.currentMouseTarget =  string.format("%s: %s", mouseTargetType:sub(1,1), mouseTarget)
+    else
+        dm.currentMouseTarget = ""
+    end
+
 
     -- PLAYER LIST LOGIC
     local showPlayers = false

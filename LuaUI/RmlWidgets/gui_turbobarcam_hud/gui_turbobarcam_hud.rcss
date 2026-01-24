@@ -224,7 +224,7 @@ div {
 }
 
 #status-bar {
-    width: 1300dp;
+    width: 2000dp;
     height: 20dp;
     font-size: 12dp;
     font-family: "Exo 2";
@@ -260,6 +260,11 @@ div {
     color: #fff;
     font-weight: bold;
     width: 80dp;
+}
+
+.mouseTarget {
+    color: #fff;
+    width: 50dp;
 }
 
 .frame {
