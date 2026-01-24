@@ -97,3 +97,4 @@ Where:
 - Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future
 - Added an option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
 - Added an option to override current camera smoothing. `turbobarcam_smoothing <position|rotation|reset> <value>`
+- You can now use `turbobarcam_anchor_focus <index> snap` to instantly snap to the anchor

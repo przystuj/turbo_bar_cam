@@ -116,7 +116,7 @@ function CameraAnchor.set(id)
     Log:info("Anchor " .. id .. ": Simple anchor created/updated.")
 end
 
-function CameraAnchor.focus(id)
+function CameraAnchor.focus(id, isSnap)
     if Utils.isTurboBarCamDisabled() then return true end
     local isReset = id == "reset"
 
@@ -158,7 +158,7 @@ function CameraAnchor.focus(id)
         cameraDriverJob.rotationSmoothing = cameraDriverJob.rotationSmoothing / 10
     end
     -- If we're already moving to this anchor, the second press should snap instantly.
-    if not wasInDifferentMode and (isReset or (STATE.core.anchor.lastUsedAnchor == id and STATE.core.driver.target.position)) then
+    if isSnap or (not wasInDifferentMode and (isReset or (STATE.core.anchor.lastUsedAnchor == id and STATE.core.driver.target.position))) then
         cameraDriverJob.isSnap = true
     end
 

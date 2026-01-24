@@ -276,8 +276,8 @@ function Actions.anchorActions()
             end)
 
     Actions.registerAction("turbobarcam_anchor_focus", 't',
-            function(_, index)
-                CameraAnchor.focus(index)
+            function(_, _, args)
+                CameraAnchor.focus(args[1], args[2] == "snap")
                 return true
             end)
 
