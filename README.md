@@ -100,3 +100,6 @@ Where:
 - You can now use `turbobarcam_anchor_focus <index> snap` to instantly snap to the anchor
 - Added `turbobarcam_script_ff <delay>` fast-forward to the next step in the current scrip. Delay = how many frames before the step it should skip to 
 - Added `turbobarcam_script_select_unit <unitID>` which selects the unit by id 
+- Added `turbobarcam_script_play_track <track path>` which plays selected music track. For example, `turbobarcam_script_play_track music/original/warhigh/ryan krause - alpha one.ogg` 
+- Added `turbobarcam_script_toggle_music` which toggles music on/off 
+- Use `frame=+n` in the script to skip forward n frames relative to the previous step 

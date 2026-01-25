@@ -119,6 +119,17 @@ local function refreshUnitInfo()
     end
 end
 
+-- New helper function to ensure commands are a list for the UI loop
+local function GetCommandList(cmds)
+    if type(cmds) == "table" then
+        return cmds
+    elseif type(cmds) == "string" then
+        -- Return as a single item list, or split by semicolon if your raw strings use them
+        return {cmds}
+    end
+    return {tostring(cmds)}
+end
+
 --------------------------------------------------------------------------------
 -- RmlUi Data Model Setup
 --------------------------------------------------------------------------------
@@ -168,6 +179,9 @@ local modelData = {
 
     statusVisible = true,
     currentMouseTarget = "",
+
+    scriptStepsVisible = false,
+    scriptSteps = {},
 }
 
 local function InitializeRml()
@@ -223,7 +237,7 @@ local function UpdateStatusInfo()
     end
     if STATE.core.driver.job.startTime then
         local jobDuration = Spring.DiffTimers(Spring.GetTimer(), STATE.core.driver.job.startTime)
-        status = status .. "JOB: " .. string.format("%.2f", jobDuration) .. delimiter
+        status = status .. "JOB: " .. string.format("%.2f (%d)", jobDuration, jobDuration*30) .. delimiter
     end
     for idx, unitId in ipairs(STATE.core.scriptRunner.unitsToTrack) do
         if Spring.ValidUnitID(unitId) then
@@ -233,7 +247,8 @@ local function UpdateStatusInfo()
     ---@type ScriptStep[]
     local script = STATE.core.scriptRunner.script
     if STATE.core.scriptRunner.enabled then
-        status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@" .. script[STATE.core.scriptRunner.currentStep].frame
+        local nextStepFrame = script[STATE.core.scriptRunner.currentStep].frame
+        status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@" .. nextStepFrame
     end
     return status
 end
@@ -304,6 +319,38 @@ local function UpdateModel(dt)
 
     dm.projectilesVisible = dm.statusVisible and #projectileData > 0
     dm.trackedProjectiles = projectileData
+
+    -- SCRIPT STEPS LOGIC
+    local scriptData = {}
+    local runner = STATE.core.scriptRunner
+
+    if runner and runner.enabled and runner.script then
+        local currentIdx = runner.currentStep
+        local script = runner.script
+
+        -- 1. Current Step
+        if script[currentIdx] then
+            table.insert(scriptData, {
+                label = "Current",
+                frame = tostring(frame - script[currentIdx].frame) .. " (" .. script[currentIdx].frame .. ")",
+                -- Use the new list helper here
+                commandsList = GetCommandList(script[currentIdx].commands)
+            })
+        end
+
+        -- 2. Next Step
+        if script[currentIdx + 1] then
+            table.insert(scriptData, {
+                label = "Next",
+                frame = script[currentIdx + 1].frame,
+                -- Use the new list helper here
+                commandsList = GetCommandList(script[currentIdx + 1].commands)
+            })
+        end
+    end
+
+    dm.scriptSteps = scriptData
+    dm.scriptStepsVisible = dm.statusVisible and (#scriptData > 0)
 
 
     -- PLAYER LIST LOGIC

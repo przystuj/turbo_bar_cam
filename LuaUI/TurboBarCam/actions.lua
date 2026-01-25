@@ -124,6 +124,18 @@ function Actions.scriptActions()
                 ScriptRunner.selectUnit(params)
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_script_play_track", 'tp',
+            function(_, params)
+                ScriptRunner.playTrack(params)
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_script_toggle_music", 'tp',
+            function()
+                ScriptRunner.toggleMusic()
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()

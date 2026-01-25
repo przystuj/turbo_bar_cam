@@ -9,7 +9,7 @@ local Log = ModuleManager.Log(function(m) Log = m end, "ScriptRunner")
 local ScriptRunner = {}
 
 ---@class ScriptStep
----@field commands string
+---@field commands string|string[]
 ---@field timestamp string
 ---@field frame number
 ---@field isDone boolean
@@ -46,8 +46,7 @@ local function start(isFinal)
 
     local currentFrame = Spring.GetGameFrame()
     local currentStep = 1
-    local message = ""
-    local lastStepFrame = -1
+    local lastStepFrame = 0
 
     for _, step in ipairs(script) do
         if step.timestamp and step.timestamp:match("[^%d:]") then
@@ -63,20 +62,22 @@ local function start(isFinal)
         if step.timestamp then
             step.frame = timestampToSeconds(step.timestamp) * gameFps
         end
-        step.frame = tonumber(step.frame)
+
+        if step.frame:sub(1, 1) == "+" then
+            step.frame = tonumber(step.frame:sub(2) + lastStepFrame)
+        else
+            step.frame = tonumber(step.frame)
+        end
 
         if step.frame < lastStepFrame then
             Log:error("Inconsistent timeline detected", step)
         end
         lastStepFrame = step.frame
 
-        message = message .. step.frame .. ": " .. step.commands
-        if step.frame < currentFrame and not step.commands:match("^skip ") then
+        if step.frame < currentFrame and type(step.commands) == "string" and not step.commands:match("^skip ") then
             step.isDone = true
             currentStep = currentStep + 1
-            message = message .. " (skipped)"
         end
-        message = message .. "\n"
     end
 
     if currentStep > #script then
@@ -88,14 +89,14 @@ local function start(isFinal)
     STATE.core.scriptRunner.enabled = true
     STATE.core.scriptRunner.stepsCount = #script
     STATE.core.scriptRunner.currentStep = currentStep
-    Log:info("Script enabled\n" .. message)
+    Log:info("Script enabled")
     if currentFrame < 1 then
         Spring.SendCommands("forcestart")
         Spring.SendCommands("skip 1")
     end
-    Spring.SendCommands("HideInterface")
     if isFinal == "true" then
         STATE.core.scriptRunner.isFinal = true
+        Spring.SendCommands("HideInterface")
         Spring.SendCommands("togglewidget Hide Cursor")
     end
 end
@@ -151,6 +152,21 @@ function ScriptRunner.selectUnit(unitId)
     Log:debug("Selected unit", unitId)
 end
 
+function ScriptRunner.playTrack(trackPath)
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    WG['music'].playTrack(trackPath)
+end
+
+function ScriptRunner.toggleMusic()
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+    Spring.PauseSoundStream()
+end
+
 function ScriptRunner.update(frame)
     if not STATE.core.scriptRunner.enabled then
         return
@@ -161,7 +177,13 @@ function ScriptRunner.update(frame)
 
     for _, step in ipairs(script) do
         if not step.isDone and step.frame <= frame then
-            Spring.SendCommands(step.commands)
+            if type(step.commands) == "string" then
+                Spring.SendCommands(step.commands)
+            else
+                for _, command in ipairs(step.commands) do
+                    Spring.SendCommands(command)
+                end
+            end
             step.isDone = true
             STATE.core.scriptRunner.currentStep = STATE.core.scriptRunner.currentStep + 1
         end

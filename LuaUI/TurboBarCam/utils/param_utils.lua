@@ -204,7 +204,6 @@ function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, 
     local adjustments = parseParams(params, module)
 
     if not adjustments then
-        -- parseParams returned an error
         return
     end
 
@@ -212,6 +211,8 @@ function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, 
     if currentSubmode and getSubmodeParamPrefixes then
         submodeParamPrefixes = getSubmodeParamPrefixes()
     end
+
+    local isTemporary = false
 
     ---@param adjustment CommandData
     for _, adjustment in ipairs(adjustments) do
@@ -248,6 +249,7 @@ function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, 
 
                 -- If it's a submode param but *not* for the current submode, skip it
                 if isSubmodeParam and not belongsToCurrentSubmode then
+
                     Log:trace("Skipping param '" .. paramName .. "' as it belongs to a different submode.")
                     shouldProcess = false
                 end
@@ -255,10 +257,11 @@ function ParamUtils.adjustParams(params, module, resetFunction, currentSubmode, 
 
             -- Only adjust if the flag is true
             if shouldProcess then
-                return adjustParam(adjustment, module)
+                isTemporary = adjustParam(adjustment, module)
             end
         end
     end
+    return isTemporary
 end
 
 return ParamUtils

@@ -112,6 +112,21 @@
         </table>
     </div>
 
+    <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">
+
+        <div class="script-card" data-for="step : scriptSteps">
+            <div class="script-card-header">
+                &lt;{{ step.label }} Step Frame: {{ step.frame }}&gt;
+            </div>
+            <div class="script-card-body">
+                <div class="script-cmd-line" data-for="cmd : step.commandsList">
+                    {{ cmd }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
     <div id="status-bar" data-model="turbobarcam_hud_model" data-if="statusVisible">
         <div class="status-left">
             <span class="console-value">{{ lastConsoleMsg }}</span>

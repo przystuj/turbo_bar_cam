@@ -412,19 +412,65 @@ div {
     vertical-align: middle;
 }
 
-/* Header Styling */
 .projectile-table th {
     color: #fdc04c;
-    border-bottom: 2dp #fdc04c; /* Slightly thicker border for header */
+    border-bottom: 2dp #fdc04c;
     font-weight: bold;
 }
 
-/* Cell Styling */
 .projectile-table td {
     border-bottom: 1dp #2c2c2c;
 }
 
-/* Zebra Striping (Optional) */
 .projectile-table tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 30);
+}
+
+#script-info-container {
+    width: 600dp;
+    height: auto;
+    position: absolute;
+    top: 160dp;
+    left: 56dp;
+
+    background-color: rgba(0, 0, 0, 100);
+    padding: 0dp;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10dp;
+
+    z-index: 10;
+    color: #ffffff;
+}
+
+.script-card {
+    display: block;
+    width: 100%;
+    background-color: rgba(0,0,0,0.85);
+    border: 1dp #2c2c2c;
+    border-left: 3dp #fdc04c;
+    padding: 10dp;
+    box-sizing: border-box;
+    box-shadow: 2dp 2dp 4dp rgba(0,0,0,0.5);
+}
+
+.script-card-header {
+    font-size: 14dp;
+    font-weight: bold;
+    color: #fdc04c;
+    margin-bottom: 5dp;
+    border-bottom: 1dp #444;
+    padding-bottom: 3dp;
+}
+
+.script-card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.script-cmd-line {
+    font-size: 13dp;
+    color: #ddd;
 }
