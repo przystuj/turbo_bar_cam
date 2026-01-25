@@ -120,13 +120,22 @@ function ScriptRunner.toggle(isFinal)
     end
 end
 
-function ScriptRunner.togglePlayersList()
+function ScriptRunner.togglePlayersList(team)
     if Utils.isTurboBarCamDisabled() then
         return false
     end
 
-    STATE.core.scriptRunner.showPlayers = not STATE.core.scriptRunner.showPlayers
-    Log:debug("Show player list: ", STATE.core.scriptRunner.showPlayers)
+    if team == "A" then
+        STATE.core.scriptRunner.showTeamA = not STATE.core.scriptRunner.showTeamA
+    elseif team == "B" then
+        STATE.core.scriptRunner.showTeamB = not STATE.core.scriptRunner.showTeamB
+    else
+        STATE.core.scriptRunner.showPlayers = not STATE.core.scriptRunner.showPlayers
+        STATE.core.scriptRunner.showTeamA = STATE.core.scriptRunner.showPlayers
+        STATE.core.scriptRunner.showTeamB = STATE.core.scriptRunner.showPlayers
+    end
+
+    Log:debug("Show player list: ", STATE.core.scriptRunner.showPlayers, STATE.core.scriptRunner.showTeamA, STATE.core.scriptRunner.showTeamB)
 end
 
 --- skip to the next step

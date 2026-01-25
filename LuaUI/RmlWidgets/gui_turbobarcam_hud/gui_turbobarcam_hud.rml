@@ -74,10 +74,10 @@
     </div>
 
 
-    <div id="player-list-container" data-model="turbobarcam_hud_model" data-style-opacity="playerListOpacity">
+    <div id="player-list-wrapper" data-model="turbobarcam_hud_model" data-style-opacity="playerListOpacity">
 
-        <div class="team-column">
-            <div class="player-row left" data-for="player : teamA_players">
+        <div class="team-panel left" data-style-opacity="teamAOpacity">
+            <div class="player-row" data-for="player : teamA_players">
                 <div class="player-color-box" data-style-background-color="player.color"></div>
                 <img class="player-rank" data-attr-src="player.rankIcon"/>
                 <span class="player-skill">{{ player.skill }}</span>
@@ -85,16 +85,15 @@
             </div>
         </div>
 
-        <div class="vs-text">VS</div>
-
-        <div class="team-column">
+        <div class="team-panel right" data-style-opacity="teamBOpacity">
             <div class="player-row" data-for="player : teamB_players">
-                <div class="player-color-box" data-style-background-color="player.color"></div>
-                <img class="player-rank" data-attr-src="player.rankIcon"/>
-                <span class="player-skill">{{ player.skill }}</span>
                 <span class="player-name">{{ player.name }}</span>
+                <span class="player-skill">{{ player.skill }}</span>
+                <img class="player-rank" data-attr-src="player.rankIcon"/>
+                <div class="player-color-box" data-style-background-color="player.color"></div>
             </div>
         </div>
+
     </div>
 
     <div id="projectile-info-container" data-model="turbobarcam_hud_model" data-if="projectilesVisible">

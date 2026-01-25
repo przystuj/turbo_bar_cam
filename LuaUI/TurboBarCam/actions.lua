@@ -57,7 +57,7 @@ function Actions.coreActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_toggle_zoom", 'p',
+    Actions.registerAction("turbobarcam_toggle_zoom", 'tp',
             function()
                 WidgetManager.toggleZoom()
                 return true
@@ -90,8 +90,8 @@ function Actions.scriptActions()
             end)
 
     Actions.registerAction("turbobarcam_script_show_players_list", 'tp',
-            function()
-                ScriptRunner.togglePlayersList()
+            function(_, params)
+                ScriptRunner.togglePlayersList(params)
                 return false
             end)
 

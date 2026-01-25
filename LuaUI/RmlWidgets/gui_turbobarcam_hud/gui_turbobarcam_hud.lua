@@ -55,6 +55,9 @@ local targetEmpPct = 0
 local targetXpPct = 0
 local targetFFProgress = 0
 
+local teamCache = {}
+local allyTeamList
+
 --------------------------------------------------------------------------------
 -- Data Processing
 --------------------------------------------------------------------------------
@@ -125,9 +128,9 @@ local function GetCommandList(cmds)
         return cmds
     elseif type(cmds) == "string" then
         -- Return as a single item list, or split by semicolon if your raw strings use them
-        return {cmds}
+        return { cmds }
     end
-    return {tostring(cmds)}
+    return { tostring(cmds) }
 end
 
 --------------------------------------------------------------------------------
@@ -171,6 +174,8 @@ local modelData = {
     ffOpacity = 1.0,
 
     playerListOpacity = 0.0,
+    teamAOpacity = 1.0,
+    teamBOpacity = 1.0,
     teamA_players = {},
     teamB_players = {},
 
@@ -237,7 +242,7 @@ local function UpdateStatusInfo()
     end
     if STATE.core.driver.job.startTime then
         local jobDuration = Spring.DiffTimers(Spring.GetTimer(), STATE.core.driver.job.startTime)
-        status = status .. "JOB: " .. string.format("%.2f (%d)", jobDuration, jobDuration*30) .. delimiter
+        status = status .. "JOB: " .. string.format("%.2f (%d)", jobDuration, jobDuration * 30) .. delimiter
     end
     for idx, unitId in ipairs(STATE.core.scriptRunner.unitsToTrack) do
         if Spring.ValidUnitID(unitId) then
@@ -258,10 +263,12 @@ local function FindNextSpeedReset(script, currentStepIndex)
 
     for i = currentStepIndex, #script do
         local step = script[i]
-        local cmd = step.commands:lower()
-        local speedVal = cmd:match("setspeed%s+(%d+)")
-        if speedVal and tonumber(speedVal) == 1 then
-            return step.frame, i
+        if step then
+            local cmd = step.commands:lower()
+            local speedVal = cmd:match("setspeed%s+(%d+)")
+            if speedVal and tonumber(speedVal) == 1 then
+                return step.frame, i
+            end
         end
     end
     return nil, nil
@@ -354,12 +361,10 @@ local function UpdateModel(dt)
 
 
     -- PLAYER LIST LOGIC
-    local showPlayers = false
-    if STATE and STATE.core and STATE.core.scriptRunner then
-        showPlayers = STATE.core.scriptRunner.showPlayers
-    end
+    local showPlayers = STATE.core.scriptRunner.showPlayers
+    local showTeamA = STATE.core.scriptRunner.showTeamA
+    local showTeamB = STATE.core.scriptRunner.showTeamB
 
-    -- 1. Handle Fading
     local FADE_SPEED = 1
     local targetOpacity = showPlayers and 1.0 or 0.0
 
@@ -371,9 +376,27 @@ local function UpdateModel(dt)
         end
     end
 
+    local targetA = (showTeamA and showPlayers and 1.0) or 0.0
+    if dm.teamAOpacity ~= targetA then
+        if dm.teamAOpacity < targetA then
+            dm.teamAOpacity = math.min(1.0, dm.teamAOpacity + (FADE_SPEED * dt))
+        else
+            dm.teamAOpacity = math.max(0.0, dm.teamAOpacity - (FADE_SPEED * dt))
+        end
+    end
+
+    local targetB = (showTeamB and showPlayers and 1.0) or 0.0
+    if dm.teamBOpacity ~= targetB then
+        if dm.teamBOpacity < targetB then
+            dm.teamBOpacity = math.min(1.0, dm.teamBOpacity + (FADE_SPEED * dt))
+        else
+            dm.teamBOpacity = math.max(0.0, dm.teamBOpacity - (FADE_SPEED * dt))
+        end
+    end
+
     -- 2. Populate List
     if dm.playerListOpacity > 0.01 then
-        local allyTeamList = Spring.GetAllyTeamList()
+        allyTeamList = allyTeamList or Spring.GetAllyTeamList()
         local allyA = allyTeamList[1]
         local allyB = allyTeamList[2]
 
@@ -432,11 +455,12 @@ local function UpdateModel(dt)
                     end
                 end
             end
+            teamCache[allyTeamID] = result
             return result
         end
 
-        dm.teamA_players = BuildTeamTable(allyA)
-        dm.teamB_players = BuildTeamTable(allyB)
+        dm.teamA_players = teamCache[allyA] or BuildTeamTable(allyA)
+        dm.teamB_players = teamCache[allyB] or BuildTeamTable(allyB)
     end
 
 

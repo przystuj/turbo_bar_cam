@@ -289,86 +289,90 @@ div {
     color: #fff;
 }
 
-#player-list-container {
-    width: 650dp;
-    height: auto;
-
-    /* Centering logic */
+#player-list-wrapper {
+    width: 100%;
+    height: 100%;
     position: absolute;
-    top: 375dp;
-    left: 725dp;
-
-    background-color: #1a1a1a;
-    border: 1dp #2c2c2c;
-    border-top: 3dp #fdc04c;
-    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
-
-    padding: 40dp;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
-
+    top: 0;
+    left: 0;
+    pointer-events: none;
     z-index: 10;
 }
 
-.team-column {
+.team-panel {
     display: flex;
     flex-direction: column;
-    width: 45%;
+    width: 450dp;
+    height: auto;
+
+    background-color: rgba(26, 26, 26, 140);
+    border: 1dp #2c2c2c;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
+
+    padding: 20dp;
+    gap: 40dp;
+
+    /* Crucial: Switch to absolute positioning for robust placement */
+    position: absolute;
+    top: 15%; /* Positions them a bit down from the top edge */
 }
 
-.vs-text {
-    font-size: 30dp;
-    font-weight: bold;
-    color: #fdc04c;
-    margin-left: 20dp;
-    margin-right: 20dp;
-    text-align: center;
+/* Explicitly anchor the left panel */
+.team-panel.left {
+    left: 50dp;
+    align-items: flex-start;
+    border-top: 6dp #0B3EF3; /* blue */
+}
+
+/* Explicitly anchor the right panel */
+.team-panel.right {
+    left: 1500dp;
+    align-items: flex-end;
+    border-top: 6dp #FF1005; /* red */
 }
 
 .player-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    margin-bottom: 10dp;
-    height: 20dp;
+    height: 28dp;
+    width: 100%;
 }
 
-.player-row.left {
-    display: flex;
-    flex-direction: row-reverse;
-    align-items: center;
-    margin-bottom: 10dp;
-    height: 20dp;
+/* Right panel rows need contents aligned to the right */
+.team-panel.right .player-row {
+    justify-content: flex-end;
 }
 
 .player-color-box {
-    width: 18dp;
-    height: 18dp;
+    width: 24dp;
+    height: 24dp;
+    margin-right: 10dp;
+    margin-left: 10dp;
+    border: 1dp rgba(255,255,255,0.3);
+}
+
+.player-rank {
+    width: 28dp;
+    height: 28dp;
     margin-right: 8dp;
     margin-left: 8dp;
 }
 
+.player-skill {
+    font-size: 26dp;
+    color: #aaa;
+    margin-left: 12dp;
+    margin-right: 12dp;
+    min-width: 40dp;
+    text-align: center;
+}
+
 .player-name {
-    font-size: 20dp;
+    font-size: 30dp;
     color: white;
     white-space: nowrap;
-}
-
-.player-rank {
-    width: 20dp;
-    height: 20dp;
-    margin-right: 5dp;
-    margin-left: 5dp;
-}
-
-.player-skill {
-    font-size: 18dp;
-    color: #aaa;
-    margin-left: 10dp;
-    margin-right: 10dp;
-    font-weight: bold;
+    /* text-shadow removed to prevent syntax errors */
 }
 
 #projectile-info-container {
