@@ -89,7 +89,7 @@ end
 ---@param unitIds number[] Track projectiles for these units in the future
 function ProjectileTracker.registerUnitIds(unitIds)
     for _, unitId in ipairs(unitIds) do
-        STATE.core.projectileTracking.registeredUnitIds[unitId] = true
+        STATE.core.projectileTracking.registeredUnitIds[tonumber(unitId)] = true
         Log:debug("Tracking projectiles for", unitId)
     end
     initialized = false
@@ -192,7 +192,7 @@ function ProjectileTracker.update(frameNum)
         end
     end
 
-    for _, unitId in ipairs(STATE.core.projectileTracking.registeredUnitIds) do
+    for unitId, _ in pairs(STATE.core.projectileTracking.registeredUnitIds) do
         unitsToTrack[unitId] = true
     end
 
