@@ -39,9 +39,6 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
     -- Update tracking if it's enabled
     if STATE.active.mode.name and STATE.active.mode.unitID ~= unitID then
-        -- Save settings for the old unit before switching
-        SettingsManager.saveModeSettings(STATE.active.mode.name, STATE.active.mode.unitID)
-
         UnitFollowCamera.handleSelectNewUnit()
         ProjectileCamera.handleSelectNewUnit()
 
