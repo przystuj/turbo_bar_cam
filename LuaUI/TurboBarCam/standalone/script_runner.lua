@@ -142,6 +142,15 @@ function ScriptRunner.fastForward(delay)
     Spring.SendCommands("skip f" .. nextStepFrame - delay)
 end
 
+function ScriptRunner.selectUnit(unitId)
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    Spring.SelectUnit(unitId)
+    Log:debug("Selected unit", unitId)
+end
+
 function ScriptRunner.update(frame)
     if not STATE.core.scriptRunner.enabled then
         return

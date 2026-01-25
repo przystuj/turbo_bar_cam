@@ -118,6 +118,12 @@ function Actions.scriptActions()
                 ScriptRunner.fastForward(params)
                 return false
             end)
+
+    Actions.registerAction("turbobarcam_script_select_unit", 'tp',
+            function(_, params)
+                ScriptRunner.selectUnit(params)
+                return false
+            end)
 end
 
 function Actions.dollyCamActions()

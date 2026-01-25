@@ -99,3 +99,4 @@ Where:
 - Added an option to override current camera smoothing. `turbobarcam_smoothing <position|rotation|reset> <value>`
 - You can now use `turbobarcam_anchor_focus <index> snap` to instantly snap to the anchor
 - Added `turbobarcam_script_ff <delay>` fast-forward to the next step in the current scrip. Delay = how many frames before the step it should skip to 
+- Added `turbobarcam_script_select_unit <unitID>` which selects the unit by id 
