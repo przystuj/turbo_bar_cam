@@ -58,6 +58,9 @@ local targetFFProgress = 0
 local teamCache = {}
 local allyTeamList
 
+local veterancyData = nil ---@type ReplayUnitMetadata
+local lastLoadedFile = nil
+
 --------------------------------------------------------------------------------
 -- Data Processing
 --------------------------------------------------------------------------------
@@ -122,7 +125,6 @@ local function refreshUnitInfo()
     end
 end
 
--- New helper function to ensure commands are a list for the UI loop
 local function GetCommandList(cmds)
     if type(cmds) == "table" then
         return cmds
@@ -131,6 +133,21 @@ local function GetCommandList(cmds)
         return { cmds }
     end
     return { tostring(cmds) }
+end
+
+local function loadVeterancyData()
+    if not WG.ReplayMetadata or not WG.ReplayMetadata.filename then return end
+
+    local filename = WG.ReplayMetadata.filename
+    if filename == lastLoadedFile then return end
+
+    local path = "LuaUI/veterancyData/" .. filename .. "_veterancyData.lua"
+    if VFS.FileExists(path) then
+        veterancyData = VFS.Include(path)
+        lastLoadedFile = filename
+    else
+        veterancyData = nil
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -187,6 +204,12 @@ local modelData = {
 
     scriptStepsVisible = false,
     scriptSteps = {},
+
+    vetVisible = false,
+    currentVetStatus = "",
+    futureVetStates = {},
+
+    currentUnit = "",
 }
 
 local function InitializeRml()
@@ -250,7 +273,7 @@ local function UpdateStatusInfo()
         end
     end
     ---@type ScriptStep[]
-    local script = STATE.core.scriptRunner.script
+    local script = STATE.core.scriptRunner.steps
     if STATE.core.scriptRunner.enabled then
         local nextStepFrame = script[STATE.core.scriptRunner.currentStep].frame
         status = status .. "s" .. STATE.core.scriptRunner.currentStep .. "@" .. nextStepFrame
@@ -261,13 +284,27 @@ end
 local function FindNextSpeedReset(script, currentStepIndex)
     if not script then return nil, nil end
 
+    -- Helper to check if a specific string contains the speed reset command
+    local function isSpeedReset(commandStr)
+        if type(commandStr) ~= "string" then return false end
+        local speedVal = commandStr:lower():match("setspeed%s+(%d+)")
+        return speedVal and tonumber(speedVal) == 1
+    end
+
     for i = currentStepIndex, #script do
         local step = script[i]
-        if step then
-            local cmd = step.commands:lower()
-            local speedVal = cmd:match("setspeed%s+(%d+)")
-            if speedVal and tonumber(speedVal) == 1 then
-                return step.frame, i
+        if step and step.commands then
+            local cmds = step.commands
+            if type(cmds) == "table" then
+                for _, cmdEntry in ipairs(cmds) do
+                    if isSpeedReset(cmdEntry) then
+                        return step.frame, i
+                    end
+                end
+            else
+                if isSpeedReset(cmds) then
+                    return step.frame, i
+                end
             end
         end
     end
@@ -331,9 +368,9 @@ local function UpdateModel(dt)
     local scriptData = {}
     local runner = STATE.core.scriptRunner
 
-    if runner and runner.enabled and runner.script then
+    if runner and runner.enabled and runner.steps then
         local currentIdx = runner.currentStep
-        local script = runner.script
+        local script = runner.steps
 
         -- 1. Current Step
         if script[currentIdx] then
@@ -475,7 +512,7 @@ local function UpdateModel(dt)
         dm.ffOpacity = 0.5 + 0.5 * math.abs(math.sin(ffTimer * 5))
 
         local currentScriptStep = STATE.core.scriptRunner.currentStep
-        local script = STATE.core.scriptRunner.script
+        local script = STATE.core.scriptRunner.steps
 
         local endFrame, endStepIdx = FindNextSpeedReset(script, currentScriptStep)
 
@@ -658,6 +695,43 @@ local function UpdateModel(dt)
         dm.xpPct = dm.xpPct + (targetXpPct - dm.xpPct) * BAR_SPEED * dt
     else
         dm.xpPct = targetXpPct
+    end
+
+
+    -- VETERANCY DATA
+
+    loadVeterancyData()
+    dm.vetVisible = false
+    local selectedUnits = Spring.GetSelectedUnits()
+    if veterancyData and #selectedUnits > 0 then
+        local data = veterancyData.units[selectedUnits[1]]
+        dm.currentUnit = selectedUnits[1]
+        if data then
+            local currentFrame = spGetGameFrame()
+            local currentStatus = "UNKNOWN"
+            local futureStates = {}
+
+            for i, history in ipairs(data.statusHistory) do
+                if currentFrame >= history.startFrame and history.endFrame and currentFrame <= history.endFrame then
+                    currentStatus = history.status
+                    dm.vetVisible = true
+
+                    -- Look ahead for all future states
+                    for j = i + 1, #data.statusHistory do
+                        local nextState = data.statusHistory[j]
+                        local seconds = math.max(0, math.floor((nextState.startFrame - currentFrame) / 30))
+                        table.insert(futureStates, {
+                            status = nextState.status,
+                            countdown = tostring(seconds) .. "s"
+                        })
+                    end
+                    break
+                end
+            end
+
+            dm.currentVetStatus = currentStatus
+            dm.futureVetStates = futureStates
+        end
     end
 end
 

@@ -434,8 +434,8 @@ div {
     width: 600dp;
     height: auto;
     position: absolute;
-    top: 160dp;
-    left: 56dp;
+    top: 40dp;
+    left: 565dp;
 
     background-color: rgba(0, 0, 0, 100);
     padding: 0dp;
@@ -477,4 +477,39 @@ div {
 .script-cmd-line {
     font-size: 13dp;
     color: #ddd;
+}
+
+#vet-panel {
+    position: absolute;
+    width: 200dp;
+    top: 160dp;
+    left: 56dp;
+
+    background-color: rgba(26, 26, 26, 230);
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c;
+    padding: 10dp;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
+}
+
+.vet-header {
+    font-weight: bold;
+    color: #fdc04c;
+    margin-bottom: 5dp;
+    border-bottom: 1dp #444;
+}
+
+.vet-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3dp;
+}
+
+.vet-row .label {
+    color: #aaa;
+}
+
+.vet-row .value {
+    color: #fff;
+    font-weight: bold;
 }

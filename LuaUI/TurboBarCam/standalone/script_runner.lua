@@ -14,6 +14,9 @@ local ScriptRunner = {}
 ---@field frame number
 ---@field isDone boolean
 
+---@class Script
+---@field metadata table
+---@field steps ScriptStep[]
 
 local gameFps = Game.gameSpeed
 
@@ -37,10 +40,20 @@ local function timestampToSeconds(timestamp)
 end
 
 local function start(isFinal)
-    ---@type ScriptStep[]
-    local script = VFS.Include("LuaUI/TurboBarCam/script.lua")
+    if not WG.ReplayMetadata or not WG.ReplayMetadata.filename then
+        Log:debug("Unknown replay")
+        return
+    end
 
-    if not script then
+    local scriptPath = "LuaUI/TurboBarCam/scripts/" .. WG.ReplayMetadata.filename .. ".lua"
+    Log:debug("Loading", scriptPath)
+
+    ---@type Script
+    local script = VFS.Include(scriptPath)
+
+    local scriptSteps = script.steps
+
+    if not scriptSteps then
         Log:error("LuaUI/TurboBarCam/script.lua not found")
     end
 
@@ -48,7 +61,7 @@ local function start(isFinal)
     local currentStep = 1
     local lastStepFrame = 0
 
-    for _, step in ipairs(script) do
+    for _, step in ipairs(scriptSteps) do
         if step.timestamp and step.timestamp:match("[^%d:]") then
             Log:error("Invalid timestamp format. Only numbers and colons allowed (e.g., 10:30): " .. step.timestamp)
             return
@@ -63,7 +76,9 @@ local function start(isFinal)
             step.frame = timestampToSeconds(step.timestamp) * gameFps
         end
 
-        if step.frame:sub(1, 1) == "+" then
+        Log:debug("step", step)
+
+        if type(step.frame) == "string" and step.frame:sub(1, 1) == "+" then
             step.frame = tonumber(step.frame:sub(2) + lastStepFrame)
         else
             step.frame = tonumber(step.frame)
@@ -80,14 +95,14 @@ local function start(isFinal)
         end
     end
 
-    if currentStep > #script then
+    if currentStep > #scriptSteps then
         Log:info("Script is already completed")
         return
     end
 
-    STATE.core.scriptRunner.script = script
+    STATE.core.scriptRunner.steps = scriptSteps
     STATE.core.scriptRunner.enabled = true
-    STATE.core.scriptRunner.stepsCount = #script
+    STATE.core.scriptRunner.stepsCount = #scriptSteps
     STATE.core.scriptRunner.currentStep = currentStep
     Log:info("Script enabled")
     if currentFrame < 1 then
@@ -103,7 +118,7 @@ end
 
 local function stop()
     STATE.core.scriptRunner.enabled = false
-    STATE.core.scriptRunner.script = nil
+    STATE.core.scriptRunner.steps = nil
     STATE.core.scriptRunner.stepsCount = 0
     STATE.core.scriptRunner.currentStep = 0
 end
@@ -147,7 +162,7 @@ function ScriptRunner.fastForward(delay)
 
     delay = tonumber(delay) or 60
 
-    local nextStepFrame = STATE.core.scriptRunner.script[STATE.core.scriptRunner.currentStep].frame
+    local nextStepFrame = STATE.core.scriptRunner.steps[STATE.core.scriptRunner.currentStep].frame
 
     Spring.SendCommands("skip f" .. nextStepFrame - delay)
 end
@@ -182,7 +197,7 @@ function ScriptRunner.update(frame)
     end
 
     ---@type ScriptStep[]
-    local script = STATE.core.scriptRunner.script
+    local script = STATE.core.scriptRunner.steps
 
     for _, step in ipairs(script) do
         if not step.isDone and step.frame <= frame then

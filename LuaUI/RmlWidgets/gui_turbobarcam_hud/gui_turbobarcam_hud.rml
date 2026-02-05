@@ -112,10 +112,9 @@
     </div>
 
     <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">
-
         <div class="script-card" data-for="step : scriptSteps">
             <div class="script-card-header">
-                &lt;{{ step.label }} Step Frame: {{ step.frame }}&gt;
+                Frame: {{ step.frame }}
             </div>
             <div class="script-card-body">
                 <div class="script-cmd-line" data-for="cmd : step.commandsList">
@@ -123,7 +122,18 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <div id="vet-panel" data-model="turbobarcam_hud_model" data-if="vetVisible">
+        <div class="vet-header">STATE ({{currentUnit}})</div>
+        <div class="vet-row">
+            <span class="label">CURRENT:</span>
+            <span class="value">{{ currentVetStatus }}</span>
+        </div>
+        <div class="vet-row" data-for="state : futureVetStates">
+            <span class="label">{{ state.status }}:</span>
+            <span class="value">{{ state.countdown }}</span>
+        </div>
     </div>
 
     <div id="status-bar" data-model="turbobarcam_hud_model" data-if="statusVisible">
