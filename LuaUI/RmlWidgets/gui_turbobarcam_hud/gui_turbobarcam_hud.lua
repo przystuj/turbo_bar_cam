@@ -703,7 +703,7 @@ local function UpdateModel(dt)
     loadVeterancyData()
     dm.vetVisible = false
     local selectedUnits = Spring.GetSelectedUnits()
-    if veterancyData and #selectedUnits > 0 then
+    if not STATE.core.scriptRunner.isFinal and veterancyData and #selectedUnits > 0 then
         local data = veterancyData.units[selectedUnits[1]]
         dm.currentUnit = selectedUnits[1]
         if data then

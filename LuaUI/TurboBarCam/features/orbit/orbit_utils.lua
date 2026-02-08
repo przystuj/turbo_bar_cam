@@ -13,6 +13,8 @@ local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 ---@class OrbitCameraUtils
 local OrbitCameraUtils = {}
 
+local orbitPosScratch = { x = 0, y = 0, z = 0 }
+
 --- Calculates camera position on orbit path
 ---@param targetPos table Target position {x, y, z}
 ---@return table camPos Camera position {x, y, z}
@@ -26,11 +28,10 @@ function OrbitCameraUtils.calculateOrbitPosition(targetPos)
     local offsetX = distance * math.sin(angle)
     local offsetZ = distance * math.cos(angle)
 
-    return {
-        x = targetPos.x + offsetX,
-        y = targetPos.y + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT,
-        z = targetPos.z + offsetZ
-    }
+    orbitPosScratch.x = targetPos.x + offsetX
+    orbitPosScratch.y = targetPos.y + CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT
+    orbitPosScratch.z = targetPos.z + offsetZ
+    return orbitPosScratch
 end
 
 function OrbitCameraUtils.ensureHeightIsSet()
@@ -94,10 +95,11 @@ function OrbitCameraUtils.getTargetPosition()
         else
             -- Unit exists, get its position
             local x, y, z = Spring.GetUnitPosition(STATE.active.mode.unitID)
-            targetPos = { x = x, y = y, z = z }
-
-            -- Update last target point for fallback
-            STATE.active.mode.lastTargetPoint = { x = x, y = y, z = z }
+            if not STATE.active.mode.lastTargetPoint then
+                STATE.active.mode.lastTargetPoint = { x = 0, y = 0, z = 0 }
+            end
+            STATE.active.mode.lastTargetPoint.x, STATE.active.mode.lastTargetPoint.y, STATE.active.mode.lastTargetPoint.z = x, y, z
+            targetPos = STATE.active.mode.lastTargetPoint
         end
     else
         -- Point tracking
@@ -117,11 +119,10 @@ function OrbitCameraUtils.calculateOrbitPositionWithAngle(targetPos, angle)
 
     OrbitCameraUtils.ensureHeightIsSet() -- Call ensureHeightIsSet using existing state for target type.
 
-    return {
-        x = targetPos.x + offsetX,
-        y = targetPos.y + (CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT or 0),
-        z = targetPos.z + offsetZ
-    }
+    orbitPosScratch.x = targetPos.x + offsetX
+    orbitPosScratch.y = targetPos.y + (CONFIG.CAMERA_MODES.ORBIT.OFFSETS.HEIGHT or 0)
+    orbitPosScratch.z = targetPos.z + offsetZ
+    return orbitPosScratch
 end
 
 return  OrbitCameraUtils

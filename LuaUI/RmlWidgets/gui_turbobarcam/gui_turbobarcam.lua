@@ -639,7 +639,7 @@ local function updateDataModel()
     local driverCONFIG = CONFIG.DRIVER
 
     local isPosTask = targetSTATE.position ~= nil
-    local isRotTask = targetSTATE.euler ~= nil
+    local isRotTask = targetSTATE.targetEuler ~= nil
 
     dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentPositionSmoothing or 0, targetSTATE.positionSmoothing or 0)
     dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentRotationSmoothing or 0, targetSTATE.rotationSmoothing or 0)

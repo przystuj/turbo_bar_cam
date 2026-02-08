@@ -1,63 +1,166 @@
 return {
     steps = {
-        {
-            frame = "30",
-            commands = {
-                "skip f50013" -- Start,
-            }
-        },
+        { frame = 30, commands = { "skip f40050" } },
 
-        -- CUT #01 Shiva (Anchor Start)
+        -- CUT #01 Banisher (Pre-Pause)
         {
-            frame = "50013",
+            frame = 40050,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 26242 combat",
-                "turbobarcam_script_select_unit 26242",
+                "turbobarcam_toggle_unit_follow_camera 5702 combat",
+                "turbobarcam_script_select_unit 5702",
             }
         },
 
-        -- CUT #02 Fast Forward (Gap) [FF]
+        -- CUT #02 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "51153",
+            frame = 41783,
             commands = {
                 "setspeed 3",
             }
         },
 
-        -- CUT #03 Catapult (New Anchor)
+        -- CUT #03 Banisher (Pre-Pause)
         {
-            frame = "65203",
+            frame = 42363,
             commands = {
                 "setspeed 1",
+            }
+        },
+
+        -- CUT #04 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 42563,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #05 Banisher (Anchor End (Idle))
+        {
+            frame = 43333,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #06 Banisher (Anchor End (Idle))
+        {
+            frame = 52173,
+            commands = {
+            }
+        },
+
+        -- CUT #07 Banisher (Pre-Pause)
+        {
+            frame = 56573,
+            commands = {
+            }
+        },
+
+        -- CUT #08 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 57103,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #09 Banisher (Pre-Pause)
+        {
+            frame = 57753,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #10 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 57933,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #11 Banisher (Pre-Pause)
+        {
+            frame = 58283,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #12 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 59763,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #13 Banisher (Pre-Pause)
+        {
+            frame = 60083,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #14 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 61633,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #15 Banisher (Anchor End (Idle))
+        {
+            frame = 61983,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #16 Catapult (Pre-Pause (Switching to Neighbor))
+        {
+            frame = 66053,
+            commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 3652 combat",
                 "turbobarcam_script_select_unit 3652",
             }
         },
 
-        -- CUT #04 Fast Forward (Gap) [FF]
+        -- CUT #17 Catapult (Pre-Pause)
         {
-            frame = "65803",
+            frame = 66603,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #05 Catapult (New Anchor)
-        {
-            frame = "66033",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 16673 combat",
                 "turbobarcam_script_select_unit 16673",
             }
         },
 
-        -- CUT #06 Vanguard (Chain)
+        -- CUT #18 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "73983",
+            frame = 73923,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #19 Catapult (Anchor End (Idle))
+        {
+            frame = 74743,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #20 Vanguard (Anchor End (Idle))
+        {
+            frame = 75623,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27318 combat",
@@ -65,28 +168,19 @@ return {
             }
         },
 
-        -- CUT #07 Fast Forward (Gap) [FF]
+        -- CUT #21 Shiva (Anchor End (Idle))
         {
-            frame = "78423",
+            frame = 79103,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #08 Shiva (New Anchor)
-        {
-            frame = "78883",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 26242 combat",
                 "turbobarcam_script_select_unit 26242",
             }
         },
 
-        -- CUT #09 Shiva (Chain)
+        -- CUT #22 Shiva (Anchor End (Idle))
         {
-            frame = "79813",
+            frame = 79753,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 8359 combat",
@@ -94,120 +188,85 @@ return {
             }
         },
 
-        -- CUT #10 Fast Forward (Gap) [FF]
+        -- CUT #23 Grunt (Anchor End (Idle))
         {
-            frame = "80413",
+            frame = 81993,
             commands = {
-                "setspeed 3",
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 20507 combat",
+                "turbobarcam_script_select_unit 20507",
             }
         },
 
-        -- CUT #11 Juggernaut (New Anchor)
+        -- CUT #24 Juggernaut (Anchor End (Idle))
         {
-            frame = "86063",
+            frame = 86213,
             commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 14289 combat",
                 "turbobarcam_script_select_unit 14289",
             }
         },
 
-        -- CUT #12 Fast Forward (Gap) [FF]
+        -- CUT #25 Juggernaut (Pre-Pause)
         {
-            frame = "86753",
+            frame = 87893,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #13 Juggernaut (New Anchor)
-        {
-            frame = "88143",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 20638 combat",
-                "turbobarcam_script_select_unit 20638",
+                "turbobarcam_toggle_unit_follow_camera 10344 combat",
+                "turbobarcam_script_select_unit 10344",
             }
         },
 
-        -- CUT #14 Fast Forward (Gap) [FF]
+        -- CUT #26 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "89073",
+            frame = 88943,
             commands = {
                 "setspeed 3",
             }
         },
 
-        -- CUT #15 Wasp (New Anchor)
+        -- CUT #27 Juggernaut (Anchor End (Idle))
         {
-            frame = "90393",
+            frame = 89653,
             commands = {
                 "setspeed 1",
+            }
+        },
+
+        -- CUT #28 Wasp (Anchor End (Idle))
+        {
+            frame = 90623,
+            commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 268 combat",
                 "turbobarcam_script_select_unit 268",
             }
         },
 
-        -- CUT #16 Fast Forward (Gap) [FF]
+        -- CUT #29 Vanguard (Anchor End (Idle))
         {
-            frame = "92463",
+            frame = 94953,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #17 Vanguard (New Anchor)
-        {
-            frame = "93053",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27318 combat",
                 "turbobarcam_script_select_unit 27318",
             }
         },
 
-        -- CUT #18 Fast Forward (Gap) [FF]
+        -- CUT #30 Grunt (Anchor End (Idle))
         {
-            frame = "93653",
+            frame = 96273,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #19 Vanguard (New Anchor)
-        {
-            frame = "94763",
-            commands = {
-                "setspeed 1",
-            }
-        },
-
-        -- CUT #20 Fast Forward (Gap) [FF]
-        {
-            frame = "95573",
-            commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #21 Grunt (New Anchor)
-        {
-            frame = "96123",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17000 combat",
                 "turbobarcam_script_select_unit 17000",
             }
         },
 
-        -- CUT #22 Shiva (Chain)
+        -- CUT #31 Shiva (Anchor End (Idle))
         {
-            frame = "97023",
+            frame = 97113,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 8359 combat",
@@ -215,19 +274,19 @@ return {
             }
         },
 
-        -- CUT #23 Juggernaut (Chain)
+        -- CUT #32 Shiva (Anchor End (Idle))
         {
-            frame = "98823",
+            frame = 98763,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 18324 combat",
-                "turbobarcam_script_select_unit 18324",
+                "turbobarcam_toggle_unit_follow_camera 26242 combat",
+                "turbobarcam_script_select_unit 26242",
             }
         },
 
-        -- CUT #24 Behemoth (Chain)
+        -- CUT #33 Behemoth (Pre-Pause)
         {
-            frame = "99903",
+            frame = 99393,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 24420 combat",
@@ -235,54 +294,71 @@ return {
             }
         },
 
-        -- CUT #27 Mammoth (Chain)
+        -- CUT #34 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "104343",
+            frame = 104273,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #35 Behemoth (Anchor End (Idle))
+        {
+            frame = 104723,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #36 Juggernaut (Anchor End (Idle))
+        {
+            frame = 105773,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 22012 combat",
-                "turbobarcam_script_select_unit 22012",
+                "turbobarcam_toggle_unit_follow_camera 29837 combat",
+                "turbobarcam_script_select_unit 29837",
             }
         },
 
-        -- CUT #28 Fast Forward (Gap) [FF]
+        -- CUT #37 Behemoth (Pre-Pause)
         {
-            frame = "105633",
+            frame = 107043,
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 2973 combat",
+                "turbobarcam_script_select_unit 2973",
+            }
+        },
+
+        -- CUT #38 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 107543,
             commands = {
                 "setspeed 3",
             }
         },
 
-        -- CUT #29 Mammoth (New Anchor)
+        -- CUT #39 Behemoth (Anchor End (Idle))
         {
-            frame = "105863",
+            frame = 108273,
             commands = {
                 "setspeed 1",
             }
         },
 
-        -- CUT #30 Fast Forward (Gap) [FF]
+        -- CUT #40 Mammoth (Pre-Pause (Switching to Neighbor))
         {
-            frame = "108083",
+            frame = 108373,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #31 Mammoth (New Anchor)
-        {
-            frame = "108123",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 8128 combat",
                 "turbobarcam_script_select_unit 8128",
             }
         },
 
-        -- CUT #32 Juggernaut (Chain)
+        -- CUT #41 Juggernaut (Pre-Pause (Switching to Neighbor))
         {
-            frame = "110133",
+            frame = 110063,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17676 combat",
@@ -290,77 +366,29 @@ return {
             }
         },
 
-        -- CUT #33 Mammoth (Chain)
+        -- CUT #42 Mammoth (Anchor End (Idle))
         {
-            frame = "110343",
+            frame = 110293,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 2811 combat",
-                "turbobarcam_script_select_unit 2811",
+                "turbobarcam_toggle_unit_follow_camera 10335 combat",
+                "turbobarcam_script_select_unit 10335",
             }
         },
 
-        -- CUT #34 Mammoth (Chain)
+        -- CUT #43 Behemoth (Pre-Pause (Switching to Neighbor))
         {
-            frame = "110613",
+            frame = 112533,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 8128 combat",
-                "turbobarcam_script_select_unit 8128",
-            }
-        },
-
-        -- CUT #35 Mammoth (Chain)
-        {
-            frame = "111453",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 23201 combat",
-                "turbobarcam_script_select_unit 23201",
-            }
-        },
-
-        -- CUT #36 Fast Forward (Gap) [FF]
-        {
-            frame = "111693",
-            commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #37 Behemoth (New Anchor)
-        {
-            frame = "111743",
-            commands = {
-                "setspeed 1",
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4401 combat",
-                "turbobarcam_script_select_unit 4401",
-            }
-        },
-
-        -- CUT #38 Fast Forward (Gap) [FF]
-        {
-            frame = "112283",
-            commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #39 Behemoth (New Anchor)
-        {
-            frame = "112543",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 25442 combat",
                 "turbobarcam_script_select_unit 25442",
             }
         },
 
-        -- CUT #40 Behemoth (Chain)
+        -- CUT #44 Behemoth (Anchor End (Idle))
         {
-            frame = "113503",
+            frame = 113453,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 13365 combat",
@@ -368,38 +396,19 @@ return {
             }
         },
 
-        -- CUT #41 Fast Forward (Gap) [FF]
+        -- CUT #45 Behemoth (Anchor End (Idle))
         {
-            frame = "113893",
+            frame = 114383,
             commands = {
-                "setspeed 3",
-            }
-        },
-
-        -- CUT #42 Behemoth (New Anchor)
-        {
-            frame = "114183",
-            commands = {
-                "setspeed 1",
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 24420 combat",
                 "turbobarcam_script_select_unit 24420",
             }
         },
 
-        -- CUT #43 Behemoth (Chain)
+        -- CUT #46 Behemoth (Pre-Pause)
         {
-            frame = "115713",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25442 combat",
-                "turbobarcam_script_select_unit 25442",
-            }
-        },
-
-        -- CUT #44 Behemoth (Chain)
-        {
-            frame = "116193",
+            frame = 115643,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 4401 combat",
@@ -407,38 +416,35 @@ return {
             }
         },
 
-        -- CUT #45 Fast Forward (Gap) [FF]
+        -- CUT #47 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "116703",
+            frame = 116633,
             commands = {
                 "setspeed 3",
             }
         },
 
-        -- CUT #46 Vanguard (New Anchor)
+        -- CUT #48 Behemoth (Pre-Pause (Switching to Neighbor))
         {
-            frame = "117633",
+            frame = 117353,
             commands = {
                 "setspeed 1",
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1249 combat",
-                "turbobarcam_script_select_unit 1249",
             }
         },
 
-        -- CUT #47 Behemoth (Chain)
+        -- CUT #49 Behemoth (Anchor End (Idle))
         {
-            frame = "118263",
+            frame = 117573,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27321 combat",
-                "turbobarcam_script_select_unit 27321",
+                "turbobarcam_toggle_unit_follow_camera 8891 combat",
+                "turbobarcam_script_select_unit 8891",
             }
         },
 
-        -- CUT #48 Behemoth (Chain)
+        -- CUT #50 Behemoth (Anchor End (Idle))
         {
-            frame = "118443",
+            frame = 118393,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 13365 combat",
@@ -446,139 +452,9 @@ return {
             }
         },
 
-        -- CUT #50 Behemoth (Chain)
+        -- CUT #51 Behemoth (Anchor End (Idle))
         {
-            frame = "122883",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 11239 combat",
-                "turbobarcam_script_select_unit 11239",
-            }
-        },
-
-        -- CUT #51 Behemoth (Chain)
-        {
-            frame = "127323",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17264 combat",
-                "turbobarcam_script_select_unit 17264",
-            }
-        },
-
-        -- CUT #52 Vanguard (Chain)
-        {
-            frame = "127563",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1249 combat",
-                "turbobarcam_script_select_unit 1249",
-            }
-        },
-
-        -- CUT #53 Behemoth (Chain)
-        {
-            frame = "128523",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17784 combat",
-                "turbobarcam_script_select_unit 17784",
-            }
-        },
-
-        -- CUT #54 Behemoth (Chain)
-        {
-            frame = "128883",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27321 combat",
-                "turbobarcam_script_select_unit 27321",
-            }
-        },
-
-        -- CUT #55 Manticore (Chain)
-        {
-            frame = "129273",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1207 combat",
-                "turbobarcam_script_select_unit 1207",
-            }
-        },
-
-        -- CUT #56 Vanguard (Chain)
-        {
-            frame = "130113",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1249 combat",
-                "turbobarcam_script_select_unit 1249",
-            }
-        },
-
-        -- CUT #57 Behemoth (Chain)
-        {
-            frame = "130353",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17784 combat",
-                "turbobarcam_script_select_unit 17784",
-            }
-        },
-
-        -- CUT #58 Behemoth (Chain)
-        {
-            frame = "130773",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25442 combat",
-                "turbobarcam_script_select_unit 25442",
-            }
-        },
-
-        -- CUT #59 Behemoth (Chain)
-        {
-            frame = "131073",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 8891 combat",
-                "turbobarcam_script_select_unit 8891",
-            }
-        },
-
-        -- CUT #60 Behemoth (Chain)
-        {
-            frame = "131673",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4401 combat",
-                "turbobarcam_script_select_unit 4401",
-            }
-        },
-
-        -- CUT #61 Behemoth (Chain)
-        {
-            frame = "132273",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17784 combat",
-                "turbobarcam_script_select_unit 17784",
-            }
-        },
-
-        -- CUT #62 Behemoth (Chain)
-        {
-            frame = "132633",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 8891 combat",
-                "turbobarcam_script_select_unit 8891",
-            }
-        },
-
-        -- CUT #63 Behemoth (Chain)
-        {
-            frame = "133473",
+            frame = 122833,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 12082 combat",
@@ -586,19 +462,9 @@ return {
             }
         },
 
-        -- CUT #64 Behemoth (Chain)
+        -- CUT #52 Vanguard (Anchor End (Idle))
         {
-            frame = "134223",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17784 combat",
-                "turbobarcam_script_select_unit 17784",
-            }
-        },
-
-        -- CUT #65 Vanguard (Chain)
-        {
-            frame = "134433",
+            frame = 127623,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 1249 combat",
@@ -606,49 +472,77 @@ return {
             }
         },
 
-        -- CUT #66 Behemoth (Chain)
+        -- CUT #53 Behemoth (Pre-Pause)
         {
-            frame = "135303",
+            frame = 128453,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17264 combat",
-                "turbobarcam_script_select_unit 17264",
+                "turbobarcam_toggle_unit_follow_camera 13317 combat",
+                "turbobarcam_script_select_unit 13317",
             }
         },
 
-        -- CUT #67 Behemoth (Chain)
+        -- CUT #54 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "136293",
+            frame = 129403,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 22311 combat",
-                "turbobarcam_script_select_unit 22311",
+                "setspeed 3",
             }
         },
 
-        -- CUT #68 Behemoth (Chain)
+        -- CUT #55 Behemoth (Pre-Pause)
         {
-            frame = "136983",
+            frame = 129943,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25442 combat",
-                "turbobarcam_script_select_unit 25442",
+                "setspeed 1",
             }
         },
 
-        -- CUT #69 Behemoth (Chain)
+        -- CUT #56 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "137343",
+            frame = 130743,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27321 combat",
-                "turbobarcam_script_select_unit 27321",
+                "setspeed 3",
             }
         },
 
-        -- CUT #70 Behemoth (Chain)
+        -- CUT #57 Behemoth (Pre-Pause)
         {
-            frame = "137643",
+            frame = 131463,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #58 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 131813,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #59 Behemoth (Anchor End (Idle))
+        {
+            frame = 132173,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #60 Behemoth (Anchor End (Idle))
+        {
+            frame = 132863,
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 8891 combat",
+                "turbobarcam_script_select_unit 8891",
+            }
+        },
+
+        -- CUT #61 Behemoth (Pre-Pause (Switching to Neighbor))
+        {
+            frame = 133403,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 12082 combat",
@@ -656,19 +550,9 @@ return {
             }
         },
 
-        -- CUT #71 Mammoth (Chain)
+        -- CUT #62 Behemoth (Pre-Pause)
         {
-            frame = "138753",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 13964 combat",
-                "turbobarcam_script_select_unit 13964",
-            }
-        },
-
-        -- CUT #72 Behemoth (Chain)
-        {
-            frame = "139593",
+            frame = 134153,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17784 combat",
@@ -676,19 +560,35 @@ return {
             }
         },
 
-        -- CUT #73 Behemoth (Chain)
+        -- CUT #63 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "140403",
+            frame = 134383,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 22311 combat",
-                "turbobarcam_script_select_unit 22311",
+                "setspeed 3",
             }
         },
 
-        -- CUT #74 Mammoth (Chain)
+        -- CUT #64 Behemoth (Anchor End (Idle))
         {
-            frame = "141393",
+            frame = 135063,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #65 Behemoth (Anchor End (Idle))
+        {
+            frame = 135813,
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 12082 combat",
+                "turbobarcam_script_select_unit 12082",
+            }
+        },
+
+        -- CUT #66 Mammoth (Pre-Pause)
+        {
+            frame = 138693,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 13964 combat",
@@ -696,19 +596,41 @@ return {
             }
         },
 
-        -- CUT #75 Behemoth (Chain)
+        -- CUT #67 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "142293",
+            frame = 140133,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27321 combat",
-                "turbobarcam_script_select_unit 27321",
+                "setspeed 3",
             }
         },
 
-        -- CUT #76 Behemoth (Chain)
+        -- CUT #68 Mammoth (Pre-Pause)
         {
-            frame = "143793",
+            frame = 140493,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #69 Fast Forward (Skipping Long Pause) [FF]
+        {
+            frame = 140533,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #70 Mammoth (Anchor End (Idle))
+        {
+            frame = 141033,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #71 Behemoth (Anchor End (Idle))
+        {
+            frame = 142223,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 4401 combat",
@@ -716,9 +638,9 @@ return {
             }
         },
 
-        -- CUT #77 Behemoth (Chain)
+        -- CUT #72 Behemoth (Anchor End (Idle))
         {
-            frame = "146793",
+            frame = 146733,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27321 combat",
@@ -726,19 +648,9 @@ return {
             }
         },
 
-        -- CUT #78 Behemoth (Chain)
+        -- CUT #73 Behemoth (Anchor End (Idle))
         {
-            frame = "147693",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25731 combat",
-                "turbobarcam_script_select_unit 25731",
-            }
-        },
-
-        -- CUT #79 Behemoth (Chain)
-        {
-            frame = "148503",
+            frame = 147633,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 12841 combat",
@@ -746,9 +658,9 @@ return {
             }
         },
 
-        -- CUT #80 Behemoth (Chain)
+        -- CUT #74 Behemoth (Anchor End (Idle))
         {
-            frame = "148773",
+            frame = 148723,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 25731 combat",
@@ -756,19 +668,35 @@ return {
             }
         },
 
-        -- CUT #81 Behemoth (Chain)
+        -- CUT #75 Behemoth (Pre-Pause)
         {
-            frame = "151563",
+            frame = 151513,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27321 combat",
-                "turbobarcam_script_select_unit 27321",
+                "turbobarcam_toggle_unit_follow_camera 23243 combat",
+                "turbobarcam_script_select_unit 23243",
             }
         },
 
-        -- CUT #82 Behemoth (Chain)
+        -- CUT #76 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "153573",
+            frame = 152963,
+            commands = {
+                "setspeed 3",
+            }
+        },
+
+        -- CUT #77 Behemoth (Anchor End (Idle))
+        {
+            frame = 153653,
+            commands = {
+                "setspeed 1",
+            }
+        },
+
+        -- CUT #78 Behemoth (Anchor End (Idle))
+        {
+            frame = 153763,
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 13365 combat",
@@ -776,69 +704,49 @@ return {
             }
         },
 
-        -- CUT #83 Juggernaut (Chain)
+        -- CUT #79 Behemoth (Pre-Pause)
         {
-            frame = "155463",
+            frame = 155403,
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 18324 combat",
-                "turbobarcam_script_select_unit 18324",
+                "turbobarcam_toggle_unit_follow_camera 17164 combat",
+                "turbobarcam_script_select_unit 17164",
             }
         },
 
-        -- CUT #84 Juggernaut (Chain)
+        -- CUT #80 Fast Forward (Skipping Long Pause) [FF]
         {
-            frame = "155673",
+            frame = 156093,
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 6055 combat",
-                "turbobarcam_script_select_unit 6055",
+                "setspeed 3",
             }
         },
 
-        -- CUT #85 Mammoth (Chain)
+        -- CUT #81 Behemoth (Anchor End (Idle))
         {
-            frame = "156033",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 19800 combat",
-                "turbobarcam_script_select_unit 19800",
-            }
-        },
-
-        -- CUT #86 Behemoth (Chain)
-        {
-            frame = "157143",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17264 combat",
-                "turbobarcam_script_select_unit 17264",
-            }
-        },
-
-        -- CUT #87 Behemoth (Chain)
-        {
-            frame = "157353",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 22311 combat",
-                "turbobarcam_script_select_unit 22311",
-            }
-        },
-
-        -- CUT #88 Behemoth (Chain)
-        {
-            frame = "158883",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17264 combat",
-                "turbobarcam_script_select_unit 17264",
-            }
-        },
-        {
-            frame = "9999999",
+            frame = 156873,
             commands = {
                 "setspeed 1",
+            }
+        },
+
+        -- CUT #82 Behemoth (Anchor End (Idle))
+        {
+            frame = 158093,
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 23243 combat",
+                "turbobarcam_script_select_unit 23243",
+            }
+        },
+
+        -- CUT #83 Behemoth (Anchor End (Idle))
+        {
+            frame = 159003,
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 10444 combat",
+                "turbobarcam_script_select_unit 10444",
             }
         },
     }

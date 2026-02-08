@@ -8,9 +8,8 @@
 ---@field positionSmoothing number
 ---@field rotationSmoothing number
 ---@field isSnap boolean If true camera will instantly snap to the target, skipping the simulation
----@field euler table DEPRECATED
----@field smoothTimePos number DEPRECATED
----@field smoothTimeRot number DEPRECATED
+---@field run fun()
+---@field setTarget fun(type: string, data: number|Euler|Vector)
 
 ---@class Vector
 ---@field x number

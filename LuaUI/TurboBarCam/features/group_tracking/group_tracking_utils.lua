@@ -8,6 +8,7 @@ local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 ---@class GroupTrackingUtils
 local GroupTrackingUtils = {}
 
+local groupAdjScratch = { x = 0, y = 0, z = 0 }
 --- Applies camera adjustments to position for group tracking
 ---@param center table Center of mass position {x, y, z}
 ---@param baseDirection table Base direction vector {x, z}
@@ -31,11 +32,10 @@ function GroupTrackingUtils.applyCameraAdjustments(center, baseDirection, distan
     local totalHeight = height + CONFIG.CAMERA_MODES.GROUP_TRACKING.EXTRA_HEIGHT
 
     -- Calculate final camera position
-    return {
-        x = center.x + (adjustedDirection.x * totalDistance),
-        y = totalHeight,
-        z = center.z + (adjustedDirection.z * totalDistance)
-    }
+    groupAdjScratch.x = center.x + (adjustedDirection.x * totalDistance)
+    groupAdjScratch.y = totalHeight
+    groupAdjScratch.z = center.z + (adjustedDirection.z * totalDistance)
+    return groupAdjScratch
 end
 
 ---@see ModifiableParams

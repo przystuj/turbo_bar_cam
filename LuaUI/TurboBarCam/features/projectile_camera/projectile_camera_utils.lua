@@ -16,61 +16,74 @@ local ProjectileCameraUtils = {}
 -- Camera Calculation and Smoothing Helpers
 --------------------------------------------------------------------------------
 
+local camPosScratch = { x = 0, y = 0, z = 0 }
+local projDirScratch = { x = 0, y = 0, z = 0 }
+local worldUpScratch = { x = 0, y = 1, z = 0 }
+local worldFwdScratch = { x = 0, y = 0, z = 1 }
+local worldRightScratch = { x = 1, y = 0, z = 0 }
+local rightScratch = { x = 0, y = 0, z = 0 }
+local localUpScratch = { x = 0, y = 0, z = 0 }
+local awayDirXZScratch = { x = 0, y = 0, z = 1 }
+
 function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, subMode)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
 
     if subMode == "static" then
         local camState = Spring.GetCameraState()
-        return { x = camState.px, y = camState.py, z = camState.pz }
+        camPosScratch.x, camPosScratch.y, camPosScratch.z = camState.px, camState.py, camState.pz
+        return camPosScratch
     end
 
     local modeCfg = cfg.FOLLOW
     local distance = modeCfg.DISTANCE
     local height = modeCfg.HEIGHT
 
-    local projectileDir = MathUtils.vector.normalize(pVel)
+    local projectileDir = MathUtils.vector.normalize(pVel, projDirScratch)
     if MathUtils.vector.magnitudeSq(projectileDir) < 0.001 then
-        projectileDir = { x = 0, y = -0.5, z = -0.5 } -- Default fallback
-        projectileDir = MathUtils.vector.normalize(projectileDir)
+        projectileDir.x, projectileDir.y, projectileDir.z = 0, -0.5, -0.5 -- Default fallback
+        MathUtils.vector.normalize(projectileDir, projectileDir)
     end
 
     local camX, camY, camZ
 
     if STATE.active.mode.projectile_camera.isHighArc then
-        local awayDirXZ
+        local awayDirXZ = awayDirXZScratch
         if STATE.core.camera.euler.rx ~= 0 or STATE.core.camera.euler.rz ~= 0 then
             -- Use inverted XZ component of camera's forward vector.
-            awayDirXZ = MathUtils.vector.normalize({ x = -STATE.core.camera.euler.rx, y = 0, z = -STATE.core.camera.euler.rz })
+            awayDirXZ.x, awayDirXZ.y, awayDirXZ.z = -STATE.core.camera.euler.rx, 0, -STATE.core.camera.euler.rz
+            MathUtils.vector.normalize(awayDirXZ, awayDirXZ)
         else
-            awayDirXZ = { x = 0, y = 0, z = 1 } -- Fallback: Pull camera towards +Z.
+            awayDirXZ.x, awayDirXZ.y, awayDirXZ.z = 0, 0, 1 -- Fallback: Pull camera towards +Z.
         end
         -- Apply distance along 'awayDirXZ' and height along World Y
         camX = pPos.x + awayDirXZ.x * distance
         camZ = pPos.z + awayDirXZ.z * distance
         camY = pPos.y + height
     else
-        local worldUp = { x = 0, y = 1, z = 0 }
-        local right = MathUtils.vector.cross(projectileDir, worldUp)
+        local worldUp = worldUpScratch
+        local right = MathUtils.vector.cross(projectileDir, worldUp, rightScratch)
         if MathUtils.vector.magnitudeSq(right) < 0.001 then
-            local worldFwdTemp = { x = 0, y = 0, z = 1 }
+            local worldFwdTemp = worldFwdScratch
             if math.abs(projectileDir.y) > 0.99 then
-                worldFwdTemp = { x = 1, y = 0, z = 0 }
+                worldFwdTemp = worldRightScratch
             end
-            right = MathUtils.vector.cross(projectileDir, worldFwdTemp)
+            MathUtils.vector.cross(projectileDir, worldFwdTemp, right)
             if MathUtils.vector.magnitudeSq(right) < 0.001 then
-                right = { x = 1, y = 0, z = 0 }
+                right.x, right.y, right.z = 1, 0, 0
             end
         end
-        right = MathUtils.vector.normalize(right)
-        local localUp = MathUtils.vector.normalize(MathUtils.vector.cross(right, projectileDir))
+        MathUtils.vector.normalize(right, right)
+        local localUp = localUpScratch
+        MathUtils.vector.cross(right, projectileDir, localUp)
+        MathUtils.vector.normalize(localUp, localUp)
 
         -- Apply Y-constraint to localUp
         if localUp.y < 0 then
             localUp.y = 0
             if MathUtils.vector.magnitudeSq(localUp) < 0.001 then
-                localUp = { x = 0, y = 1, z = 0 } -- Fallback to world up
+                localUp.x, localUp.y, localUp.z = 0, 1, 0 -- Fallback to world up
             else
-                localUp = MathUtils.vector.normalize(localUp)
+                MathUtils.vector.normalize(localUp, localUp)
             end
         end
         local upVectorForHeight = localUp
@@ -85,35 +98,36 @@ function ProjectileCameraUtils.calculateCameraPositionForProjectile(pPos, pVel, 
         camZ = camZ + upVectorForHeight.z * height
     end
 
-    local result = { x = camX, y = camY, z = camZ }
-    return result
+    camPosScratch.x, camPosScratch.y, camPosScratch.z = camX, camY, camZ
+    return camPosScratch
 end
+
+local targetPosScratch = { x = 0, y = 0, z = 0 }
+local fwdScratch = { x = 0, y = 0, z = 1 }
 
 function ProjectileCameraUtils.calculateTargetPosition(projectilePos, projectileVel)
     local cfg = CONFIG.CAMERA_MODES.PROJECTILE_CAMERA
     local subMode = STATE.active.mode.projectile_camera.cameraMode
     local modeCfg = cfg[string.upper(subMode)] or cfg.FOLLOW
 
-    local fwd = MathUtils.vector.normalize(projectileVel)
+    local fwd = MathUtils.vector.normalize(projectileVel, fwdScratch)
     if MathUtils.vector.magnitudeSq(fwd) < 0.001 then
-        fwd = { x = 0, y = 0, z = 1 }
+        fwd.x, fwd.y, fwd.z = 0, 0, 1
     end
 
     local pPos = projectilePos
     local lookAhead = modeCfg.LOOK_AHEAD or 0
 
-    local baseTarget = {
-        x = pPos.x + fwd.x * lookAhead,
-        y = pPos.y + fwd.y * lookAhead,
-        z = pPos.z + fwd.z * lookAhead
-    }
+    targetPosScratch.x = pPos.x + fwd.x * lookAhead
+    targetPosScratch.y = pPos.y + fwd.y * lookAhead
+    targetPosScratch.z = pPos.z + fwd.z * lookAhead
 
     if subMode == "static" then
         local offsetHeight = modeCfg.OFFSET_HEIGHT or 0
         local offsetSide = modeCfg.OFFSET_SIDE or 0
 
         if offsetHeight == 0 and offsetSide == 0 then
-            return baseTarget
+            return targetPosScratch
         end
 
         local worldUp = { x = 0, y = 1, z = 0 }

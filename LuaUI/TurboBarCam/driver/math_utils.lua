@@ -10,16 +10,25 @@ MathUtils.vector = {}
 --=                                Vector Math                               =--
 --============================================================================--
 
-function MathUtils.vector.add(v1, v2)
-    return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
+function MathUtils.vector.add(v1, v2, out)
+    out = out or {}
+    local x, y, z = (v1.x or 0) + (v2.x or 0), (v1.y or 0) + (v2.y or 0), (v1.z or 0) + (v2.z or 0)
+    out.x, out.y, out.z = x, y, z
+    return out
 end
 
-function MathUtils.vector.subtract(v1, v2)
-    return { x = (v1.x or 0) - (v2.x or 0), y = (v1.y or 0) - (v2.y or 0), z = (v1.z or 0) - (v2.z or 0) }
+function MathUtils.vector.subtract(v1, v2, out)
+    out = out or {}
+    local x, y, z = (v1.x or 0) - (v2.x or 0), (v1.y or 0) - (v2.y or 0), (v1.z or 0) - (v2.z or 0)
+    out.x, out.y, out.z = x, y, z
+    return out
 end
 
-function MathUtils.vector.multiply(v, scalar)
-    return { x = (v.x or 0) * scalar, y = (v.y or 0) * scalar, z = (v.z or 0) * scalar }
+function MathUtils.vector.multiply(v, scalar, out)
+    out = out or {}
+    local x, y, z = (v.x or 0) * scalar, (v.y or 0) * scalar, (v.z or 0) * scalar
+    out.x, out.y, out.z = x, y, z
+    return out
 end
 
 function MathUtils.vector.magnitudeSq(v)
@@ -31,24 +40,27 @@ function MathUtils.vector.magnitude(v)
     return math.sqrt(MathUtils.vector.magnitudeSq(v))
 end
 
-function MathUtils.vector.normalize(v)
+function MathUtils.vector.normalize(v, out)
     local mag = MathUtils.vector.magnitude(v)
+    out = out or {}
     if mag > 1e-5 then
-        return MathUtils.vector.multiply(v, 1 / mag)
+        return MathUtils.vector.multiply(v, 1 / mag, out)
     end
-    return { x = 0, y = 0, z = 0 }
+    out.x, out.y, out.z = 0, 0, 0
+    return out
 end
 
 function MathUtils.vector.dot(v1, v2)
     return (v1.x or 0) * (v2.x or 0) + (v1.y or 0) * (v2.y or 0) + (v1.z or 0) * (v2.z or 0)
 end
 
-function MathUtils.vector.cross(v1, v2)
-    return {
-        x = (v1.y or 0) * (v2.z or 0) - (v1.z or 0) * (v2.y or 0),
-        y = (v1.z or 0) * (v2.x or 0) - (v1.x or 0) * (v2.z or 0),
-        z = (v1.x or 0) * (v2.y or 0) - (v1.y or 0) * (v2.x or 0)
-    }
+function MathUtils.vector.cross(v1, v2, out)
+    out = out or {}
+    local x = (v1.y or 0) * (v2.z or 0) - (v1.z or 0) * (v2.y or 0)
+    local y = (v1.z or 0) * (v2.x or 0) - (v1.x or 0) * (v2.z or 0)
+    local z = (v1.x or 0) * (v2.y or 0) - (v1.y or 0) * (v2.x or 0)
+    out.x, out.y, out.z = x, y, z
+    return out
 end
 
 function MathUtils.vector.distanceSq(p1, p2)
@@ -72,7 +84,7 @@ end
 
 --- Smoothly dampens a 3D vector towards a target value using a stable, framerate-independent
 --- spring-damper model.
-function MathUtils.vectorSmoothDamp(position, target, velocity, smoothTime, dt)
+function MathUtils.vectorSmoothDamp(position, target, velocity, smoothTime, dt, outPos, outVel)
     dt = math.min(dt, 0.05) -- Prevent large steps during frame rate drops
     local maxSpeed = 100000 -- Set a high practical limit
     smoothTime = math.max(0.0001, smoothTime)
@@ -85,20 +97,32 @@ function MathUtils.vectorSmoothDamp(position, target, velocity, smoothTime, dt)
     -- Clamp the maximum change vector magnitude based on maxSpeed.
     local maxChange = maxSpeed * smoothTime
     if MathUtils.vector.magnitudeSq(change) > maxChange * maxChange then
-        change = MathUtils.vector.multiply(MathUtils.vector.normalize(change), maxChange)
+        MathUtils.vector.normalize(change, change)
+        MathUtils.vector.multiply(change, maxChange, change)
     end
 
     -- The effective target for this frame, after speed clamping.
     local frame_target = MathUtils.vector.subtract(position, change)
 
     -- Calculate the intermediate term for the velocity and position update.
-    local temp = MathUtils.vector.multiply(MathUtils.vector.add(velocity, MathUtils.vector.multiply(change, omega)), dt)
+    -- temp = (velocity + change * omega) * dt
+    local temp = MathUtils.vector.multiply(change, omega)
+    MathUtils.vector.add(velocity, temp, temp)
+    MathUtils.vector.multiply(temp, dt, temp)
 
     -- Update velocity for the next frame.
-    local newVelocity = MathUtils.vector.multiply(MathUtils.vector.subtract(velocity, MathUtils.vector.multiply(temp, omega)), exp)
+    -- newVelocity = (velocity - temp * omega) * exp
+    local newVelocity = outVel or {}
+    local temp2 = MathUtils.vector.multiply(temp, omega)
+    MathUtils.vector.subtract(velocity, temp2, newVelocity)
+    MathUtils.vector.multiply(newVelocity, exp, newVelocity)
 
     -- Calculate the new position for this frame.
-    local newPosition = MathUtils.vector.add(frame_target, MathUtils.vector.multiply(MathUtils.vector.add(change, temp), exp))
+    -- newPosition = frame_target + (change + temp) * exp
+    local newPosition = outPos or {}
+    MathUtils.vector.add(change, temp, newPosition)
+    MathUtils.vector.multiply(newPosition, exp, newPosition)
+    MathUtils.vector.add(frame_target, newPosition, newPosition)
 
     return newPosition, newVelocity
 end

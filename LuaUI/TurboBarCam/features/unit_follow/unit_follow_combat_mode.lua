@@ -419,15 +419,20 @@ function UnitFollowCombatMode.setCombatMode(enable, unitID)
         -- Find a default weapon to use if not already set
         if not STATE.active.mode.unit_follow.forcedWeaponNumber and unitDef and unitDef.weapons then
             local weaponNumbers = {}
+            local defaultWeaponNum = 1
             for weaponNum, weaponData in pairs(unitDef.weapons) do
-                if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
+                local wDef = WeaponDefs[weaponData.weaponDef]
+                if type(weaponNum) == "number" and wDef.range > 100 then
+                    if not wDef.isShield and wDef.canAttackGround then
+                        defaultWeaponNum = weaponNum
+                    end
                     table.insert(weaponNumbers, weaponNum)
                 end
             end
 
             if #weaponNumbers > 0 then
                 table.sort(weaponNumbers)
-                STATE.active.mode.unit_follow.forcedWeaponNumber = weaponNumbers[1]
+                STATE.active.mode.unit_follow.forcedWeaponNumber = defaultWeaponNum
             end
         end
 

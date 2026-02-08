@@ -15,16 +15,18 @@ function QuaternionUtils.dot(q1, q2)
     return q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z
 end
 
-function QuaternionUtils.multiply(q1, q2)
-    return {
-        w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z,
-        x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
-        y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x,
-        z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w
-    }
+function QuaternionUtils.multiply(q1, q2, out)
+    out = out or {}
+    local w1, x1, y1, z1 = q1.w, q1.x, q1.y, q1.z
+    local w2, x2, y2, z2 = q2.w, q2.x, q2.y, q2.z
+    out.w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    out.x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    out.y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+    out.z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+    return out
 end
 
-function QuaternionUtils.fromEuler(rx, ry)
+function QuaternionUtils.fromEuler(rx, ry, out)
     local standardPitch = rx - (math.pi / 2)
     local halfPitch = standardPitch * 0.5
     local halfYaw = ry * 0.5
@@ -32,7 +34,7 @@ function QuaternionUtils.fromEuler(rx, ry)
     local cosYaw, sinYaw = math.cos(halfYaw), math.sin(halfYaw)
     local qx = { x = sinPitch, y = 0, z = 0, w = cosPitch }
     local qy = { x = 0, y = sinYaw, z = 0, w = cosYaw }
-    return QuaternionUtils.multiply(qy, qx)
+    return QuaternionUtils.multiply(qy, qx, out)
 end
 
 function QuaternionUtils.toEuler(orientation)
@@ -53,16 +55,23 @@ function QuaternionUtils.toEuler(orientation)
     return rx, ry
 end
 
-function QuaternionUtils.inverse(q)
-    return { x = -q.x, y = -q.y, z = -q.z, w = q.w }
+function QuaternionUtils.inverse(q, out)
+    out = out or {}
+    local x, y, z, w = -q.x, -q.y, -q.z, q.w
+    out.x, out.y, out.z, out.w = x, y, z, w
+    return out
 end
 
-function QuaternionUtils.normalize(q)
+function QuaternionUtils.normalize(q, out)
     local mag = math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w)
+    out = out or {}
     if mag < 0.00001 then
-        return QuaternionUtils.identity()
+        out.x, out.y, out.z, out.w = 0, 0, 0, 1
+        return out
     end
-    return { x = q.x / mag, y = q.y / mag, z = q.z / mag, w = q.w / mag }
+    local x, y, z, w = q.x / mag, q.y / mag, q.z / mag, q.w / mag
+    out.x, out.y, out.z, out.w = x, y, z, w
+    return out
 end
 
 function QuaternionUtils.slerp(q1, q2, t)
@@ -102,23 +111,33 @@ function QuaternionUtils.slerp(q1, q2, t)
     })
 end
 
-function QuaternionUtils.log(q)
+function QuaternionUtils.log(q, out)
     local vMagSq = q.x * q.x + q.y * q.y + q.z * q.z
+    out = out or {}
     if vMagSq < 1e-12 then
-        return { w = 0, x = 0, y = 0, z = 0 }
+        out.w, out.x, out.y, out.z = 0, 0, 0, 0
+        return out
     end
     local vMag = math.sqrt(vMagSq)
     local halfAngle = math.atan2(vMag, q.w)
     local scale = halfAngle / vMag
-    return { w = 0, x = q.x * scale, y = q.y * scale, z = q.z * scale }
+    local x, y, z = q.x * scale, q.y * scale, q.z * scale
+    out.w, out.x, out.y, out.z = 0, x, y, z
+    return out
 end
 
-function QuaternionUtils.expMap(q)
+function QuaternionUtils.expMap(q, out)
     local halfAngle = math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z)
-    if halfAngle < 1e-5 then return QuaternionUtils.identity() end
+    out = out or {}
+    if halfAngle < 1e-5 then
+        out.x, out.y, out.z, out.w = 0, 0, 0, 1
+        return out
+    end
     local w = math.cos(halfAngle)
     local s = math.sin(halfAngle) / halfAngle
-    return { w = w, x = q.x * s, y = q.y * s, z = q.z * s }
+    local x, y, z = q.x * s, q.y * s, q.z * s
+    out.w, out.x, out.y, out.z = w, x, y, z
+    return out
 end
 
 function QuaternionUtils.toAxisAngle(q)
@@ -144,7 +163,7 @@ end
 
 
 --- Smoothly dampens a quaternion towards a target value.
-function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVelocity, smoothTime, dt)
+function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVelocity, smoothTime, dt, outQ, outAV)
     dt = math.min(dt, 0.05)
     smoothTime = math.max(0.0001, smoothTime)
     local vec = MathUtils.vector
@@ -158,26 +177,40 @@ function QuaternionUtils.quaternionSmoothDamp(orientation, target, angularVeloci
     local exp, omega = MathUtils.expApproximation(smoothTime, dt)
 
     -- Calculate change vector from current to target
-    local delta_to_target = QuaternionUtils.multiply(orientation, QuaternionUtils.inverse(target_q))
+    local inv_target = QuaternionUtils.inverse(target_q)
+    local delta_to_target = QuaternionUtils.multiply(orientation, inv_target)
     local change_v = QuaternionUtils.log(delta_to_target)
 
     --Add stability clamp, mirroring vectorSmoothDamp's maxSpeed
     local maxAngularSpeed = 100 -- Radians per second
     local maxAngleChange = maxAngularSpeed * smoothTime
     if vec.magnitudeSq(change_v) > maxAngleChange * maxAngleChange then
-        change_v = vec.multiply(vec.normalize(change_v), maxAngleChange)
+        vec.normalize(change_v, change_v)
+        vec.multiply(change_v, maxAngleChange, change_v)
     end
 
     -- The rest of the logic mirrors vectorSmoothDamp
-    local temp_v = vec.multiply(vec.add(angularVelocity, vec.multiply(change_v, omega)), dt)
-    local newAngularVelocity = vec.multiply(vec.subtract(angularVelocity, vec.multiply(temp_v, omega)), exp)
+    -- temp_v = (angularVelocity + change_v * omega) * dt
+    local temp_v = vec.multiply(change_v, omega)
+    vec.add(angularVelocity, temp_v, temp_v)
+    vec.multiply(temp_v, dt, temp_v)
+
+    -- newAngularVelocity = (angularVelocity - temp_v * omega) * exp
+    local newAngularVelocity = outAV or {}
+    local temp2 = vec.multiply(temp_v, omega)
+    vec.subtract(angularVelocity, temp2, newAngularVelocity)
+    vec.multiply(newAngularVelocity, exp, newAngularVelocity)
 
     -- Convert displacement vector to a quaternion and apply it to the target
-    local output_disp_v = vec.multiply(vec.add(change_v, temp_v), exp)
-    local output_disp_q = QuaternionUtils.expMap(output_disp_v)
-    local output_q = QuaternionUtils.multiply(output_disp_q, target_q)
+    -- output_disp_v = (change_v + temp_v) * exp
+    local output_disp_v = vec.add(change_v, temp_v)
+    vec.multiply(output_disp_v, exp, output_disp_v)
 
-    return QuaternionUtils.normalize(output_q), newAngularVelocity
+    local output_disp_q = QuaternionUtils.expMap(output_disp_v)
+    local output_q = outQ or {}
+    QuaternionUtils.multiply(output_disp_q, target_q, output_q)
+
+    return QuaternionUtils.normalize(output_q, output_q), newAngularVelocity
 end
 
 return QuaternionUtils

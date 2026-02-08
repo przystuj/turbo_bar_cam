@@ -27,24 +27,31 @@ local isLookAtTargetType = {
     [TARGET_TYPE.PROJECTILE] = true,
 }
 
+---@return DriverTargetConfig
 function CameraDriver.prepare(targetType, target)
-    ---@class DriverJob : DriverTargetConfig
-    local config = {}
-    config.run = function()
-        config.setTarget(targetType, target)
-        CameraDriver.runJob(config)
+    local job = STATE.core.driver.job
+    if not job.setTarget then
+        CameraDriver.initialize()
     end
-    ---@type fun(targetType: TargetType, target: number | Vector | Euler)
-    config.setTarget = function(type, data)
+    job.setTarget(targetType, target)
+    return job
+end
+
+function CameraDriver.initialize()
+    ---@type DriverTargetConfig
+    local job = STATE.core.driver.job
+    job.run = function()
+        CameraDriver.runJob(job)
+    end
+    job.setTarget = function(type, data)
         if type then
-            config.targetEuler = type == TARGET_TYPE.EULER and data
-            config.targetUnitId = type == TARGET_TYPE.UNIT and data
-            config.targetPoint = type == TARGET_TYPE.POINT and data
-            config.targetProjectileId = type == TARGET_TYPE.PROJECTILE and data
-            config.targetType = type
+            job.targetEuler = type == TARGET_TYPE.EULER and data or nil
+            job.targetUnitId = type == TARGET_TYPE.UNIT and data or nil
+            job.targetPoint = type == TARGET_TYPE.POINT and data or nil
+            job.targetProjectileId = type == TARGET_TYPE.PROJECTILE and data or nil
+            job.targetType = type
         end
     end
-    return config
 end
 
 --- Helper function to resolve the lookAt target to a concrete point
@@ -268,6 +275,10 @@ local function checkAndCompleteTask()
     -- Reset completion flags each frame
     jobSTATE.isPositionComplete = false
     jobSTATE.isRotationComplete = false
+
+    if not jobSTATE.setTarget then
+        CameraDriver.initialize()
+    end
 
     local hasLookAtTarget = isLookAtTargetType[targetSTATE.targetType] or false
     local hasRotationTask = hasLookAtTarget or targetSTATE.targetEuler

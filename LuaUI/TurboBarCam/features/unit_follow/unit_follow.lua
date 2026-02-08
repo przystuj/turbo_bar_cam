@@ -77,7 +77,8 @@ function UnitFollowCamera.update()
         return
     end
 
-    local cameraPosition = UnitFollowCamera.getCameraPosition()
+    local unitX, unitY, unitZ, front, up, right = WorldUtils.getUnitVectors(STATE.active.mode.unitID)
+    local cameraPosition = UnitFollowUtils.applyOffsets(unitX, unitY, unitZ, front, up, right)
     local target, targetType = UnitFollowCamera.getCameraDirection(cameraPosition)
 
     local cameraDriverJob = CameraDriver.prepare(targetType, target)
@@ -88,8 +89,8 @@ function UnitFollowCamera.update()
 end
 
 function UnitFollowCamera.getCameraPosition()
-    local unitPos, front, up, right = WorldUtils.getUnitVectors(STATE.active.mode.unitID)
-    local camPos = UnitFollowUtils.applyOffsets(unitPos, front, up, right)
+    local unitX, unitY, unitZ, front, up, right = WorldUtils.getUnitVectors(STATE.active.mode.unitID)
+    local camPos = UnitFollowUtils.applyOffsets(unitX, unitY, unitZ, front, up, right)
     return camPos
 end
 

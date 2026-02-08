@@ -52,14 +52,23 @@ local function processMouseButton(buttonKey, buttonName, mouseX, mouseY, current
     local isDraggingKey = "isDragging" .. buttonKey
 
     local _, _, lmb, mmb, rmb = Spring.GetMouseState()
-    local isDown = ({ LMB = lmb, MMB = mmb, RMB = rmb })[buttonKey]
+    local isDown
+    if buttonKey == "LMB" then isDown = lmb
+    elseif buttonKey == "MMB" then isDown = mmb
+    elseif buttonKey == "RMB" then isDown = rmb
+    end
     local lastClickTime = STATE.active.mouse[lastClickKey]
 
     if isDown and not STATE.active.mouse[isDownKey] then
         -- Button just pressed
         STATE.active.mouse[isDownKey] = true
         STATE.active.mouse[pressStartKey] = currentTime
-        STATE.active.mouse[initialPressKey] = { x = mouseX, y = mouseY }
+        local initPress = STATE.active.mouse[initialPressKey]
+        if not initPress then
+            initPress = { x = 0, y = 0 }
+            STATE.active.mouse[initialPressKey] = initPress
+        end
+        initPress.x, initPress.y = mouseX, mouseY
 
         -- Check for double click
         if lastClickTime and Spring.DiffTimers(currentTime, lastClickTime) < STATE.active.mouse.doubleClickThreshold then

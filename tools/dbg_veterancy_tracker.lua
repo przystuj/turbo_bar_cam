@@ -94,35 +94,45 @@ local function GetUnitNames(defID)
     return ud.name, humanName
 end
 
-local function SerializeTable(val, name, depth)
-    depth = depth or 0
-    local str = ""
+-- Replaces SerializeTable to write directly to file (Streaming)
+-- This avoids creating massive strings in memory
+local function WriteValue(f, val, depth)
     local tab = string.rep("    ", depth)
 
     if type(val) == "table" then
-        if name then str = str .. tab .. name .. " = " end
-        str = str .. "{\n"
+        f:write("{\n")
         for k, v in pairs(val) do
-            local key
+            local keyStr
             if type(k) == "number" then
-                key = "[" .. k .. "]"
+                keyStr = "[" .. k .. "]"
             else
-                key = "[\"" .. k .. "\"]"
+                keyStr = "[\"" .. k .. "\"]"
             end
-            str = str .. SerializeTable(v, key, depth + 1) .. ",\n"
+            f:write(tab .. "    " .. keyStr .. " = ")
+            WriteValue(f, v, depth + 1)
+            f:write(",\n")
         end
-        str = str .. tab .. "}"
+        f:write(tab .. "}")
     elseif type(val) == "number" then
-        if name then str = str .. tab .. name .. " = " end
-        str = str .. tostring(val)
+        f:write(tostring(val))
     elseif type(val) == "string" then
-        if name then str = str .. tab .. name .. " = " end
-        str = str .. string.format("%q", val)
+        f:write(string.format("%q", val))
     elseif type(val) == "boolean" then
-        if name then str = str .. tab .. name .. " = " end
-        str = str .. (val and "true" or "false")
+        f:write(val and "true" or "false")
     end
-    return str
+end
+
+-- Specialized writer to reconstruct the flat position array into the expected table format
+local function WritePositionHistory(f, flatData, depth)
+    local tab = string.rep("    ", depth)
+    f:write("{\n")
+    local innerTab = tab .. "    "
+    -- Iterate in steps of 3 to reconstruct {frame, x, z}
+    for i = 1, #flatData, 3 do
+        f:write(string.format("%s{ frame = %d, x = %.1f, z = %.1f },\n",
+                innerTab, flatData[i], flatData[i+1], flatData[i+2]))
+    end
+    f:write(tab .. "}")
 end
 
 -- Helper to close a timeline segment
@@ -204,6 +214,8 @@ local function InitUnitRecord(uID, defID, frame)
 
         -- Stats Tracking
         damageTaken = 0,
+        -- OPTIMIZATION: Store positions as a flat array [frame, x, z, frame, x, z...]
+        -- instead of a list of tables to save massive memory overhead.
         positionHistory = {},
 
         -- Activity Tracking
@@ -288,11 +300,11 @@ function widget:GameFrame(currentFrame)
         for uID, r in pairs(unitRecords) do
             local x, _, z = spGetUnitPosition(uID)
             if x then
-                table.insert(r.positionHistory, {
-                    frame = currentFrame,
-                    x = x,
-                    z = z
-                })
+                -- OPTIMIZATION: Insert scalars into flat array.
+                -- Avoids creating a new table object every 5 seconds for every unit.
+                table.insert(r.positionHistory, currentFrame)
+                table.insert(r.positionHistory, x)
+                table.insert(r.positionHistory, z)
             end
         end
     end
@@ -362,6 +374,13 @@ end
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
     if unitRecords[unitID] then
         local xp = spGetUnitExperience(unitID) or 0
+
+        -- OPTIMIZATION: Remove insignificant units immediately to free memory
+        if xp < MIN_XP_THRESHOLD then
+            unitRecords[unitID] = nil
+            return
+        end
+
         local frame = spGetGameFrame()
 
         unitRecords[unitID].finalXP = xp
@@ -389,45 +408,16 @@ function widget:Shutdown()
         end
     end
 
-    -- 2. APPLY UNIFIED FILTER & CONSOLIDATE
-    ---@class ReplayUnitMetadata
-    ---@field units UnitMetadata[]
-    ---@field metadata ReplayMetadata
-    local result = {}
-    local exportUnits = {}
+    -- 2. METADATA GATHERING (PASS 1)
     local tempSortList = {}
     local tempDmgTakenList = {}
 
     for uID, data in pairs(unitRecords) do
         local xp = data.finalXP or 0
-
         local isValid = xp >= MIN_XP_THRESHOLD and isValidUnit(data.defID)
 
         if isValid then
             local internalName, niceName = GetUnitNames(data.defID)
-
-            -- APPLY SMART CONSOLIDATION
-            local cleanHistory = ConsolidateSmart(data.statusHistory)
-
-            ---@class UnitMetadata
-            exportUnits[uID] = {
-                name = internalName,
-                humanName = niceName,
-                defID = data.defID,
-                tier = data.tier,
-                bornFrame = data.bornFrame,
-                diedFrame = data.diedFrame,
-                finalXP = xp,
-                damageTaken = data.damageTaken,
-                positionHistory = data.positionHistory,
-                statusHistory = cleanHistory
-            }
-
-            local metaEntry = {
-                unitId = uID,
-                name = internalName,
-                humanName = niceName
-            }
 
             table.insert(tempSortList, {
                 unitId = uID,
@@ -436,9 +426,12 @@ function widget:Shutdown()
                 finalXp = xp
             })
 
-            local takenEntry = {damageTaken = data.damageTaken}
-            for k, v in pairs(metaEntry) do takenEntry[k] = v end
-            table.insert(tempDmgTakenList, takenEntry)
+            table.insert(tempDmgTakenList, {
+                unitId = uID,
+                name = internalName,
+                humanName = niceName,
+                damageTaken = data.damageTaken
+            })
         end
     end
 
@@ -456,21 +449,73 @@ function widget:Shutdown()
         table.insert(topDmgTaken, tempDmgTakenList[i])
     end
 
-    result.units = exportUnits
-    ---@class ReplayMetadata
-    result.metadata = {
-        endFrame = currentFrame,
-        topXp = topXpList,
-        topDmgTaken = topDmgTaken
-    }
-
-    -- 3. SAVE RAW DATA (Lua Table)
+    -- 3. STREAM DATA TO FILE (PASS 2)
     local filePath = getFilePath()
     spEcho("[Veterancy Logger] Initialized. Saving to: " .. filePath)
     local rawFile = io.open(filePath, "w")
+
     if rawFile then
         rawFile:write("-- Map: " .. (Game.mapName or "Unknown") .. "\n")
-        rawFile:write("return " .. SerializeTable(result))
+        rawFile:write("return {\n")
+
+        -- Write metadata
+        rawFile:write("    metadata = ")
+        WriteValue(rawFile, {
+            endFrame = currentFrame,
+            topXp = topXpList,
+            topDmgTaken = topDmgTaken
+        }, 1)
+        rawFile:write(",\n")
+
+        -- Write units individually
+        rawFile:write("    units = {\n")
+
+        local count = 0
+        for uID, data in pairs(unitRecords) do
+            local xp = data.finalXP or 0
+            local isValid = xp >= MIN_XP_THRESHOLD and isValidUnit(data.defID)
+
+            if isValid then
+                local internalName, niceName = GetUnitNames(data.defID)
+                local cleanHistory = ConsolidateSmart(data.statusHistory)
+
+                -- Stream the unit entry directly to file to avoid memory spikes
+                rawFile:write("    [" .. uID .. "] = {\n")
+
+                -- Write simple fields
+                rawFile:write(string.format("        name = %q,\n", internalName))
+                rawFile:write(string.format("        humanName = %q,\n", niceName))
+                rawFile:write(string.format("        defID = %d,\n", data.defID))
+                rawFile:write(string.format("        tier = %d,\n", data.tier or 1))
+                rawFile:write(string.format("        bornFrame = %d,\n", data.bornFrame))
+                if data.diedFrame then
+                    rawFile:write(string.format("        diedFrame = %d,\n", data.diedFrame))
+                end
+                rawFile:write(string.format("        finalXP = %.4f,\n", xp))
+                rawFile:write(string.format("        damageTaken = %.1f,\n", data.damageTaken))
+
+                -- Write Status History (Standard Table)
+                rawFile:write("        statusHistory = ")
+                WriteValue(rawFile, cleanHistory, 2)
+                rawFile:write(",\n")
+
+                -- Write Position History (Reconstruct from flat array on the fly)
+                rawFile:write("        positionHistory = ")
+                WritePositionHistory(rawFile, data.positionHistory, 2)
+                rawFile:write("\n")
+
+                rawFile:write("    },\n")
+
+                -- Explicit GC to prevent accumulation during loop
+                count = count + 1
+                if count % 100 == 0 then
+                    collectgarbage("collect")
+                end
+            end
+        end
+
+        rawFile:write("    }\n")
+        rawFile:write("}")
         rawFile:close()
     else
         spEcho("[Veterancy Logger] ERROR: Could not open file for writing")

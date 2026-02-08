@@ -130,8 +130,8 @@ if not WG.TurboBarCam.CONFIG then
 
                     -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
-                        POSITION_FACTOR = 1,
-                        ROTATION_FACTOR = 1,
+                        POSITION_FACTOR = 3,
+                        ROTATION_FACTOR = 2,
                     }
                 },
             },

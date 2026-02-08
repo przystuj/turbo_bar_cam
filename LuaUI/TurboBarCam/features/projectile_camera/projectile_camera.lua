@@ -339,7 +339,13 @@ function ProjectileCamera.update(dt)
     local currentProjectile = ProjectileTracker.getProjectileByID(projCamState.currentProjectileID)
 
     if currentProjectile then
-        projCamState.impactPosition = { pos = TableUtils.deepCopy(currentProjectile.position), vel = TableUtils.deepCopy(currentProjectile.velocity) }
+        if not projCamState.impactPosition then
+            projCamState.impactPosition = { pos = { x = 0, y = 0, z = 0 }, vel = { x = 0, y = 0, z = 0, speed = 0 } }
+        end
+        local ip = projCamState.impactPosition
+        local cp = currentProjectile
+        ip.pos.x, ip.pos.y, ip.pos.z = cp.position.x, cp.position.y, cp.position.z
+        ip.vel.x, ip.vel.y, ip.vel.z, ip.vel.speed = cp.velocity.x, cp.velocity.y, cp.velocity.z, cp.velocity.speed
         ProjectileCamera.handleProjectileTracking(currentProjectile)
     else
         projCamState.currentProjectileID = nil

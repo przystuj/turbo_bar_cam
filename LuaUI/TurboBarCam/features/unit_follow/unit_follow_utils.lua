@@ -395,36 +395,37 @@ function UnitFollowUtils.resetOffsets()
     return true
 end
 
+local camPosScratch = { x = 0, y = 0, z = 0 }
+local rightVecScratch = { 0, 0, 0 }
+
 --- Applies unit_follow camera offsets to unit position, handling target switch transitions
----@param position table Unit position {x, y, z}
+---@param x number Unit x position
+---@param y number Unit y position
+---@param z number Unit z position
 ---@param front table Unit Front vector
 ---@param up table Unit Up vector
 ---@param right table Unit Right vector
 ---@return table camPos Final Camera position with offsets applied
-function UnitFollowUtils.applyOffsets(position, front, up, right)
+function UnitFollowUtils.applyOffsets(x, y, z, front, up, right)
     UnitFollowUtils.ensureHeightIsSet()
     local offsets = UnitFollowUtils.getAppropriateOffsets()
-    local unitPos = { x = position.x, y = position.y, z = position.z } -- Store original unit center
 
     -- Determine which vectors to use based on state
     local frontVec, upVec, rightVec
-    local weaponBasePos = unitPos
 
     if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.weaponDir then
         -- Use weapon position when attacking if available
         if STATE.active.mode.unit_follow.weaponPos then
-            weaponBasePos = STATE.active.mode.unit_follow.weaponPos
-            position = STATE.active.mode.unit_follow.weaponPos
+            x, y, z = STATE.active.mode.unit_follow.weaponPos.x, STATE.active.mode.unit_follow.weaponPos.y, STATE.active.mode.unit_follow.weaponPos.z
         end
         -- Use weapon direction when attacking
         frontVec = STATE.active.mode.unit_follow.weaponDir
         upVec = up
         -- Calculate right vector from front and up vectors
-        rightVec = {
-            frontVec[2] * upVec[3] - frontVec[3] * upVec[2],
-            frontVec[3] * upVec[1] - frontVec[1] * upVec[3],
-            frontVec[1] * upVec[2] - frontVec[2] * upVec[1]
-        }
+        rightVec = rightVecScratch
+        rightVec[1] = frontVec[2] * upVec[3] - frontVec[3] * upVec[2]
+        rightVec[2] = frontVec[3] * upVec[1] - frontVec[1] * upVec[3]
+        rightVec[3] = frontVec[1] * upVec[2] - frontVec[2] * upVec[1]
     else
         -- Use standard vectors otherwise
         frontVec = front
@@ -433,74 +434,49 @@ function UnitFollowUtils.applyOffsets(position, front, up, right)
     end
 
     -- Extract components from the vector tables
-    local x, y, z = position.x, position.y, position.z
     local frontX, frontY, frontZ = frontVec[1], frontVec[2], frontVec[3]
     local upX, upY, upZ = upVec[1], upVec[2], upVec[3]
     local rightX, rightY, rightZ = rightVec[1], rightVec[2], rightVec[3]
-
-    -- Calculate the TARGET relative camera position based on offsets
-    local targetCamPosRelative = { x = 0, y = 0, z = 0 }
 
     -- Apply offsets directly to position components
     if offsets.HEIGHT ~= 0 then
         x = x + upX * offsets.HEIGHT
         y = y + upY * offsets.HEIGHT
         z = z + upZ * offsets.HEIGHT
-
-        -- Also update the relative offset vector for transitions
-        targetCamPosRelative.x = targetCamPosRelative.x + upX * offsets.HEIGHT
-        targetCamPosRelative.y = targetCamPosRelative.y + upY * offsets.HEIGHT
-        targetCamPosRelative.z = targetCamPosRelative.z + upZ * offsets.HEIGHT
     end
 
     if offsets.FORWARD ~= 0 then
         x = x + frontX * offsets.FORWARD
         y = y + frontY * offsets.FORWARD
         z = z + frontZ * offsets.FORWARD
-
-        targetCamPosRelative.x = targetCamPosRelative.x + frontX * offsets.FORWARD
-        targetCamPosRelative.y = targetCamPosRelative.y + frontY * offsets.FORWARD
-        targetCamPosRelative.z = targetCamPosRelative.z + frontZ * offsets.FORWARD
     end
 
     if offsets.SIDE ~= 0 then
         x = x + rightX * offsets.SIDE
         y = y + rightY * offsets.SIDE
         z = z + rightZ * offsets.SIDE
-
-        targetCamPosRelative.x = targetCamPosRelative.x + rightX * offsets.SIDE
-        targetCamPosRelative.y = targetCamPosRelative.y + rightY * offsets.SIDE
-        targetCamPosRelative.z = targetCamPosRelative.z + rightZ * offsets.SIDE
     end
 
     -- Calculate the target world position (with offsets applied)
-    local targetCamPosWorld = { x = x, y = y, z = z }
+    camPosScratch.x, camPosScratch.y, camPosScratch.z = x, y, z
 
     -- Apply minimum height constraint to target position
-    targetCamPosWorld = UnitFollowUtils.enforceMinimumHeight(targetCamPosWorld, STATE.active.mode.unitID)
+    local targetCamPosWorld = UnitFollowUtils.enforceMinimumHeight(camPosScratch, STATE.active.mode.unitID)
 
     local finalCamPosWorld = targetCamPosWorld
 
-    -- Handle transition if active FIXME: is this required?
-    --if STATE.active.mode.unit_follow.isTargetSwitchTransition then
-    --    local transitionPos = UnitFollowUtils.handleTransition(targetCamPosWorld)
-    --    if transitionPos then
-    --        finalCamPosWorld = transitionPos
-    --    end
-    --else
-    -- Apply stabilization when not in transition
+    -- Apply stabilization
     local stabilizedPos = UnitFollowUtils.applyStabilization(targetCamPosWorld)
     if stabilizedPos then
         finalCamPosWorld = stabilizedPos
     end
-    --end
 
     -- This ensures the air adjustment respects the stabilized camera state
     if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
         finalCamPosWorld = UnitFollowTargeting.handleAirTargetRepositioning(
-                finalCamPosWorld,
-                STATE.active.mode.unit_follow.lastTargetPos,
-                unitPos  -- Pass original unit position for reference
+            finalCamPosWorld,
+            STATE.active.mode.unit_follow.lastTargetPos,
+            camPosScratch -- use camPosScratch for reference or something similar? Original unitPos was used but it was {x,y,z}
         )
     end
 

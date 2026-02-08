@@ -104,17 +104,20 @@ function GroupTrackingCamera.update()
     end
 
     -- Check for invalid units
-    local validUnits = {}
-    for _, unitID in ipairs(STATE.active.mode.group_tracking.unitIDs) do
+    local validUnits = STATE.active.mode.group_tracking.unitIDs
+    local count = 0
+    for i = 1, #validUnits do
+        local unitID = validUnits[i]
         if Spring.ValidUnitID(unitID) then
-            table.insert(validUnits, unitID)
+            count = count + 1
+            validUnits[count] = unitID
         end
     end
+    for i = #validUnits, count + 1, -1 do
+        validUnits[i] = nil
+    end
 
-    -- Update tracked units list
-    STATE.active.mode.group_tracking.unitIDs = validUnits
-
-    if #validUnits == 0 then
+    if count == 0 then
         ModeManager.disableMode()
         return
     end
@@ -160,10 +163,12 @@ function GroupTrackingCamera.update()
 
         if velocityMagnitude > 5.0 then
             -- Use velocity direction (position camera behind units)
-            newCameraDir = {
-                x = -smoothedVelocity.x / velocityMagnitude,
-                z = -smoothedVelocity.z / velocityMagnitude
-            }
+            if not STATE.active.mode.group_tracking.newCameraDir then
+                STATE.active.mode.group_tracking.newCameraDir = { x = 0, z = 0 }
+            end
+            newCameraDir = STATE.active.mode.group_tracking.newCameraDir
+            newCameraDir.x = -smoothedVelocity.x / velocityMagnitude
+            newCameraDir.z = -smoothedVelocity.z / velocityMagnitude
 
             -- Limit maximum rotation per update (gradual turns)
             local lastDir = STATE.active.mode.group_tracking.lastCameraDir
@@ -192,10 +197,8 @@ function GroupTrackingCamera.update()
                     angle = angle + (sign * maxChange)
 
                     -- Convert back to direction vector
-                    newCameraDir = {
-                        x = math.cos(angle),
-                        z = math.sin(angle)
-                    }
+                    newCameraDir.x = math.cos(angle)
+                    newCameraDir.z = math.sin(angle)
                 end
             end
         else

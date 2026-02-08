@@ -147,10 +147,7 @@ function ProjectileTracker.findNewProjectiles(unitID, existingProjectiles)
     if existingProjectiles then
         for _, projectileID in ipairs(existingProjectiles) do
             if Spring.GetProjectileOwnerID(projectileID) == unitID and not knownProjectileIDs[projectileID] then
-                table.insert(newProjectiles, {
-                    id = projectileID,
-                    creationTime = currentTime
-                })
+                table.insert(newProjectiles, projectileID)
             end
         end
     else
@@ -160,10 +157,7 @@ function ProjectileTracker.findNewProjectiles(unitID, existingProjectiles)
         for i = 1, #projectilesInBox do
             local projectileID = projectilesInBox[i]
             if Spring.GetProjectileOwnerID(projectileID) == unitID and not knownProjectileIDs[projectileID] then
-                table.insert(newProjectiles, {
-                    id = projectileID,
-                    creationTime = currentTime
-                })
+                table.insert(newProjectiles, projectileID)
             end
         end
     end
@@ -224,21 +218,21 @@ function ProjectileTracker.update(frameNum)
                 local unitProjectileData = STATE.core.projectileTracking.unitProjectiles[unitID]
                 -- Only proceed if the unit data exists, as init may fail if team is not found
                 if unitProjectileData then
-                    for _, proj in ipairs(newProjectiles) do
+                    for _, projID in ipairs(newProjectiles) do
                         if #unitProjectileData.projectiles >= ProjectileTracker.config.maxProjectilesPerUnit then
                             table.remove(unitProjectileData.projectiles, 1)
                         end
                         ---@class Projectile
                         local projectile = {
-                            id = proj.id,
+                            id = projID,
                             ownerID = unitID,
-                            creationTime = proj.creationTime,
+                            creationTime = currentTime,
                             position = { x = 0, y = 0, z = 0 },
                             velocity = { x = 0, y = 0, z = 0, speed = 0 },
                             previousVelocity = { x = 0, y = 0, z = 0, speed = 0 }
                         }
                         table.insert(unitProjectileData.projectiles, projectile)
-                        Log:trace("Added new projectile " .. proj.id .. " for unit " .. unitID)
+                        Log:trace("Added new projectile " .. projID .. " for unit " .. unitID)
                     end
                 end
             end
@@ -250,27 +244,37 @@ function ProjectileTracker.update(frameNum)
         if not unitData.active and (Spring.DiffTimers(currentTime, unitData.lastUpdateTime) > ProjectileTracker.config.retentionTime) then
             ProjectileTracker.removeUnitTracking(unitID)
         else
-            local validProjectiles = {}
-            for _, projectile in ipairs(unitData.projectiles) do
+            local validCount = 0
+            for i = 1, #unitData.projectiles do
+                local projectile = unitData.projectiles[i]
                 local px, py, pz = Spring.GetProjectilePosition(projectile.id)
                 local vx, vy, vz = Spring.GetProjectileVelocity(projectile.id)
 
                 if px and vx then
                     local speed = math.sqrt(vx * vx + vy * vy + vz * vz)
-                    projectile.position = { x = px, y = py, z = pz }
-                    projectile.previousVelocity = projectile.velocity
-                    projectile.velocity = {
-                        x = speed > 0 and vx / speed or 0,
-                        y = speed > 0 and vy / speed or 0,
-                        z = speed > 0 and vz / speed or 0,
-                        speed = speed
-                    }
-                    table.insert(validProjectiles, projectile)
+                    projectile.position.x, projectile.position.y, projectile.position.z = px, py, pz
+
+                    local prevVel = projectile.previousVelocity
+                    local currVel = projectile.velocity
+                    prevVel.x, prevVel.y, prevVel.z, prevVel.speed = currVel.x, currVel.y, currVel.z, currVel.speed
+
+                    currVel.speed = speed
+                    if speed > 0 then
+                        currVel.x, currVel.y, currVel.z = vx / speed, vy / speed, vz / speed
+                    else
+                        currVel.x, currVel.y, currVel.z = 0, 0, 0
+                    end
+
+                    validCount = validCount + 1
+                    unitData.projectiles[validCount] = projectile
                 else
                     Log:trace("Projectile " .. projectile.id .. " no longer exists, removing from tracking")
                 end
             end
-            unitData.projectiles = validProjectiles
+            -- Remove any extra elements
+            for i = #unitData.projectiles, validCount + 1, -1 do
+                unitData.projectiles[i] = nil
+            end
         end
     end
 end

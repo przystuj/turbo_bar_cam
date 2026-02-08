@@ -67,7 +67,7 @@ function WorldUtils.getUnitVectors(unitID)
     local x, y, z = Spring.GetUnitPosition(unitID)
     local front, up, right = Spring.GetUnitVectors(unitID)
 
-    return { x = x, y = y, z = z }, front, up, right
+    return x, y, z, front, up, right
 end
 
 function WorldUtils.getCleanMapName()
