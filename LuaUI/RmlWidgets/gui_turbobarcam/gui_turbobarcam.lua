@@ -29,6 +29,10 @@ local initialized = false
 local visible = true
 local isLobbyVisible = false
 
+-- Throttle UI model updates to reduce per-frame allocations
+local lastModelUpdateTime
+local MODEL_UPDATE_INTERVAL = 0.1 -- seconds, update at 5 Hz instead of every frame
+
 local helpContext
 local helpDocument
 
@@ -580,6 +584,10 @@ local function updateDataModel()
     dm_handle.isEnabled = STATE.enabled or false
     dm_handle.status = dm_handle.isEnabled and "Enabled" or "Disabled"
 
+    if not dm_handle.isEnabled then
+        return
+    end
+
     dm_handle.playerCamSelectionActive = STATE.allowPlayerCamUnitSelection or false
     dm_handle.trackingWithoutSelectionActive = CONFIG.ALLOW_TRACKING_WITHOUT_SELECTION or false
 
@@ -589,26 +597,29 @@ local function updateDataModel()
     dm_handle.unitIndicatorsActive = (commandFXWidget and commandFXWidget.active) and (selectedUnitsWidget and selectedUnitsWidget.active) or false
     dm_handle.chatAndMinimapHidden = (chatWidget and not chatWidget.active) or false
 
-    local widgets = {}
-    for i = 1, #recordingModeWidgets do
-        local widget = recordingModeWidgets[i]
-        widgets[i] = {
-            name = widget.name,
-            isActive = widget.isActive()
-        }
-    end
-    dm_handle.recording_mode.widgets = widgets
+    -- Recording Mode UI (skip when folded to reduce allocations)
+    if not dm_handle.isRecordingModeFolded then
+        local widgets = {}
+        for i = 1, #recordingModeWidgets do
+            local widget = recordingModeWidgets[i]
+            widgets[i] = {
+                name = widget.name,
+                isActive = widget.isActive()
+            }
+        end
+        dm_handle.recording_mode.widgets = widgets
 
-    local options = {}
-    for i = 1, #recordingModeOptions do
-        local option = recordingModeOptions[i]
-        options[i] = {
-            name = option.name,
-            label = option.label,
-            isActive = option.isActive()
-        }
+        local options = {}
+        for i = 1, #recordingModeOptions do
+            local option = recordingModeOptions[i]
+            options[i] = {
+                name = option.name,
+                label = option.label,
+                isActive = option.isActive()
+            }
+        end
+        dm_handle.recording_mode.options = options
     end
-    dm_handle.recording_mode.options = options
 
     -- Update current mode
     local currentMode = STATE.active.mode.name or "None"
@@ -632,32 +643,34 @@ local function updateDataModel()
     dp.group_tracking.ORBIT_OFFSET = string.format('%.2f', cfg.GROUP_TRACKING.ORBIT_OFFSET or 0)
     dm_handle.isUnitSelected = Spring.GetSelectedUnitsCount() > 0
 
-    -- Update debug info
-    local targetSTATE = STATE.core.driver.target
-    local smoothingTransSTATE = STATE.core.driver.smoothingTransition
-    local jobSTATE = STATE.core.driver.job
-    local driverCONFIG = CONFIG.DRIVER
+    -- Update debug info (only when debug is unfolded)
+    if not dm_handle.isDebugFolded then
+        local targetSTATE = STATE.core.driver.target
+        local smoothingTransSTATE = STATE.core.driver.smoothingTransition
+        local jobSTATE = STATE.core.driver.job
+        local driverCONFIG = CONFIG.DRIVER
 
-    local isPosTask = targetSTATE.position ~= nil
-    local isRotTask = targetSTATE.targetEuler ~= nil
+        local isPosTask = targetSTATE.position ~= nil
+        local isRotTask = targetSTATE.targetEuler ~= nil
 
-    dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentPositionSmoothing or 0, targetSTATE.positionSmoothing or 0)
-    dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentRotationSmoothing or 0, targetSTATE.rotationSmoothing or 0)
+        dm_handle.debug_pos_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentPositionSmoothing or 0, targetSTATE.positionSmoothing or 0)
+        dm_handle.debug_rot_smooth = string.format("%.2f -> %.2f", smoothingTransSTATE.currentRotationSmoothing or 0, targetSTATE.rotationSmoothing or 0)
 
-    dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.velocityMagnitude or 0, driverCONFIG.VELOCITY_TARGET) or "N/A"
-    dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.distance or 0, driverCONFIG.DISTANCE_TARGET) or "N/A"
-    dm_handle.debug_ang_velocity = isRotTask and string.format("%.4f -> <%.4f", jobSTATE.angularVelocityMagnitude or 0, driverCONFIG.ANGULAR_VELOCITY_TARGET) or "N/A"
+        dm_handle.debug_velocity = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.velocityMagnitude or 0, driverCONFIG.VELOCITY_TARGET) or "N/A"
+        dm_handle.debug_distance = isPosTask and string.format("%.2f -> <%.2f", jobSTATE.distance or 0, driverCONFIG.DISTANCE_TARGET) or "N/A"
+        dm_handle.debug_ang_velocity = isRotTask and string.format("%.4f -> <%.4f", jobSTATE.angularVelocityMagnitude or 0, driverCONFIG.ANGULAR_VELOCITY_TARGET) or "N/A"
 
-    dm_handle.debug_pos_complete = jobSTATE.isPositionComplete
-    dm_handle.debug_rot_complete = jobSTATE.isRotationComplete
-    dm_handle.isDriverActive = jobSTATE.isActive
+        dm_handle.debug_pos_complete = jobSTATE.isPositionComplete
+        dm_handle.debug_rot_complete = jobSTATE.isRotationComplete
+        dm_handle.isDriverActive = jobSTATE.isActive
 
-    -- Update simulation info
-    local sim = STATE.core.driver.simulation
-    dm_handle.sim_position = string.format("x: %.1f, y: %.1f, z: %.1f", sim.position.x, sim.position.y, sim.position.z)
-    dm_handle.sim_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", sim.velocity.x, sim.velocity.y, sim.velocity.z)
-    dm_handle.sim_orientation = string.format("rx: %.3f, ry: %.3f", sim.euler.rx, sim.euler.ry)
-    dm_handle.sim_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", sim.angularVelocity.x, sim.angularVelocity.y, sim.angularVelocity.z)
+        -- Update simulation info
+        local sim = STATE.core.driver.simulation
+        dm_handle.sim_position = string.format("x: %.1f, y: %.1f, z: %.1f", sim.position.x, sim.position.y, sim.position.z)
+        dm_handle.sim_velocity = string.format("x: %.1f, y: %.1f, z: %.1f", sim.velocity.x, sim.velocity.y, sim.velocity.z)
+        dm_handle.sim_orientation = string.format("rx: %.3f, ry: %.3f", sim.euler.rx, sim.euler.ry)
+        dm_handle.sim_ang_velocity = string.format("x: %.3f, y: %.3f, z: %.3f", sim.angularVelocity.x, sim.angularVelocity.y, sim.angularVelocity.z)
+    end
 
     local isProjCamAvailable = false
     if currentMode ~= "None" then
@@ -672,7 +685,7 @@ local function updateDataModel()
 
     dm_handle.isProjectileCameraAvailable = isProjCamAvailable
 
-    if dm_handle.isProjectileCameraAvailable then
+    if dm_handle.isProjectileCameraAvailable and not dm_handle.isNukeTrackingFolded then
         local projCamState = STATE.active.mode.projectile_camera
         dm_handle.proj_cam_submode = projCamState.cameraMode or "N/A"
         dm_handle.proj_cam_prev_mode = projCamState.previousMode or "N/A"
@@ -724,71 +737,77 @@ local function updateDataModel()
         dm_handle.proj_cam_follow_button_active = false
     end
 
-    local allProjectiles = API.getAllTrackedProjectiles() or {}
-    local projectiles_list = {}
-    local projCamState = STATE.active.mode.projectile_camera
+    if not dm_handle.isNukeTrackingFolded then
+        local allProjectiles = API.getAllTrackedProjectiles() or {}
+        local projectiles_list = {}
+        local projCamState = STATE.active.mode.projectile_camera
 
-    for _, p in ipairs(allProjectiles) do
-        local teamId = Spring.GetUnitTeam(p.ownerID)
-        local r, g, b = Spring.GetTeamColor(teamId)
-        local timeInAir = Spring.DiffTimers(Spring.GetTimer(), p.creationTime)
-        local isCurrentlyTracked = projCamState.currentProjectileID == p.id
+        for _, p in ipairs(allProjectiles) do
+            local teamId = Spring.GetUnitTeam(p.ownerID)
+            local r, g, b = Spring.GetTeamColor(teamId)
+            local timeInAir = Spring.DiffTimers(Spring.GetTimer(), p.creationTime)
+            local isCurrentlyTracked = projCamState.currentProjectileID == p.id
 
-        table.insert(projectiles_list, {
-            id = p.id,
-            playerName = findPlayerNameByTeamID(teamId),
-            playerColor = string.format("rgb(%d, %d, %d)", r * 255, g * 255, b * 255),
-            timeInAir = string.format("%.1fs", timeInAir or 0),
-            isTracked = isCurrentlyTracked and projCamState.cameraMode == 'static',
-            isFollowed = isCurrentlyTracked and projCamState.cameraMode == 'follow',
-        })
-    end
-
-    table.sort(projectiles_list, function(a, b) return (a.timeInAir or 0) > (b.timeInAir or 0) end)
-
-    dm_handle.nuke_tracking.projectiles = projectiles_list
-    dm_handle.nuke_tracking.hasProjectiles = #projectiles_list > 0
-
-    -- Update Anchors
-    local anchors_list = {}
-
-    for id, anchorData in pairs(STATE.anchor.points) do
-        local anchor_type = "Direction"
-        if anchorData.target then
-            if anchorData.target.type == "UNIT" then
-                anchor_type = "Unit"
-            elseif anchorData.target.type == "POINT" then
-                anchor_type = "Point"
-            end
+            table.insert(projectiles_list, {
+                id = p.id,
+                playerName = findPlayerNameByTeamID(teamId),
+                playerColor = string.format("rgb(%d, %d, %d)", r * 255, g * 255, b * 255),
+                timeInAir = string.format("%.1fs", timeInAir or 0),
+                isTracked = isCurrentlyTracked and projCamState.cameraMode == 'static',
+                isFollowed = isCurrentlyTracked and projCamState.cameraMode == 'follow',
+            })
         end
 
-        table.insert(anchors_list, {
-            id = id,
-            duration = string.format("%.1fs", anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION),
-            type = anchor_type,
-        })
+        table.sort(projectiles_list, function(a, b) return (a.timeInAir or 0) > (b.timeInAir or 0) end)
+
+        dm_handle.nuke_tracking.projectiles = projectiles_list
+        dm_handle.nuke_tracking.hasProjectiles = #projectiles_list > 0
     end
 
-    table.sort(anchors_list, function(a, b) return tonumber(a.id) < tonumber(b.id) end)
-    dm_handle.anchors.anchors_list = anchors_list
-    dm_handle.anchors.hasAnchors = #anchors_list > 0
-    dm_handle.anchors.activeAnchorId = STATE.core.anchor.lastUsedAnchor or -1
-    dm_handle.anchors.visualizationEnabled = STATE.active.anchor.visualizationEnabled or false
+    -- Update Anchors (skip when folded)
+    if not dm_handle.isAnchorsFolded then
+        local anchors_list = {}
 
-    dm_handle.anchors.singleDurationMode = CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE or false
-    dm_handle.anchors.newAnchorDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
-    dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', CONFIG.CAMERA_MODES.ANCHOR.DURATION)
+        for id, anchorData in pairs(STATE.anchor.points) do
+            local anchor_type = "Direction"
+            if anchorData.target then
+                if anchorData.target.type == "UNIT" then
+                    anchor_type = "Unit"
+                elseif anchorData.target.type == "POINT" then
+                    anchor_type = "Point"
+                end
+            end
 
-    -- Saved Anchor Sets
-    local mapName = getCleanMapName()
-    local mapPresets = API.loadSettings("anchors", mapName, {}, true) or {}
-    local sets_list = {}
-    for id, _ in pairs(mapPresets) do
-        table.insert(sets_list, id)
+            table.insert(anchors_list, {
+                id = id,
+                duration = string.format("%.1fs", anchorData.duration or CONFIG.CAMERA_MODES.ANCHOR.DURATION),
+                type = anchor_type,
+            })
+        end
+
+        table.sort(anchors_list, function(a, b) return tonumber(a.id) < tonumber(b.id) end)
+        dm_handle.anchors.anchors_list = anchors_list
+        dm_handle.anchors.hasAnchors = #anchors_list > 0
+        dm_handle.anchors.activeAnchorId = STATE.core.anchor.lastUsedAnchor or -1
+        dm_handle.anchors.visualizationEnabled = STATE.active.anchor.visualizationEnabled or false
+
+        dm_handle.anchors.singleDurationMode = CONFIG.CAMERA_MODES.ANCHOR.SINGLE_DURATION_MODE or false
+        dm_handle.anchors.newAnchorDuration = CONFIG.CAMERA_MODES.ANCHOR.DURATION
+        dm_handle.anchors.newAnchorDurationDisplay = string.format('%.1fs', CONFIG.CAMERA_MODES.ANCHOR.DURATION)
     end
-    table.sort(sets_list)
-    dm_handle.savedAnchorSets = sets_list
-    dm_handle.hasSavedAnchorSets = #sets_list > 0
+
+    -- Saved Anchor Sets (skip when folded)
+    if not dm_handle.isSavedAnchorSetsFolded then
+        local mapName = getCleanMapName()
+        local mapPresets = API.loadSettings("anchors", mapName, {}, true) or {}
+        local sets_list = {}
+        for id, _ in pairs(mapPresets) do
+            table.insert(sets_list, id)
+        end
+        table.sort(sets_list)
+        dm_handle.savedAnchorSets = sets_list
+        dm_handle.hasSavedAnchorSets = #sets_list > 0
+    end
     dm_handle.inFixedTargetSelectionMode = STATE.active.mode.unit_follow.inTargetSelectionMode
     dm_handle.isFixedTargetModeActive = STATE.active.mode.unit_follow.isFixedPointActive
     dm_handle.isWeaponCameraActive = STATE.active.mode.unit_follow.combatModeEnabled
@@ -808,6 +827,7 @@ function widget:Initialize()
     end)
     -- Get RmlUi context through widget
     widget.rmlContext = RmlUi.CreateContext("shared")
+    lastModelUpdateTime = Spring.GetTimer()
 
     if not widget.rmlContext then
         Log:warn("Failed to create RmlUi context")
@@ -927,7 +947,12 @@ function widget:Update()
 
     if initialized then
         showUI()
-        updateDataModel()
+        -- Throttle data model updates to reduce allocations
+        local now = Spring.GetTimer()
+        if not lastModelUpdateTime or Spring.DiffTimers(now, lastModelUpdateTime) >= MODEL_UPDATE_INTERVAL then
+            updateDataModel()
+            lastModelUpdateTime = now
+        end
     end
 end
 
