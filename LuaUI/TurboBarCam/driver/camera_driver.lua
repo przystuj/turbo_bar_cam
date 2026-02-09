@@ -186,7 +186,7 @@ local function getLiveSmoothTimes()
     else
         -- Interpolate during an active transition.
         local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothingTransitionStart)
-        local duration = CONFIG.DRIVER.TRANSITION_TIME
+        local duration = CONFIG.DRIVER.MAX_TRANSITION_TIME
         local alpha = (duration > 0) and (elapsed / duration) or 1.0
 
         if alpha >= 1.0 then
@@ -330,6 +330,41 @@ function CameraDriver.update(dt)
 
     -- Perform simulation updates
     local liveSmoothTimePos, liveSmoothTimeRot = getLiveSmoothTimes()
+
+    -- Apply active braking if smoothing is increasing.
+    -- This helps the camera lose momentum when switching from "fast" to "slow" camera modes.
+    local transitionSTATE = STATE.core.driver.smoothingTransition
+    if transitionSTATE.smoothingTransitionStart then
+        local simulationSTATE = STATE.core.driver.simulation
+        local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothingTransitionStart)
+        local duration = CONFIG.DRIVER.MAX_TRANSITION_TIME
+        local alpha = (duration > 0) and (elapsed / duration) or 1.0
+
+        if alpha < 1.0 then
+            -- We apply braking when transitioning to HIGHER smoothing.
+            -- Using a bell-like curve (sin(alpha * PI)) to apply most braking in the middle of transition.
+            local brakingPower = math.sin(alpha * math.pi)
+            local targetSmoothPos = STATE.core.driver.target.positionSmoothing
+            local targetSmoothRot = STATE.core.driver.target.rotationSmoothing
+
+            if targetSmoothPos > transitionSTATE.startingPositionSmoothing then
+                local factor = 1.0 - (1.0 - CONFIG.DRIVER.BRAKING_FACTOR) * brakingPower * dt * 10 -- Scale by dt to be framerate independent-ish
+                factor = math.max(0.01, factor)
+                simulationSTATE.velocity.x = simulationSTATE.velocity.x * factor
+                simulationSTATE.velocity.y = simulationSTATE.velocity.y * factor
+                simulationSTATE.velocity.z = simulationSTATE.velocity.z * factor
+            end
+
+            if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
+                local factor = 1.0 - (1.0 - CONFIG.DRIVER.BRAKING_FACTOR) * brakingPower * dt * 10
+                factor = math.max(0.01, factor)
+                simulationSTATE.angularVelocity.x = simulationSTATE.angularVelocity.x * factor
+                simulationSTATE.angularVelocity.y = simulationSTATE.angularVelocity.y * factor
+                simulationSTATE.angularVelocity.z = simulationSTATE.angularVelocity.z * factor
+            end
+        end
+    end
+
     updatePosition(dt, liveSmoothTimePos)
     updateOrientation(dt, liveSmoothTimeRot)
 

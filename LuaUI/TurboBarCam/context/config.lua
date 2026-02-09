@@ -12,10 +12,14 @@ if not WG.TurboBarCam.CONFIG then
         },
 
         DRIVER = {
-            TRANSITION_TIME = 0.2,
+            MAX_TRANSITION_TIME = 1,
             ANGULAR_VELOCITY_TARGET = 0.0001,
             VELOCITY_TARGET = 1,
             DISTANCE_TARGET = 0.001,
+            -- BRAKING_FACTOR defines how much to reduce velocity when transitioning to higher smoothing.
+            -- 1.0 means no additional braking, 0.0 means instant stop (not recommended).
+            -- A value like 0.2 means velocity is reduced to 20% during the peak of transition.
+            BRAKING_FACTOR = 0.5,
         },
 
         -- Performance settings
@@ -50,7 +54,7 @@ if not WG.TurboBarCam.CONFIG then
             ANCHOR = {
                 -- Transition settings
                 DURATION = 5.0, -- Default transition duration (seconds)
-                SINGLE_DURATION_MODE = true, -- If true all anchors have the same duration
+                SINGLE_DURATION_MODE = false, -- If true all anchors have the same duration
             },
 
             UNIT_FOLLOW = {
