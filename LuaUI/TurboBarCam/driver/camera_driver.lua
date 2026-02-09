@@ -117,6 +117,20 @@ local function handleCameraSnap(targetConfig)
     applySimulationToCamera()
 end
 
+--- Helper function to calculate transition duration based on smoothing difference.
+---@param diff number The absolute difference between starting and target smoothing.
+---@return number The calculated transition duration.
+local function calculateTransitionDuration(diff)
+    local minDuration = CONFIG.DRIVER.MIN_TRANSITION_TIME
+    local threshold = CONFIG.DRIVER.TRANSITION_DIFF_THRESHOLD
+    local scale = CONFIG.DRIVER.TRANSITION_DIFF_SCALE
+
+    -- Non-linear increase: (diff / threshold) ^ 2 * scale
+    -- Slow increase at lower diff, faster when approaching threshold.
+    local ratio = diff / threshold
+    return minDuration + (ratio * ratio) * scale
+end
+
 --- Sets the camera's declarative target state and seeds the simulation.
 ---@param targetConfig DriverTargetConfig Configuration for the target state.
 function CameraDriver.runJob(targetConfig)
@@ -148,8 +162,18 @@ function CameraDriver.runJob(targetConfig)
     targetSTATE.rotationSmoothing = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
 
     if wasAlreadyActive then
-        transitionSTATE.startingPositionSmoothing = transitionSTATE.currentPositionSmoothing
-        transitionSTATE.startingRotationSmoothing = transitionSTATE.currentRotationSmoothing
+        local startPosSmooth = transitionSTATE.currentPositionSmoothing
+        local startRotSmooth = transitionSTATE.currentRotationSmoothing
+
+        transitionSTATE.startingPositionSmoothing = startPosSmooth
+        transitionSTATE.startingRotationSmoothing = startRotSmooth
+
+        local targetSmoothPos = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
+        local targetSmoothRot = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
+
+        transitionSTATE.positionTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothPos - startPosSmooth))
+        transitionSTATE.rotationTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothRot - startRotSmooth))
+
         transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
     end
 
@@ -186,29 +210,37 @@ local function getLiveSmoothTimes()
     else
         -- Interpolate during an active transition.
         local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothingTransitionStart)
-        local duration = CONFIG.DRIVER.MAX_TRANSITION_TIME
-        local alpha = (duration > 0) and (elapsed / duration) or 1.0
+        local p_duration = transitionSTATE.positionTransitionDuration
+        local r_duration = transitionSTATE.rotationTransitionDuration
 
-        if alpha >= 1.0 then
+        local p_alpha = (p_duration > 0) and (elapsed / p_duration) or 1.0
+        local r_alpha = (r_duration > 0) and (elapsed / r_duration) or 1.0
+
+        if p_alpha >= 1.0 then
             transitionSTATE.currentPositionSmoothing = targetSmoothPos
-            transitionSTATE.currentRotationSmoothing = targetSmoothRot
-            transitionSTATE.smoothingTransitionStart = nil
         else
             -- Non-linear interpolation to improve feel when smoothing values change.
             -- When moving towards higher smoothing (slower response), we want to stay "fast" longer
             -- to ensure we can brake/reach the target before the slower smoothing takes full effect.
-            local p_alpha = alpha
-            local r_alpha = alpha
-
+            local p_alpha_final = p_alpha
             if targetSmoothPos > transitionSTATE.startingPositionSmoothing then
-                p_alpha = alpha * alpha * alpha -- Cubic ease-in: stays low (fast) longer
+                p_alpha_final = p_alpha * p_alpha * p_alpha -- Cubic ease-in: stays low (fast) longer
             end
-            if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
-                r_alpha = alpha * alpha * alpha
-            end
+            transitionSTATE.currentPositionSmoothing = transitionSTATE.startingPositionSmoothing * (1.0 - p_alpha_final) + targetSmoothPos * p_alpha_final
+        end
 
-            transitionSTATE.currentPositionSmoothing = transitionSTATE.startingPositionSmoothing * (1.0 - p_alpha) + targetSmoothPos * p_alpha
-            transitionSTATE.currentRotationSmoothing = transitionSTATE.startingRotationSmoothing * (1.0 - r_alpha) + targetSmoothRot * r_alpha
+        if r_alpha >= 1.0 then
+            transitionSTATE.currentRotationSmoothing = targetSmoothRot
+        else
+            local r_alpha_final = r_alpha
+            if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
+                r_alpha_final = r_alpha * r_alpha * r_alpha
+            end
+            transitionSTATE.currentRotationSmoothing = transitionSTATE.startingRotationSmoothing * (1.0 - r_alpha_final) + targetSmoothRot * r_alpha_final
+        end
+
+        if p_alpha >= 1.0 and r_alpha >= 1.0 then
+            transitionSTATE.smoothingTransitionStart = nil
         end
     end
 
@@ -337,25 +369,30 @@ function CameraDriver.update(dt)
     if transitionSTATE.smoothingTransitionStart then
         local simulationSTATE = STATE.core.driver.simulation
         local elapsed = Spring.DiffTimers(Spring.GetTimer(), transitionSTATE.smoothingTransitionStart)
-        local duration = CONFIG.DRIVER.MAX_TRANSITION_TIME
-        local alpha = (duration > 0) and (elapsed / duration) or 1.0
 
-        if alpha < 1.0 then
-            -- We apply braking when transitioning to HIGHER smoothing.
-            -- Using a bell-like curve (sin(alpha * PI)) to apply most braking in the middle of transition.
-            local brakingPower = math.sin(alpha * math.pi)
-            local targetSmoothPos = STATE.core.driver.target.positionSmoothing
-            local targetSmoothRot = STATE.core.driver.target.rotationSmoothing
+        -- We apply braking when transitioning to HIGHER smoothing.
+        local targetSmoothPos = STATE.core.driver.target.positionSmoothing
+        local targetSmoothRot = STATE.core.driver.target.rotationSmoothing
 
-            if targetSmoothPos > transitionSTATE.startingPositionSmoothing then
+        if targetSmoothPos > transitionSTATE.startingPositionSmoothing then
+            local p_duration = transitionSTATE.positionTransitionDuration
+            local p_alpha = (p_duration > 0) and (elapsed / p_duration) or 1.0
+            if p_alpha < 1.0 then
+                -- Using a bell-like curve (sin(alpha * PI)) to apply most braking in the middle of transition.
+                local brakingPower = math.sin(p_alpha * math.pi)
                 local factor = 1.0 - (1.0 - CONFIG.DRIVER.BRAKING_FACTOR) * brakingPower * dt * 10 -- Scale by dt to be framerate independent-ish
                 factor = math.max(0.01, factor)
                 simulationSTATE.velocity.x = simulationSTATE.velocity.x * factor
                 simulationSTATE.velocity.y = simulationSTATE.velocity.y * factor
                 simulationSTATE.velocity.z = simulationSTATE.velocity.z * factor
             end
+        end
 
-            if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
+        if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
+            local r_duration = transitionSTATE.rotationTransitionDuration
+            local r_alpha = (r_duration > 0) and (elapsed / r_duration) or 1.0
+            if r_alpha < 1.0 then
+                local brakingPower = math.sin(r_alpha * math.pi)
                 local factor = 1.0 - (1.0 - CONFIG.DRIVER.BRAKING_FACTOR) * brakingPower * dt * 10
                 factor = math.max(0.01, factor)
                 simulationSTATE.angularVelocity.x = simulationSTATE.angularVelocity.x * factor

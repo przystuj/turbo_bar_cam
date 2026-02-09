@@ -72,6 +72,8 @@ if not WG.TurboBarCam.STATE then
                     startingRotationSmoothing = 3,
                     currentPositionSmoothing = 3,
                     currentRotationSmoothing = 3,
+                    positionTransitionDuration = 0.2,
+                    rotationTransitionDuration = 0.2,
                     smoothingTransitionStart = nil,
                 },
                 job = {
