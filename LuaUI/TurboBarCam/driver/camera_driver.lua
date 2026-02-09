@@ -147,9 +147,11 @@ function CameraDriver.runJob(targetConfig)
     targetSTATE.positionSmoothing = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
     targetSTATE.rotationSmoothing = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
 
-    transitionSTATE.startingPositionSmoothing = transitionSTATE.currentPositionSmoothing
-    transitionSTATE.startingRotationSmoothing = transitionSTATE.currentRotationSmoothing
-    transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
+    if wasAlreadyActive then
+        transitionSTATE.startingPositionSmoothing = transitionSTATE.currentPositionSmoothing
+        transitionSTATE.startingRotationSmoothing = transitionSTATE.currentRotationSmoothing
+        transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
+    end
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)
@@ -192,8 +194,21 @@ local function getLiveSmoothTimes()
             transitionSTATE.currentRotationSmoothing = targetSmoothRot
             transitionSTATE.smoothingTransitionStart = nil
         else
-            transitionSTATE.currentPositionSmoothing = transitionSTATE.startingPositionSmoothing * (1.0 - alpha) + targetSmoothPos * alpha
-            transitionSTATE.currentRotationSmoothing = transitionSTATE.startingRotationSmoothing * (1.0 - alpha) + targetSmoothRot * alpha
+            -- Non-linear interpolation to improve feel when smoothing values change.
+            -- When moving towards higher smoothing (slower response), we want to stay "fast" longer
+            -- to ensure we can brake/reach the target before the slower smoothing takes full effect.
+            local p_alpha = alpha
+            local r_alpha = alpha
+
+            if targetSmoothPos > transitionSTATE.startingPositionSmoothing then
+                p_alpha = alpha * alpha * alpha -- Cubic ease-in: stays low (fast) longer
+            end
+            if targetSmoothRot > transitionSTATE.startingRotationSmoothing then
+                r_alpha = alpha * alpha * alpha
+            end
+
+            transitionSTATE.currentPositionSmoothing = transitionSTATE.startingPositionSmoothing * (1.0 - p_alpha) + targetSmoothPos * p_alpha
+            transitionSTATE.currentRotationSmoothing = transitionSTATE.startingRotationSmoothing * (1.0 - r_alpha) + targetSmoothRot * r_alpha
         end
     end
 
