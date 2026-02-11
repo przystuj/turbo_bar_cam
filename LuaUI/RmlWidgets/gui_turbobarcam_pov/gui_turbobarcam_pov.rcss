@@ -1,0 +1,305 @@
+body {
+    font-family: "Exo 2";
+    font-weight: normal;
+    font-size: 13dp;
+    color: white;
+    height: 100%;
+}
+
+div {
+    display: block;
+}
+
+#hud-box {
+    width: 500dp;
+    height: 120dp;
+    background-color: #1a1a1a;
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c;
+
+    position: absolute;
+    top: 40dp;
+    left: 56dp;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
+    box-sizing: border-box;
+    padding: 0px;
+}
+#ff-box {
+    width: 150dp;
+    height: 120dp;
+    background-color: #1a1a1a;
+    border: 1dp #2c2c2c;
+    border-top: 3dp #fdc04c;
+
+    position: absolute;
+    top: 40dp;
+    left: 1844dp;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
+    box-sizing: border-box;
+    padding: 10dp;
+}
+
+.ff-icon {
+    font-size: 40dp;
+    font-weight: bold;
+    color: #fdc04c;
+    margin-bottom: -5dp;
+}
+
+.ff-speed-text {
+    font-size: 24dp;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 10dp;
+}
+
+.ff-progress-bg {
+    width: 100%;
+    height: 8dp;
+    background-color: #333;
+    border: 1dp #444;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.ff-progress-fill {
+    height: 100%;
+    background-color: #fdc04c;
+    width: 0%;
+}
+
+.icon-box {
+    width: 160dp;
+    height: 100%;
+    position: relative;
+    background-color: #000;
+    border-right: 1dp #333;
+    box-sizing: border-box;
+}
+
+.unit-icon {
+    width: 100%;
+    height: 100%;
+}
+
+.rank-overlay {
+    position: absolute;
+    top: 0dp;
+    right: 0dp;
+    width: 40dp;
+    height: 40dp;
+    z-index: 2;
+}
+
+.info-box {
+    flex-grow: 1;
+    width: auto;
+
+    height: 100%;
+    padding: 6dp 10dp;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.header-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.unit-name {
+    font-size: 22dp;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.unit-desc {
+    font-size: 14dp;
+    color: #d1d1d1;
+    margin-top: -2dp;
+    overflow: hidden;
+}
+
+.stats-row {
+    display: flex;
+    flex-direction: row;
+    font-size: 14dp;
+    margin-bottom: 2dp;
+    font-weight: bold;
+    width: 100%;
+    gap: 8dp;
+}
+
+.stat-item {
+    color: #ccc;
+}
+
+.stat-bonuses {
+    display: flex;
+    flex-direction: row;
+}
+
+.emp-timer {
+    display: flex;
+    flex-direction: row;
+    color: #aaddff;
+    margin-left: auto;
+}
+
+.bonus-val {
+    color: #4CAF50;
+}
+
+.bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    width: 100%;
+}
+
+.hp-bar-bg {
+    width: 100%;
+    height: 22dp;
+    background-color: #333;
+    position: relative;
+    border: 1dp #444;
+    box-sizing: border-box;
+}
+
+.hp-bar-fill {
+    height: 100%;
+    background-color: #1D9D17;
+}
+
+.emp-bar-fill {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.hp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    line-height: 22dp;
+    text-align: center;
+    font-size: 14dp;
+    font-weight: bold;
+    color: white;
+
+    pointer-events: none;
+    z-index: 2;
+}
+
+.xp-bar-bg {
+    width: 100%;
+    height: 4dp;
+    background-color: #222;
+    position: relative;
+    border: 1dp #2f2f2f;
+    box-sizing: border-box;
+}
+
+.xp-bar-fill {
+    height: 100%;
+    background-color: #00bcd4;
+}
+
+#player-list-wrapper {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.team-panel {
+    display: flex;
+    flex-direction: column;
+    width: 450dp;
+    height: auto;
+
+    background-color: rgba(26, 26, 26, 140);
+    border: 1dp #2c2c2c;
+    box-shadow: 2dp 2dp 6dp rgba(0,0,0,140);
+
+    padding: 20dp;
+    gap: 40dp;
+
+    position: absolute;
+    top: 15%;
+}
+
+.team-panel.left {
+    left: 50dp;
+    align-items: flex-start;
+    border-top: 6dp #0B3EF3; /* blue */
+}
+
+.team-panel.right {
+    left: 1500dp;
+    align-items: flex-end;
+    border-top: 6dp #FF1005; /* red */
+}
+
+.player-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 28dp;
+    width: 100%;
+}
+
+.team-panel.right .player-row {
+    justify-content: flex-end;
+}
+
+.player-color-box {
+    width: 24dp;
+    height: 24dp;
+    margin-right: 10dp;
+    margin-left: 10dp;
+    border: 1dp rgba(255,255,255,0.3);
+}
+
+.player-rank {
+    width: 28dp;
+    height: 28dp;
+    margin-right: 8dp;
+    margin-left: 8dp;
+}
+
+.player-skill {
+    font-size: 26dp;
+    color: #aaa;
+    margin-left: 12dp;
+    margin-right: 12dp;
+    min-width: 40dp;
+    text-align: center;
+}
+
+.player-name {
+    font-size: 30dp;
+    color: white;
+    white-space: nowrap;
+}

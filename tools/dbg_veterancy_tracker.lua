@@ -31,7 +31,6 @@ local MAX_PAUSE_GAP = 900           -- 30s: Max duration to ever consider a "PAU
 -- Speedups
 --------------------------------------------------------------------------------
 local spGetUnitExperience = Spring.GetUnitExperience
-local spGetUnitHealth = Spring.GetUnitHealth
 local spGetUnitPosition = Spring.GetUnitPosition
 local spGetGameFrame = Spring.GetGameFrame
 local spGetAllUnits = Spring.GetAllUnits
@@ -41,9 +40,16 @@ local spEcho = Spring.Echo
 local unitRecords = {}
 local unitDefWeaponInfo = {} -- Cache for main weapon indices
 
+
+-- Specific units to exclude
+local ignoreListNames = {
+    "corvamp", "armhawk", "legfig", "legvenator", "legafigdef", "armfig", "corveng", -- figs
+    "armrock", "corsent", "corwolv", "armart", "corstorm"
+}
+
 local function CacheUnitWeaponInfo()
     for unitDefID, unitDef in pairs(UnitDefs) do
-        local mainIdx = nil
+        local mainIdx
 
         if unitDef.weapons and #unitDef.weapons > 0 then
             -- Try to find the first non-shield weapon
@@ -65,12 +71,6 @@ local function CacheUnitWeaponInfo()
         end
     end
 end
-
--- Specific units to exclude
-local ignoreListNames = {
-    "corvamp", "armhawk", "legfig", "legvenator", "legafigdef", "armfig", "corveng", -- figs
-    "armrock", "corsent", "corwolv", "armart", "corstorm"
-}
 
 local ignoreSet = {}
 for _, name in ipairs(ignoreListNames) do
@@ -180,29 +180,7 @@ local function ConsolidateSmart(history)
     return history
 end
 
-local function UpdateUnitActivity(record, frame)
-    -- Reset the idle timer
-    record.lastActivityFrame = frame
-
-    -- If it was IDLE, switch back to ACTIVE immediately
-    if record.currentStatus == "IDLE" or record.currentStatus == "PAUSE" then
-        record.currentStatus = "ACTIVE"
-
-        -- Close the previous IDLE/PAUSE block
-        local histLen = #record.statusHistory
-        if histLen > 0 then
-            record.statusHistory[histLen].endFrame = frame
-        end
-
-        table.insert(record.statusHistory, {
-            status = "ACTIVE",
-            startFrame = frame
-        })
-    end
-end
-
 local function InitUnitRecord(uID, defID, frame)
-    local curHP = spGetUnitHealth(uID) or 0
     local unitDef = UnitDefs[defID]
 
     unitRecords[uID] = {
@@ -219,8 +197,6 @@ local function InitUnitRecord(uID, defID, frame)
         positionHistory = {},
 
         -- Activity Tracking
-        lastCheckedXP = 0,
-        lastCheckedHP = curHP,
         currentStatus = "IDLE",
 
         lastStatusChangeFrame = frame,
@@ -274,7 +250,6 @@ function widget:Initialize()
         if isValidUnit(defID) then
             InitUnitRecord(uID, defID, bornTime)
             local xp = spGetUnitExperience(uID) or 0
-            unitRecords[uID].lastCheckedXP = xp
             unitRecords[uID].finalXP = xp
         end
     end
@@ -290,7 +265,6 @@ end
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage)
     local r = unitRecords[unitID]
     if r then
-        r.lastCheckedHP = spGetUnitHealth(unitID)
         r.damageTaken = r.damageTaken + damage
     end
 end
@@ -300,8 +274,6 @@ function widget:GameFrame(currentFrame)
         for uID, r in pairs(unitRecords) do
             local x, _, z = spGetUnitPosition(uID)
             if x then
-                -- OPTIMIZATION: Insert scalars into flat array.
-                -- Avoids creating a new table object every 5 seconds for every unit.
                 table.insert(r.positionHistory, currentFrame)
                 table.insert(r.positionHistory, x)
                 table.insert(r.positionHistory, z)
