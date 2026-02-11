@@ -15,17 +15,17 @@ An advanced camera control suite for Beyond All Reason, featuring smooth transit
 ## Installation
 
 1. Download `turbobarcam_vX.zip`
-2. Extract it in your BAR data folder
+2. Extract it in your BAR installation directory (Click **Open install directory** in the Launcher)
 3. After extracting, your folder structure should look like:
-```
-BAR install folder/
-└── data/
+    ```
+    BAR install folder/
     └── LuaUI/
         ├── RmlWidgets/
         ├── Widgets/
         └── TurboBarCam/
         └── TurboBarCommons/
-```
+    ```
+
 4. Enable "Tactical Ultra-Responsive Brilliant Optics for BAR Camera" and "TurboBarCam UI" in-game
 
 ## Getting Started

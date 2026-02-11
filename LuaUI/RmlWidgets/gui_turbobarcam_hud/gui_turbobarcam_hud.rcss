@@ -46,7 +46,7 @@ div {
 .time {
     color: #fff;
     font-weight: bold;
-    width: 80dp;
+    width: 140dp;
 }
 
 .mouseTarget {

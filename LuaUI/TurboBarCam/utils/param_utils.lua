@@ -133,7 +133,7 @@ local function adjustParam(command, module)
     end
 
     -- Get the parameter boundaries
-    local boundaries = nil
+    local boundaries
     for validParamName, config in pairs(CONFIG.MODIFIABLE_PARAMS[module].PARAM_NAMES) do
         if validParamName == command.param then
             boundaries = config

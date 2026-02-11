@@ -178,8 +178,8 @@ local function UpdateModel(dt)
     dm.gameTime = string.format("%02d:%02d", minutes, seconds)
     dm.gameFrame = string.format("%06d", frame)
 
-    local speed = spGetGameSpeed()
-    dm.targetSpeed = string.format("%.1f", speed)
+    local speed, speedFactor = spGetGameSpeed()
+    dm.targetSpeed = string.format("%.1f <%.1f>", speed, speedFactor)
     dm.lastConsoleMsg = lastConsoleLine
     if STATE.core.scriptRunner.enabled and STATE.core.scriptRunner.isFinal then
         dm.statusVisible = false
@@ -226,7 +226,7 @@ local function UpdateModel(dt)
         -- 1. Current Step
         if script[currentIdx] then
             table.insert(scriptData, {
-                label = "Current",
+                label = script[currentIdx].label or "Current",
                 frame = tostring(frame - script[currentIdx].frame) .. " (" .. script[currentIdx].frame .. ")",
                 -- Use the new list helper here
                 commandsList = GetCommandList(script[currentIdx].commands)
@@ -236,7 +236,7 @@ local function UpdateModel(dt)
         -- 2. Next Step
         if script[currentIdx + 1] then
             table.insert(scriptData, {
-                label = "Next",
+                label = script[currentIdx].label or "Next",
                 frame = script[currentIdx + 1].frame,
                 -- Use the new list helper here
                 commandsList = GetCommandList(script[currentIdx + 1].commands)

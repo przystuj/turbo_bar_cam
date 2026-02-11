@@ -5,25 +5,22 @@ function widget:GetInfo()
         author = "SuperKitowiec",
         date = "2026",
         license = "GNU GPL, v2 or later",
-        layer = -9999,
+        layer = -9000,
         enabled = true
     }
-end
-
-if not Spring.IsReplay() then
-    return
 end
 
 --------------------------------------------------------------------------------
 -- Config
 --------------------------------------------------------------------------------
-local MIN_XP_THRESHOLD = 0.04       -- Minimum XP required to be included in final log
+local MIN_XP_THRESHOLD = 0.02       -- Minimum XP required to be included in final log
 
-local OUTPUT_DIR = "LuaUI/veterancyData/"
+local OUTPUT_DIR = "LuaUI/unitData/"
 
 -- LOGIC TUNING
-local CHECK_INTERVAL = 10
+local ACTIVITY_CHECK_INTERVAL = 10
 local POS_CHECK_INTERVAL = 150      -- 5s: Interval for logging position (30fps * 5)
+local TARGET_CHECK_INTERVAL = 90    -- 3s: Interval for logging targets (30fps * 3)
 local IDLE_TIMEOUT_FRAMES = 300     -- 10s: How long to wait before deciding a unit is IDLE
 local MAX_PAUSE_GAP = 900           -- 30s: Max duration to ever consider a "PAUSE" (safety cap)
 
@@ -35,10 +32,21 @@ local spGetUnitPosition = Spring.GetUnitPosition
 local spGetGameFrame = Spring.GetGameFrame
 local spGetAllUnits = Spring.GetAllUnits
 local spGetUnitDefID = Spring.GetUnitDefID
+local spGetUnitWeaponTarget = Spring.GetUnitWeaponTarget
 local spEcho = Spring.Echo
+local spGetUnitTeam = Spring.GetUnitTeam
+local spGetUnitAllyTeam = Spring.GetUnitAllyTeam
+local spGetUnitHeading = Spring.GetUnitHeading
+local spGetUnitWeaponState = Spring.GetUnitWeaponState
+
+local GAME_FPS = Game.gameSpeed
 
 local unitRecords = {}
-local unitDefWeaponInfo = {} -- Cache for main weapon indices
+local finishedUnits = {}
+local projectileHistory = {}
+
+local unitDefWeaponIndices = {} -- Cache for valid weapon indices list
+local fastMode = false
 
 
 -- Specific units to exclude
@@ -46,44 +54,40 @@ local ignoreListNames = {
     "corvamp", "armhawk", "legfig", "legvenator", "legafigdef", "armfig", "corveng", -- figs
     "armrock", "corsent", "corwolv", "armart", "corstorm"
 }
-
-local function CacheUnitWeaponInfo()
-    for unitDefID, unitDef in pairs(UnitDefs) do
-        local mainIdx
-
-        if unitDef.weapons and #unitDef.weapons > 0 then
-            -- Try to find the first non-shield weapon
-            for i, w in ipairs(unitDef.weapons) do
-                local wDef = WeaponDefs[w.weaponDef]
-                if wDef and not wDef.isShield and wDef.canAttackGround then
-                    mainIdx = i
-                    break
-                end
-            end
-            if not mainIdx then
-                spEcho("Didn't find main weapon for", unitDef.name)
-                mainIdx = 1
-            end
-        end
-
-        if mainIdx then
-            unitDefWeaponInfo[unitDefID] = mainIdx
-        end
-    end
-end
-
 local ignoreSet = {}
 for _, name in ipairs(ignoreListNames) do
     ignoreSet[name] = true
 end
 
---------------------------------------------------------------------------------
--- Helpers
---------------------------------------------------------------------------------
 local function isValidUnit(uDefId)
     local ud = UnitDefs[uDefId]
     return ud and not ignoreSet[ud.name] and (ud.speed and ud.speed > 0)
 end
+
+
+local function CacheUnitWeaponInfo()
+    for unitDefID, unitDef in pairs(UnitDefs) do
+        local validIndices = {}
+
+        if isValidUnit(unitDefID) and unitDef.weapons then
+            for i, w in ipairs(unitDef.weapons) do
+                local wDef = WeaponDefs[w.weaponDef]
+                if wDef and not wDef.isShield and wDef.canAttackGround then
+                    table.insert(validIndices, i)
+                end
+            end
+        end
+
+        if #validIndices > 0 then
+            unitDefWeaponIndices[unitDefID] = validIndices
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
 
 local function GetUnitNames(defID)
     if not defID then return "Unknown", "Unknown" end
@@ -94,8 +98,6 @@ local function GetUnitNames(defID)
     return ud.name, humanName
 end
 
--- Replaces SerializeTable to write directly to file (Streaming)
--- This avoids creating massive strings in memory
 local function WriteValue(f, val, depth)
     local tab = string.rep("    ", depth)
 
@@ -122,18 +124,59 @@ local function WriteValue(f, val, depth)
     end
 end
 
--- Specialized writer to reconstruct the flat position array into the expected table format
 local function WritePositionHistory(f, flatData, depth)
     local tab = string.rep("    ", depth)
     f:write("{\n")
     local innerTab = tab .. "    "
-    -- Iterate in steps of 3 to reconstruct {frame, x, z}
-    for i = 1, #flatData, 3 do
-        f:write(string.format("%s{ frame = %d, x = %.1f, z = %.1f },\n",
-                innerTab, flatData[i], flatData[i+1], flatData[i+2]))
+    -- Iterate in steps of 4 to reconstruct {frame, x, z, heading}
+    for i = 1, #flatData, 4 do
+        local hVal = flatData[i+3]
+        local hStr = hVal and string.format(", heading = %.3f", hVal) or ""
+        f:write(string.format("%s{ frame = %d, x = %.1f, z = %.1f%s },\n",
+                innerTab, flatData[i], flatData[i+1], flatData[i+2], hStr))
     end
     f:write(tab .. "}")
 end
+
+local function WriteTargetHistory(f, flatData, depth)
+    local tab = string.rep("    ", depth)
+    f:write("{\n")
+    local innerTab = tab .. "    "
+    -- Stride is 8: frame, targetID, name, humanName, tier, x, y, z
+    for i = 1, #flatData, 8 do
+        local frame = flatData[i]
+        local tID = flatData[i+1]
+        local name = flatData[i+2]
+        local hName = flatData[i+3]
+        local tier = flatData[i+4]
+        local x = flatData[i+5]
+        local y = flatData[i+6]
+        local z = flatData[i+7]
+
+        if tID == "ground" then
+            f:write(string.format("%s{ frame = %d, targetId = \"ground\", x = %.1f, y = %.1f, z = %.1f },\n",
+                    innerTab, frame, x, y, z))
+        else
+            f:write(string.format("%s{ frame = %d, targetId = %d, name = %q, humanName = %q, tier = %s, x = %.1f, y = %.1f, z = %.1f },\n",
+                    innerTab, frame, tID, name, hName, tier, x, y, z))
+        end
+    end
+    f:write(tab .. "}")
+end
+
+-- Specialized writer for Projectiles
+local function WriteProjectileHistory(f, flatData, depth)
+    local tab = string.rep("    ", depth)
+    f:write("{\n")
+    local innerTab = tab .. "    "
+    -- Stride is 7: frame, id, ownerID, x, y, z, ownerHumanName
+    for i = 1, #flatData, 7 do
+        f:write(string.format("%s{ frame = %d, id = %d, ownerID = %d, x = %.1f, y = %.1f, z = %.1f, ownerHumanName = %q },\n",
+                innerTab, flatData[i], flatData[i+1], flatData[i+2], flatData[i+3], flatData[i+4], flatData[i+5], flatData[i+6]))
+    end
+    f:write(tab .. "}")
+end
+
 
 -- Helper to close a timeline segment
 local function PushHistorySegment(record, endFrame)
@@ -147,30 +190,21 @@ local function PushHistorySegment(record, endFrame)
     end
 end
 
--- SMART CONSOLIDATION: INTRODUCING "PAUSE"
 local function ConsolidateSmart(history)
     if #history < 3 then return history end
 
-    -- Iterate through the timeline looking for triplets: ACTIVE -> IDLE -> ACTIVE
-    -- We stop 2 short of the end to ensure we have a 'next' and 'next-next'
     for i = 1, #history - 2 do
         local segA = history[i]
-        local segGap = history[i+1]
-        local segB = history[i+2]
+        local segGap = history[i + 1]
+        local segB = history[i + 2]
 
         if segA.status == "ACTIVE" and segGap.status == "IDLE" and segB.status == "ACTIVE" then
-
-            -- Calculate Durations
             local durA = (segA.endFrame or 0) - segA.startFrame
             local durB = (segB.endFrame or 0) - segB.startFrame
             local durGap = (segGap.endFrame or 0) - segGap.startFrame
 
             local totalActive = durA + durB
 
-            -- THE RULE:
-            -- If the surrounding action is longer than the break, it's just a PAUSE.
-            -- Example 1: 5s Active, 15s Idle, 5s Active. Total Active (10) < Idle (15). Result: Keep as IDLE.
-            -- Example 2: 5s Active, 15s Idle, 30s Active. Total Active (35) > Idle (15). Result: Mark as PAUSE.
             if durGap < MAX_PAUSE_GAP and totalActive > durGap then
                 segGap.status = "PAUSE"
             end
@@ -180,25 +214,40 @@ local function ConsolidateSmart(history)
     return history
 end
 
+local function CalcTotalActiveFrames(history, currentFrame)
+    local total = 0
+    for _, seg in ipairs(history) do
+        if seg.status == "ACTIVE" then
+            local ef = seg.endFrame or currentFrame or seg.startFrame
+            if ef and ef > seg.startFrame then
+                total = total + (ef - seg.startFrame)
+            end
+        end
+    end
+    return total
+end
+
 local function InitUnitRecord(uID, defID, frame)
     local unitDef = UnitDefs[defID]
 
     unitRecords[uID] = {
+        unitId = uID,
         defID = defID,
         bornFrame = frame,
         diedFrame = nil,
         finalXP = 0,
         tier = tonumber((unitDef.customParams and unitDef.customParams.techlevel) or "1"),
+        playerId = spGetUnitTeam(uID),
+        teamId = spGetUnitAllyTeam(uID),
 
-        -- Stats Tracking
         damageTaken = 0,
-        -- OPTIMIZATION: Store positions as a flat array [frame, x, z, frame, x, z...]
-        -- instead of a list of tables to save massive memory overhead.
+        -- Stride 4: [frame, x, z, heading...]
         positionHistory = {},
 
-        -- Activity Tracking
-        currentStatus = "IDLE",
+        -- Stride 8: [frame, id, name, humanName, tier, x, y, z...]
+        targetHistory = {},
 
+        currentStatus = "IDLE",
         lastStatusChangeFrame = frame,
         lastActivityFrame = frame,
 
@@ -216,7 +265,11 @@ local function getFilePath()
     local dateStr = os.date("%Y-%m-%d_%H-%M-%S")
     local mapName = Game.mapName or "UnknownMap"
     mapName = string.gsub(mapName, "[/\\:]", "_")
-    local baseName = (WG.ReplayMetadata.filename or dateStr .. "_" .. mapName) .. "_veterancyData"
+    local baseName = WG.ReplayMetadata.filename or dateStr .. "_" .. mapName
+
+    if fastMode then
+        baseName = baseName .. "_lite"
+    end
 
     local finalPath = OUTPUT_DIR .. baseName .. ".lua"
     local counter = 1
@@ -239,8 +292,8 @@ end
 --------------------------------------------------------------------------------
 
 function widget:Initialize()
+    fastMode = not Spring.IsReplay()
     CacheUnitWeaponInfo()
-
     local allUnits = spGetAllUnits()
     local currentFrame = spGetGameFrame()
     local bornTime = (currentFrame < 100) and 0 or currentFrame
@@ -253,11 +306,20 @@ function widget:Initialize()
             unitRecords[uID].finalXP = xp
         end
     end
-    spEcho("[Veterancy Logger] Initialized.")
+    spEcho("[Unit Data Logger] Initialized.")
+
+    if not fastMode and Spring.GetConfigInt("Headless", 0) ~= 0 then
+        spEcho("[Unit Data Logger] Headless mode enabled")
+        Spring.SendCommands("forcestart", "setmaxspeed 99999", "setminspeed 99999", "hideinterface", "turbobarcam_toggle", "skip 9999999")
+    end
 end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
     if not ignoreSet[UnitDefs[unitDefID].name] then
+        if unitRecords[unitID] then
+            table.insert(finishedUnits, unitRecords[unitID])
+            unitRecords[unitID] = nil
+        end
         InitUnitRecord(unitID, unitDefID, spGetGameFrame())
     end
 end
@@ -270,72 +332,163 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage)
 end
 
 function widget:GameFrame(currentFrame)
-    if currentFrame % POS_CHECK_INTERVAL == 0 then
-        for uID, r in pairs(unitRecords) do
-            local x, _, z = spGetUnitPosition(uID)
-            if x then
-                table.insert(r.positionHistory, currentFrame)
-                table.insert(r.positionHistory, x)
-                table.insert(r.positionHistory, z)
+    -- PROJECTILE CHECK (Global)
+    if currentFrame % TARGET_CHECK_INTERVAL == 0 then
+        if WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.getAllTrackedProjectiles then
+            local projectiles = WG.TurboBarCam.API.getAllTrackedProjectiles()
+            if projectiles then
+                for _, proj in pairs(projectiles) do
+                    -- Resolve human name safely
+                    local ownerName = "Unknown"
+                    if proj.ownerID then
+                        local oDefID = spGetUnitDefID(proj.ownerID)
+                        if oDefID then
+                            local ud = UnitDefs[oDefID]
+                            if ud then
+                                ownerName = ud.translatedHumanName or ud.name
+                            end
+                        end
+                    end
+
+                    table.insert(projectileHistory, currentFrame)
+                    table.insert(projectileHistory, proj.id or -1)
+                    table.insert(projectileHistory, proj.ownerID or -1)
+                    table.insert(projectileHistory, proj.position.x or 0)
+                    table.insert(projectileHistory, proj.position.y or 0)
+                    table.insert(projectileHistory, proj.position.z or 0)
+                    table.insert(projectileHistory, ownerName)
+                end
             end
         end
     end
 
-    if currentFrame % CHECK_INTERVAL == 3 then
-        local spGetUnitWeaponState = Spring.GetUnitWeaponState
+    for uID, r in pairs(unitRecords) do
+        if not fastMode then
+            -- Position Check
+            if currentFrame % POS_CHECK_INTERVAL == 0 then
+                local x, _, z = spGetUnitPosition(uID)
+                if x then
+                    local heading = spGetUnitHeading(uID)
+                    local rad = heading * (math.pi / 32768)
 
-        for unitID, r in pairs(unitRecords) do
-            local isActive = false
-
-            -- 1. Check Weapon State
-            local mainWeaponIdx = unitDefWeaponInfo[r.defID]
-            if mainWeaponIdx then
-                local reloadFrame = spGetUnitWeaponState(unitID, mainWeaponIdx, 'reloadFrame')
-                if reloadFrame and reloadFrame > currentFrame then
-                    isActive = true
+                    table.insert(r.positionHistory, currentFrame)
+                    table.insert(r.positionHistory, x)
+                    table.insert(r.positionHistory, z)
+                    table.insert(r.positionHistory, rad)
                 end
             end
 
-            -- 2. Update Activity Timer
-            if isActive then
-                r.lastActivityFrame = currentFrame
+            -- Target Check
+            if currentFrame % TARGET_CHECK_INTERVAL == 0 then
+                local weaponIndices = unitDefWeaponIndices[r.defID]
+                if weaponIndices then
+                    local bestTargetData = nil
+                    local bestTier = -1
+
+                    for _, wIdx in ipairs(weaponIndices) do
+                        local tType, _, target = spGetUnitWeaponTarget(uID, wIdx)
+
+                        -- Unit Target
+                        if tType == 1 and target then
+                            local tDefID = spGetUnitDefID(target)
+                            if tDefID then
+                                local tUd = UnitDefs[tDefID]
+                                local tTier = tonumber((tUd.customParams and tUd.customParams.techlevel) or "1")
+
+                                if tTier >= bestTier then
+                                    local tx, ty, tz = spGetUnitPosition(target)
+                                    if tx then
+                                        bestTier = tTier
+                                        bestTargetData = {
+                                            id = target,
+                                            name = tUd.name,
+                                            hName = tUd.translatedHumanName or tUd.name,
+                                            tier = tTier,
+                                            x = tx, y = ty, z = tz,
+                                            isGround = false
+                                        }
+                                    end
+                                end
+                            end
+                            -- Ground Target
+                        elseif tType == 2 and target then
+                            if 0 >= bestTier then
+                                bestTier = 0
+                                bestTargetData = {
+                                    id = "ground",
+                                    name = "ground",
+                                    hName = "Ground",
+                                    tier = 0,
+                                    x = target[1], y = target[2], z = target[3],
+                                    isGround = true
+                                }
+                            end
+                        end
+                    end
+
+                    if bestTargetData then
+                        table.insert(r.targetHistory, currentFrame)
+                        table.insert(r.targetHistory, bestTargetData.id)
+                        table.insert(r.targetHistory, bestTargetData.name)
+                        table.insert(r.targetHistory, bestTargetData.hName)
+                        table.insert(r.targetHistory, bestTargetData.tier)
+                        table.insert(r.targetHistory, bestTargetData.x)
+                        table.insert(r.targetHistory, bestTargetData.y)
+                        table.insert(r.targetHistory, bestTargetData.z)
+                    end
+                end
             end
 
-            -- 3. Determine Status
-            local timeSinceAction = currentFrame - (r.lastActivityFrame or r.bornFrame)
-            local newStatus = (timeSinceAction > IDLE_TIMEOUT_FRAMES) and "IDLE" or "ACTIVE"
+            -- Activity Check
+            if currentFrame % ACTIVITY_CHECK_INTERVAL == 0 then
+                local isActive = false
+                local weaponIndices = unitDefWeaponIndices[r.defID]
 
-            -- 4. Handle Status Change
-            if newStatus ~= r.currentStatus then
-                local transitionFrame = currentFrame
-
-                -- If becoming IDLE, the segment ended when activity actually stopped.
-                if newStatus == "IDLE" and r.currentStatus == "ACTIVE" then
-                    transitionFrame = r.lastActivityFrame
-
-                    -- Don't backdate before the segment started
-                    local lastSeg = r.statusHistory[#r.statusHistory]
-                    if lastSeg and transitionFrame < lastSeg.startFrame then
-                        transitionFrame = lastSeg.startFrame
+                if weaponIndices then
+                    for _, wIdx in ipairs(weaponIndices) do
+                        local reloadFrame = spGetUnitWeaponState(uID, wIdx, 'reloadFrame')
+                        if reloadFrame and reloadFrame > currentFrame then
+                            isActive = true
+                            break
+                        end
                     end
                 end
 
-                -- Close previous block
-                local histLen = #r.statusHistory
-                if histLen > 0 then
-                    r.statusHistory[histLen].endFrame = transitionFrame
+                if isActive then
+                    r.lastActivityFrame = currentFrame
                 end
 
-                -- Start new block
-                table.insert(r.statusHistory, {
-                    status = newStatus,
-                    startFrame = transitionFrame
-                })
+                local timeSinceAction = currentFrame - (r.lastActivityFrame or r.bornFrame)
+                local newStatus = (timeSinceAction > IDLE_TIMEOUT_FRAMES) and "IDLE" or "ACTIVE"
 
-                r.currentStatus = newStatus
+                if newStatus ~= r.currentStatus then
+                    local transitionFrame = currentFrame
+
+                    if newStatus == "IDLE" and r.currentStatus == "ACTIVE" then
+                        transitionFrame = r.lastActivityFrame
+                        local lastSeg = r.statusHistory[#r.statusHistory]
+                        if lastSeg and transitionFrame < lastSeg.startFrame then
+                            transitionFrame = lastSeg.startFrame
+                        end
+                    end
+
+                    local histLen = #r.statusHistory
+                    if histLen > 0 then
+                        r.statusHistory[histLen].endFrame = transitionFrame
+                    end
+
+                    table.insert(r.statusHistory, {
+                        status = newStatus,
+                        startFrame = transitionFrame
+                    })
+
+                    r.currentStatus = newStatus
+                end
             end
+        end
 
-            local currentXP = spGetUnitExperience(unitID)
+        if currentFrame % ACTIVITY_CHECK_INTERVAL == 0 then
+            local currentXP = spGetUnitExperience(uID)
             if currentXP then
                 r.finalXP = currentXP
             end
@@ -346,31 +499,36 @@ end
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
     if unitRecords[unitID] then
         local xp = spGetUnitExperience(unitID) or 0
-
-        -- OPTIMIZATION: Remove insignificant units immediately to free memory
-        if xp < MIN_XP_THRESHOLD then
-            unitRecords[unitID] = nil
-            return
-        end
-
         local frame = spGetGameFrame()
 
         unitRecords[unitID].finalXP = xp
         unitRecords[unitID].diedFrame = frame
 
-        -- Close the final timeline segment
+        local keep = xp >= MIN_XP_THRESHOLD
+        local t = unitRecords[unitID].tier or 1
+        if not keep and t == 3 then
+            local activeFrames = CalcTotalActiveFrames(unitRecords[unitID].statusHistory, frame)
+            if activeFrames >= 30 * GAME_FPS then
+                keep = true
+            end
+        end
+
         PushHistorySegment(unitRecords[unitID], frame)
+
+        if keep then
+            table.insert(finishedUnits, unitRecords[unitID])
+        end
+        unitRecords[unitID] = nil
     end
 end
 
 function widget:Shutdown()
     spEcho("--------------------------------------------------")
-    spEcho("[Veterancy Logger] PROCESSING STATS & SAVING FILES")
+    spEcho("[Unit Data Logger] PROCESSING STATS & SAVING FILES")
     spEcho("--------------------------------------------------")
 
     local currentFrame = spGetGameFrame()
 
-    -- 1. Final update for units still alive
     local allUnits = spGetAllUnits()
     for _, uID in ipairs(allUnits) do
         if unitRecords[uID] then
@@ -380,85 +538,71 @@ function widget:Shutdown()
         end
     end
 
-    -- 2. METADATA GATHERING (PASS 1)
-    local tempSortList = {}
-    local tempDmgTakenList = {}
-
-    for uID, data in pairs(unitRecords) do
-        local xp = data.finalXP or 0
-        local isValid = xp >= MIN_XP_THRESHOLD and isValidUnit(data.defID)
-
-        if isValid then
-            local internalName, niceName = GetUnitNames(data.defID)
-
-            table.insert(tempSortList, {
-                unitId = uID,
-                name = internalName,
-                humanName = niceName,
-                finalXp = xp
-            })
-
-            table.insert(tempDmgTakenList, {
-                unitId = uID,
-                name = internalName,
-                humanName = niceName,
-                damageTaken = data.damageTaken
-            })
-        end
+    for _, data in pairs(unitRecords) do
+        table.insert(finishedUnits, data)
     end
 
-    -- Sort by XP descending for metadata
-    table.sort(tempSortList, function(a, b) return a.finalXp > b.finalXp end)
-    local topXpList = {}
-    for i = 1, math.min(#tempSortList, 5) do
-        table.insert(topXpList, tempSortList[i])
-    end
-
-    -- Sort by Damage Taken descending
-    table.sort(tempDmgTakenList, function(a, b) return a.damageTaken > b.damageTaken end)
-    local topDmgTaken = {}
-    for i = 1, math.min(#tempDmgTakenList, 10) do
-        table.insert(topDmgTaken, tempDmgTakenList[i])
-    end
-
-    -- 3. STREAM DATA TO FILE (PASS 2)
     local filePath = getFilePath()
-    spEcho("[Veterancy Logger] Initialized. Saving to: " .. filePath)
+    local absolutePath = VFS.GetFileAbsolutePath(filePath) or filePath
+    spEcho("[Unit Data Logger] Saving to: " .. filePath)
+    spEcho("[Unit Data Logger] Absolute path: " .. absolutePath)
     local rawFile = io.open(filePath, "w")
+
+    local replayName = WG.ReplayMetadata.filename or "Unknown"
 
     if rawFile then
         rawFile:write("-- Map: " .. (Game.mapName or "Unknown") .. "\n")
         rawFile:write("return {\n")
 
-        -- Write metadata
         rawFile:write("    metadata = ")
-        WriteValue(rawFile, {
-            endFrame = currentFrame,
-            topXp = topXpList,
-            topDmgTaken = topDmgTaken
-        }, 1)
+        WriteValue(rawFile, { endFrame = currentFrame, replayName = replayName, mapWidth = Game.mapSizeX or 0, mapHeight = Game.mapSizeZ or 0 }, 1)
         rawFile:write(",\n")
 
-        -- Write units individually
+        -- Write Projectile History
+        rawFile:write("    projectileHistory = ")
+        WriteProjectileHistory(rawFile, projectileHistory, 1)
+        rawFile:write(",\n")
+
         rawFile:write("    units = {\n")
 
         local count = 0
-        for uID, data in pairs(unitRecords) do
+        for _, data in ipairs(finishedUnits) do
             local xp = data.finalXP or 0
-            local isValid = xp >= MIN_XP_THRESHOLD and isValidUnit(data.defID)
+            local cleanHistory = ConsolidateSmart(data.statusHistory)
+
+            local isValidBase = xp >= MIN_XP_THRESHOLD
+            local isT3Active = false
+            if (data.tier or 1) == 3 then
+                local totalActive = 0
+                for _, seg in ipairs(cleanHistory) do
+                    if seg.status == "ACTIVE" then
+                        local ef = seg.endFrame or seg.startFrame
+                        if ef > seg.startFrame then
+                            totalActive = totalActive + (ef - seg.startFrame)
+                        end
+                    end
+                end
+                if totalActive >= 30 * GAME_FPS then
+                    isT3Active = true
+                end
+            end
+
+            local isValid = (isValidBase or isT3Active) and isValidUnit(data.defID)
 
             if isValid then
                 local internalName, niceName = GetUnitNames(data.defID)
-                local cleanHistory = ConsolidateSmart(data.statusHistory)
 
-                -- Stream the unit entry directly to file to avoid memory spikes
-                rawFile:write("    [" .. uID .. "] = {\n")
+                local uniqueKey = tostring(data.unitId) .. "_" .. tostring(data.bornFrame)
 
-                -- Write simple fields
+                rawFile:write("    [\"" .. uniqueKey .. "\"] = {\n")
+
+                rawFile:write(string.format("        unitId = %d,\n", data.unitId))
                 rawFile:write(string.format("        name = %q,\n", internalName))
                 rawFile:write(string.format("        humanName = %q,\n", niceName))
                 rawFile:write(string.format("        defID = %d,\n", data.defID))
                 rawFile:write(string.format("        tier = %d,\n", data.tier or 1))
+                rawFile:write(string.format("        playerId = %d,\n", data.playerId or -1))
+                rawFile:write(string.format("        teamId = %d,\n", data.teamId or -1))
                 rawFile:write(string.format("        bornFrame = %d,\n", data.bornFrame))
                 if data.diedFrame then
                     rawFile:write(string.format("        diedFrame = %d,\n", data.diedFrame))
@@ -466,19 +610,20 @@ function widget:Shutdown()
                 rawFile:write(string.format("        finalXP = %.4f,\n", xp))
                 rawFile:write(string.format("        damageTaken = %.1f,\n", data.damageTaken))
 
-                -- Write Status History (Standard Table)
                 rawFile:write("        statusHistory = ")
                 WriteValue(rawFile, cleanHistory, 2)
                 rawFile:write(",\n")
 
-                -- Write Position History (Reconstruct from flat array on the fly)
                 rawFile:write("        positionHistory = ")
                 WritePositionHistory(rawFile, data.positionHistory, 2)
+                rawFile:write(",\n")
+
+                rawFile:write("        targetHistory = ")
+                WriteTargetHistory(rawFile, data.targetHistory, 2)
                 rawFile:write("\n")
 
                 rawFile:write("    },\n")
 
-                -- Explicit GC to prevent accumulation during loop
                 count = count + 1
                 if count % 100 == 0 then
                     collectgarbage("collect")
@@ -490,6 +635,6 @@ function widget:Shutdown()
         rawFile:write("}")
         rawFile:close()
     else
-        spEcho("[Veterancy Logger] ERROR: Could not open file for writing")
+        spEcho("[Unit Data Logger] ERROR: Could not open file for writing")
     end
 end

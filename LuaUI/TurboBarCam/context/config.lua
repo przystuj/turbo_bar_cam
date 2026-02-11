@@ -106,15 +106,15 @@ if not WG.TurboBarCam.CONFIG then
                     },
 
                     COMBAT = {
-                        HEIGHT = 35,
-                        FORWARD = -75,
+                        HEIGHT = 40,
+                        FORWARD = -100,
                         SIDE = 0,
                         ROTATION = 0
                     },
 
                     WEAPON = {
-                        HEIGHT = 0,
-                        FORWARD = 0,
+                        HEIGHT = 40,
+                        FORWARD = -100,
                         SIDE = 0,
                         ROTATION = 0
                     },
@@ -334,7 +334,7 @@ CONFIG.MODIFIABLE_PARAMS = {
             ["WEAPON.SIDE"] = { nil, nil },
             ["WEAPON.ROTATION"] = { nil, nil, "rad" },
 
-            ATTACK_STATE_COOLDOWN = 0,
+            ATTACK_STATE_COOLDOWN = { 0, nil },
 
             -- Other params
             MOUSE_SENSITIVITY = { 0.0001, 0.01 },

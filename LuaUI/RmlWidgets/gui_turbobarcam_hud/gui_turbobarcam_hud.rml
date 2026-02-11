@@ -35,7 +35,7 @@
     <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">
         <div class="script-card" data-for="step : scriptSteps">
             <div class="script-card-header">
-                Frame: {{ step.frame }}
+                {{step.label}} ({{ step.frame }})
             </div>
             <div class="script-card-body">
                 <div class="script-cmd-line" data-for="cmd : step.commandsList">

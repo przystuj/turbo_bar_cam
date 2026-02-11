@@ -13,6 +13,7 @@ local ScriptRunner = {}
 ---@field timestamp string
 ---@field frame number
 ---@field isDone boolean
+---@field label string
 
 ---@class Script
 ---@field metadata table
@@ -45,11 +46,27 @@ local function start(isFinal)
         return
     end
 
-    local scriptPath = "LuaUI/TurboBarCam/scripts/" .. WG.ReplayMetadata.filename .. ".lua"
-    Log:debug("Loading", scriptPath)
+    local replayName = WG.ReplayMetadata.filename
 
     ---@type Script
-    local script = VFS.Include(scriptPath)
+    local script
+    local matchedPath
+
+    local scripts = VFS.DirList("LuaUI/TurboBarCam/scripts", "*.lua", nil, true)
+    for _, path in ipairs(scripts) do
+        local ok, res = pcall(VFS.Include, path)
+        if ok and type(res) == "table" and res.metadata and res.metadata.replayName == replayName then
+            script = res
+            matchedPath = path
+            break
+        end
+    end
+
+    if not script then
+        Log:error("No matching script found for replay:", replayName)
+        return
+    end
+    Log:debug("Loading", matchedPath)
 
     local scriptSteps = script.steps
 
