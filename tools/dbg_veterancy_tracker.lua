@@ -1,7 +1,7 @@
 function widget:GetInfo()
     return {
-        name = "Veterancy Logger",
-        desc = "Finds units with highest veterancy",
+        name = "Unit Data Logger",
+        desc = "Gathers unit data",
         author = "SuperKitowiec",
         date = "2026",
         license = "GNU GPL, v2 or later",

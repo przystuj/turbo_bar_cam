@@ -4,3 +4,5 @@
 /LuaUI/TurboBarCam/settings/storage
 /scripts/scripts.iml
 /LuaUI/TurboBarCam/script.lua
+/scripts/src/scriptgenerator/turbobarcam_settings.json
+/scripts/src/scriptgenerator/scripts/
