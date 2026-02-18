@@ -125,6 +125,16 @@ if not WG.TurboBarCam.STATE then
                 isFinal = false,
                 steps = {},
                 unitsToTrack = {},
+            },
+
+            selection = {
+                lastUnitID = nil,
+                lastUnitPosition = { x = nil, y = nil, z = nil },
+                lastUpdateTime = nil,
+                lastUnitHeading = nil,
+                lastUnitFront = { 0, 0, 1 },
+                lastUnitUp = { 0, 1, 0 },
+                lastUnitRight = { 1, 0, 0 },
             }
         },
 
@@ -176,7 +186,6 @@ if not WG.TurboBarCam.STATE then
                 lastTargetPoint = nil,
 
                 graceTimer = nil,
-                lastUnitID = nil,
 
                 optionalTargetCameraStateForModeEntry = nil,
 
@@ -201,6 +210,10 @@ if not WG.TurboBarCam.STATE then
                     isTargetSwitchTransition = false,
                     lastTargetSwitchTime = false,
                     lastFixedTargetPosition = { x = nil, y = nil, z = nil },
+                    initialDist = 0,
+                    initialDist2D = 0,
+                    unitTransitionStartTime = nil,
+                    previousUnitID = nil,
 
                     targeting = {
                         -- Cloud / History State

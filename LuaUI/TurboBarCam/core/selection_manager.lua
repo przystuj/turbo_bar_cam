@@ -3,6 +3,8 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "SelectionManager")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
+local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local UnitFollowCamera = ModuleManager.UnitFollowCamera(function(m) UnitFollowCamera = m end)
 local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCamera = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
@@ -17,13 +19,11 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         return
     end
 
+    SelectionManager.updateLastUnitPosition()
+
     -- If no units are selected and tracking is active, start grace period
     if #selectedUnits == 0 then
         if STATE.active.mode.name then
-            -- Store the current tracked unit ID
-            STATE.active.mode.lastUnitID = STATE.active.mode.unitID
-
-            -- Start grace period timer (1 second)
             STATE.active.mode.graceTimer = Spring.GetTimer()
         end
         return
@@ -39,7 +39,7 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
 
     -- Update tracking if it's enabled
     if STATE.active.mode.name and STATE.active.mode.unitID ~= unitID then
-        UnitFollowCamera.handleSelectNewUnit()
+        UnitFollowCamera.handleSelectNewUnit(unitID)
         ProjectileCamera.handleSelectNewUnit()
 
         -- Switch tracking to the new unit
@@ -50,6 +50,29 @@ function SelectionManager.handleSelectionChanged(selectedUnits)
         SettingsManager.loadModeSettings(STATE.active.mode.name, unitID)
 
         Log:trace("Tracking switched to unit " .. unitID)
+    end
+end
+
+--- Updates the last unit position in core state
+function SelectionManager.updateLastUnitPosition()
+    local unitID = STATE.active.mode.unitID
+    if not unitID or not Spring.ValidUnitID(unitID) then
+        return
+    end
+
+    local x, y, z, front, up, right = WorldUtils.getUnitVectors(unitID)
+    if x then
+        local selectionState = STATE.core.selection
+        selectionState.lastUnitID = unitID
+        selectionState.lastUnitPosition.x = x
+        selectionState.lastUnitPosition.y = y
+        selectionState.lastUnitPosition.z = z
+        selectionState.lastUpdateTime = Spring.GetTimer()
+
+        -- Update orientation (store as indexed vectors)
+        TableUtils.syncTable(selectionState.lastUnitFront, front)
+        TableUtils.syncTable(selectionState.lastUnitUp, up)
+        TableUtils.syncTable(selectionState.lastUnitRight, right)
     end
 end
 

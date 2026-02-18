@@ -156,26 +156,30 @@ function CameraDriver.runJob(targetConfig)
     jobSTATE.isActive = true
     jobSTATE.startTime = Spring.GetTimer()
 
-    TableUtils.syncTable(targetSTATE, targetConfig)
-
-    targetSTATE.positionSmoothing = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
-    targetSTATE.rotationSmoothing = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
+    local targetSmoothPos = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
+    local targetSmoothRot = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
 
     if wasAlreadyActive then
-        local startPosSmooth = transitionSTATE.currentPositionSmoothing
-        local startRotSmooth = transitionSTATE.currentRotationSmoothing
+        local smoothingChanged = (targetSmoothPos ~= targetSTATE.positionSmoothing) or (targetSmoothRot ~= targetSTATE.rotationSmoothing)
 
-        transitionSTATE.startingPositionSmoothing = startPosSmooth
-        transitionSTATE.startingRotationSmoothing = startRotSmooth
+        if smoothingChanged then
+            local startPosSmooth = transitionSTATE.currentPositionSmoothing
+            local startRotSmooth = transitionSTATE.currentRotationSmoothing
 
-        local targetSmoothPos = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
-        local targetSmoothRot = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
+            transitionSTATE.startingPositionSmoothing = startPosSmooth
+            transitionSTATE.startingRotationSmoothing = startRotSmooth
 
-        transitionSTATE.positionTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothPos - startPosSmooth))
-        transitionSTATE.rotationTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothRot - startRotSmooth))
+            transitionSTATE.positionTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothPos - startPosSmooth))
+            transitionSTATE.rotationTransitionDuration = calculateTransitionDuration(math.abs(targetSmoothRot - startRotSmooth))
 
-        transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
+            transitionSTATE.smoothingTransitionStart = Spring.GetTimer()
+        end
     end
+
+    TableUtils.syncTable(targetSTATE, targetConfig)
+
+    targetSTATE.positionSmoothing = targetSmoothPos
+    targetSTATE.rotationSmoothing = targetSmoothRot
 
     if targetConfig.position and simulationSTATE.position then
         local distSq = MathUtils.vector.distanceSq(simulationSTATE.position, targetConfig.position)

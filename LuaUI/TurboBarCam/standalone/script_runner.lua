@@ -190,6 +190,7 @@ function ScriptRunner.selectUnit(unitId)
     end
 
     Spring.SelectUnit(unitId)
+    Spring.SendCommands("team " .. Spring.GetUnitTeam(unitId))
     Log:debug("Selected unit", unitId)
 end
 

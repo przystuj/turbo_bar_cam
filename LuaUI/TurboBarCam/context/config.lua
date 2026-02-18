@@ -62,8 +62,16 @@ if not WG.TurboBarCam.CONFIG then
             UNIT_FOLLOW = {
                 ATTACH_TO_WEAPON = false, -- If true, combat mode camera attaches to the active weapon instead of the hull
                 MOUSE_SENSITIVITY = 0.004,
-                INITIAL_TRANSITION_DURATION = 1.2, -- Duration of the entry transition into unit_follow mode
+                INITIAL_TRANSITION_DURATION = 2, -- Duration of the entry transition into unit_follow mode
+
+                GRACE_PERIOD = 5,
+
+                UNIT_TRANSITION_POS_SMOOTHING = 1.5,
+                UNIT_TRANSITION_ROT_SMOOTHING = 0.5,
+                UNIT_TRANSITION_ENABLED = true,
+
                 TARGET_SWITCH_DURATION = 5, -- Transition between targets
+                TRANSITION_MAX_HEIGHT = 5000,
                 IGNORE_AIR_TARGETS = true,
                 TARGET_ACQUISITION_DELAY = 0.2,
                 STABILIZATION = {
@@ -119,7 +127,7 @@ if not WG.TurboBarCam.CONFIG then
                         ROTATION = 0
                     },
 
-                    ATTACK_STATE_COOLDOWN = 4,
+                    ATTACK_STATE_COOLDOWN = 2,
                 },
                 SMOOTHING = {
                     -- DEFAULT mode smoothing
@@ -136,8 +144,8 @@ if not WG.TurboBarCam.CONFIG then
 
                     -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
-                        POSITION_FACTOR = 3,
-                        ROTATION_FACTOR = 2,
+                        POSITION_FACTOR = 2,
+                        ROTATION_FACTOR = 1,
                     }
                 },
             },

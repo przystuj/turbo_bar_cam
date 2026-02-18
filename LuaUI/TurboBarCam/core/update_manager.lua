@@ -19,6 +19,7 @@ local ProjectileCamera = ModuleManager.ProjectileCamera(function(m) ProjectileCa
 local CameraStateTracker = ModuleManager.CameraStateTracker(function(m) CameraStateTracker = m end)
 local CameraDriver = ModuleManager.CameraDriver(function(m) CameraDriver = m end)
 local CameraTestRunner = ModuleManager.CameraTestRunner(function(m) CameraTestRunner = m end)
+local SelectionManager = ModuleManager.SelectionManager(function(m) SelectionManager = m end)
 
 ---@class UpdateManager
 local UpdateManager = {}
@@ -39,6 +40,7 @@ function UpdateManager.processCycle(dt)
     Scheduler.handleSchedules()
     MouseManager.update()
     UpdateManager.handleTrackingGracePeriod()
+    SelectionManager.updateLastUnitPosition()
     UnitFollowCamera.checkFixedPointCommandActivation()
     ProjectileCamera.checkAndActivate()
     UpdateManager.updateCameraMode(dt)
@@ -64,8 +66,10 @@ function UpdateManager.handleTrackingGracePeriod()
             return
         end
 
-        -- If grace period expired (1 second), disable tracking for unit targets
-        if elapsed > 1.0 and not UpdateManager.isSpectating() then
+        -- If grace period expired, disable tracking for unit targets
+        local gracePeriod = 5.0
+
+        if elapsed > gracePeriod and not UpdateManager.isSpectating() then
             ModeManager.disableMode()
             Log:debug("Camera tracking disabled - no units selected")
             return

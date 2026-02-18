@@ -25,7 +25,14 @@ function UnitFollowUtils.shouldUpdateCamera()
 
     -- Check if unit still exists
     if not Spring.ValidUnitID(STATE.active.mode.unitID) then
-        Log:trace("Unit no longer exists")
+        local lastSelection = STATE.core.selection
+        if lastSelection.lastUnitID == STATE.active.mode.unitID and lastSelection.lastUpdateTime then
+            local elapsed = Spring.DiffTimers(Spring.GetTimer(), lastSelection.lastUpdateTime)
+            if elapsed < 5 then
+                return true
+            end
+        end
+
         ModeManager.disableMode()
         return false
     end
@@ -317,6 +324,14 @@ function UnitFollowUtils.getSmoothingFactor(smoothType)
         end
     else
         smoothingMode = "DEFAULT"
+    end
+
+    if STATE.active.mode.unit_follow.unitTransitionStartTime then
+        if smoothType == 'position' then
+            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_POS_SMOOTHING
+        elseif smoothType == 'rotation' then
+            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_ROT_SMOOTHING
+        end
     end
 
     -- Get the appropriate smoothing factor based on mode and type
