@@ -256,8 +256,6 @@ if not WG.TurboBarCam.STATE then
 
                         -- Aerial specific
                         aerialTracking = nil,
-
-                        targetTracking = {},
                     },
                 },
 
