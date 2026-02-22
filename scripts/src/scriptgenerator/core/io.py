@@ -253,21 +253,6 @@ def enrich_timeline_with_unit_ids(timeline, units):
         if target_id is not None:
             found_unit = units.get(str(target_id)) or units.get(target_id)
 
-        # 2. Try to find ID in commands if target missing (Old style fallback)
-        if not found_unit:
-            commands = cut.get('commands', [])
-            for cmd in commands:
-                if "turbobarcam_script_select_unit" in cmd:
-                    try:
-                        parts = cmd.strip().split()
-                        found_id = parts[1] # Keep as string for now
-                        found_unit = units.get(str(found_id)) or units.get(found_id)
-                        if found_unit:
-                            cut['target'] = found_id
-                        break
-                    except (IndexError, ValueError):
-                        pass
-
         if found_unit:
             current_unit_data = found_unit
             # Update cut with full data

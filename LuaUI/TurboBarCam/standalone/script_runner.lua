@@ -184,13 +184,13 @@ function ScriptRunner.fastForward(delay)
     Spring.SendCommands("skip f" .. nextStepFrame - delay)
 end
 
-function ScriptRunner.selectUnit(unitId)
+function ScriptRunner.selectUnitTeam(unitId)
     if Utils.isTurboBarCamDisabled() then
         return false
     end
 
     Spring.SelectUnit(unitId)
-    Spring.SendCommands("team " .. Spring.GetUnitTeam(unitId))
+    Spring.SendCommands("specteam " .. Spring.GetUnitTeam(unitId))
     Log:debug("Selected unit", unitId)
 end
 

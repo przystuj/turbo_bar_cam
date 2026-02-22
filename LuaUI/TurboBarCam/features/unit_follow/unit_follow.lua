@@ -112,13 +112,14 @@ function UnitFollowCamera.update()
         end
     end
 
-    local rotationSmoothing, positionSmoothing
-    cameraPosition, target, targetType, rotationSmoothing, positionSmoothing = UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
+    local rotSmoothingOverride, posSmoothingOverride
+    cameraPosition, target, targetType, rotSmoothingOverride, posSmoothingOverride = UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
 
     local cameraDriverJob = CameraDriver.prepare(targetType, target)
     cameraDriverJob.position = cameraPosition
-    cameraDriverJob.positionSmoothing = positionSmoothing or UnitFollowUtils.getSmoothingFactor('position')
-    cameraDriverJob.rotationSmoothing = rotationSmoothing or UnitFollowUtils.getSmoothingFactor('rotation')
+    cameraDriverJob.positionSmoothing = posSmoothingOverride or UnitFollowUtils.getSmoothingFactor('position')
+    cameraDriverJob.rotationSmoothing = rotSmoothingOverride or UnitFollowUtils.getSmoothingFactor('rotation')
+    cameraDriverJob.forceSmoothing = (posSmoothingOverride ~= nil or rotSmoothingOverride ~= nil)
     cameraDriverJob.run()
 end
 
@@ -156,8 +157,15 @@ function UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
     local thirdPartStart = 0.4 -- 40% of transition: switch from looking at previous to next unit
     local forthPartStart = 0.9 -- 90% of transition: switch to final follow orientation
 
-    if progress > thirdPartStart then
+    bonusHeight = 500
+
+    if progress > secondPartStart then
         bonusHeight = 0
+    end
+
+    if bonusHeight > 0 then
+        Log:debug("bonusHeight", bonusHeight)
+
     end
 
     -- 1. Apply height bonus

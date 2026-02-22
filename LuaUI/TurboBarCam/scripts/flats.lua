@@ -21,7 +21,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 21711 combat",
-                "turbobarcam_script_select_unit 21711",
+                "turbobarcam_script_select_unit_team 21711",
             }
         },
 
@@ -32,7 +32,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 13882 combat",
-                "turbobarcam_script_select_unit 13882",
+                "turbobarcam_script_select_unit_team 13882",
             }
         },
 
@@ -43,7 +43,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 9545 combat",
-                "turbobarcam_script_select_unit 9545",
+                "turbobarcam_script_select_unit_team 9545",
             }
         },
 
@@ -54,7 +54,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17166 combat",
-                "turbobarcam_script_select_unit 17166",
+                "turbobarcam_script_select_unit_team 17166",
             }
         },
 
@@ -65,7 +65,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 26990 combat",
-                "turbobarcam_script_select_unit 26990",
+                "turbobarcam_script_select_unit_team 26990",
             }
         },
 
@@ -76,7 +76,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 7984 combat",
-                "turbobarcam_script_select_unit 7984",
+                "turbobarcam_script_select_unit_team 7984",
             }
         },
 
@@ -87,7 +87,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 5170 combat",
-                "turbobarcam_script_select_unit 5170",
+                "turbobarcam_script_select_unit_team 5170",
             }
         },
 
@@ -98,7 +98,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 26242 combat",
-                "turbobarcam_script_select_unit 26242",
+                "turbobarcam_script_select_unit_team 26242",
             }
         },
 
@@ -109,7 +109,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 11853 combat",
-                "turbobarcam_script_select_unit 11853",
+                "turbobarcam_script_select_unit_team 11853",
             }
         },
 
@@ -120,7 +120,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 24398 combat",
-                "turbobarcam_script_select_unit 24398",
+                "turbobarcam_script_select_unit_team 24398",
             }
         },
 
@@ -131,7 +131,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 938 combat",
-                "turbobarcam_script_select_unit 938",
+                "turbobarcam_script_select_unit_team 938",
             }
         },
 
@@ -142,7 +142,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 9002 combat",
-                "turbobarcam_script_select_unit 9002",
+                "turbobarcam_script_select_unit_team 9002",
             }
         },
 
@@ -153,7 +153,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 5702 combat",
-                "turbobarcam_script_select_unit 5702",
+                "turbobarcam_script_select_unit_team 5702",
             }
         },
 
@@ -172,7 +172,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 18371 combat",
-                "turbobarcam_script_select_unit 18371",
+                "turbobarcam_script_select_unit_team 18371",
             }
         },
 
@@ -183,7 +183,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 8342 combat",
-                "turbobarcam_script_select_unit 8342",
+                "turbobarcam_script_select_unit_team 8342",
             }
         },
 
@@ -194,7 +194,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 5927 combat",
-                "turbobarcam_script_select_unit 5927",
+                "turbobarcam_script_select_unit_team 5927",
             }
         },
 
@@ -205,7 +205,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 5335 combat",
-                "turbobarcam_script_select_unit 5335",
+                "turbobarcam_script_select_unit_team 5335",
             }
         },
 
@@ -216,7 +216,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 482 combat",
-                "turbobarcam_script_select_unit 482",
+                "turbobarcam_script_select_unit_team 482",
             }
         },
 
@@ -227,7 +227,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 22877 combat",
-                "turbobarcam_script_select_unit 22877",
+                "turbobarcam_script_select_unit_team 22877",
             }
         },
 
@@ -238,7 +238,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 24453 combat",
-                "turbobarcam_script_select_unit 24453",
+                "turbobarcam_script_select_unit_team 24453",
             }
         },
 
@@ -249,7 +249,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27405 combat",
-                "turbobarcam_script_select_unit 27405",
+                "turbobarcam_script_select_unit_team 27405",
             }
         },
 
@@ -260,7 +260,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 23841 combat",
-                "turbobarcam_script_select_unit 23841",
+                "turbobarcam_script_select_unit_team 23841",
             }
         },
 
@@ -271,7 +271,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 10291 combat",
-                "turbobarcam_script_select_unit 10291",
+                "turbobarcam_script_select_unit_team 10291",
             }
         },
 
@@ -282,7 +282,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 5472 combat",
-                "turbobarcam_script_select_unit 5472",
+                "turbobarcam_script_select_unit_team 5472",
             }
         },
 
@@ -293,7 +293,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27751 combat",
-                "turbobarcam_script_select_unit 27751",
+                "turbobarcam_script_select_unit_team 27751",
             }
         },
 
@@ -304,7 +304,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 25833 combat",
-                "turbobarcam_script_select_unit 25833",
+                "turbobarcam_script_select_unit_team 25833",
             }
         },
 
@@ -315,7 +315,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 27751 combat",
-                "turbobarcam_script_select_unit 27751",
+                "turbobarcam_script_select_unit_team 27751",
             }
         },
 
@@ -326,7 +326,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 20111 combat",
-                "turbobarcam_script_select_unit 20111",
+                "turbobarcam_script_select_unit_team 20111",
             }
         },
 
@@ -337,7 +337,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17676 combat",
-                "turbobarcam_script_select_unit 17676",
+                "turbobarcam_script_select_unit_team 17676",
             }
         },
 
@@ -348,7 +348,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 9061 combat",
-                "turbobarcam_script_select_unit 9061",
+                "turbobarcam_script_select_unit_team 9061",
             }
         },
 
@@ -359,7 +359,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 313 combat",
-                "turbobarcam_script_select_unit 313",
+                "turbobarcam_script_select_unit_team 313",
             }
         },
 
@@ -370,7 +370,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 25210 combat",
-                "turbobarcam_script_select_unit 25210",
+                "turbobarcam_script_select_unit_team 25210",
             }
         },
 
@@ -381,7 +381,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 18503 combat",
-                "turbobarcam_script_select_unit 18503",
+                "turbobarcam_script_select_unit_team 18503",
             }
         },
 
@@ -392,7 +392,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 2013 combat",
-                "turbobarcam_script_select_unit 2013",
+                "turbobarcam_script_select_unit_team 2013",
             }
         },
 
@@ -403,7 +403,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 12841 combat",
-                "turbobarcam_script_select_unit 12841",
+                "turbobarcam_script_select_unit_team 12841",
             }
         },
 
@@ -414,7 +414,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 25731 combat",
-                "turbobarcam_script_select_unit 25731",
+                "turbobarcam_script_select_unit_team 25731",
             }
         },
 
@@ -425,7 +425,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 11344 combat",
-                "turbobarcam_script_select_unit 11344",
+                "turbobarcam_script_select_unit_team 11344",
             }
         },
 
@@ -436,7 +436,7 @@ return {
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 10149 combat",
-                "turbobarcam_script_select_unit 10149",
+                "turbobarcam_script_select_unit_team 10149",
             }
         },
     }

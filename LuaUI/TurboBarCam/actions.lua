@@ -119,9 +119,9 @@ function Actions.scriptActions()
                 return false
             end)
 
-    Actions.registerAction("turbobarcam_script_select_unit", 'tp',
+    Actions.registerAction("turbobarcam_script_select_unit_team", 'tp',
             function(_, params)
-                ScriptRunner.selectUnit(params)
+                ScriptRunner.selectUnitTeam(params)
                 return false
             end)
 

@@ -159,7 +159,11 @@ function CameraDriver.runJob(targetConfig)
     local targetSmoothPos = targetConfig.positionSmoothing or DEFAULT_SMOOTHING
     local targetSmoothRot = targetConfig.rotationSmoothing or DEFAULT_SMOOTHING
 
-    if wasAlreadyActive then
+    if targetConfig.forceSmoothing then
+        transitionSTATE.currentPositionSmoothing = targetSmoothPos
+        transitionSTATE.currentRotationSmoothing = targetSmoothRot
+        transitionSTATE.smoothingTransitionStart = nil
+    elseif wasAlreadyActive then
         local smoothingChanged = (targetSmoothPos ~= targetSTATE.positionSmoothing) or (targetSmoothRot ~= targetSTATE.rotationSmoothing)
 
         if smoothingChanged then
