@@ -10,90 +10,13 @@ return {
             frame = 0,
             label = "Init",
             commands = {
-                "skip f5488",
+                "skip f25313",
             }
         },
 
-        -- STEP #02 Rascal
+        -- STEP #02 Tiger
         {
-            frame = 5488,
-            label = "Rascal",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 28417 combat",
-                "turbobarcam_script_select_unit 28417",
-            }
-        },
-
-        -- STEP #03 Rascal
-        {
-            frame = 7228,
-            label = "Rascal",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 15323 combat",
-                "turbobarcam_script_select_unit 15323",
-            }
-        },
-
-        -- STEP #04 Incisor
-        {
-            frame = 7679,
-            label = "Incisor",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 7364 combat",
-                "turbobarcam_script_select_unit 7364",
-            }
-        },
-
-        -- STEP #05 Incisor
-        {
-            frame = 8761,
-            label = "Incisor",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 24471 combat",
-                "turbobarcam_script_select_unit 24471",
-            }
-        },
-
-        -- STEP #06 Incisor
-        {
-            frame = 13443,
-            label = "Incisor",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1420 combat",
-                "turbobarcam_script_select_unit 1420",
-            }
-        },
-
-        -- STEP #07 Incisor
-        {
-            frame = 17398,
-            label = "Incisor",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17453 combat",
-                "turbobarcam_script_select_unit 17453",
-            }
-        },
-
-        -- STEP #08 Salamander
-        {
-            frame = 19983,
-            label = "Salamander",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4281 combat",
-                "turbobarcam_script_select_unit 4281",
-            }
-        },
-
-        -- STEP #09 Tiger
-        {
-            frame = 22124,
+            frame = 25313,
             label = "Tiger",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -102,7 +25,7 @@ return {
             }
         },
 
-        -- STEP #10 Tiger
+        -- STEP #03 Tiger
         {
             frame = 30930,
             label = "Tiger",
@@ -113,7 +36,7 @@ return {
             }
         },
 
-        -- STEP #11 Tiger
+        -- STEP #04 Tiger
         {
             frame = 35317,
             label = "Tiger",
@@ -124,7 +47,7 @@ return {
             }
         },
 
-        -- STEP #12 Banisher
+        -- STEP #05 Banisher
         {
             frame = 35950,
             label = "Banisher",
@@ -135,7 +58,7 @@ return {
             }
         },
 
-        -- STEP #13 Tzar
+        -- STEP #06 Tzar
         {
             frame = 39665,
             label = "Tzar",
@@ -146,9 +69,9 @@ return {
             }
         },
 
-        -- STEP #14 Shiva
+        -- STEP #07 Shiva
         {
-            frame = 42334,
+            frame = 41955,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -157,7 +80,7 @@ return {
             }
         },
 
-        -- STEP #15 Shiva
+        -- STEP #08 Shiva
         {
             frame = 46082,
             label = "Shiva",
@@ -168,7 +91,7 @@ return {
             }
         },
 
-        -- STEP #16 Shiva
+        -- STEP #09 Shiva
         {
             frame = 48239,
             label = "Shiva",
@@ -179,7 +102,7 @@ return {
             }
         },
 
-        -- STEP #17 Shiva
+        -- STEP #10 Shiva
         {
             frame = 51243,
             label = "Shiva",
@@ -190,7 +113,7 @@ return {
             }
         },
 
-        -- STEP #18 Shiva
+        -- STEP #11 Shiva
         {
             frame = 53005,
             label = "Shiva",
@@ -201,7 +124,7 @@ return {
             }
         },
 
-        -- STEP #19 Shiva
+        -- STEP #12 Shiva
         {
             frame = 54538,
             label = "Shiva",
@@ -212,20 +135,9 @@ return {
             }
         },
 
-        -- STEP #20 Shiva
+        -- STEP #13 Shiva
         {
-            frame = 58859,
-            label = "Shiva",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4003 combat",
-                "turbobarcam_script_select_unit 4003",
-            }
-        },
-
-        -- STEP #21 Shiva
-        {
-            frame = 61470,
+            frame = 54547,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -234,7 +146,26 @@ return {
             }
         },
 
-        -- STEP #22 Shiva
+        -- STEP #14 Banisher
+        {
+            frame = 58328,
+            label = "Banisher",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 5702 combat",
+                "turbobarcam_script_select_unit 5702",
+            }
+        },
+
+        -- STEP #15 Shiva
+        {
+            frame = 64452,
+            label = "Shiva",
+            commands = {
+            }
+        },
+
+        -- STEP #16 Shiva
         {
             frame = 71314,
             label = "Shiva",
@@ -245,7 +176,7 @@ return {
             }
         },
 
-        -- STEP #23 Shiva
+        -- STEP #17 Shiva
         {
             frame = 74326,
             label = "Shiva",
@@ -256,7 +187,7 @@ return {
             }
         },
 
-        -- STEP #24 Juggernaut
+        -- STEP #18 Juggernaut
         {
             frame = 82266,
             label = "Juggernaut",
@@ -267,7 +198,7 @@ return {
             }
         },
 
-        -- STEP #25 Hailstorm
+        -- STEP #19 Hailstorm
         {
             frame = 89112,
             label = "Hailstorm",
@@ -278,9 +209,20 @@ return {
             }
         },
 
-        -- STEP #26 Juggernaut
+        -- STEP #20 Catapult
         {
-            frame = 94174,
+            frame = 89124,
+            label = "Catapult",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 482 combat",
+                "turbobarcam_script_select_unit 482",
+            }
+        },
+
+        -- STEP #21 Juggernaut
+        {
+            frame = 94395,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -289,64 +231,75 @@ return {
             }
         },
 
-        -- STEP #27 Thor
+        -- STEP #22 Juggernaut
         {
-            frame = 94833,
-            label = "Thor",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1088 combat",
-                "turbobarcam_script_select_unit 1088",
-            }
-        },
-
-        -- STEP #28 Catapult
-        {
-            frame = 96202,
-            label = "Catapult",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 20467 combat",
-                "turbobarcam_script_select_unit 20467",
-            }
-        },
-
-        -- STEP #29 Juggernaut
-        {
-            frame = 100245,
+            frame = 94903,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 21874 combat",
-                "turbobarcam_script_select_unit 21874",
+                "turbobarcam_toggle_unit_follow_camera 24453 combat",
+                "turbobarcam_script_select_unit 24453",
             }
         },
 
-        -- STEP #30 Catapult
+        -- STEP #23 Juggernaut
         {
-            frame = 105228,
-            label = "Catapult",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 15642 combat",
-                "turbobarcam_script_select_unit 15642",
-            }
-        },
-
-        -- STEP #31 Juggernaut
-        {
-            frame = 108981,
+            frame = 97236,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 12971 combat",
-                "turbobarcam_script_select_unit 12971",
+                "turbobarcam_toggle_unit_follow_camera 27405 combat",
+                "turbobarcam_script_select_unit 27405",
             }
         },
 
-        -- STEP #32 Juggernaut
+        -- STEP #24 Juggernaut
         {
-            frame = 111653,
+            frame = 99500,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 23841 combat",
+                "turbobarcam_script_select_unit 23841",
+            }
+        },
+
+        -- STEP #25 Juggernaut
+        {
+            frame = 102697,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 10291 combat",
+                "turbobarcam_script_select_unit 10291",
+            }
+        },
+
+        -- STEP #26 Juggernaut
+        {
+            frame = 106476,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 5472 combat",
+                "turbobarcam_script_select_unit 5472",
+            }
+        },
+
+        -- STEP #27 Juggernaut
+        {
+            frame = 111735,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 27751 combat",
+                "turbobarcam_script_select_unit 27751",
+            }
+        },
+
+        -- STEP #28 Juggernaut
+        {
+            frame = 113476,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -355,42 +308,42 @@ return {
             }
         },
 
-        -- STEP #33 Behemoth
+        -- STEP #29 Juggernaut
         {
-            frame = 116978,
-            label = "Behemoth",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4401 combat",
-                "turbobarcam_script_select_unit 4401",
-            }
-        },
-
-        -- STEP #34 Vanguard
-        {
-            frame = 122078,
-            label = "Vanguard",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 10443 combat",
-                "turbobarcam_script_select_unit 10443",
-            }
-        },
-
-        -- STEP #35 Juggernaut
-        {
-            frame = 128185,
+            frame = 114026,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1370 combat",
-                "turbobarcam_script_select_unit 1370",
+                "turbobarcam_toggle_unit_follow_camera 27751 combat",
+                "turbobarcam_script_select_unit 27751",
             }
         },
 
-        -- STEP #36 Juggernaut
+        -- STEP #30 Juggernaut
         {
-            frame = 129198,
+            frame = 115890,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 20111 combat",
+                "turbobarcam_script_select_unit 20111",
+            }
+        },
+
+        -- STEP #31 Juggernaut
+        {
+            frame = 122028,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 17676 combat",
+                "turbobarcam_script_select_unit 17676",
+            }
+        },
+
+        -- STEP #32 Juggernaut
+        {
+            frame = 125601,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -399,53 +352,86 @@ return {
             }
         },
 
-        -- STEP #37 Juggernaut
+        -- STEP #33 Juggernaut
         {
-            frame = 133666,
+            frame = 127736,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 23315 combat",
-                "turbobarcam_script_select_unit 23315",
+                "turbobarcam_toggle_unit_follow_camera 313 combat",
+                "turbobarcam_script_select_unit 313",
             }
         },
 
-        -- STEP #38 Juggernaut
+        -- STEP #34 Vanguard
         {
-            frame = 139407,
-            label = "Juggernaut",
+            frame = 133193,
+            label = "Vanguard",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 21097 combat",
-                "turbobarcam_script_select_unit 21097",
+                "turbobarcam_toggle_unit_follow_camera 25210 combat",
+                "turbobarcam_script_select_unit 25210",
+            }
+        },
+
+        -- STEP #35 Behemoth
+        {
+            frame = 138429,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 18503 combat",
+                "turbobarcam_script_select_unit 18503",
+            }
+        },
+
+        -- STEP #36 Behemoth
+        {
+            frame = 142632,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 2013 combat",
+                "turbobarcam_script_select_unit 2013",
+            }
+        },
+
+        -- STEP #37 Behemoth
+        {
+            frame = 144260,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 12841 combat",
+                "turbobarcam_script_select_unit 12841",
+            }
+        },
+
+        -- STEP #38 Behemoth
+        {
+            frame = 148768,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 25731 combat",
+                "turbobarcam_script_select_unit 25731",
             }
         },
 
         -- STEP #39 Behemoth
         {
-            frame = 143819,
+            frame = 151513,
             label = "Behemoth",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 4401 combat",
-                "turbobarcam_script_select_unit 4401",
+                "turbobarcam_toggle_unit_follow_camera 11344 combat",
+                "turbobarcam_script_select_unit 11344",
             }
         },
 
         -- STEP #40 Juggernaut
         {
-            frame = 146489,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25776 combat",
-                "turbobarcam_script_select_unit 25776",
-            }
-        },
-
-        -- STEP #41 Juggernaut
-        {
-            frame = 156841,
+            frame = 156060,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",

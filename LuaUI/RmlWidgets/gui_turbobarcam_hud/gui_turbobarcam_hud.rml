@@ -32,18 +32,18 @@
         </table>
     </div>
 
-    <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">
-        <div class="script-card" data-for="step : scriptSteps">
-            <div class="script-card-header">
-                {{step.label}} ({{ step.frame }})
-            </div>
-            <div class="script-card-body">
-                <div class="script-cmd-line" data-for="cmd : step.commandsList">
-                    {{ cmd }}
-                </div>
-            </div>
-        </div>
-    </div>
+<!--    <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">-->
+<!--        <div class="script-card" data-for="step : scriptSteps">-->
+<!--            <div class="script-card-header">-->
+<!--                {{step.label}} ({{ step.frame }})-->
+<!--            </div>-->
+<!--            <div class="script-card-body">-->
+<!--                <div class="script-cmd-line" data-for="cmd : step.commandsList">-->
+<!--                    {{ cmd }}-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
 
     <div id="vet-panel" data-model="turbobarcam_hud_model" data-if="vetVisible">
         <div class="vet-header">STATE ({{currentUnit}})</div>
