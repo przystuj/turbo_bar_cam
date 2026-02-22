@@ -185,7 +185,7 @@ def write_game_script(timeline, filename, replay_name, version, log_func=None):
 
             if type_ == 'init':
                 label_text = "Init"
-                commands = cut.get('commands', ["skip f30"])
+                commands = cut.get('commands', ["skip f30", "togglelos"])
 
             elif type_ == 'end':
                 label_text = "END"

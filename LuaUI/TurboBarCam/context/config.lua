@@ -72,7 +72,7 @@ if not WG.TurboBarCam.CONFIG then
 
                 TARGET_SWITCH_DURATION = 5, -- Transition between targets
                 TRANSITION_MAX_HEIGHT = 5000,
-                IGNORE_AIR_TARGETS = true,
+                IGNORE_AIR_TARGETS = false,
                 TARGET_ACQUISITION_DELAY = 0.2,
                 STABILIZATION = {
                     BASE_FACTOR = 0.03,
@@ -104,6 +104,7 @@ if not WG.TurboBarCam.CONFIG then
                     },
 
                     ATTACK_STATE_COOLDOWN = 4,
+                    FORCED_WEAPON_NUMBER = nil,
                 },
                 DEFAULT_OFFSETS = {
                     DEFAULT = {
@@ -128,6 +129,7 @@ if not WG.TurboBarCam.CONFIG then
                     },
 
                     ATTACK_STATE_COOLDOWN = 2,
+                    FORCED_WEAPON_NUMBER = nil,
                 },
                 SMOOTHING = {
                     -- DEFAULT mode smoothing

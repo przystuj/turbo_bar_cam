@@ -4,6 +4,7 @@ local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowCombatMode")
 local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local Scheduler = ModuleManager.Scheduler(function(m) Scheduler = m end)
+local UnitFollowPersistence = ModuleManager.UnitFollowPersistence(function(m) UnitFollowPersistence = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 
 -- Constants for attack state management
@@ -71,7 +72,10 @@ function UnitFollowCombatMode.nextWeapon()
 
     -- Move to the next weapon or wrap around to the first
     local nextIndex = currentIndex % #weaponNumbers + 1
-    STATE.active.mode.unit_follow.forcedWeaponNumber = weaponNumbers[nextIndex]
+    local forcedWeaponNumber = weaponNumbers[nextIndex]
+    STATE.active.mode.unit_follow.forcedWeaponNumber = forcedWeaponNumber
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = forcedWeaponNumber
+    UnitFollowPersistence:saveUnitSettings(unitID)
 
     -- Enable combat mode
     UnitFollowCombatMode.setCombatMode(true)
@@ -99,6 +103,7 @@ function UnitFollowCombatMode.clearWeaponSelection()
     end
 
     STATE.active.mode.unit_follow.forcedWeaponNumber = nil
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = nil
     Log:info("Cleared weapon selection.")
 end
 

@@ -174,6 +174,7 @@ class ProjectManager:
 
             raw_units = data.get('units', {})
             metadata = data.get('metadata', {})
+            global_projectile_history = data.get('projectileHistory', [])
             metadata['_source_mtime'] = os.path.getmtime(filepath)
             
             # Preprocess once before saving to DB to avoid runtime recalculation (status refinement + stationary)
@@ -183,7 +184,7 @@ class ProjectManager:
                 processed_units = raw_units
             
             # Save to SQLite (includes precalculated stationary periods)
-            self.db.save_data(processed_units, metadata)
+            self.db.save_data(processed_units, metadata, global_projectile_history)
             
             return self.db.get_all_units_minimal(), metadata
 

@@ -111,6 +111,8 @@ class TimelineRenderer:
                 name = u_data.get('humanName', 'Unknown')
                 internal_name = u_data.get('name', '')
                 display_id = u_data.get('unitId', block.get('unit_id', ''))
+                tid = u_data.get('teamId')
+                tid_str = f" T{tid}" if tid is not None else ""
 
                 fill_color = "#aaffaa"
                 if name == "Unknown ID" or name == "Unknown" or name == "Empty" or name == "New Block":
@@ -128,9 +130,8 @@ class TimelineRenderer:
                     dur_sec = (block['end'] - block['start']) / 30.0
                     dur_str = f"{dur_sec:.1f}s"
                     pid = u_data.get('playerId')
-                    tid = u_data.get('teamId')
                     pt_str = f" P{pid} T{tid}" if (pid is not None and tid is not None) else ""
-                    sub_text = f"{internal_name} ({display_id}){pt_str}"
+                    sub_text = f"{internal_name} ({display_id}{tid_str}){pt_str}"
 
                     # Optimization: Only draw detailed text if block is wide enough
                     if (x2 - x1) > 60:
@@ -232,10 +233,8 @@ class TimelineRenderer:
             max_y = ALT_START_Y + (len(data_provider.preview_units) if data_provider.preview_units else 0) * (ALT_ROW_HEIGHT + ALT_GAP)
             if not data_provider.preview_units: max_y = UNIT_Y_BOTTOM + 20
             if view_min_x - 10 <= cur_x <= view_max_x + 10:
-                # Extend higher: go to 0 instead of MAIN_Y_TOP
                 self.canvas.create_line(cur_x, 0, cur_x, max_y, fill="#444444", width=2, dash=(2, 4), tags="current_time")
-                # Optional small label near top - also moved up
-                self.canvas.create_text(min(max(cur_x, view_min_x + 30), view_max_x - 30), 2, text=f"t={int(data_provider.current_time)}", fill="#444444", anchor="nw", font=("Arial", 7), tags="current_time")
+                self.canvas.create_text(min(max(cur_x+5, view_min_x + 30), view_max_x - 30), 2, text=f"{utils.format_time(data_provider.current_time)}", fill="#444444", anchor="nw", font=("Arial", 7), tags="current_time")
 
             # Draw distance to previous and next blocks
             sel_idx = data_provider.selected_block_index
@@ -527,6 +526,10 @@ class TimelineRenderer:
 
                         tags = ("segment", tag_id, "target") if not is_lifecycle else "lifecycle"
                         self.canvas.create_rectangle(tx1, t_y1, tx2, t_y2, fill=t_color, outline="", tags=tags)
+                        
+                        # Draw vertical separator at the start of a target block if it's not the first one in the segment
+                        if t_draw_start > draw_start:
+                             self.canvas.create_line(tx1, t_y1, tx1, t_y2, fill="black", width=1, tags=tags)
 
                         # Add text label if it's the lifecycle view and wide enough
                         if is_lifecycle and (tx2 - tx1) > 10:

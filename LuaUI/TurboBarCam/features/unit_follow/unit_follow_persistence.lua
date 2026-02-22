@@ -3,6 +3,7 @@ local ModuleManager = WG.TurboBarCam.ModuleManager
 local STATE = ModuleManager.STATE(function(m) STATE = m end)
 local CONFIG = ModuleManager.CONFIG(function(m) CONFIG = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local Log = ModuleManager.Log(function(m) Log = m end, "UnitFollowPersistence")
 
 ---@class UnitFollowPersistence
@@ -36,7 +37,15 @@ function UnitFollowPersistence.saveUnitSettings(_, unitId)
     saveOffsets("COMBAT", unitName)
     saveOffsets("WEAPON", unitName)
 
-    SettingsManager.saveUserSetting("unit_follow_attack_state_cooldown", unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN)
+    local settings = SettingsManager.loadUserSetting("unit_follow_settings", unitName, {})
+    settings.attack_state_cooldown = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN
+
+    -- Resetting the chosen weapon should not affect the saved setting
+    if CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER then
+        settings.forced_weapon_number = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+    end
+
+    SettingsManager.saveUserSetting("unit_follow_settings", unitName, settings)
 end
 
 ---@param unitId number Unit ID
@@ -53,8 +62,18 @@ function UnitFollowPersistence.loadUnitSettings(_, unitId)
     loadOffsets("COMBAT", unitName)
     loadOffsets("WEAPON", unitName)
 
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = SettingsManager.loadUserSetting(
-            "unit_follow_attack_state_cooldown", unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN)
+    local settings = SettingsManager.loadUserSetting("unit_follow_settings", unitName, {})
+
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = settings.attack_state_cooldown or
+            SettingsManager.loadUserSetting("unit_follow_attack_state_cooldown", unitName) or
+            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN
+
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = settings.forced_weapon_number or
+            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.FORCED_WEAPON_NUMBER
+
+    if STATE.active.mode.name == "unit_follow" and STATE.active.mode.unit_follow then
+        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+    end
 end
 
 STATE.settings.loadModeSettingsFn.unit_follow = UnitFollowPersistence.loadUnitSettings

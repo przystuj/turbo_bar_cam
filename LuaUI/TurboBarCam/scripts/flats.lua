@@ -1,7 +1,7 @@
 return {
     metadata = {
         replayName = "2025-11-08_21-35-27-907_Flats and Forests v2_2025.04.08",
-        version = 3,
+        version = 4,
     },
     steps = {
 
@@ -11,6 +11,7 @@ return {
             label = "Init",
             commands = {
                 "skip f25313",
+                "togglelos",
             }
         },
 
@@ -22,6 +23,20 @@ return {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 21711 combat",
                 "turbobarcam_script_select_unit_team 21711",
+            }
+        },
+        {
+            frame = 29741,
+            label = "Tiger - FF",
+            commands = {
+                commands = "setspeed 7"
+            }
+        },
+        {
+            frame = 303356,
+            label = "Tiger - FF End",
+            commands = {
+                commands = "setspeed 1"
             }
         },
 
@@ -53,14 +68,36 @@ return {
             label = "Banisher",
             commands = {
                 "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 4720 combat",
+                "turbobarcam_script_select_unit_team 4720",
+            }
+        },
+
+        -- STEP #06 Fatboy
+        {
+            frame = 35952,
+            label = "Fatboy",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 15749 combat",
+                "turbobarcam_script_select_unit_team 15749",
+            }
+        },
+
+        -- STEP #07 Banisher
+        {
+            frame = 38846,
+            label = "Banisher",
+            commands = {
+                "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17166 combat",
                 "turbobarcam_script_select_unit_team 17166",
             }
         },
 
-        -- STEP #06 Tzar
+        -- STEP #08 Tzar
         {
-            frame = 39665,
+            frame = 39776,
             label = "Tzar",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -69,9 +106,20 @@ return {
             }
         },
 
-        -- STEP #07 Shiva
+        -- STEP #09 Banisher
         {
             frame = 41955,
+            label = "Banisher",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 9997 combat",
+                "turbobarcam_script_select_unit_team 9997",
+            }
+        },
+
+        -- STEP #10 Shiva
+        {
+            frame = 44238,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -80,20 +128,20 @@ return {
             }
         },
 
-        -- STEP #08 Shiva
+        -- STEP #11 Shiva
         {
             frame = 46082,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 5170 combat",
-                "turbobarcam_script_select_unit_team 5170",
+                "turbobarcam_toggle_unit_follow_camera 15010 combat",
+                "turbobarcam_script_select_unit_team 15010",
             }
         },
 
-        -- STEP #09 Shiva
+        -- STEP #12 Shiva
         {
-            frame = 48239,
+            frame = 48965,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -102,9 +150,9 @@ return {
             }
         },
 
-        -- STEP #10 Shiva
+        -- STEP #13 Shiva
         {
-            frame = 51243,
+            frame = 52068,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -113,9 +161,9 @@ return {
             }
         },
 
-        -- STEP #11 Shiva
+        -- STEP #14 Shiva
         {
-            frame = 53005,
+            frame = 53024,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -124,20 +172,9 @@ return {
             }
         },
 
-        -- STEP #12 Shiva
+        -- STEP #15 Shiva
         {
-            frame = 54538,
-            label = "Shiva",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 938 combat",
-                "turbobarcam_script_select_unit_team 938",
-            }
-        },
-
-        -- STEP #13 Shiva
-        {
-            frame = 54547,
+            frame = 54523,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -146,127 +183,174 @@ return {
             }
         },
 
-        -- STEP #14 Banisher
-        {
-            frame = 58328,
-            label = "Banisher",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 5702 combat",
-                "turbobarcam_script_select_unit_team 5702",
-            }
-        },
-
-        -- STEP #15 Shiva
-        {
-            frame = 64452,
-            label = "Shiva",
-            commands = {
-            }
-        },
-
         -- STEP #16 Shiva
         {
-            frame = 71314,
+            frame = 58739,
             label = "Shiva",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 18371 combat",
-                "turbobarcam_script_select_unit_team 18371",
+                "turbobarcam_toggle_unit_follow_camera 10964 combat",
+                "turbobarcam_script_select_unit_team 10964",
             }
         },
 
-        -- STEP #17 Shiva
+        -- STEP #17 Karganeth
         {
-            frame = 74326,
-            label = "Shiva",
+            frame = 60501,
+            label = "Karganeth",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 8342 combat",
-                "turbobarcam_script_select_unit_team 8342",
+                "turbobarcam_toggle_unit_follow_camera 29458 combat",
+                "turbobarcam_script_select_unit_team 29458",
             }
         },
 
-        -- STEP #18 Juggernaut
+        -- STEP #18 Demon
         {
-            frame = 82266,
-            label = "Juggernaut",
+            frame = 61439,
+            label = "Demon",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 5927 combat",
-                "turbobarcam_script_select_unit_team 5927",
+                "turbobarcam_toggle_unit_follow_camera 13421 combat",
+                "turbobarcam_script_select_unit_team 13421",
             }
         },
 
         -- STEP #19 Hailstorm
         {
-            frame = 89112,
+            frame = 62628,
             label = "Hailstorm",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 5335 combat",
-                "turbobarcam_script_select_unit_team 5335",
+                "turbobarcam_toggle_unit_follow_camera 19629 combat",
+                "turbobarcam_script_select_unit_team 19629",
             }
         },
 
-        -- STEP #20 Catapult
+        -- STEP #20 Banisher
         {
-            frame = 89124,
+            frame = 64319,
+            label = "Banisher",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 11966 combat",
+                "turbobarcam_script_select_unit_team 11966",
+            }
+        },
+
+        -- STEP #21 Catapult
+        {
+            frame = 65288,
             label = "Catapult",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 482 combat",
-                "turbobarcam_script_select_unit_team 482",
+                "turbobarcam_toggle_unit_follow_camera 3652 combat",
+                "turbobarcam_script_select_unit_team 3652",
             }
         },
 
-        -- STEP #21 Juggernaut
+        -- STEP #22 Catapult
         {
-            frame = 94395,
+            frame = 66094,
+            label = "Catapult",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 16673 combat",
+                "turbobarcam_script_select_unit_team 16673",
+            }
+        },
+
+        -- STEP #23 Shiva
+        {
+            frame = 73309,
+            label = "Shiva",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 22932 combat",
+                "turbobarcam_script_select_unit_team 22932",
+            }
+        },
+
+        -- STEP #24 Thor
+        {
+            frame = 74410,
+            label = "Thor",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 7788 combat",
+                "turbobarcam_script_select_unit_team 7788",
+            }
+        },
+
+        -- STEP #25 Thor
+        {
+            frame = 76355,
+            label = "Thor",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 16990 combat",
+                "turbobarcam_script_select_unit_team 16990",
+            }
+        },
+
+        -- STEP #26 Thor
+        {
+            frame = 78955,
+            label = "Thor",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 10003 combat",
+                "turbobarcam_script_select_unit_team 10003",
+            }
+        },
+
+        -- STEP #27 Banisher
+        {
+            frame = 79549,
+            label = "Banisher",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 27261 combat",
+                "turbobarcam_script_select_unit_team 27261",
+            }
+        },
+
+        -- STEP #28 Demon
+        {
+            frame = 80771,
+            label = "Demon",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 8646 combat",
+                "turbobarcam_script_select_unit_team 8646",
+            }
+        },
+
+        -- STEP #29 Juggernaut
+        {
+            frame = 84610,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 22877 combat",
-                "turbobarcam_script_select_unit_team 22877",
+                "turbobarcam_toggle_unit_follow_camera 1515 combat",
+                "turbobarcam_script_select_unit_team 1515",
             }
         },
 
-        -- STEP #22 Juggernaut
+        -- STEP #30 Juggernaut
         {
-            frame = 94903,
+            frame = 87900,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 24453 combat",
-                "turbobarcam_script_select_unit_team 24453",
+                "turbobarcam_toggle_unit_follow_camera 14621 combat",
+                "turbobarcam_script_select_unit_team 14621",
             }
         },
 
-        -- STEP #23 Juggernaut
+        -- STEP #31 Juggernaut
         {
-            frame = 97236,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27405 combat",
-                "turbobarcam_script_select_unit_team 27405",
-            }
-        },
-
-        -- STEP #24 Juggernaut
-        {
-            frame = 99500,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 23841 combat",
-                "turbobarcam_script_select_unit_team 23841",
-            }
-        },
-
-        -- STEP #25 Juggernaut
-        {
-            frame = 102697,
+            frame = 99484,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -275,86 +359,74 @@ return {
             }
         },
 
-        -- STEP #26 Juggernaut
-        {
-            frame = 106476,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 5472 combat",
-                "turbobarcam_script_select_unit_team 5472",
-            }
-        },
-
-        -- STEP #27 Juggernaut
-        {
-            frame = 111735,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27751 combat",
-                "turbobarcam_script_select_unit_team 27751",
-            }
-        },
-
-        -- STEP #28 Juggernaut
-        {
-            frame = 113476,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25833 combat",
-                "turbobarcam_script_select_unit_team 25833",
-            }
-        },
-
-        -- STEP #29 Juggernaut
-        {
-            frame = 114026,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 27751 combat",
-                "turbobarcam_script_select_unit_team 27751",
-            }
-        },
-
-        -- STEP #30 Juggernaut
-        {
-            frame = 115890,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 20111 combat",
-                "turbobarcam_script_select_unit_team 20111",
-            }
-        },
-
-        -- STEP #31 Juggernaut
-        {
-            frame = 122028,
-            label = "Juggernaut",
-            commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17676 combat",
-                "turbobarcam_script_select_unit_team 17676",
-            }
-        },
-
         -- STEP #32 Juggernaut
         {
-            frame = 125601,
+            frame = 106484,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 9061 combat",
-                "turbobarcam_script_select_unit_team 9061",
+                "turbobarcam_toggle_unit_follow_camera 25117 combat",
+                "turbobarcam_script_select_unit_team 25117",
+            }
+        },
+
+        {
+            frame = 116574,
+            label = "Nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 12241",
+            }
+        },
+
+        {
+            frame = 116739,
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_clear_fixed_look_point",
             }
         },
 
         -- STEP #33 Juggernaut
         {
-            frame = 127736,
+            frame = 118283,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 23841 combat",
+                "turbobarcam_script_select_unit_team 23841",
+            }
+        },
+
+        {
+            frame = 120308,
+            label = "Nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 4534",
+            }
+        },
+
+        {
+            frame = 120500,
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_clear_fixed_look_point",
+            }
+        },
+
+        -- STEP #34 Juggernaut
+        {
+            frame = 123968,
+            label = "Juggernaut",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 15136 combat",
+                "turbobarcam_script_select_unit_team 15136",
+            }
+        },
+
+        -- STEP #35 Juggernaut
+        {
+            frame = 128490,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -363,31 +435,25 @@ return {
             }
         },
 
-        -- STEP #34 Vanguard
         {
-            frame = 133254,
-            label = "Vanguard",
+            frame = 133432,
+            label = "Nuke cam",
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 1249 combat",
-                "turbobarcam_script_select_unit_team 1249",
+                "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 15023",
             }
         },
 
-        -- STEP #35 Catapult
         {
-            frame = 134160,
-            label = "Catapult",
+            frame = 133722,
+            label = "Clear nuke cam",
             commands = {
-                "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 16663 combat",
-                "turbobarcam_script_select_unit_team 16663",
+                "turbobarcam_unit_follow_clear_fixed_look_point",
             }
         },
 
         -- STEP #36 Behemoth
         {
-            frame = 138621,
+            frame = 133752,
             label = "Behemoth",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -418,37 +484,84 @@ return {
             }
         },
 
-        -- STEP #39 Behemoth
+        -- STEP #39 Juggernaut
         {
             frame = 148768,
-            label = "Behemoth",
+            label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25731 combat",
-                "turbobarcam_script_select_unit_team 25731",
+                "turbobarcam_toggle_unit_follow_camera 18887 combat",
+                "turbobarcam_script_select_unit_team 18887",
             }
         },
 
-        -- STEP #40 Behemoth
         {
-            frame = 151513,
-            label = "Behemoth",
+            frame = 149102,
+            commands = {
+                "turbobarcam_script_play_track music/original/warhigh/Nathan Sharples - Crashing Down.ogg"
+            }
+        },
+
+        {
+            frame = 151895,
+            label = "Nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 16108",
+            }
+        },
+
+        {
+            frame = 152083,
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_unit_follow_clear_fixed_look_point",
+            }
+        },
+
+        -- STEP #40 Juggernaut
+        {
+            frame = 152258,
+            label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 11344 combat",
-                "turbobarcam_script_select_unit_team 11344",
+                "turbobarcam_toggle_unit_follow_camera 18444 combat",
+                "turbobarcam_script_select_unit_team 18444",
             }
         },
 
         -- STEP #41 Juggernaut
         {
-            frame = 156060,
+            frame = 156609,
             label = "Juggernaut",
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 10149 combat",
                 "turbobarcam_script_select_unit_team 10149",
             }
+        },
+
+        -- STEP #42 Behemoth
+        {
+            frame = 158114,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 17264 combat",
+                "turbobarcam_script_select_unit_team 17264",
+            }
+        },
+
+        {
+            frame = 158779,
+            label = "Behemoth",
+            commands = {
+                "turbobarcam_smoothing position 30",
+                "turbobarcam_smoothing rotation 30",
+            }
+        },
+        {
+            frame = 158790,
+            commands = "turbobarcam_unit_follow_adjust_params temp;WEAPON.HEIGHT,2000"
         },
     }
 }

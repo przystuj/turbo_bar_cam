@@ -1,6 +1,7 @@
 import tkinter as tk
 from typing import Dict, List, Optional
 from ..core import processing
+from scriptgenerator.core import utils
 
 class MinimapWidget(tk.Frame):
     def __init__(self, parent, width=300, height=300):
@@ -29,6 +30,7 @@ class MinimapWidget(tk.Frame):
         self.show_prev_var = tk.BooleanVar(value=False)
         self.show_next_var = tk.BooleanVar(value=False)
         self.show_alts_var = tk.BooleanVar(value=False)
+        self.show_projs_var = tk.BooleanVar(value=False)
 
         self.cb_prev = tk.Checkbutton(self.controls, text="Prev", variable=self.show_prev_var, command=self.redraw, bg="#f0f0f0", font=("Arial", 8))
         self.cb_prev.pack(side="left")
@@ -36,6 +38,8 @@ class MinimapWidget(tk.Frame):
         self.cb_next.pack(side="left")
         self.cb_alts = tk.Checkbutton(self.controls, text="Alts", variable=self.show_alts_var, command=self.redraw, bg="#f0f0f0", font=("Arial", 8))
         self.cb_alts.pack(side="left")
+        self.cb_projs = tk.Checkbutton(self.controls, text="Projs", variable=self.show_projs_var, command=self.redraw, bg="#f0f0f0", font=("Arial", 8))
+        self.cb_projs.pack(side="left")
 
         # Comma separated unit IDs input
         tk.Label(self.controls, text=" IDs:", bg="#f0f0f0", font=("Arial", 8)).pack(side="left")
@@ -45,7 +49,7 @@ class MinimapWidget(tk.Frame):
         self.ids_entry.bind("<Return>", lambda e: self.redraw())
         self.ids_entry_var.trace_add("write", lambda *args: self.redraw())
 
-        self.scale = tk.Scale(self, from_=0, to=1, orient="horizontal", label="Time", command=self._on_scale)
+        self.scale = tk.Scale(self, from_=0, to=1, orient="horizontal", label="Time 00:00 (0)", command=self._on_scale)
         self.scale.pack(side="top", fill="x", padx=5, pady=(0,5))
 
         self.map_w = 0
@@ -58,6 +62,7 @@ class MinimapWidget(tk.Frame):
         self.prev_unit: Optional[Dict] = None
         self.next_unit: Optional[Dict] = None
         self.alt_units: List[Dict] = []
+        self.projectiles: List[Dict] = []
 
         # Hover/tooltip helpers
         self._item_meta = {}  # canvas_item_id -> { unit, f1, f2, status, x1,y1,x2,y2 }
@@ -126,6 +131,15 @@ class MinimapWidget(tk.Frame):
         self.canvas_h = event.height
         self.redraw()
 
+    def _update_scale_label(self):
+        try:
+            t_str = utils.format_time(int(self.current_time))
+        except Exception:
+            # Fallback simple mm:ss at 30 FPS
+            secs = int(self.current_time) // 30
+            t_str = f"{secs//60:02d}:{secs%60:02d}"
+        self.scale.config(label=f"Time {t_str} ({int(self.current_time)})")
+
     def set_context(self, map_width: int, map_height: int, time_min: int, time_max: int):
         self.map_w = max(1, int(map_width or 1))
         self.map_h = max(1, int(map_height or 1))
@@ -135,6 +149,7 @@ class MinimapWidget(tk.Frame):
         if self.current_time < self.time_min or self.current_time > self.time_max:
             self.current_time = self.time_min
             self.scale.set(self.current_time)
+        self._update_scale_label()
         self.redraw()
 
     def set_selection(self, selected: Optional[Dict], prev_unit: Optional[Dict], next_unit: Optional[Dict], alternatives: List[Dict]):
@@ -142,6 +157,10 @@ class MinimapWidget(tk.Frame):
         self.prev_unit = prev_unit
         self.next_unit = next_unit
         self.alt_units = alternatives or []
+        self.redraw()
+
+    def set_projectiles(self, projectiles: List[Dict]):
+        self.projectiles = projectiles or []
         self.redraw()
 
     def set_time(self, frame: int):
@@ -152,6 +171,7 @@ class MinimapWidget(tk.Frame):
             self.scale.set(self.current_time)
         finally:
             self._suppress_time_cb = False
+        self._update_scale_label()
         self.redraw()
 
     def _on_scale(self, _):
@@ -159,6 +179,7 @@ class MinimapWidget(tk.Frame):
             self.current_time = int(self.scale.get())
         except Exception:
             pass
+        self._update_scale_label()
         self.redraw()
         if not self._suppress_time_cb and self._time_change_cb:
             try:
@@ -181,10 +202,15 @@ class MinimapWidget(tk.Frame):
         cy = z * base_scale + self.offset_y
         return cx, cy
 
-    def _draw_unit_dot(self, x: float, z: float, color: str, r: int = 4, outline: str = "black", label: str = None, heading: float = None):
+    def _draw_unit_dot(self, x: float, z: float, color: str, r: int = 4, outline: str = "black", label: str = None, heading: float = None, selected: bool = False):
         cx, cy = self._map_to_canvas(x, z)
         # Draw dot
-        self.canvas.create_oval(cx - r, cy - r, cx + r, cy + r, fill=color, outline=outline, width=1)
+        actual_outline = outline
+        actual_width = 1
+        if selected:
+            actual_outline = "white"
+            actual_width = 2
+        self.canvas.create_oval(cx - r, cy - r, cx + r, cy + r, fill=color, outline=actual_outline, width=actual_width)
 
         # Draw heading line (if provided)
         if heading is not None:
@@ -324,13 +350,23 @@ class MinimapWidget(tk.Frame):
         """
         self._unit_lookup_cb = cb
 
-    def _draw_path(self, u: Optional[Dict], color: str, thin: bool = False, with_tooltip: bool = True):
+    def _draw_path(self, u: Optional[Dict], color: str, thin: bool = False, with_tooltip: bool = True, limit_to_current_time: bool = False):
         if not u: return
         unit_data = u.get('unit') if 'unit' in u else u
         if "positionHistory" not in unit_data:
             return
 
         history = unit_data["positionHistory"]
+        if not history or len(history) < 2:
+            return
+
+        if limit_to_current_time:
+            history = [p for p in history if p["frame"] <= self.current_time]
+            # Add current interpolated position as the last point if it's after the last history frame
+            curr_pos, _ = self._get_pos_and_heading(u)
+            if curr_pos and (not history or history[-1]["frame"] < self.current_time):
+                history.append({"frame": self.current_time, "x": curr_pos[0], "z": curr_pos[1]})
+
         if not history or len(history) < 2:
             return
 
@@ -465,6 +501,38 @@ class MinimapWidget(tk.Frame):
         self.canvas.create_line(px, py - 5, px, py + 5, fill="black", width=1)
         self.canvas.create_text(px - bar_w/2, py - 5, text=f"{interval} elmos", anchor="s", font=("Arial", 8, "bold"))
 
+    def _draw_projectile_path(self, unit_data: Dict, color: str):
+        if "projectileHistory" not in unit_data:
+            return
+
+        history = unit_data["projectileHistory"]
+        # projectileHistory might contain multiple projectiles interleaved or sequential.
+        # id is the projectile id.
+        projectiles = {}
+        for p in history:
+            pid = p.get('id')
+            if pid not in projectiles:
+                projectiles[pid] = []
+            projectiles[pid].append(p)
+
+        for pid, p_list in projectiles.items():
+            # Only draw until current_time
+            visible_p = [p for p in p_list if p["frame"] <= self.current_time]
+            if len(visible_p) < 2:
+                continue
+
+            for i in range(1, len(visible_p)):
+                p1 = visible_p[i-1]
+                p2 = visible_p[i]
+                cx1, cy1 = self._map_to_canvas(p1["x"], p1["z"])
+                cx2, cy2 = self._map_to_canvas(p2["x"], p2["z"])
+                self.canvas.create_line(cx1, cy1, cx2, cy2, fill=color, width=1, dash=(2, 2), tags=("projpath",))
+
+            # Draw a small dot at the tip
+            last_p = visible_p[-1]
+            cx, cy = self._map_to_canvas(last_p["x"], last_p["z"])
+            self.canvas.create_oval(cx - 2, cy - 2, cx + 2, cy + 2, fill=color, outline="white", width=1)
+
     def redraw(self):
         if not self.canvas.winfo_ismapped():
             # If not visible yet, resizing might not have happened correctly
@@ -485,9 +553,36 @@ class MinimapWidget(tk.Frame):
 
         # Draw selected path first (full detail)
         if self.selected:
-            self._draw_path(self.selected, "#99ff99", thin=False, with_tooltip=True)
+            u_team = self.selected.get('teamId')
+            color = "#3333ff" if u_team == 0 else ("#ff3333" if u_team == 1 else "#33ff33")
+            self._draw_path(self.selected, color, thin=False, with_tooltip=True, limit_to_current_time=True)
+
+        if self.show_projs_var.get():
+            # Group by id just in case multiple samples for same id were passed
+            for p in self.projectiles:
+                # 1. Draw Trail
+                trail = p.get('trail', [])
+                if len(trail) >= 2:
+                    for i in range(1, len(trail)):
+                        t1 = trail[i-1]
+                        t2 = trail[i]
+                        tx1, ty1 = self._map_to_canvas(t1["x"], t1["z"])
+                        tx2, ty2 = self._map_to_canvas(t2["x"], t2["z"])
+                        # Fading trail effect would be nice but let's start with dashed lines
+                        self.canvas.create_line(tx1, ty1, tx2, ty2, fill="#ff8800", width=3, dash=(2, 2), tags=("projectile_trail",))
+
+                # 2. Draw Dot at current (or latest known) position
+                cx, cy = self._map_to_canvas(p["x"], p["z"])
+                # Projectiles can be colored by owner's team if ownerID is available?
+                # For now let's use a distinct color or owner's team color if possible.
+                # ownerID is the unit ID. We don't have owner's team here easily without more lookups.
+                # Let's use orange for projectiles for now to make them stand out.
+                self.canvas.create_oval(cx - 2, cy - 2, cx + 2, cy + 2, fill="#ffaa00", outline="black", width=1, tags=("projectile",))
 
         sel_team = self.selected.get('teamId') if self.selected else None
+
+        TEAM_COLORS = {0: "#0000ff", 1: "#ff0000"}
+        DEFAULT_COLOR = "#00ff00"
 
         # Draw alternatives paths and dots (only if enabled)
         if self.show_alts_var.get():
@@ -495,9 +590,8 @@ class MinimapWidget(tk.Frame):
                 u = alt.get('unit') if isinstance(alt, dict) and 'unit' in alt else alt
                 if not u: continue
                 u_team = u.get('teamId') if isinstance(u, dict) else None
-                color = "#55aa55" if (sel_team is not None and u_team == sel_team) else "#aa5555"
-                # thinner path for alts, include tooltip too
-                self._draw_path(u, color, thin=True, with_tooltip=True)
+                color = TEAM_COLORS.get(u_team, DEFAULT_COLOR)
+                # For alternatives, just draw the point, no path as per requirement
                 pos, h = self._get_pos_and_heading(u)
                 if pos:
                     label = str(idx + 1)
@@ -507,16 +601,16 @@ class MinimapWidget(tk.Frame):
         if self.show_prev_var.get() and self.prev_unit:
             u = self.prev_unit
             u_team = u.get('teamId') if isinstance(u, dict) else None
-            color = "#008800" if (sel_team is not None and u_team == sel_team) else "#880000"
-            self._draw_path(u, color, thin=True, with_tooltip=True)
+            color = TEAM_COLORS.get(u_team, DEFAULT_COLOR)
+            # For prev/next, just draw the point, no path as per requirement
             pos, h = self._get_pos_and_heading(u)
             if pos:
                 self._draw_unit_dot(pos[0], pos[1], color=color, r=5, label="Previous", heading=h)
         if self.show_next_var.get() and self.next_unit:
             u = self.next_unit
             u_team = u.get('teamId') if isinstance(u, dict) else None
-            color = "#008800" if (sel_team is not None and u_team == sel_team) else "#880000"
-            self._draw_path(u, color, thin=True, with_tooltip=True)
+            color = TEAM_COLORS.get(u_team, DEFAULT_COLOR)
+            # For prev/next, just draw the point, no path as per requirement
             pos, h = self._get_pos_and_heading(u)
             if pos:
                 self._draw_unit_dot(pos[0], pos[1], color=color, r=5, label="Next", heading=h)
@@ -545,5 +639,7 @@ class MinimapWidget(tk.Frame):
         # Selected on top (dot)
         pos, h = self._get_pos_and_heading(self.selected)
         if pos and self.selected:
+            u_team = self.selected.get('teamId')
+            color = "#3333ff" if u_team == 0 else ("#ff3333" if u_team == 1 else "#33ff33")
             label = str(self.selected.get('unitId', '?'))
-            self._draw_unit_dot(pos[0], pos[1], color="#00ff00", r=6, label=label, heading=h)
+            self._draw_unit_dot(pos[0], pos[1], color=color, r=6, label=label, heading=h, selected=True)

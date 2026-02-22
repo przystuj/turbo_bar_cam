@@ -19,10 +19,11 @@ local OUTPUT_DIR = "LuaUI/unitData/"
 
 -- LOGIC TUNING
 local ACTIVITY_CHECK_INTERVAL = 10
-local POS_CHECK_INTERVAL = 150      -- 5s: Interval for logging position (30fps * 5)
-local TARGET_CHECK_INTERVAL = 90    -- 3s: Interval for logging targets (30fps * 3)
-local IDLE_TIMEOUT_FRAMES = 300     -- 10s: How long to wait before deciding a unit is IDLE
-local MAX_PAUSE_GAP = 900           -- 30s: Max duration to ever consider a "PAUSE" (safety cap)
+local POS_CHECK_INTERVAL = 150
+local TARGET_CHECK_INTERVAL = 90
+local PROJECTILE_CHECK_INTERVAL = 30
+local IDLE_TIMEOUT_FRAMES = 300
+local MAX_PAUSE_GAP = 900
 
 --------------------------------------------------------------------------------
 -- Speedups
@@ -333,7 +334,7 @@ end
 
 function widget:GameFrame(currentFrame)
     -- PROJECTILE CHECK (Global)
-    if currentFrame % TARGET_CHECK_INTERVAL == 0 then
+    if currentFrame % PROJECTILE_CHECK_INTERVAL == 0 then
         if WG.TurboBarCam and WG.TurboBarCam.API and WG.TurboBarCam.API.getAllTrackedProjectiles then
             local projectiles = WG.TurboBarCam.API.getAllTrackedProjectiles()
             if projectiles then

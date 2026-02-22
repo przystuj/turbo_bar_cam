@@ -27,6 +27,7 @@ function SettingsManager.initializePersistentStorage()
     initStorage("orbit_presets", true)
     initStorage("projectile_camera_settings", true)
     initStorage("unit_follow_attack_state_cooldown", true)
+    initStorage("unit_follow_settings", true)
 
     STATE.settings.initialized = true
 end

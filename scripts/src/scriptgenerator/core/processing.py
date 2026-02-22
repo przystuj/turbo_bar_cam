@@ -325,6 +325,13 @@ def preprocess_data(units, apply_filters=True, max_frame=None):
             unit["targetHistory"] = valid_tgt
             unit["_target_start_frames"] = [x["frame"] for x in valid_tgt]
 
+        if "projectileHistory" in unit:
+            proj_hist = unit["projectileHistory"]
+            if isinstance(proj_hist, dict): proj_hist = list(proj_hist.values())
+            valid_proj = [p for p in proj_hist if isinstance(p, dict) and p.get('frame') is not None]
+            valid_proj.sort(key=lambda x: x["frame"])
+            unit["projectileHistory"] = valid_proj
+
         # 3. Filtering
         if apply_filters:
             if unit.get("name") in constants.IGNORE_NAMES: continue

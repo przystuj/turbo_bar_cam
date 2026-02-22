@@ -89,10 +89,7 @@ class App(tk.Tk):
     def on_time_change_from_timeline(self, frame):
         # Update minimaps when timeline cursor moves
         try:
-            if self.minimap:
-                self.minimap.set_time(int(frame))
-            if hasattr(self, 'detached_minimap') and self.minimap_win and self.minimap_win.winfo_exists():
-                self.detached_minimap.set_time(int(frame))
+            self.update_minimap()
         except Exception:
             pass
 
@@ -100,11 +97,7 @@ class App(tk.Tk):
         # Update timeline when minimap scrubber changes
         try:
             self.timeline_widget.set_current_time(int(frame))
-            # Keep both minimaps consistent if both visible
-            if hasattr(self, 'detached_minimap') and self.minimap_win and self.minimap_win.winfo_exists():
-                self.detached_minimap.set_time(int(frame))
-            if self.minimap:
-                self.minimap.set_time(int(frame))
+            self.update_minimap()
         except Exception:
             pass
 
@@ -670,9 +663,28 @@ class App(tk.Tk):
         idx = logic.selected_block_index
         tl = logic.timeline_data if logic else []
 
+        # Time: prefer timeline current_time, else subblock center
+        current_frame = 0
+        if logic and getattr(logic, 'current_time', None) is not None:
+            current_frame = int(logic.current_time)
+        if (not current_frame) and logic and logic.subblock_start is not None and logic.subblock_end is not None:
+            current_frame = int((logic.subblock_start + logic.subblock_end) / 2)
+
         if idx is not None and 0 <= idx < len(tl):
             blk = tl[idx]
-            selected_u = blk.get('unit_data')
+            selected_u_minimal = blk.get('unit_data')
+            if selected_u_minimal:
+                # Enrich with full history if database is available
+                uid = selected_u_minimal.get('id')
+                if uid and self.project_manager.db:
+                    selected_u = self.project_manager.db.get_unit_full(uid)
+
+                if not selected_u:
+                    selected_u = selected_u_minimal
+
+                if (not current_frame) and selected_u and 'bornFrame' in selected_u:
+                    current_frame = int(selected_u.get('bornFrame', 0))
+
             # prev
             j = idx - 1
             while j >= 0:
@@ -688,17 +700,23 @@ class App(tk.Tk):
                     break
                 j += 1
 
+        # Projectiles
+        projectiles = []
+        if self.project_manager.db and current_frame is not None:
+            try:
+                frame_int = int(current_frame)
+                projectiles = self.project_manager.db.get_all_projectiles_at_frame(frame_int)
+                # Enrich with trails
+                for p in projectiles:
+                    p['trail'] = self.project_manager.db.get_projectile_trail(p['id'], frame_int)
+                if projectiles:
+                    print(f"Update minimap: found {len(projectiles)} projectiles at frame {frame_int}")
+            except Exception as e:
+                print(f"Error fetching projectiles: {e}")
+                projectiles = []
+
         # Alternatives
         alts = logic.preview_units if logic else []
-
-        # Time: prefer timeline current_time, else subblock center, else selected born
-        current_frame = 0
-        if logic and getattr(logic, 'current_time', None) is not None:
-            current_frame = int(logic.current_time)
-        if (not current_frame) and logic and logic.subblock_start is not None and logic.subblock_end is not None:
-            current_frame = int((logic.subblock_start + logic.subblock_end) / 2)
-        if (not current_frame) and selected_u and 'bornFrame' in selected_u:
-            current_frame = int(selected_u.get('bornFrame', 0))
 
         for m in minimaps:
             # provide unit lookup for manual ID rendering in minimap
@@ -706,6 +724,7 @@ class App(tk.Tk):
                 m.set_unit_lookup(self.lookup_unit)
             m.set_context(int(map_w or 0), int(map_h or 0), 0, int(gmax or 1))
             m.set_selection(selected_u, prev_u, next_u, alts)
+            m.set_projectiles(projectiles)
             m.set_time(current_frame)
 
 

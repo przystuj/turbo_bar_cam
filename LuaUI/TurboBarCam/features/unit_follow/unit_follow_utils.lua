@@ -404,6 +404,11 @@ function UnitFollowUtils.resetOffsets()
     reset("WEAPON")
 
     CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.FORCED_WEAPON_NUMBER
+
+    if STATE.active.mode.name == "unit_follow" and STATE.active.mode.unit_follow then
+        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+    end
 
     UnitFollowUtils.ensureHeightIsSet()
     Log:trace("Restored unit_follow camera settings to defaults")
