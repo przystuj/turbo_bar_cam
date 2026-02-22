@@ -5,9 +5,9 @@
     "parameters": "`action;param,value;...` (e.g., `add;DURATION,0.5` or `set;DURATION,3` or `reset`). Available param: `DURATION`."
   },
   "turbobarcam_anchor_focus": {
-    "description": "Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter",
+    "description": "Smoothly transitions the camera to a previously saved anchor point. Move to next/previous anchor by using `next`/`prev` parameter. Reset to current anchor by using `reset` parameter.",
     "label": "Focus Anchor",
-    "parameters": "`index` (numeric, e.g., 1 or `next`/`prev`)"
+    "parameters": "`index` (numeric, e.g., 1 or `next`/`prev`/`reset`)"
   },
   "turbobarcam_anchor_load": {
     "description": "Loads a set of camera anchor points from the storage, specific to the current map.",
@@ -98,6 +98,16 @@
     "description": "Clears any fixed look point or unit target that the camera is currently focused on, returning to default forward view.",
     "label": "Clear Look Point",
     "parameters": "None"
+  },
+  "turbobarcam_unit_follow_set_fixed_look_target": {
+    "description": "Forces camera to look at the chosen target.",
+    "label": "Set Target",
+    "parameters": "<target type> <id>|<x> <y> <z>. Eg. UNIT 1234 or POINT 1234.567 234.567 345.678"
+  },
+  "turbobarcam_unit_follow_reset_attack_state": {
+    "description": "When following unit in combat mode, prevents camera from looking at the current target for n seconds.",
+    "label": "Reset Attack State",
+    "parameters": "<n>"
   },
   "turbobarcam_unit_follow_clear_weapon_selection": {
     "description": "Clears the currently selected weapon in combat mode, stopping any specific weapon aiming.",
@@ -258,5 +268,10 @@
     "description": "Toggles the single anchor duration mode. When enabled all anchors will have the same duration.",
     "label": "Toggle Single Duration Mode",
     "parameters": "None"
+  },
+  "turbobarcam_track_projectiles": {
+    "description": "Register unitId for projectile tracking in the future",
+    "label": "Track Projectiles",
+    "parameters": "<unitId>"
   }
 }

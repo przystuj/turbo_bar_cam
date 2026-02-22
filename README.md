@@ -82,7 +82,6 @@ Where:
 #### 2.3.0
 - Add an option to reset the camera to the current anchor. If another camera mode is active, move smoothly. Otherwise, snap to the anchor.
 - UI – Add an option to hide minimap and chat
-#### 2.4.0
 - Removed Overview mode (now for real)
 - UI - added a section with a list of the options and widgets which can interfere with recording. Click to toggle them off
 - Attack state cooldown per unit type (how long the camera keeps looking at the last target)
@@ -91,7 +90,7 @@ Where:
 - Unit follow uses actual unit orientation instead of the fixed one
 - Use `turbobarcam_toggle_unit_follow_camera <unitId> [<mode>]` to follow specific unit without selecting it
 - Attach camera to hull instead of a weapon in combat mode
-- Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
+- Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the chosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
 - Improved transition between units in unit_follow. If the distance is high, the camera goes up while looking at the current unit and then turns towards the new one. You can disable it in config.lua - UNIT_TRANSITION_ENABLED
 - Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future
 - Added an option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
