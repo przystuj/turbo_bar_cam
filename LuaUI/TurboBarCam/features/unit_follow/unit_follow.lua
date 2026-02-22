@@ -157,19 +157,14 @@ function UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
     local thirdPartStart = 0.4 -- 40% of transition: switch from looking at previous to next unit
     local forthPartStart = 0.9 -- 90% of transition: switch to final follow orientation
 
-    bonusHeight = 500
-
     if progress > secondPartStart then
         bonusHeight = 0
     end
 
-    if bonusHeight > 0 then
-        Log:debug("bonusHeight", bonusHeight)
-
-    end
-
     -- 1. Apply height bonus
-    cameraPosition.y = cameraPosition.y + bonusHeight
+    if bonusHeight > 0 then
+        cameraPosition = { x = cameraPosition.x, y = cameraPosition.y + bonusHeight, z = cameraPosition.z }
+    end
 
     -- skip lookAt transition if distance is low
     if initialDist2D < 2000 then
@@ -228,17 +223,17 @@ function UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
     local rotationSmoothing, positionSmoothing
 
     if progress > forthPartStart then
-        rotationSmoothing = 3 -- prepare to look at the target
-        positionSmoothing = 6
+        rotationSmoothing = 1 -- prepare to look at the target
+        positionSmoothing = 2
     elseif progress > thirdPartStart then
-        rotationSmoothing = 0.7 -- look at next unit
+        rotationSmoothing = 0.5 -- look at next unit
         positionSmoothing = 1
     elseif progress > secondPartStart then
         rotationSmoothing = 1.0  -- turn towards next unit
         positionSmoothing = 3
     else
         rotationSmoothing = targetOverridden and 0.5 or 2 -- initial look at unit
-        positionSmoothing = 10
+        positionSmoothing = 3
     end
 
     return cameraPosition, target, targetType, rotationSmoothing, positionSmoothing

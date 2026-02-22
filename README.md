@@ -87,20 +87,19 @@ Where:
 - UI - added a section with a list of the options and widgets which can interfere with recording. Click to toggle them off
 - Attack state cooldown per unit type (how long the camera keeps looking at the last target)
   - `turbobarcam_unit_follow_adjust_params set;ATTACK_STATE_COOLDOWN,5`
-- Added `turbobarcam_unit_follow_reset_attack_state n` - stop looking at the targets in combat mode for n seconds
+- Added `turbobarcam_unit_follow_reset_attack_state n` - stop looking at the targets in combat mode for n seconds (for example, if unit keeps targeting air)
 - Unit follow uses actual unit orientation instead of the fixed one
 - Use `turbobarcam_toggle_unit_follow_camera <unitId> [<mode>]` to follow specific unit without selecting it
 - Attach camera to hull instead of a weapon in combat mode
-- Added script runner which allows you to run a list of Spring commands at specific timestamps/frames
 - Added `turbobarcam_unit_follow_set_fixed_look_target <target type> <id>|<x> <y> <z>` which forces camera to look at the choosen target. Allowed target types: UNIT, PROJECTILE, POINT. For example: `turbobarcam_unit_follow_set_fixed_look_target UNIT 1234` or `turbobarcam_unit_follow_set_fixed_look_target POINT 100 200 150`
-- Added TurboBarCam HUD widget which displays debug information about the camera and can display alternative game ui
+- Improved transition between units in unit_follow. If the distance is high, the camera goes up while looking at the current unit and then turns towards the new one. You can disable it in config.lua - UNIT_TRANSITION_ENABLED
 - Added `turbobarcam_track_projectiles <unitId>` - register unitId for projectile tracking in the future
 - Added an option to temporarily change the setting. For example `turbobarcam_unit_follow_adjust_params temp;DEFAULT.FORWARD,5` will set DEFAULT.FORWARD to 5, but it will reset to previous value after changing the mode
 - Added an option to override current camera smoothing. `turbobarcam_smoothing <position|rotation|reset> <value>`
 - You can now use `turbobarcam_anchor_focus <index> snap` to instantly snap to the anchor
-- Added `turbobarcam_script_ff <delay>` fast-forward to the next step in the current scrip. Delay = how many frames before the step it should skip to 
-- Added `turbobarcam_script_select_unit_team <unitID>` which switches spectated team to the selected unit's team. 
-- Added `turbobarcam_script_play_track <track path>` which plays selected music track. For example, `turbobarcam_script_play_track music/original/warhigh/ryan krause - alpha one.ogg` 
-- Added `turbobarcam_script_toggle_music` which toggles music on/off 
-- Use `frame=+n` in the script to skip forward n frames relative to the previous step 
-- Improved transition between units in unit_follow. If the distance is high, the camera goes up while looking at the current unit and then turns towards the new one
+- Added script runner which allows you to run a list of Spring commands at specific timestamps/frames
+  - Added `turbobarcam_script_ff <delay>` fast-forward to the next step in the current scrip. Delay = how many frames before the step it should skip to
+  - Added `turbobarcam_script_select_unit_team <unitID>` which switches spectated team to the selected unit's team.
+  - Added `turbobarcam_script_play_track <track path>` which plays selected music track. For example, `turbobarcam_script_play_track music/original/warhigh/ryan krause - alpha one.ogg`
+  - Added `turbobarcam_script_toggle_music` which toggles music on/off
+  - Use `frame=+n` in the script to skip forward n frames relative to the previous step 

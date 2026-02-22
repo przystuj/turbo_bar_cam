@@ -365,18 +365,29 @@ return {
 
         -- STEP #34 Vanguard
         {
-            frame = 133193,
+            frame = 133254,
             label = "Vanguard",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 25210 combat",
-                "turbobarcam_script_select_unit_team 25210",
+                "turbobarcam_toggle_unit_follow_camera 1249 combat",
+                "turbobarcam_script_select_unit_team 1249",
             }
         },
 
-        -- STEP #35 Behemoth
+        -- STEP #35 Catapult
         {
-            frame = 138429,
+            frame = 134160,
+            label = "Catapult",
+            commands = {
+                "turbobarcam_smoothing reset",
+                "turbobarcam_toggle_unit_follow_camera 16663 combat",
+                "turbobarcam_script_select_unit_team 16663",
+            }
+        },
+
+        -- STEP #36 Behemoth
+        {
+            frame = 138621,
             label = "Behemoth",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -385,7 +396,7 @@ return {
             }
         },
 
-        -- STEP #36 Behemoth
+        -- STEP #37 Behemoth
         {
             frame = 142632,
             label = "Behemoth",
@@ -396,7 +407,7 @@ return {
             }
         },
 
-        -- STEP #37 Behemoth
+        -- STEP #38 Behemoth
         {
             frame = 144260,
             label = "Behemoth",
@@ -407,7 +418,7 @@ return {
             }
         },
 
-        -- STEP #38 Behemoth
+        -- STEP #39 Behemoth
         {
             frame = 148768,
             label = "Behemoth",
@@ -418,7 +429,7 @@ return {
             }
         },
 
-        -- STEP #39 Behemoth
+        -- STEP #40 Behemoth
         {
             frame = 151513,
             label = "Behemoth",
@@ -429,7 +440,7 @@ return {
             }
         },
 
-        -- STEP #40 Juggernaut
+        -- STEP #41 Juggernaut
         {
             frame = 156060,
             label = "Juggernaut",

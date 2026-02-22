@@ -189,7 +189,6 @@ function ScriptRunner.selectUnitTeam(unitId)
         return false
     end
 
-    Spring.SelectUnit(unitId)
     Spring.SendCommands("specteam " .. Spring.GetUnitTeam(unitId))
     Log:debug("Selected unit", unitId)
 end

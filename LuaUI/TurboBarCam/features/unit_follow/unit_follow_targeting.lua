@@ -427,24 +427,29 @@ function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, u
     local targetKey = createTargetKey(targetPos)
 
     ---@type UnitFollowCombatModeTarget
-    local targetData = {
-        lastUpdateTime = Spring.GetTimer(),
-        lastRealPos = nil,
-        positionHistory = {},
-        isCachedTarget = false,
-        cachedTargetDuration = 0,
-        velocityX = 0, velocityY = 0, velocityZ = 0,
-        speed = 0, ySpeed = 0,
-        isMovingFast = false,
-        isMovingUpFast = false,
-        frameCounter = 0,
-        airAdjustmentActive = false,
-        lastAdjustmentStateTime = Spring.GetTimer(),
-        lastLogTime = Spring.GetTimer()
-    }
+    local targetData = state.targetTracking[targetKey]
 
-    state.targetTracking[targetKey] = targetData
+    if not targetData then
+        targetData = {
+            lastUpdateTime = Spring.GetTimer(),
+            lastRealPos = nil,
+            positionHistory = {},
+            isCachedTarget = false,
+            cachedTargetDuration = 0,
+            velocityX = 0, velocityY = 0, velocityZ = 0,
+            speed = 0, ySpeed = 0,
+            isMovingFast = false,
+            isMovingUpFast = false,
+            frameCounter = 0,
+            airAdjustmentActive = false,
+            lastAdjustmentStateTime = Spring.GetTimer(),
+            lastLogTime = Spring.GetTimer()
+        }
+        state.targetTracking[targetKey] = targetData
+    end
+
     local currentTime = Spring.GetTimer()
+    targetData.lastUpdateTime = currentTime
 
     -- Ensure History is updated (in case processTarget wasn't called this frame)
     updateTargetHistory(targetPos)
@@ -519,8 +524,8 @@ function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, u
             backRatio = (0.8 + (angleRatio * 0.3)) * distanceAdjustment
         end
 
-        local moveUp = math.min(heightDiff * upRatio * adjustmentFactor, 90)
-        local moveBack = math.min(horizontalDist * backRatio * adjustmentFactor, 220)
+    local moveUp = math.min(math.max(heightDiff * upRatio * adjustmentFactor, 0), 90)
+    local moveBack = math.min(math.max(horizontalDist * backRatio * adjustmentFactor, 0), 220)
         local x, y, z = position.x, position.y, position.z
 
         -- Gradual application (if stabilized)
@@ -528,7 +533,7 @@ function UnitFollowTargeting.handleAirTargetRepositioning(position, targetPos, u
             local lastPos = targetData.lastAdjustedPosition
             local blendFactor = 0.2
 
-            local lastMoveUp = y - position.y
+            local lastMoveUp = lastPos.y - position.y
             moveUp = lastMoveUp + (moveUp - lastMoveUp) * blendFactor
 
             if horizontalDist > 0.001 then
