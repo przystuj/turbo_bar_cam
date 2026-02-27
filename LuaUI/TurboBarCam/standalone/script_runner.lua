@@ -190,7 +190,9 @@ function ScriptRunner.selectUnitTeam(unitId)
     end
 
     Spring.SendCommands("specteam " .. Spring.GetUnitTeam(unitId))
-    Log:debug("Selected unit", unitId)
+    if Spring.GetMapDrawMode() ~= "los" then
+        Spring.SendCommands("togglelos")
+    end
 end
 
 function ScriptRunner.playTrack(trackPath)

@@ -61,7 +61,6 @@ if not WG.TurboBarCam.CONFIG then
 
             UNIT_FOLLOW = {
                 ATTACH_TO_WEAPON = false, -- If true, combat mode camera attaches to the active weapon instead of the hull
-                MOUSE_SENSITIVITY = 0.004,
                 INITIAL_TRANSITION_DURATION = 2, -- Duration of the entry transition into unit_follow mode
 
                 GRACE_PERIOD = 5,
@@ -78,77 +77,69 @@ if not WG.TurboBarCam.CONFIG then
                     BASE_FACTOR = 0.03,
                     MAX_FACTOR = 0.01,
                 },
-                OFFSETS = {
-                    -- DEFAULT mode offsets
+                UNIT_CONFIG = {
                     DEFAULT = {
                         HEIGHT = nil, -- It's calculated from unit height
                         FORWARD = -300,
                         SIDE = 0,
-                        ROTATION = 0 -- Rotation offset (radians)
+                        ROTATION = 0,
+                        POSITION_FACTOR = 3,
+                        ROTATION_FACTOR = 1.5,
                     },
 
-                    -- COMBAT mode offsets (when combat mode is enabled but not actively firing)
+                    -- when combat mode is enabled but not actively firing
                     COMBAT = {
                         HEIGHT = 35,
                         FORWARD = -75,
                         SIDE = 0,
-                        ROTATION = 0 -- Rotation offset (radians)
+                        ROTATION = 0,
+                        POSITION_FACTOR = 1,
+                        ROTATION_FACTOR = 1,
                     },
 
-                    -- WEAPON mode offsets (when actively firing at a target)
+                    -- when actively firing at a target
                     WEAPON = {
                         HEIGHT = 35,
                         FORWARD = -75,
                         SIDE = 0,
-                        ROTATION = 0 -- Rotation offset (radians)
+                        ROTATION = 0,
+                        POSITION_FACTOR = 2,
+                        ROTATION_FACTOR = 1,
                     },
 
                     ATTACK_STATE_COOLDOWN = 4,
                     FORCED_WEAPON_NUMBER = nil,
                 },
-                DEFAULT_OFFSETS = {
+                DEFAULT_UNIT_CONFIG = {
                     DEFAULT = {
                         HEIGHT = nil, -- It's calculated from unit height
                         FORWARD = -300,
                         SIDE = 0,
-                        ROTATION = 0
-                    },
-
-                    COMBAT = {
-                        HEIGHT = 40,
-                        FORWARD = -100,
-                        SIDE = 0,
-                        ROTATION = 0
-                    },
-
-                    WEAPON = {
-                        HEIGHT = 40,
-                        FORWARD = -100,
-                        SIDE = 0,
-                        ROTATION = 0
-                    },
-
-                    ATTACK_STATE_COOLDOWN = 2,
-                    FORCED_WEAPON_NUMBER = nil,
-                },
-                SMOOTHING = {
-                    -- DEFAULT mode smoothing
-                    DEFAULT = {
+                        ROTATION = 0,
                         POSITION_FACTOR = 3,
                         ROTATION_FACTOR = 1.5,
                     },
 
-                    -- COMBAT mode smoothing (when combat mode is enabled but not actively firing)
                     COMBAT = {
+                        HEIGHT = 40,
+                        FORWARD = -100,
+                        SIDE = 0,
+                        ROTATION = 0,
                         POSITION_FACTOR = 1,
                         ROTATION_FACTOR = 1,
                     },
 
-                    -- WEAPON mode smoothing (when actively firing at a target)
                     WEAPON = {
+                        HEIGHT = 40,
+                        FORWARD = -100,
+                        SIDE = 0,
+                        ROTATION = 0,
                         POSITION_FACTOR = 2,
                         ROTATION_FACTOR = 1,
-                    }
+                    },
+
+                    ATTACK_STATE_COOLDOWN = 2,
+                    FORCED_WEAPON_NUMBER = nil,
                 },
             },
 
@@ -324,30 +315,33 @@ local CONFIG = WG.TurboBarCam.CONFIG
 ---@see Utils#adjustParams
 CONFIG.MODIFIABLE_PARAMS = {
     UNIT_FOLLOW = {
-        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS,
+        PARAMS_ROOT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG,
         PARAM_NAMES = {
             -- Peace mode offsets
             ["DEFAULT.HEIGHT"] = { nil, nil },
             ["DEFAULT.FORWARD"] = { nil, nil },
             ["DEFAULT.SIDE"] = { nil, nil },
             ["DEFAULT.ROTATION"] = { nil, nil, "rad" },
+            ["DEFAULT.POSITION_FACTOR"] = { 0, nil },
+            ["DEFAULT.ROTATION_FACTOR"] = { 0, nil },
 
             -- Combat mode offsets
             ["COMBAT.HEIGHT"] = { nil, nil },
             ["COMBAT.FORWARD"] = { nil, nil },
             ["COMBAT.SIDE"] = { nil, nil },
             ["COMBAT.ROTATION"] = { nil, nil, "rad" },
+            ["COMBAT.POSITION_FACTOR"] = { 0, nil },
+            ["COMBAT.ROTATION_FACTOR"] = { 0, nil },
 
             -- Weapon mode offsets
             ["WEAPON.HEIGHT"] = { nil, nil },
             ["WEAPON.FORWARD"] = { nil, nil },
             ["WEAPON.SIDE"] = { nil, nil },
             ["WEAPON.ROTATION"] = { nil, nil, "rad" },
+            ["WEAPON.POSITION_FACTOR"] = { 0, nil },
+            ["WEAPON.ROTATION_FACTOR"] = { 0, nil },
 
             ATTACK_STATE_COOLDOWN = { 0, nil },
-
-            -- Other params
-            MOUSE_SENSITIVITY = { 0.0001, 0.01 },
         }
     },
     ORBIT = {

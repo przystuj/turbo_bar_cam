@@ -8,7 +8,7 @@ local Utils = ModuleManager.Utils(function(m) Utils = m end)
 local ModeManager = ModuleManager.ModeManager(function(m) ModeManager = m end)
 local UnitFollowCombatMode = ModuleManager.UnitFollowCombatMode(function(m) UnitFollowCombatMode = m end)
 local UnitFollowTargeting = ModuleManager.UnitFollowTargeting(function(m) UnitFollowTargeting = m end)
-local UnitFollowPersistence = ModuleManager.UnitFollowPersistence(function(m) UnitFollowPersistence = m end)
+local TableUtils = ModuleManager.TableUtils(function(m) TableUtils = m end)
 local ParamUtils = ModuleManager.ParamUtils(function(m) ParamUtils = m end)
 local WorldUtils = ModuleManager.WorldUtils(function(m) WorldUtils = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
@@ -43,19 +43,19 @@ end
 --- Calculate the height if it's not set
 function UnitFollowUtils.ensureHeightIsSet()
     -- Set DEFAULT mode height if not set
-    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT then
+    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.HEIGHT then
         local unitHeight = math.max(WorldUtils.getUnitHeight(STATE.active.mode.unitID), 100) + 30
-        CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT = unitHeight
+        CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.HEIGHT = unitHeight
     end
 
     -- Ensure COMBAT mode height is set (though it should have a default)
-    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT.HEIGHT then
-        CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.COMBAT.HEIGHT
+    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.COMBAT.HEIGHT then
+        CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.COMBAT.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.COMBAT.HEIGHT
     end
 
     -- Ensure WEAPON mode height is set (though it should have a default)
-    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.WEAPON.HEIGHT then
-        CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.WEAPON.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.WEAPON.HEIGHT
+    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.WEAPON.HEIGHT then
+        CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.WEAPON.HEIGHT = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.WEAPON.HEIGHT
     end
 end
 
@@ -66,14 +66,14 @@ function UnitFollowUtils.getAppropriateOffsets()
     if STATE.active.mode.unit_follow.combatModeEnabled then
         if STATE.active.mode.unit_follow.isAttacking then
             -- Weapon offsets - when actively targeting something
-            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.WEAPON
+            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.WEAPON
         else
             -- Combat offsets - when in combat mode but not targeting
-            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT
+            return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.COMBAT
         end
     else
         -- Peace mode - normal offsets
-        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT
+        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT
     end
 end
 
@@ -206,11 +206,11 @@ function UnitFollowUtils.handleNormalFollowMode(unitID)
 
         -- If we get here, we're in combat mode but not attacking (or couldn't create targeting state)
         -- Use combat offset mode
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.COMBAT)
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.COMBAT)
     else
         -- Normal mode - always ensure isAttacking is false
         STATE.active.mode.unit_follow.isAttacking = false
-        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.DEFAULT)
+        return UnitFollowUtils.createHullDirectionState(unitID, CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT)
     end
 end
 
@@ -336,9 +336,9 @@ function UnitFollowUtils.getSmoothingFactor(smoothType)
 
     -- Get the appropriate smoothing factor based on mode and type
     if smoothType == 'position' then
-        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].POSITION_FACTOR
+        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG[smoothingMode].POSITION_FACTOR
     elseif smoothType == 'rotation' then
-        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.SMOOTHING[smoothingMode].ROTATION_FACTOR
+        return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG[smoothingMode].ROTATION_FACTOR
     end
 end
 
@@ -396,18 +396,18 @@ end
 --- Resets camera offsets to default values
 function UnitFollowUtils.resetOffsets()
     local function reset(mode)
-        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
+        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG[mode], CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG[mode])
     end
 
     reset("DEFAULT")
     reset("COMBAT")
     reset("WEAPON")
 
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.FORCED_WEAPON_NUMBER
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.ATTACK_STATE_COOLDOWN = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.ATTACK_STATE_COOLDOWN
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.FORCED_WEAPON_NUMBER
 
     if STATE.active.mode.name == "unit_follow" and STATE.active.mode.unit_follow then
-        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER
     end
 
     UnitFollowUtils.ensureHeightIsSet()
@@ -494,9 +494,9 @@ function UnitFollowUtils.applyOffsets(x, y, z, front, up, right)
     -- This ensures the air adjustment respects the stabilized camera state
     if STATE.active.mode.unit_follow.isAttacking and STATE.active.mode.unit_follow.lastTargetPos then
         finalCamPosWorld = UnitFollowTargeting.handleAirTargetRepositioning(
-            finalCamPosWorld,
-            STATE.active.mode.unit_follow.lastTargetPos,
-            camPosScratch -- use camPosScratch for reference or something similar? Original unitPos was used but it was {x,y,z}
+                finalCamPosWorld,
+                STATE.active.mode.unit_follow.lastTargetPos,
+                camPosScratch
         )
     end
 

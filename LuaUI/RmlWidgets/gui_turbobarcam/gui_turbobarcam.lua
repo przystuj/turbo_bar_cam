@@ -632,9 +632,9 @@ local function updateDataModel()
 
     local dp = dm_handle.display_params
     local cfg = CONFIG.CAMERA_MODES
-    dp.unit_follow.DEFAULT.HEIGHT = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.HEIGHT or 0)
-    dp.unit_follow.DEFAULT.FORWARD = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.FORWARD or 0)
-    dp.unit_follow.DEFAULT.SIDE = string.format('%.0f', cfg.UNIT_FOLLOW.OFFSETS.DEFAULT.SIDE or 0)
+    dp.unit_follow.DEFAULT.HEIGHT = string.format('%.0f', cfg.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.HEIGHT or 0)
+    dp.unit_follow.DEFAULT.FORWARD = string.format('%.0f', cfg.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.FORWARD or 0)
+    dp.unit_follow.DEFAULT.SIDE = string.format('%.0f', cfg.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.SIDE or 0)
     dp.orbit.DISTANCE = string.format('%.0f', cfg.ORBIT.OFFSETS.DISTANCE or 0)
     dp.orbit.HEIGHT = string.format('%.0f', cfg.ORBIT.OFFSETS.HEIGHT or 0)
     dp.orbit.SPEED = string.format('%.2f', cfg.ORBIT.OFFSETS.SPEED or 0)

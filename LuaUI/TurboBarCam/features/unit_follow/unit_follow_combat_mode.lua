@@ -74,7 +74,7 @@ function UnitFollowCombatMode.nextWeapon()
     local nextIndex = currentIndex % #weaponNumbers + 1
     local forcedWeaponNumber = weaponNumbers[nextIndex]
     STATE.active.mode.unit_follow.forcedWeaponNumber = forcedWeaponNumber
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = forcedWeaponNumber
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = forcedWeaponNumber
     UnitFollowPersistence:saveUnitSettings(unitID)
 
     -- Enable combat mode
@@ -103,7 +103,7 @@ function UnitFollowCombatMode.clearWeaponSelection()
     end
 
     STATE.active.mode.unit_follow.forcedWeaponNumber = nil
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = nil
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = nil
     Log:info("Cleared weapon selection.")
 end
 
@@ -149,7 +149,7 @@ function UnitFollowCombatMode.scheduleAttackStateDisable()
                 UnitFollowCombatMode.clearAttackingState()
                 Log:trace("Attack state disabled after cooldown")
             end
-        end, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
+        end, CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.ATTACK_STATE_COOLDOWN, ATTACK_STATE_DEBOUNCE_ID)
     end
 end
 

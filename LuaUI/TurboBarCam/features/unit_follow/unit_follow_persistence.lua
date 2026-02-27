@@ -24,7 +24,7 @@ end
 function UnitFollowPersistence.saveUnitSettings(_, unitId)
     local function saveOffsets(mode, unitName)
         local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
-        SettingsManager.saveUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode])
+        SettingsManager.saveUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG[mode])
     end
 
     local unitName = getUnitName(unitId)
@@ -38,11 +38,11 @@ function UnitFollowPersistence.saveUnitSettings(_, unitId)
     saveOffsets("WEAPON", unitName)
 
     local settings = SettingsManager.loadUserSetting("unit_follow_settings", unitName, {})
-    settings.attack_state_cooldown = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN
+    settings.attack_state_cooldown = CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.ATTACK_STATE_COOLDOWN
 
     -- Resetting the chosen weapon should not affect the saved setting
-    if CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER then
-        settings.forced_weapon_number = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+    if CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER then
+        settings.forced_weapon_number = CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER
     end
 
     SettingsManager.saveUserSetting("unit_follow_settings", unitName, settings)
@@ -52,8 +52,8 @@ end
 function UnitFollowPersistence.loadUnitSettings(_, unitId)
     local function loadOffsets(mode, unitName)
         local storageName = "unit_follow_" .. string.lower(mode) .. "_offsets"
-        local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS[mode])
-        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS[mode], settings)
+        local settings = SettingsManager.loadUserSetting(storageName, unitName, CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG[mode])
+        TableUtils.patchTable(CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG[mode], settings)
     end
 
     local unitName = getUnitName(unitId)
@@ -64,15 +64,15 @@ function UnitFollowPersistence.loadUnitSettings(_, unitId)
 
     local settings = SettingsManager.loadUserSetting("unit_follow_settings", unitName, {})
 
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.ATTACK_STATE_COOLDOWN = settings.attack_state_cooldown or
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.ATTACK_STATE_COOLDOWN = settings.attack_state_cooldown or
             SettingsManager.loadUserSetting("unit_follow_attack_state_cooldown", unitName) or
-            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.ATTACK_STATE_COOLDOWN
+            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.ATTACK_STATE_COOLDOWN
 
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER = settings.forced_weapon_number or
-            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_OFFSETS.FORCED_WEAPON_NUMBER
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = settings.forced_weapon_number or
+            CONFIG.CAMERA_MODES.UNIT_FOLLOW.DEFAULT_UNIT_CONFIG.FORCED_WEAPON_NUMBER
 
     if STATE.active.mode.name == "unit_follow" and STATE.active.mode.unit_follow then
-        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.OFFSETS.FORCED_WEAPON_NUMBER
+        STATE.active.mode.unit_follow.forcedWeaponNumber = CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER
     end
 end
 

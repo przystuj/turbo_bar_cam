@@ -32,7 +32,7 @@
   "turbobarcam_dev_config": {
     "description": "Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.",
     "label": "Dev: Change Config",
-    "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.UNIT_FOLLOW.OFFSETS.UP 25`)"
+    "parameters": "`path_to_config_value` `new_value` (e.g, `CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.DEFAULT.HEIGHT 25`)"
   },
   "turbobarcam_dollycam_add": {
     "description": "Adds the current camera position as a new waypoint to the DollyCam route or edits the selected waypoint if in editor mode.",

@@ -29,14 +29,14 @@ return {
             frame = 29741,
             label = "Tiger - FF",
             commands = {
-                commands = "setspeed 7"
+                "setspeed 7",
             }
         },
         {
-            frame = 303356,
+            frame = 30335,
             label = "Tiger - FF End",
             commands = {
-                commands = "setspeed 1"
+                "setspeed 1",
             }
         },
 
@@ -546,7 +546,7 @@ return {
             label = "Behemoth",
             commands = {
                 "turbobarcam_smoothing reset",
-                "turbobarcam_toggle_unit_follow_camera 17264 combat",
+                "turbobarcam_toggle_unit_follow_camera 17264",
                 "turbobarcam_script_select_unit_team 17264",
             }
         },
@@ -561,7 +561,15 @@ return {
         },
         {
             frame = 158790,
-            commands = "turbobarcam_unit_follow_adjust_params temp;WEAPON.HEIGHT,2000"
+            commands = {
+                "turbobarcam_unit_follow_adjust_params temp;DEFAULT.HEIGHT,3000;DEFAULT.FORWARD,-2000",
+            }
+        },
+        {
+            frame = 159550,
+            commands = {
+                "turbobarcam_reload_settings",
+            }
         },
     }
 }

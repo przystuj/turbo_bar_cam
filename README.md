@@ -101,4 +101,6 @@ Where:
   - Added `turbobarcam_script_select_unit_team <unitID>` which switches spectated team to the selected unit's team.
   - Added `turbobarcam_script_play_track <track path>` which plays selected music track. For example, `turbobarcam_script_play_track music/original/warhigh/ryan krause - alpha one.ogg`
   - Added `turbobarcam_script_toggle_music` which toggles music on/off
-  - Use `frame=+n` in the script to skip forward n frames relative to the previous step 
+  - Use `frame=+n` in the script to skip forward n frames relative to the previous step
+#### 2.3.1
+- Unit follow - save camera smoothing per unit type (for example, slower camera for the Juggernaut) 
