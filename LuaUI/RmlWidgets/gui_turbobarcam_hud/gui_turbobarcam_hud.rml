@@ -17,32 +17,22 @@
     </head>
     <body id="turbobarcam-hud-body">
 
-    <div id="projectile-info-container" data-model="turbobarcam_hud_model" data-if="projectilesVisible">
-        <table class="projectile-table">
-            <tr>
-                <th>Id</th>
-                <th>OwnerId</th>
-                <th>Time</th>
-            </tr>
-            <tr data-for="projectile : trackedProjectiles">
-                <td>{{ projectile.id }}</td>
-                <td>{{ projectile.ownerId }}</td>
-                <td>{{ projectile.time }}</td>
-            </tr>
-        </table>
-    </div>
-
-<!--    <div id="script-info-container" data-model="turbobarcam_hud_model" data-if="scriptStepsVisible">-->
-<!--        <div class="script-card" data-for="step : scriptSteps">-->
-<!--            <div class="script-card-header">-->
-<!--                {{step.label}} ({{ step.frame }})-->
-<!--            </div>-->
-<!--            <div class="script-card-body">-->
-<!--                <div class="script-cmd-line" data-for="cmd : step.commandsList">-->
-<!--                    {{ cmd }}-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
+<!--    <div id="projectile-info-container" data-model="turbobarcam_hud_model" data-if="projectilesVisible">-->
+<!--        <table class="projectile-table">-->
+<!--            <tr>-->
+<!--                <th>Id</th>-->
+<!--                <th>OwnerId</th>-->
+<!--                <th>Time</th>-->
+<!--            </tr>-->
+<!--            <tr data-for="projectile : trackedProjectiles">-->
+<!--                <td>{{ projectile.id }}</td>-->
+<!--                <td>-->
+<!--                    <div class="team-color-box" data-style-background-color="projectile.ownerColor"></div>-->
+<!--                    {{ projectile.ownerId }}-->
+<!--                </td>-->
+<!--                <td>{{ projectile.time }}</td>-->
+<!--            </tr>-->
+<!--        </table>-->
 <!--    </div>-->
 
     <div id="vet-panel" data-model="turbobarcam_hud_model" data-if="vetVisible">

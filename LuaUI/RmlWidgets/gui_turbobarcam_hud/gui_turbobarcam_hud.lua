@@ -21,6 +21,8 @@ end
 --------------------------------------------------------------------------------
 local spGetGameFrame = Spring.GetGameFrame
 local spGetGameSpeed = Spring.GetGameSpeed
+local spGetTeamColor = Spring.GetTeamColor
+local spGetUnitTeam = Spring.GetUnitTeam
 
 local MODEL_NAME = "turbobarcam_hud_model"
 local document
@@ -50,6 +52,14 @@ local function GetCommandList(cmds)
         return { cmds }
     end
     return { tostring(cmds) }
+end
+
+local function GetTeamColorCss(teamID)
+    if not teamID then
+        return string.format("rgb(%d,%d,%d)", 255, 255, 255)
+    end
+    local r, g, b = spGetTeamColor(teamID)
+    return string.format("rgb(%d,%d,%d)", r * 255, g * 255, b * 255)
 end
 
 local function loadVeterancyData()
@@ -205,9 +215,11 @@ local function UpdateModel(dt)
 
     local projectileData = {}
     for _, projectile in pairs(projectiles) do
+        local teamID = spGetUnitTeam(projectile.ownerID)
         table.insert(projectileData, {
             id = projectile.id,
             ownerId = projectile.ownerID,
+            ownerColor = GetTeamColorCss(teamID),
             time = Spring.DiffTimers(Spring.GetTimer(), projectile.creationTime),
         })
     end

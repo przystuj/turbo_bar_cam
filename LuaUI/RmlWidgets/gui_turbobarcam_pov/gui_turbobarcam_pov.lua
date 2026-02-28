@@ -435,6 +435,7 @@ local function UpdateModel(dt)
         else
             targetEmpPct = 0
             dm.empTime = 0
+            dm.showEmpTimer = false
         end
 
         if rawDef.health and maxHp > rawDef.health then
@@ -442,6 +443,9 @@ local function UpdateModel(dt)
         else
             dm.hpBonus = 0
         end
+    else
+        dm.empTime = 0
+        dm.showEmpTimer = false
     end
 
     local kills = spGetUnitRulesParam(targetUnitID, "kills")
@@ -559,6 +563,10 @@ function widget:Shutdown()
 end
 
 function widget:Update(dt)
+    if not allyTeamList and dt > 1 then
+        allyTeamList = Spring.GetAllyTeamList()
+    end
+
     if dm then
         UpdateModel(dt)
     end

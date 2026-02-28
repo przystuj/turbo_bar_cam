@@ -153,8 +153,6 @@ function UnitFollowUtils.createTargetingDirectionState(unitID, targetPos, weapon
         weaponPos = { x = originX, y = originY, z = originZ }
     end
 
-    -- Apply target smoothing here - this is the key addition!
-    -- Process the target through all smoothing systems (cloud targeting, rotation constraints)
     local processedTarget = UnitFollowTargeting.processTarget(targetPos, STATE.active.mode.unit_follow.lastTargetUnitID)
 
     if processedTarget then
@@ -186,12 +184,19 @@ end
 --- @param unitID number Unit ID
 --- @return table directionState Camera direction and rotation state
 function UnitFollowUtils.handleNormalFollowMode(unitID)
+    if STATE.active.mode.unit_follow.isTargetSwitchTransition and STATE.active.mode.unit_follow.lastTargetSwitchTime then
+        local timeSinceSwitch = Spring.DiffTimers(Spring.GetTimer(), STATE.active.mode.unit_follow.lastTargetSwitchTime)
+        if timeSinceSwitch > 1.5 then
+            STATE.active.mode.unit_follow.isTargetSwitchTransition = false
+        end
+    end
+
     -- Check if combat mode is enabled
     if STATE.active.mode.unit_follow.combatModeEnabled then
         -- Check if the unit is actively targeting something
         local targetPos, firingWeaponNum, isNewTarget = UnitFollowCombatMode.getCurrentAttackTarget(unitID)
-        if isNewTarget and not STATE.active.mode.unit_follow.isTargetSwitchTransition then
-            UnitFollowUtils.handleNewTarget()
+        if isNewTarget then
+            UnitFollowUtils.handleNewTarget(firingWeaponNum)
         end
 
         if STATE.active.mode.unit_follow.isAttacking then
@@ -214,7 +219,7 @@ function UnitFollowUtils.handleNormalFollowMode(unitID)
     end
 end
 
-function UnitFollowUtils.handleNewTarget()
+function UnitFollowUtils.handleNewTarget(firingWeaponNum)
     local trackedUnitID = STATE.active.mode.unitID
     if not trackedUnitID or not Spring.ValidUnitID(trackedUnitID) then
         return
@@ -244,18 +249,9 @@ function UnitFollowUtils.handleNewTarget()
 
     -- First acquisition just store it
     if not previousTargetPos then
-        if trackedUnitID then
-            local ux, uy, uz = Spring.GetUnitPosition(trackedUnitID)
-            STATE.active.mode.unit_follow.previousTargetPos = { x = ux, y = uy, z = uz }
-            previousTargetPos = STATE.active.mode.unit_follow.previousTargetPos
-        else
-            STATE.active.mode.unit_follow.previousTargetPos = {
-                x = newTargetPos.x,
-                y = newTargetPos.y,
-                z = newTargetPos.z
-            }
-            return
-        end
+        local ux, uy, uz = Spring.GetUnitPosition(trackedUnitID)
+        STATE.active.mode.unit_follow.previousTargetPos = { x = ux, y = uy, z = uz }
+        previousTargetPos = STATE.active.mode.unit_follow.previousTargetPos
     end
 
     -- Get current time
@@ -263,11 +259,19 @@ function UnitFollowUtils.handleNewTarget()
 
     -- Rate limiting criteria
     local timeSinceLastTransition = Spring.DiffTimers(currentTime, STATE.active.mode.unit_follow.lastTargetSwitchTime)
-    local minTimeBetweenTransitions = STATE.active.mode.unit_follow.isTargetSwitchTransition and 0.5 or 1.0
+    local minTimeBetweenTransitions = STATE.active.mode.unit_follow.isTargetSwitchTransition and 1.5 or 2.0
 
+    local reloadFrame = Spring.GetUnitWeaponState(trackedUnitID, firingWeaponNum, 'reloadFrame') or 0
+    local currentFrame = Spring.GetGameFrame()
+    local reloadTimer = (reloadFrame - currentFrame) / 30
+
+    minTimeBetweenTransitions = math.max(minTimeBetweenTransitions, reloadTimer)
     -- Enhanced decision criteria:
     local isInTransition = STATE.active.mode.unit_follow.isTargetSwitchTransition
     local isTimeSufficientForNewTransition = timeSinceLastTransition > minTimeBetweenTransitions
+
+
+    --Log:debug(minTimeBetweenTransitions)
 
     -- Skip transition if:
     -- 1. Already in transition, OR
@@ -331,6 +335,12 @@ function UnitFollowUtils.getSmoothingFactor(smoothType)
             return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_POS_SMOOTHING
         elseif smoothType == 'rotation' then
             return CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_ROT_SMOOTHING
+        end
+    end
+
+    if STATE.active.mode.unit_follow.isTargetSwitchTransition then
+        if smoothType == 'rotation' then
+            return 2.5
         end
     end
 
@@ -509,8 +519,14 @@ function UnitFollowUtils.applyStabilization(targetCamPosWorld)
     local targetState = STATE.active.mode.unit_follow.targeting
 
     -- Only apply stabilization during active targeting with high target switching activity
-    if not STATE.active.mode.unit_follow.isAttacking or not targetState or
-            not targetState.activityLevel or targetState.activityLevel <= 0.5 then
+    if not STATE.active.mode.unit_follow.isAttacking then
+--        Log:debug("Stabilization bypassed: Not actively attacking")
+        STATE.active.mode.unit_follow.stableCamPos = nil
+        return nil
+    end
+
+    if not targetState or not targetState.activityLevel or targetState.activityLevel <= 0.1 then
+--        Log:debug("Stabilization bypassed: Activity level too low", targetState and targetState.activityLevel or "nil")
         -- Reset stabilization when not in a high-activity targeting situation
         STATE.active.mode.unit_follow.stableCamPos = nil
         return nil
@@ -518,30 +534,29 @@ function UnitFollowUtils.applyStabilization(targetCamPosWorld)
 
     -- Initialize stable camera position history if needed
     if not STATE.active.mode.unit_follow.stableCamPos then
-        STATE.active.mode.unit_follow.stableCamPos = targetCamPosWorld
+--        Log:debug("Initializing stable camera position for target switching")
+        STATE.active.mode.unit_follow.stableCamPos = {
+            x = targetCamPosWorld.x,
+            y = targetCamPosWorld.y,
+            z = targetCamPosWorld.z
+        }
         STATE.active.mode.unit_follow.cameraStabilityFactor = 0.05 -- Default slow response
     end
 
     -- Calculate stabilization factors
     local factor = UnitFollowUtils.calculateStabilityFactor(targetState)
+--    Log:debug("Applying camera stabilization with factor:", factor, "Activity Level:", targetState.activityLevel)
 
     -- Apply very gradual interpolation towards the target position
+    -- Mutate in-place to avoid GC allocation overhead
     local stableCamPos = STATE.active.mode.unit_follow.stableCamPos
+    stableCamPos.x = stableCamPos.x + (targetCamPosWorld.x - stableCamPos.x) * factor
+    stableCamPos.y = stableCamPos.y + (targetCamPosWorld.y - stableCamPos.y) * factor
+    stableCamPos.z = stableCamPos.z + (targetCamPosWorld.z - stableCamPos.z) * factor
 
-    local smoothedCamPos = {
-        x = stableCamPos.x + (targetCamPosWorld.x - stableCamPos.x) * factor,
-        y = stableCamPos.y + (targetCamPosWorld.y - stableCamPos.y) * factor,
-        z = stableCamPos.z + (targetCamPosWorld.z - stableCamPos.z) * factor
-    }
-
-    -- Update stable camera position for next frame
-    STATE.active.mode.unit_follow.stableCamPos = smoothedCamPos
-
-    return smoothedCamPos
+    return stableCamPos
 end
 
--- Calculate stability factor based on activity level
--- Following the guideline to avoid code duplication
 function UnitFollowUtils.calculateStabilityFactor(targetState)
     local stabilityBase = CONFIG.CAMERA_MODES.UNIT_FOLLOW.STABILIZATION.BASE_FACTOR
     local maxStability = CONFIG.CAMERA_MODES.UNIT_FOLLOW.STABILIZATION.MAX_FACTOR
@@ -549,12 +564,6 @@ function UnitFollowUtils.calculateStabilityFactor(targetState)
     -- Scale stability factor inversely with activity level
     local activityScaling = math.min(targetState.activityLevel * 1.5, 1.0)
     local factor = stabilityBase - (activityScaling * (stabilityBase - maxStability))
-
-    -- Add rapid switch counter to increase stabilization for very rapid switching
-    if targetState.targetSwitchCount > 100 then
-        -- Further decrease factor for extremely high switching rates
-        factor = factor * 0.8
-    end
 
     -- Store the factor for reference
     STATE.active.mode.unit_follow.cameraStabilityFactor = factor
