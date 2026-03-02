@@ -468,23 +468,25 @@ function UnitFollowUtils.applyOffsets(x, y, z, front, up, right)
     local upX, upY, upZ = upVec[1], upVec[2], upVec[3]
     local rightX, rightY, rightZ = rightVec[1], rightVec[2], rightVec[3]
 
+    local positionOverrides = STATE.core.driver.overrides.position
+
     -- Apply offsets directly to position components
     if offsets.HEIGHT ~= 0 then
-        x = x + upX * offsets.HEIGHT
-        y = y + upY * offsets.HEIGHT
-        z = z + upZ * offsets.HEIGHT
+        x = x + upX * (offsets.HEIGHT + positionOverrides.y)
+        y = y + upY * (offsets.HEIGHT + positionOverrides.y)
+        z = z + upZ * (offsets.HEIGHT + positionOverrides.y)
     end
 
     if offsets.FORWARD ~= 0 then
-        x = x + frontX * offsets.FORWARD
-        y = y + frontY * offsets.FORWARD
-        z = z + frontZ * offsets.FORWARD
+        x = x + frontX * (offsets.FORWARD + positionOverrides.z)
+        y = y + frontY * (offsets.FORWARD + positionOverrides.z)
+        z = z + frontZ * (offsets.FORWARD + positionOverrides.z)
     end
 
     if offsets.SIDE ~= 0 then
-        x = x + rightX * offsets.SIDE
-        y = y + rightY * offsets.SIDE
-        z = z + rightZ * offsets.SIDE
+        x = x + rightX * (offsets.SIDE + positionOverrides.x)
+        y = y + rightY * (offsets.SIDE + positionOverrides.x)
+        z = z + rightZ * (offsets.SIDE + positionOverrides.x)
     end
 
     -- Calculate the target world position (with offsets applied)

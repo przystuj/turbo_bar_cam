@@ -14,7 +14,6 @@ local ScriptRunner = ModuleManager.ScriptRunner(function(m) ScriptRunner = m end
 local ProjectileTracker = ModuleManager.ProjectileTracker(function(m) ProjectileTracker = m end)
 local SettingsManager = ModuleManager.SettingsManager(function(m) SettingsManager = m end)
 
-
 ---@class Actions
 local Actions = {}
 local w = widget
@@ -134,6 +133,12 @@ function Actions.scriptActions()
     Actions.registerAction("turbobarcam_script_toggle_music", 'tp',
             function()
                 ScriptRunner.toggleMusic()
+                return false
+            end)
+
+    Actions.registerAction("turbobarcam_position_override", 'tp',
+            function(_, _, args)
+                ScriptRunner.applyPositionOverrides(args)
                 return false
             end)
 end
@@ -424,7 +429,7 @@ end
 function Actions.I18N()
     Spring.I18N.load({
         en = {
-            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point"]         = "Look point",
+            ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point"] = "Look point",
             ["ui.orderMenu.turbobarcam_unit_follow_set_fixed_look_point_tooltip"] = "Click on a point/unit to focus camera on",
         }
     })

@@ -210,6 +210,24 @@ function ScriptRunner.toggleMusic()
     Spring.PauseSoundStream()
 end
 
+function ScriptRunner.applyPositionOverrides(args)
+    if Utils.isTurboBarCamDisabled() then
+        return false
+    end
+
+    if args[1] == 'reset' then
+        STATE.core.driver.overrides.position.x = 0
+        STATE.core.driver.overrides.position.y = 0
+        STATE.core.driver.overrides.position.z = 0
+    end
+
+    for i = 1, #args, 2 do
+        local key = args[i]
+        local value = args[i+1]
+        STATE.core.driver.overrides.position[key] = tonumber(value)
+    end
+end
+
 function ScriptRunner.update(frame)
     if not STATE.core.scriptRunner.enabled then
         return

@@ -86,6 +86,13 @@ if not WG.TurboBarCam.STATE then
                     isActive = false,
                     startTime = nil,
                 },
+                overrides = {
+                    position = {
+                        x = 0,
+                        y = 0,
+                        z = 0,
+                    },
+                }
             },
 
             -- The ground-truth state of the camera as reported by the tracker.

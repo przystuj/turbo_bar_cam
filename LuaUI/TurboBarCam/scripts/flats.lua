@@ -242,10 +242,16 @@ return {
             frame = 61602,
             label = "anchor",
             commands = {
-                "turbobarcam_smoothing position 60",
-                "turbobarcam_smoothing rotation 2",
-                "turbobarcam_anchor_focus 2",
+                "turbobarcam_smoothing position 30",
+                "turbobarcam_smoothing rotation 3",
                 "setspeed 2",
+            }
+        },
+        {
+            frame = 61610,
+            label = "anchor",
+            commands = {
+                "turbobarcam_anchor_focus 2",
             }
         },
         {
@@ -274,7 +280,7 @@ return {
             frame = 65067,
             label = "anchor",
             commands = {
-                "turbobarcam_smoothing position 80",
+                "turbobarcam_smoothing position 40",
                 "turbobarcam_smoothing rotation 2",
                 "setspeed 2",
             }
@@ -525,7 +531,7 @@ return {
             frame = 133350,
             label = "Nuke cam 74:00",
             commands = {
-                "turbobarcam_unit_follow_adjust_params temp;WEAPON.HEIGHT,800",
+                "turbobarcam_position_override y 800",
                 "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 15844",
             }
         },
@@ -533,7 +539,7 @@ return {
             frame = 133900,
             label = "Clear nuke cam",
             commands = {
-                "turbobarcam_reload_settings",
+                "turbobarcam_position_override reset",
                 "turbobarcam_unit_follow_clear_fixed_look_point",
             }
         },
@@ -561,7 +567,7 @@ return {
         {
             frame = 141070,
             commands = {
-                "turbobarcam_unit_follow_adjust_params temp;WEAPON.HEIGHT,800",
+                "turbobarcam_position_override y 800",
             }
         },
         {
@@ -574,7 +580,7 @@ return {
         {
             frame = 141370,
             commands = {
-                "turbobarcam_reload_settings",
+                "turbobarcam_position_override reset",
             }
         },
         {
@@ -634,7 +640,7 @@ return {
         {
             frame = "+150",
             commands = {
-                "turbobarcam_unit_follow_adjust_params temp;DEFAULT.HEIGHT,3000;DEFAULT.FORWARD,-4000",
+                "turbobarcam_position_override y 3000 z -4000",
             }
         },
 
@@ -650,7 +656,7 @@ return {
         {
             frame = 146200,
             commands = {
-                "turbobarcam_reload_settings",
+                "turbobarcam_position_override reset",
             }
         },
 
@@ -696,7 +702,7 @@ return {
         {
             frame = 151780,
             commands = {
-                "turbobarcam_unit_follow_adjust_params temp;DEFAULT.HEIGHT,800;DEFAULT.FORWARD,-2500",
+                "turbobarcam_position_override y 800 z -2500",
             }
         },
 
@@ -718,7 +724,7 @@ return {
         {
             frame = 152050,
             commands = {
-                "turbobarcam_reload_settings",
+                "turbobarcam_position_override reset",
             }
         },
 
@@ -799,13 +805,13 @@ return {
         {
             frame = 158790,
             commands = {
-                "turbobarcam_unit_follow_adjust_params temp;DEFAULT.HEIGHT,3000;DEFAULT.FORWARD,-8000",
+                "turbobarcam_position_override y 3000 z -8000",
             }
         },
         {
             frame = 159550,
             commands = {
-                "turbobarcam_reload_settings",
+                "turbobarcam_position_override reset",
             }
         },
     }
