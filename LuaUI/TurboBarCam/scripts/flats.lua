@@ -107,22 +107,34 @@ return {
 
         -- STEP #06 Fatboy
         {
-            frame = 35952,
+            frame = 35970,
             label = "Fatboy",
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 15749 combat",
+            }
+        },
+        {
+            frame = "+15",
+            label = "Fatboy",
+            commands = {
                 "turbobarcam_script_select_unit_team 15749",
             }
         },
 
         -- STEP #07 Banisher
         {
-            frame = 38846,
+            frame = 38876,
             label = "Banisher",
             commands = {
                 "turbobarcam_smoothing reset",
                 "turbobarcam_toggle_unit_follow_camera 17166 combat",
+            }
+        },
+        {
+            frame = "+15",
+            label = "Banisher",
+            commands = {
                 "turbobarcam_script_select_unit_team 17166",
             }
         },
@@ -140,7 +152,7 @@ return {
 
         -- STEP #09 Banisher
         {
-            frame = 41955,
+            frame = 42399,
             label = "Banisher",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -242,7 +254,7 @@ return {
             frame = 61602,
             label = "anchor",
             commands = {
-                "turbobarcam_smoothing position 30",
+                "turbobarcam_smoothing position 40",
                 "turbobarcam_smoothing rotation 3",
                 "setspeed 2",
             }
@@ -255,7 +267,7 @@ return {
             }
         },
         {
-            frame = "+900",
+            frame = 62700,
             label = "Hailstorm",
             commands = {
                 "turbobarcam_smoothing reset",
@@ -301,9 +313,17 @@ return {
             label = "Catapult",
             commands = {
                 "setspeed 1",
-                "turbobarcam_smoothing reset",
+                "turbobarcam_smoothing position 6",
+                "turbobarcam_smoothing rotation 6",
                 "turbobarcam_toggle_unit_follow_camera 16673 combat",
                 "turbobarcam_script_select_unit_team 16673",
+            }
+        },
+        {
+            frame = "+150",
+            label = "Catapult",
+            commands = {
+                "turbobarcam_smoothing reset",
             }
         },
 
@@ -435,33 +455,47 @@ return {
             frame = 116518,
             label = "Nuke cam 64:40",
             commands = {
+                "turbobarcam_smoothing position 10",
+                "turbobarcam_position_override y 1000",
                 "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 12241",
             }
         },
 
-        {
-            frame = 116739,
-            label = "Clear nuke cam",
-            commands = {
-                "turbobarcam_unit_follow_clear_fixed_look_point",
-            }
-        },
-
-
-
-
-
-
         -- STEP #32 Juggernaut
         {
-            frame = 116745,
+            frame = 116596,
             label = "Juggernaut",
             commands = {
-                "turbobarcam_smoothing reset",
+                "turbobarcam_smoothing position 20",
+                "turbobarcam_smoothing rotation 5",
+                "turbobarcam_position_override reset",
                 "turbobarcam_toggle_unit_follow_camera 23841 combat",
                 "turbobarcam_script_select_unit_team 23841",
             }
         },
+
+        {
+            frame = 116686,
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_smoothing position 6",
+                "turbobarcam_unit_follow_clear_fixed_look_point",
+            }
+        },
+
+        {
+            frame = "+120",
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_smoothing reset",
+            }
+        },
+
+
+
+
+
+
 
 
 
@@ -633,18 +667,11 @@ return {
             frame = 145970,
             label = "Nuke cam",
             commands = {
+                "turbobarcam_smoothing position 30",
+                "turbobarcam_position_override y 3000 z -4000",
                 "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 15001",
             }
         },
-
-        {
-            frame = "+150",
-            commands = {
-                "turbobarcam_position_override y 3000 z -4000",
-            }
-        },
-
-
         {
             frame = 146150,
             label = "Slow for FPS",
@@ -656,11 +683,10 @@ return {
         {
             frame = 146200,
             commands = {
+                "turbobarcam_smoothing reset",
                 "turbobarcam_position_override reset",
             }
         },
-
-
         {
             frame = 146260,
             label = "Clear nuke cam",
@@ -684,7 +710,7 @@ return {
             }
         },
         {
-            frame = 151322,
+            frame = 151298,
             label = "Nuke cam",
             commands = {
                 "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 15846",
@@ -692,7 +718,7 @@ return {
         },
 
         {
-            frame = 151607,
+            frame = 151548,
             label = "Nuke cam",
             commands = {
                 "turbobarcam_unit_follow_set_fixed_look_target PROJECTILE 16108",
@@ -702,7 +728,8 @@ return {
         {
             frame = 151780,
             commands = {
-                "turbobarcam_position_override y 800 z -2500",
+                "turbobarcam_smoothing position 30",
+                "turbobarcam_position_override y 800 z 500",
             }
         },
 
@@ -733,6 +760,14 @@ return {
             label = "Clear nuke cam",
             commands = {
                 "turbobarcam_unit_follow_clear_fixed_look_point",
+            }
+        },
+
+        {
+            frame = "+60",
+            label = "Clear nuke cam",
+            commands = {
+                "turbobarcam_smoothing reset",
             }
         },
 

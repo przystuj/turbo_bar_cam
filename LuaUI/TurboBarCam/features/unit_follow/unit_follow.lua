@@ -124,7 +124,7 @@ function UnitFollowCamera.update()
 end
 
 function UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
-    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_ENABLED then
+    if not CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_TRANSITION_ENABLED or targetType == CONSTANTS.TARGET_TYPE.PROJECTILE then
         return cameraPosition, target, targetType
     end
 
@@ -226,8 +226,8 @@ function UnitFollowCamera.applyTransition(cameraPosition, target, targetType)
         rotationSmoothing = 1 -- prepare to look at the target
         positionSmoothing = 2
     elseif progress > thirdPartStart then
-        rotationSmoothing = 0.5 -- look at next unit
-        positionSmoothing = 1
+        rotationSmoothing = 1 -- look at next unit
+        positionSmoothing = 3
     elseif progress > secondPartStart then
         rotationSmoothing = 1.0  -- turn towards next unit
         positionSmoothing = 3
