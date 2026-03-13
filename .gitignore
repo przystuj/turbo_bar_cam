@@ -9,3 +9,5 @@
 /scripts/src/scriptgenerator/settings.json
 /scripts/src/scriptgenerator/exampleInputData.lua
 /.junie/
+/scripts/src/scriptgenerator/__pycache__
+/**/__pycache__

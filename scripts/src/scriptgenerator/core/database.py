@@ -333,9 +333,6 @@ class TimelineDatabase:
         """
         cursor = self.conn.cursor()
 
-        # Debug logging
-        print(f"[DB] Fetching projectiles at frame {frame}")
-
         # Prefer using projectile_index if present
         try:
             cursor.execute('''
@@ -354,16 +351,12 @@ class TimelineDatabase:
                 idx_count = cursor.fetchone()[0]
                 cursor.execute('SELECT COUNT(*) FROM projectile_history')
                 hist_count = cursor.fetchone()[0]
-                print(f"[DB] No active projectiles found. Index count: {idx_count}, History count: {hist_count}")
-            else:
-                print(f"[DB] Found {len(rows)} active projectiles")
 
             return [
                 {'id': r[0], 'x': r[1], 'y': r[2], 'z': r[3], 'ownerID': r[4], 'ownerHumanName': r[5], 'sample_frame': r[6]}
                 for r in rows
             ]
         except sqlite3.Error as e:
-            print(f"[DB] Error in get_all_projectiles_at_frame: {e}")
             # Fallback: derive lifespans on-the-fly without projectile_index
             cursor.execute('''
                 SELECT ph1.id, ph1.x, ph1.y, ph1.z, ph1.ownerID, ph1.ownerHumanName, ph1.frame

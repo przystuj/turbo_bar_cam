@@ -261,6 +261,12 @@ function Actions.unitFollowActions()
                 UnitFollowCamera.nextWeapon()
                 return true
             end)
+
+    Actions.registerAction("turbobarcam_unit_choose_weapon", 'tp',
+            function()
+                UnitFollowCamera.chooseWeapon()
+                return true
+            end)
 end
 
 function Actions.projectileActions()

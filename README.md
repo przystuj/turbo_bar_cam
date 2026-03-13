@@ -104,3 +104,7 @@ Where:
   - Use `frame=+n` in the script to skip forward n frames relative to the previous step
 #### 2.3.1
 - Unit follow - save camera smoothing per unit type (for example, slower camera for the Juggernaut) 
+- Unit follow - save default unit weapon per unit type
+- Unit follow - when transitioning to another unit, keep looking at the projectile if tracking was enabled
+- Unit follow - improve target stabilization
+- Added `turbobarcam_unit_choose_weapon <weaponNum>` to choose the weapon by number

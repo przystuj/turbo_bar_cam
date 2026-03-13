@@ -367,6 +367,20 @@ function UnitFollowCamera.nextWeapon()
     UnitFollowCombatMode.nextWeapon()
 end
 
+function UnitFollowCamera.chooseWeapon(weapon)
+    if Utils.isTurboBarCamDisabled() then
+        return
+    end
+    if Utils.isModeDisabled('unit_follow') then
+        return
+    end
+    if not STATE.active.mode.unitID or not Spring.ValidUnitID(STATE.active.mode.unitID) then
+        Log:debug("No unit selected.")
+        return
+    end
+    UnitFollowCombatMode.chooseWeapon()
+end
+
 function UnitFollowCamera.resetAttackState(delay)
     if Utils.isTurboBarCamDisabled() then
         return

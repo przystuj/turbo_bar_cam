@@ -22,30 +22,13 @@ end
 ---@class UnitFollowCombatMode
 local UnitFollowCombatMode = {}
 
---- Cycles through unit's weapons
-function UnitFollowCombatMode.nextWeapon()
-    if Utils.isTurboBarCamDisabled() then
-        return
-    end
-    if Utils.isModeDisabled('unit_follow') then
-        return
-    end
-    if not STATE.active.mode.unitID or not Spring.ValidUnitID(STATE.active.mode.unitID) then
-        Log:debug("No unit selected.")
-        return
-    end
-
-    local unitID = STATE.active.mode.unitID
-    local unitDefID = Spring.GetUnitDefID(unitID)
-    local unitDef = UnitDefs[unitDefID]
-
-    if not unitDef or not unitDef.weapons then
-        Log:info("Unit has no weapons")
-        return
-    end
-
-    -- Collect all valid weapon numbers in order
+--- Helper function to collect and sort valid weapon numbers for a unit
+local function getValidWeapons(unitDef)
     local weaponNumbers = {}
+    if not unitDef or not unitDef.weapons then
+        return weaponNumbers
+    end
+
     for weaponNum, weaponData in pairs(unitDef.weapons) do
         -- ignoring low range weapons because they probably aren't real weapons
         if type(weaponNum) == "number" and WeaponDefs[weaponData.weaponDef].range > 100 then
@@ -54,6 +37,78 @@ function UnitFollowCombatMode.nextWeapon()
     end
 
     table.sort(weaponNumbers)
+    return weaponNumbers
+end
+
+--- Helper function to apply weapon selection state and combat mode
+local function applyWeaponSelection(unitID, unitDef, weaponNum)
+    STATE.active.mode.unit_follow.forcedWeaponNumber = weaponNum
+    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = weaponNum
+    UnitFollowPersistence:saveUnitSettings(unitID)
+
+    -- Enable combat mode
+    UnitFollowCombatMode.setCombatMode(true)
+
+    -- Check if actively targeting something
+    local targetPos = UnitFollowCombatMode.getWeaponTargetPosition(unitID, weaponNum)
+
+    -- Set attacking state with debounce cancellation (if we're newly attacking)
+    if targetPos then
+        UnitFollowCombatMode.setAttackingState(true)
+    else
+        UnitFollowCombatMode.setAttackingState(false)
+    end
+
+    Log:info("Current weapon: " .. tostring(weaponNum) .. " (" .. unitDef.wDefs[weaponNum].name .. ")")
+end
+
+--- Chooses a specific weapon by its number
+function UnitFollowCombatMode.chooseWeapon(weaponNum)
+    if Utils.isTurboBarCamDisabled() or Utils.isModeDisabled('unit_follow') then
+        return
+    end
+
+    local unitID = STATE.active.mode.unitID
+    if not unitID or not Spring.ValidUnitID(unitID) then
+        return
+    end
+
+    local unitDefID = Spring.GetUnitDefID(unitID)
+    local unitDef = UnitDefs[unitDefID]
+    local validWeapons = getValidWeapons(unitDef)
+
+    -- Validate the chosen weapon against the unit's valid weapons
+    local isValid = false
+    for _, validNum in ipairs(validWeapons) do
+        if validNum == weaponNum then
+            isValid = true
+            break
+        end
+    end
+
+    -- If invalid weapon is chosen, do nothing
+    if not isValid then
+        return
+    end
+
+    applyWeaponSelection(unitID, unitDef, weaponNum)
+end
+
+--- Cycles through unit's weapons
+function UnitFollowCombatMode.nextWeapon()
+    if Utils.isTurboBarCamDisabled() or Utils.isModeDisabled('unit_follow') then
+        return
+    end
+
+    local unitID = STATE.active.mode.unitID
+    if not unitID or not Spring.ValidUnitID(unitID) then
+        Log:debug("No unit selected.")
+        return
+    end
+
+    local unitDefID = Spring.GetUnitDefID(unitID)
+    local unitDef = UnitDefs[unitDefID]
+    local weaponNumbers = getValidWeapons(unitDef)
 
     if #weaponNumbers == 0 then
         Log:info("Unit has no usable weapons")
@@ -61,8 +116,8 @@ function UnitFollowCombatMode.nextWeapon()
     end
 
     local currentWeapon = STATE.active.mode.unit_follow.forcedWeaponNumber or weaponNumbers[1]
-
     local currentIndex = 1
+
     for i, num in ipairs(weaponNumbers) do
         if num == currentWeapon then
             currentIndex = i
@@ -73,24 +128,8 @@ function UnitFollowCombatMode.nextWeapon()
     -- Move to the next weapon or wrap around to the first
     local nextIndex = currentIndex % #weaponNumbers + 1
     local forcedWeaponNumber = weaponNumbers[nextIndex]
-    STATE.active.mode.unit_follow.forcedWeaponNumber = forcedWeaponNumber
-    CONFIG.CAMERA_MODES.UNIT_FOLLOW.UNIT_CONFIG.FORCED_WEAPON_NUMBER = forcedWeaponNumber
-    UnitFollowPersistence:saveUnitSettings(unitID)
 
-    -- Enable combat mode
-    UnitFollowCombatMode.setCombatMode(true)
-
-    -- Check if actively targeting something
-    local targetPos = UnitFollowCombatMode.getWeaponTargetPosition(unitID, STATE.active.mode.unit_follow.forcedWeaponNumber)
-
-    -- Set attacking state with debounce cancellation (if we're newly attacking)
-    if targetPos then
-        UnitFollowCombatMode.setAttackingState(true)
-    else
-        UnitFollowCombatMode.setAttackingState(false)
-    end
-
-    Log:info("Current weapon: " .. tostring(STATE.active.mode.unit_follow.forcedWeaponNumber) .. " (" .. unitDef.wDefs[STATE.active.mode.unit_follow.forcedWeaponNumber].name .. ")")
+    applyWeaponSelection(unitID, unitDef, forcedWeaponNumber)
 end
 
 --- Clear forced weapon
