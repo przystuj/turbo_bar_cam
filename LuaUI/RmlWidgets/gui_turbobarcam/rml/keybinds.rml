@@ -22,6 +22,24 @@
                             <div class="flex-cell key-col"><b>Parameters</b></div>
                         </div>
                         <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Override Camera Position</b><br/><span class="code">turbobarcam_position_override</span></div>
+                            <div class="flex-cell desc-col">Offsets the camera position by the given values. Use `turbobarcam_position_override reset` to reset the position.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Override Smoothing</b><br/><span class="code">turbobarcam_smoothing</span></div>
+                            <div class="flex-cell desc-col">Override smoothing factor for the camera (bigger values = slower camera movement). Use `turbobarcam_smoothing reset` to reset the smoothing.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Reload Unit Settings</b><br/><span class="code">turbobarcam_reload_settings</span></div>
+                            <div class="flex-cell desc-col">Reload unit settings from the config file.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Set FOV</b><br/><span class="code">turbobarcam_set_fov</span></div>
                             <div class="flex-cell desc-col">Sets the camera's Field of View (FOV) to a specific value.</div>
                             <div class="flex-cell key-col">N/A</div>
@@ -55,6 +73,12 @@
                             <div class="flex-cell action-col"><b>Toggle Zoom (FOV)</b><br/><span class="code">turbobarcam_toggle_zoom</span></div>
                             <div class="flex-cell desc-col">Cycles through predefined Field of View (FOV) values, effectively zooming the camera in or out.</div>
                             <div class="flex-cell key-col"><span class="code">Home</span></div>
+                            <div class="flex-cell key-col">N/A</div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Track Projectiles</b><br/><span class="code">turbobarcam_track_projectiles</span></div>
+                            <div class="flex-cell desc-col">Register unitId for projectile tracking in the future</div>
+                            <div class="flex-cell key-col">N/A</div>
                             <div class="flex-cell key-col">N/A</div>
                         </div>
                         <h2>Anchor Point Mode</h2>
@@ -209,6 +233,12 @@
                             <div class="flex-cell desc-col">Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', 'temp' or 'reset'.</div>
                             <div class="flex-cell key-col"><span class="code">Ctrl+numpad1</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span><br/><span class="code">numpad8</span><br/><span class="code">numpad5</span><br/><span class="code">numpad9</span><br/><span class="code">numpad7</span><br/><span class="code">numpad6</span><br/><span class="code">numpad4</span><br/><span class="code">Ctrl+numpad7</span><br/><span class="code">Ctrl+numpad9</span></div>
                             <div class="flex-cell key-col"><span class="code">reset</span><br/><span class="code">add;DEFAULT.FORWARD,5</span><br/><span class="code">add;DEFAULT.FORWARD,-5</span><br/><span class="code">add;DEFAULT.HEIGHT,5</span><br/><span class="code">add;DEFAULT.HEIGHT,-5</span><br/><span class="code">add;DEFAULT.SIDE,5</span><br/><span class="code">add;DEFAULT.SIDE,-5</span><br/><span class="code">add;DEFAULT.ROTATION,0.1</span><br/><span class="code">add;DEFAULT.ROTATION,-0.1</span><br/><span class="code">add;COMBAT.FORWARD,5</span><br/><span class="code">add;COMBAT.FORWARD,-5</span><br/><span class="code">add;COMBAT.HEIGHT,5</span><br/><span class="code">add;COMBAT.HEIGHT,-5</span><br/><span class="code">add;COMBAT.SIDE,5</span><br/><span class="code">add;COMBAT.SIDE,-5</span><br/><span class="code">add;COMBAT.ROTATION,0.1</span><br/><span class="code">add;COMBAT.ROTATION,-0.1</span><br/><span class="code">add;WEAPON.FORWARD,5</span><br/><span class="code">add;WEAPON.FORWARD,-5</span><br/><span class="code">add;WEAPON.HEIGHT,5</span><br/><span class="code">add;WEAPON.HEIGHT,-5</span><br/><span class="code">add;WEAPON.SIDE,5</span><br/><span class="code">add;WEAPON.SIDE,-5</span><br/><span class="code">add;WEAPON.ROTATION,0.1</span><br/><span class="code">add;WEAPON.ROTATION,-0.1</span></div>
+                        </div>
+                        <div class="flex-row keybind-row">
+                            <div class="flex-cell action-col"><b>Choose weapon</b><br/><span class="code">turbobarcam_unit_follow_choose_weapon</span></div>
+                            <div class="flex-cell desc-col">Choose which weapon should be followed.</div>
+                            <div class="flex-cell key-col">N/A</div>
+                            <div class="flex-cell key-col">N/A</div>
                         </div>
                         <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Clear Look Point</b><br/><span class="code">turbobarcam_unit_follow_clear_fixed_look_point</span></div>
@@ -405,67 +435,6 @@
                         <div class="flex-row keybind-row">
                             <div class="flex-cell action-col"><b>Dev: Change Config</b><br/><span class="code">turbobarcam_dev_config</span></div>
                             <div class="flex-cell desc-col">Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <h2>Other Actions</h2>
-                        <div class="flex-row header-row">
-                            <div class="flex-cell action-col"><b>Action</b></div>
-                            <div class="flex-cell desc-col"><b>Description</b></div>
-                            <div class="flex-cell key-col"><b>Keybind</b></div>
-                            <div class="flex-cell key-col"><b>Parameters</b></div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>Track Projectiles</b><br/><span class="code">turbobarcam_track_projectiles</span></div>
-                            <div class="flex-cell desc-col">Register unitId for projectile tracking in the future</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_reload_settings</b><br/><span class="code">turbobarcam_reload_settings</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_script_ff</b><br/><span class="code">turbobarcam_script_ff</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_script_play_track</b><br/><span class="code">turbobarcam_script_play_track</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_script_select_unit_team</b><br/><span class="code">turbobarcam_script_select_unit_team</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_script_show_players_list</b><br/><span class="code">turbobarcam_script_show_players_list</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_script_toggle_music</b><br/><span class="code">turbobarcam_script_toggle_music</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_smoothing</b><br/><span class="code">turbobarcam_smoothing</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
-                            <div class="flex-cell key-col">N/A</div>
-                            <div class="flex-cell key-col">N/A</div>
-                        </div>
-                        <div class="flex-row keybind-row">
-                            <div class="flex-cell action-col"><b>turbobarcam_toggle_script</b><br/><span class="code">turbobarcam_toggle_script</span></div>
-                            <div class="flex-cell desc-col">No description available.</div>
                             <div class="flex-cell key-col">N/A</div>
                             <div class="flex-cell key-col">N/A</div>
                         </div>

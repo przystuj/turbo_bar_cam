@@ -17,21 +17,34 @@ MODE_ORDER = [
 ]
 
 MODE_PREFIX_MAP = {
-    "turbobarcam_anchor_": "Anchor Point Mode", "turbobarcam_dollycam_": "DollyCam Mode",
-    "turbobarcam_unit_follow_": "Unit Follow Mode", "turbobarcam_group_tracking_": "Group Tracking Mode",
-    "turbobarcam_orbit_": "Orbit Mode", "turbobarcam_projectile_": "Projectile Camera Mode",
+    "turbobarcam_anchor_": "Anchor Point Mode",
+    "turbobarcam_dollycam_": "DollyCam Mode",
+    "turbobarcam_unit_follow_": "Unit Follow Mode",
+    "turbobarcam_group_tracking_": "Group Tracking Mode",
+    "turbobarcam_orbit_": "Orbit Mode",
+    "turbobarcam_projectile_": "Projectile Camera Mode",
     "turbobarcam_tracking_camera_": "Unit Tracking Mode",
-    "turbobarcam_dev_": "Development Actions", "turbobarcam_spec_": "Spectator Actions",
+    "turbobarcam_dev_": "Development Actions",
+    "turbobarcam_spec_": "Spectator Actions",
+    "turbobarcam_script_": "Script Runner",
 }
 
 SPECIFIC_ACTION_TO_MODE_MAP = {
     "turbobarcam_toggle_unit_follow_camera": "Unit Follow Mode",
     "turbobarcam_toggle_group_tracking_camera": "Group Tracking Mode",
     "turbobarcam_toggle_tracking_camera": "Unit Tracking Mode",
-    "turbobarcam_toggle": "General Controls", "turbobarcam_debug": "General Controls",
-    "turbobarcam_toggle_zoom": "General Controls", "turbobarcam_set_fov": "General Controls",
+    "turbobarcam_toggle_playercam_selection": "Spectator Actions",
+    "turbobarcam_toggle_script": "Script Runner",
+    "turbobarcam_toggle": "General Controls",
+    "turbobarcam_debug": "General Controls",
+    "turbobarcam_toggle_zoom": "General Controls",
+    "turbobarcam_set_fov": "General Controls",
     "turbobarcam_toggle_require_unit_selection": "General Controls",
-    "turbobarcam_stop_tracking": "General Controls", "turbobarcam_toggle_playercam_selection": "Spectator Actions",
+    "turbobarcam_stop_tracking": "General Controls",
+    "turbobarcam_position_override": "General Controls",
+    "turbobarcam_reload_settings": "General Controls",
+    "turbobarcam_smoothing": "General Controls",
+    "turbobarcam_track_projectiles": "General Controls",
 }
 
 OTHER_ACTIONS = ["turbobarcam_unit_follow_set_fixed_look_point"]

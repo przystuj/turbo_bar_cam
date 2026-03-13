@@ -6,12 +6,16 @@ This document outlines the available actions for TurboBarCam, their descriptions
 
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
+| **Override Camera Position**<br>`turbobarcam_position_override` | Offsets the camera position by the given values. Use `turbobarcam_position_override reset` to reset the position. | N/A | N/A |
+| **Override Smoothing**<br>`turbobarcam_smoothing` | Override smoothing factor for the camera (bigger values = slower camera movement). Use `turbobarcam_smoothing reset` to reset the smoothing. | N/A | N/A |
+| **Reload Unit Settings**<br>`turbobarcam_reload_settings` | Reload unit settings from the config file. | N/A | N/A |
 | **Set FOV**<br>`turbobarcam_set_fov` | Sets the camera's Field of View (FOV) to a specific value. | N/A | N/A |
 | **Stop Camera Tracking**<br>`turbobarcam_stop_tracking` | Disables any active TurboBarCam mode and returns to default camera control. | `Esc` | N/A |
 | **Toggle Debug Log Level**<br>`turbobarcam_debug` | Toggles the debug logging level for the widget, cycling through INFO, DEBUG, and TRACE levels. | N/A | N/A |
 | **Toggle Require Unit Selection for Tracking**<br>`turbobarcam_toggle_require_unit_selection` | Toggles whether unit tracking modes (like Unit Follow, Orbit) can remain active even if no unit is currently selected. If this is disabled (default), tracking usually stops shortly after deselecting the unit. | N/A | N/A |
 | **Toggle TurboBarCam**<br>`turbobarcam_toggle` | Toggles the entire TurboBarCam widget on or off. | `numpad.` | N/A |
 | **Toggle Zoom (FOV)**<br>`turbobarcam_toggle_zoom` | Cycles through predefined Field of View (FOV) values, effectively zooming the camera in or out. | `Home` | N/A |
+| **Track Projectiles**<br>`turbobarcam_track_projectiles` | Register unitId for projectile tracking in the future | N/A | N/A |
 
 ## Anchor Point Mode
 
@@ -49,6 +53,7 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Adjust Params**<br>`turbobarcam_unit_follow_adjust_params` | Adjusts parameters for the Unit Follow mode, such as camera offsets in default/combat/weapon modes and mouse sensitivity. Actions can be 'add', 'set', 'temp' or 'reset'. | `Ctrl+numpad1`<br/>`numpad8`<br/>`numpad5`<br/>`numpad9`<br/>`numpad7`<br/>`numpad6`<br/>`numpad4`<br/>`Ctrl+numpad7`<br/>`Ctrl+numpad9`<br/>`numpad8`<br/>`numpad5`<br/>`numpad9`<br/>`numpad7`<br/>`numpad6`<br/>`numpad4`<br/>`Ctrl+numpad7`<br/>`Ctrl+numpad9`<br/>`numpad8`<br/>`numpad5`<br/>`numpad9`<br/>`numpad7`<br/>`numpad6`<br/>`numpad4`<br/>`Ctrl+numpad7`<br/>`Ctrl+numpad9` | `reset`<br/>`add;DEFAULT.FORWARD,5`<br/>`add;DEFAULT.FORWARD,-5`<br/>`add;DEFAULT.HEIGHT,5`<br/>`add;DEFAULT.HEIGHT,-5`<br/>`add;DEFAULT.SIDE,5`<br/>`add;DEFAULT.SIDE,-5`<br/>`add;DEFAULT.ROTATION,0.1`<br/>`add;DEFAULT.ROTATION,-0.1`<br/>`add;COMBAT.FORWARD,5`<br/>`add;COMBAT.FORWARD,-5`<br/>`add;COMBAT.HEIGHT,5`<br/>`add;COMBAT.HEIGHT,-5`<br/>`add;COMBAT.SIDE,5`<br/>`add;COMBAT.SIDE,-5`<br/>`add;COMBAT.ROTATION,0.1`<br/>`add;COMBAT.ROTATION,-0.1`<br/>`add;WEAPON.FORWARD,5`<br/>`add;WEAPON.FORWARD,-5`<br/>`add;WEAPON.HEIGHT,5`<br/>`add;WEAPON.HEIGHT,-5`<br/>`add;WEAPON.SIDE,5`<br/>`add;WEAPON.SIDE,-5`<br/>`add;WEAPON.ROTATION,0.1`<br/>`add;WEAPON.ROTATION,-0.1` |
+| **Choose weapon**<br>`turbobarcam_unit_follow_choose_weapon` | Choose which weapon should be followed. | N/A | N/A |
 | **Clear Look Point**<br>`turbobarcam_unit_follow_clear_fixed_look_point` | Clears any fixed look point or unit target that the camera is currently focused on, returning to default forward view. | `numpad*` | N/A |
 | **Clear Weapon**<br>`turbobarcam_unit_follow_clear_weapon_selection` | Clears the currently selected weapon in combat mode, stopping any specific weapon aiming. | `Ctrl+PageDown` | N/A |
 | **Next Weapon**<br>`turbobarcam_unit_follow_next_weapon` | Cycles to the next available weapon of the unit in combat mode for aiming. | `PageDown` | N/A |
@@ -105,17 +110,3 @@ This document outlines the available actions for TurboBarCam, their descriptions
 | Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
 |---|---|---|---|
 | **Dev: Change Config**<br>`turbobarcam_dev_config` | Allows live modification of widget configuration values for development and tweaking. Use with caution as incorrect values can cause errors. | N/A | N/A |
-
-## Other Actions
-
-| Action | <div style="width:400px">Description</div> | <div style="width:200px">Keybind</div> | <div style="width:200px">Parameters</div> |
-|---|---|---|---|
-| **Track Projectiles**<br>`turbobarcam_track_projectiles` | Register unitId for projectile tracking in the future | N/A | N/A |
-| **turbobarcam_reload_settings**<br>`turbobarcam_reload_settings` | No description available. | N/A | N/A |
-| **turbobarcam_script_ff**<br>`turbobarcam_script_ff` | No description available. | N/A | N/A |
-| **turbobarcam_script_play_track**<br>`turbobarcam_script_play_track` | No description available. | N/A | N/A |
-| **turbobarcam_script_select_unit_team**<br>`turbobarcam_script_select_unit_team` | No description available. | N/A | N/A |
-| **turbobarcam_script_show_players_list**<br>`turbobarcam_script_show_players_list` | No description available. | N/A | N/A |
-| **turbobarcam_script_toggle_music**<br>`turbobarcam_script_toggle_music` | No description available. | N/A | N/A |
-| **turbobarcam_smoothing**<br>`turbobarcam_smoothing` | No description available. | N/A | N/A |
-| **turbobarcam_toggle_script**<br>`turbobarcam_toggle_script` | No description available. | N/A | N/A |

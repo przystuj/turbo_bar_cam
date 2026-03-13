@@ -273,5 +273,55 @@
     "description": "Register unitId for projectile tracking in the future",
     "label": "Track Projectiles",
     "parameters": "<unitId>"
+  },
+  "turbobarcam_position_override": {
+    "description": "Offsets the camera position by the given values. Use `turbobarcam_position_override reset` to reset the position.",
+    "label": "Override Camera Position",
+    "parameters": "x <ValueX> y <ValueY> z <ValueZ> | reset (eg. turbobarcam_position_override y 3000 z -4000)"
+  },
+  "turbobarcam_reload_settings": {
+    "description": "Reload unit settings from the config file.",
+    "label": "Reload Unit Settings",
+    "parameters": "None"
+  },
+  "turbobarcam_script_ff": {
+    "description": "Jump to the next step in the script.",
+    "label": "Jump to next step",
+    "parameters": "None"
+  },
+  "turbobarcam_script_play_track": {
+    "description": "Play chosen music track.",
+    "label": "Play music track",
+    "parameters": "Path to the track. Eg. `turbobarcam_script_play_track music/original/warlow/Ryan Krause - Retribution.ogg`"
+  },
+  "turbobarcam_script_select_unit_team": {
+    "description": "Spectate the player who owns currently tracked unit.",
+    "label": "Spectate unit owner",
+    "parameters": "None"
+  },
+  "turbobarcam_script_toggle_music": {
+    "description": "Toggle music on/off.",
+    "label": "Toggle music",
+    "parameters": "None"
+  },
+  "turbobarcam_smoothing": {
+    "description": "Override smoothing factor for the camera (bigger values = slower camera movement). Use `turbobarcam_smoothing reset` to reset the smoothing.",
+    "label": "Override Smoothing",
+    "parameters": "position <value> | rotation <value> | reset (eg. turbobarcam_smoothing position 50)"
+  },
+  "turbobarcam_toggle_script": {
+    "description": "Starts the script for the current replay.",
+    "label": "Start script",
+    "parameters": "true - hide the UI and cursor"
+  },
+  "turbobarcam_unit_follow_choose_weapon": {
+    "description": "Choose which weapon should be followed.",
+    "label": "Choose weapon",
+    "parameters": "<weaponNum>"
+  },
+  "turbobarcam_script_show_players_list": {
+    "description": "Shows player list in PoV widget.",
+    "label": "Toggle Player List",
+    "parameters": "None"
   }
 }

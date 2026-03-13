@@ -262,7 +262,7 @@ function Actions.unitFollowActions()
                 return true
             end)
 
-    Actions.registerAction("turbobarcam_unit_choose_weapon", 'tp',
+    Actions.registerAction("turbobarcam_unit_follow_choose_weapon", 'tp',
             function()
                 UnitFollowCamera.chooseWeapon()
                 return true

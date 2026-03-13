@@ -107,4 +107,4 @@ Where:
 - Unit follow - save default unit weapon per unit type
 - Unit follow - when transitioning to another unit, keep looking at the projectile if tracking was enabled
 - Unit follow - improve target stabilization
-- Added `turbobarcam_unit_choose_weapon <weaponNum>` to choose the weapon by number
+- Added `turbobarcam_unit_follow_choose_weapon <weaponNum>` to choose the weapon by number
