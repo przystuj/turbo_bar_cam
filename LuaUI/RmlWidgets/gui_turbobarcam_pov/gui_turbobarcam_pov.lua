@@ -26,6 +26,7 @@ local spGetUnitHealth = Spring.GetUnitHealth
 local spGetUnitExperience = Spring.GetUnitExperience
 local spGetUnitRulesParam = Spring.GetUnitRulesParam
 local spGetUnitWeaponState = Spring.GetUnitWeaponState
+
 local spValidUnitID = Spring.ValidUnitID
 local spGetGameFrame = Spring.GetGameFrame
 local spGetGameSpeed = Spring.GetGameSpeed
@@ -158,6 +159,9 @@ local modelData = {
     teamBOpacity = 1.0,
     teamA_players = {},
     teamB_players = {},
+
+    weapons = {},
+    showWeapons = false,
 }
 
 local function InitializeRml()
@@ -387,6 +391,7 @@ local function UpdateModel(dt)
     local targetUnitID = STATE.active.mode.unitID
     if not targetUnitID or not spValidUnitID(targetUnitID) then
         dm.visible = false
+        dm.weapons = {}
         return
     end
 
@@ -395,8 +400,61 @@ local function UpdateModel(dt)
     local targetUnitDefID = spGetUnitDefID(targetUnitID)
     local unitDef = unitDefInfo[targetUnitDefID]
     local rawDef = UnitDefs[targetUnitDefID]
-    if not unitDef then
+    if not unitDef or not rawDef then
+        dm.weapons = {}
         return
+    end
+
+    -- WEAPONS LIST LOGIC
+    local weaponList = {}
+    local validWeaponsCount = 0
+    if rawDef.weapons then
+        local forcedWeaponNum = STATE.active.mode.unit_follow.forcedWeaponNumber
+        for i, wData in ipairs(rawDef.weapons) do
+            local wDef = WeaponDefs[wData.weaponDef]
+            if wDef and wDef.range > 100 and not wDef.isShield then
+                validWeaponsCount = validWeaponsCount + 1
+
+                local nextFire = spGetUnitWeaponState(targetUnitID, i, "reloadFrame")
+                local reloadTime = spGetUnitWeaponState(targetUnitID, i, "reloadTimeXP") -- in seconds
+                local reloadPct = 100
+                if reloadTime and reloadTime > 0 then
+                    local currentFrame = spGetGameFrame()
+                    local remaining = nextFire - currentFrame
+                    if remaining > 0 then
+                        reloadPct = math.max(0, math.min(100, (1 - (remaining / (reloadTime * 30))) * 100))
+                    end
+                end
+
+                local targetType, _, target = Spring.GetUnitWeaponTarget(targetUnitID, i)
+                local targetName = "None"
+                if targetType == 1 then
+                    if spValidUnitID(target) then
+                        local tDefID = spGetUnitDefID(target)
+                        targetName = tDefID and UnitDefs[tDefID].translatedHumanName or "Unit"
+                    else
+                        targetName = "None"
+                    end
+                elseif targetType == 2 then
+                    targetName = "Ground"
+                end
+
+                table.insert(weaponList, {
+                    name = wDef.description or wDef.name,
+                    reloadPct = reloadPct,
+                    target = targetName,
+                    isForced = (i == forcedWeaponNum)
+                })
+            end
+        end
+    end
+
+    if validWeaponsCount > 1 then
+        dm.weapons = weaponList
+        dm.showWeapons = true
+    else
+        dm.weapons = {}
+        dm.showWeapons = false
     end
 
     dm.name = unitDef.humanName

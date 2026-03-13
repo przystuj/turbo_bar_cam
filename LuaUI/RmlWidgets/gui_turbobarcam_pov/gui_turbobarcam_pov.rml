@@ -73,6 +73,18 @@
         </div>
     </div>
 
+    <div id="weapon-cards-container" data-model="turbobarcam_pov_model" data-if="visible && showWeapons">
+        <div class="weapon-card" data-for="weapon : weapons" data-class-active="weapon.isForced">
+            <div class="weapon-name-row">
+                <span class="weapon-name-text">{{ weapon.name }}</span>
+                <span class="weapon-target-text" data-if="weapon.target != 'None'">{{ weapon.target }}</span>
+            </div>
+            <div class="weapon-reload-bg">
+                <div class="weapon-reload-fill" data-style-width="weapon.reloadPct + '%'"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="player-list-wrapper" data-model="turbobarcam_pov_model" data-style-opacity="playerListOpacity">
 
         <div class="team-panel left" data-style-opacity="teamAOpacity">
